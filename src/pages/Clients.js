@@ -5,11 +5,13 @@ import { useAppData } from '../context/AppDataContext';
 
 const Clients = () => {
   const navigate = useNavigate();
-  const { clients, addClient, calculateProjectTotalPrice, formatPrice } = useAppData();
+  const { clients, addClient, updateClient, calculateProjectTotalPrice, formatPrice } = useAppData();
   const [showAddClient, setShowAddClient] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientType, setClientType] = useState('private');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
   const [clientForm, setClientForm] = useState({
     name: '',
     email: '',
@@ -86,11 +88,64 @@ const Clients = () => {
 
   const handleBackToList = () => {
     setSelectedClient(null);
+    setIsEditing(false);
+    setEditForm({});
+  };
+
+  const handleEditToggle = () => {
+    if (!isEditing) {
+      // Start editing - populate form with current client data
+      setEditForm({ ...selectedClient });
+    } else {
+      // Cancel editing - reset form
+      setEditForm({});
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleEditSave = () => {
+    // Update the client with edited data
+    updateClient(selectedClient.id, editForm);
+    setSelectedClient({ ...selectedClient, ...editForm });
+    setIsEditing(false);
+    setEditForm({});
+  };
+
+  const handleEditInputChange = (field, value) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleProjectOpen = (project) => {
     // Navigate to projects page with the specific project selected
     navigate('/projects', { state: { selectedProjectId: project.id, selectedClient: selectedClient } });
+  };
+
+  // Helper component for editable fields
+  const EditableField = ({ label, field, value, type = "text" }) => {
+    if (isEditing) {
+      return (
+        <div>
+          <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+          <input
+            type={type}
+            value={editForm[field] || ''}
+            onChange={(e) => handleEditInputChange(field, e.target.value)}
+            className="w-full mt-1 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+            placeholder={`Enter ${label.toLowerCase()}`}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div>
+        <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+        <p className="text-gray-900 dark:text-white font-medium">{value || '-'}</p>
+      </div>
+    );
   };
 
   const filteredClients = clients.filter(client =>
@@ -104,7 +159,7 @@ const Clients = () => {
       {selectedClient ? (
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between">
             <button 
               onClick={handleBackToList}
               className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -112,6 +167,25 @@ const Clients = () => {
               <ArrowLeft className="w-5 h-5" />
               Back
             </button>
+            
+            {/* Edit Toggle Button */}
+            <div className="flex items-center gap-3">
+              {isEditing && (
+                <button
+                  onClick={handleEditSave}
+                  className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+                >
+                  Save
+                </button>
+              )}
+              <button
+                onClick={handleEditToggle}
+                className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                title={isEditing ? "Cancel editing" : "Edit client information"}
+              >
+                <Edit3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
           </div>
 
           {/* Client Avatar and Name */}
@@ -119,7 +193,17 @@ const Clients = () => {
             <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="w-12 h-12 text-gray-600 dark:text-gray-400" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{selectedClient.name}</h1>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editForm.name || ''}
+                onChange={(e) => handleEditInputChange('name', e.target.value)}
+                className="text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-gray-300 dark:border-gray-600 focus:border-gray-500 focus:outline-none text-center"
+                placeholder="Client name"
+              />
+            ) : (
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{selectedClient.name}</h1>
+            )}
           </div>
 
           {/* Contact and Location - Side by Side */}
@@ -131,18 +215,9 @@ const Clients = () => {
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="space-y-3">
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Name</span>
-                  <p className="text-gray-900 dark:text-white font-medium">{selectedClient.name}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Email</span>
-                  <p className="text-gray-900 dark:text-white font-medium">{selectedClient.email}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Phone number</span>
-                  <p className="text-gray-900 dark:text-white font-medium">{selectedClient.phone}</p>
-                </div>
+                <EditableField label="Name" field="name" value={selectedClient.name} />
+                <EditableField label="Email" field="email" value={selectedClient.email} type="email" />
+                <EditableField label="Phone number" field="phone" value={selectedClient.phone} type="tel" />
               </div>
             </div>
 
@@ -153,29 +228,30 @@ const Clients = () => {
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="space-y-3">
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Street</span>
-                  <p className="text-gray-900 dark:text-white font-medium">{selectedClient.street}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Additional info</span>
-                  <p className="text-gray-900 dark:text-white font-medium">{selectedClient.additionalInfo}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">City</span>
-                  <p className="text-gray-900 dark:text-white font-medium">{selectedClient.city}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Postal code</span>
-                  <p className="text-gray-900 dark:text-white font-medium">{selectedClient.postalCode}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Country</span>
-                  <p className="text-gray-900 dark:text-white font-medium">{selectedClient.country}</p>
-                </div>
+                <EditableField label="Street" field="street" value={selectedClient.street} />
+                <EditableField label="Additional info" field="additionalInfo" value={selectedClient.additionalInfo} />
+                <EditableField label="City" field="city" value={selectedClient.city} />
+                <EditableField label="Postal code" field="postalCode" value={selectedClient.postalCode} />
+                <EditableField label="Country" field="country" value={selectedClient.country} />
               </div>
             </div>
           </div>
+
+          {/* Business Information Section (if applicable) */}
+          {(selectedClient.type === 'business' || selectedClient.businessId || selectedClient.taxId || selectedClient.vatId || selectedClient.contactPerson) && (
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Business Information</h2>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <EditableField label="Business ID" field="businessId" value={selectedClient.businessId} />
+                <EditableField label="Tax ID" field="taxId" value={selectedClient.taxId} />
+                <EditableField label="VAT Registration Number" field="vatId" value={selectedClient.vatId} />
+                <EditableField label="Contact Person" field="contactPerson" value={selectedClient.contactPerson} />
+              </div>
+            </div>
+          )}
 
           {/* Client's Projects Section */}
           <div>
