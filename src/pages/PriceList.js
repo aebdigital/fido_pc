@@ -3,7 +3,7 @@ import { ArrowLeft, Hammer, Package, Info, Menu, Save, RefreshCw } from 'lucide-
 import { useAppData } from '../context/AppDataContext';
 
 const PriceList = ({ onBack }) => {
-  const { generalPriceList, updateGeneralPriceList, resetGeneralPriceItem } = useAppData();
+  const { generalPriceList, updateGeneralPriceList } = useAppData();
   const [hasChanges, setHasChanges] = useState(false);
   const [originalPrices, setOriginalPrices] = useState({});
 
@@ -16,7 +16,7 @@ const PriceList = ({ onBack }) => {
       });
       setOriginalPrices(original);
     }
-  }, []);
+  }, [generalPriceList]);
 
   const handlePriceChange = (category, itemIndex, newPrice) => {
     // Allow empty string and partial numbers while typing

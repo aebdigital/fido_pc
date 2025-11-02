@@ -5,7 +5,7 @@ import { useAppData } from '../context/AppDataContext';
 
 const Clients = () => {
   const navigate = useNavigate();
-  const { clients, addClient, findProjectById, calculateProjectTotalPrice, formatPrice } = useAppData();
+  const { clients, addClient, calculateProjectTotalPrice, formatPrice } = useAppData();
   const [showAddClient, setShowAddClient] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientType, setClientType] = useState('private');

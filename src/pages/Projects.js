@@ -26,7 +26,6 @@ const Projects = () => {
     addProject, 
     deleteProject, 
     assignProjectToClient,
-    findProjectById,
     addRoomToProject,
     updateProjectRoom,
     deleteProjectRoom,
@@ -55,7 +54,6 @@ const Projects = () => {
   const [selectedClientForProject, setSelectedClientForProject] = useState(null);
   const [showClientSelector, setShowClientSelector] = useState(false);
   const [showProjectPriceList, setShowProjectPriceList] = useState(false);
-  const [projectPriceData, setProjectPriceData] = useState({});
   const [projectDeleteMode, setProjectDeleteMode] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -497,10 +495,7 @@ const Projects = () => {
 
   const handleSaveProjectPriceList = (priceData) => {
     // In a real app, this would save to backend with project ID
-    setProjectPriceData(prev => ({
-      ...prev,
-      [currentProject.id]: priceData
-    }));
+    console.log('Saving project price data:', priceData);
     setShowProjectPriceList(false);
   };
 
