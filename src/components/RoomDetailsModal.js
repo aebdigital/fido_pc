@@ -507,12 +507,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {property.types.map(type => (
                   <button
                     key={type}
                     onClick={(e) => handleSanitaryTypeSelect(type, e)}
-                    className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left"
+                    className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
                   >
                     {type}
                   </button>
@@ -743,7 +743,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         }
       `}</style>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{room.name}</h2>
@@ -772,9 +772,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             </div>
             
             {/* Main properties */}
-            {mainProperties.map(property => (
-              <WorkPropertyCard key={property.id} property={property} />
-            ))}
+            <div className="flex gap-2">
+              {Array.from({ length: 3 }, (_, colIndex) => (
+                <div key={colIndex} className="flex-1 space-y-2">
+                  {mainProperties
+                    .filter((_, index) => index % 3 === colIndex)
+                    .map(property => (
+                      <WorkPropertyCard key={property.id} property={property} />
+                    ))}
+                </div>
+              ))}
+            </div>
             
             {/* Others section */}
             {othersProperties.length > 0 && (
@@ -783,9 +791,15 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Others</h3>
                 </div>
-                <div className="space-y-2">
-                  {othersProperties.map(property => (
-                    <WorkPropertyCard key={property.id} property={property} />
+                <div className="flex gap-2">
+                  {Array.from({ length: 3 }, (_, colIndex) => (
+                    <div key={colIndex} className="flex-1 space-y-2">
+                      {othersProperties
+                        .filter((_, index) => index % 3 === colIndex)
+                        .map(property => (
+                          <WorkPropertyCard key={property.id} property={property} />
+                        ))}
+                    </div>
                   ))}
                 </div>
               </div>
