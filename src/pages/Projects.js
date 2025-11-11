@@ -470,8 +470,11 @@ const Projects = () => {
   const handleProjectSelect = (project) => {
     setSelectedProject(project);
     setCurrentView('details');
-    // Auto-show room options when opening project
-    setShowNewRoomModal(true);
+    // Auto-show room options only for fresh projects with no rooms
+    const projectRooms = getProjectRooms(project.id);
+    if (projectRooms.length === 0) {
+      setShowNewRoomModal(true);
+    }
   };
 
   const handleBackToProjects = () => {
