@@ -7,8 +7,10 @@ import {
   Edit
 } from 'lucide-react';
 import PriceList from './PriceList';
+import { useLanguage } from '../context/LanguageContext';
 
 const Settings = () => {
+  const { t } = useLanguage();
   const [showPriceList, setShowPriceList] = useState(false);
 
   const handlePriceListClick = () => {
@@ -20,18 +22,22 @@ const Settings = () => {
   };
 
   if (showPriceList) {
-    return <PriceList onBack={handleBackFromPriceList} />;
+    return (
+      <PriceList 
+        onBack={handleBackFromPriceList} 
+      />
+    );
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Settings</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">{t('Settings')}</h1>
 
       {/* Access Section */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Access</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Access')}</h2>
         </div>
         <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-6">
           <div className="flex items-center justify-between">
@@ -42,10 +48,10 @@ const Settings = () => {
                   <Edit className="w-4 h-4" />
                 </button>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Restricted Access</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">Customise prices in the entire app and export projects to PDF. Try Pro For Free!</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('Restricted Access')}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t('Customise prices in the entire app and export projects to PDF. Try Pro For Free!')}</div>
               <button className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-6 py-2 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                Try Pro
+                {t('Try Pro')}
               </button>
             </div>
           </div>
@@ -56,21 +62,21 @@ const Settings = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <SettingsIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Preferences</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Preferences')}</h2>
         </div>
         <div className="space-y-4">
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
             <div>
-              <div className="font-medium text-gray-900 dark:text-white">Archive</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">archived projects, archive duration</div>
+              <div className="font-medium text-gray-900 dark:text-white">{t('Archive')}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('archived projects, archive duration')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
             <div>
-              <div className="font-medium text-gray-900 dark:text-white">Price offer</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">supplier information, validity of price offer</div>
+              <div className="font-medium text-gray-900 dark:text-white">{t('Price offer')}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('supplier information, validity of price offer')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -80,8 +86,8 @@ const Settings = () => {
             onClick={handlePriceListClick}
           >
             <div>
-              <div className="font-medium text-gray-900 dark:text-white">General price list</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">set default price list</div>
+              <div className="font-medium text-gray-900 dark:text-white">{t('General price list')}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('set default price list')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -93,31 +99,31 @@ const Settings = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Send className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Others</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
         </div>
         <div className="space-y-4">
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-            <div className="font-medium text-gray-900 dark:text-white">Tutorial</div>
+            <div className="font-medium text-gray-900 dark:text-white">{t('Tutorial')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-            <div className="font-medium text-gray-900 dark:text-white">Contact</div>
+            <div className="font-medium text-gray-900 dark:text-white">{t('Contact')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-            <div className="font-medium text-gray-900 dark:text-white">Terms of Use</div>
+            <div className="font-medium text-gray-900 dark:text-white">{t('Terms of Use')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-            <div className="font-medium text-gray-900 dark:text-white">Privacy Policy</div>
+            <div className="font-medium text-gray-900 dark:text-white">{t('Privacy Policy')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-            <div className="font-medium text-gray-900 dark:text-white">Restore Purchases</div>
+            <div className="font-medium text-gray-900 dark:text-white">{t('Restore Purchases')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
         </div>
@@ -125,9 +131,9 @@ const Settings = () => {
 
       {/* App Info */}
       <div className="text-center text-gray-500 dark:text-gray-400 space-y-1">
-        <div className="text-lg font-semibold text-gray-900 dark:text-white">Fido Building Calculator</div>
+        <div className="text-lg font-semibold text-gray-900 dark:text-white">{t('Fido Building Calculator')}</div>
         <div className="text-sm">v1.4.7</div>
-        <div className="text-xs">©Fido, s.r.o. All rights reserved.</div>
+        <div className="text-xs">©Fido, s.r.o. {t('All rights reserved')}.</div>
       </div>
     </div>
   );

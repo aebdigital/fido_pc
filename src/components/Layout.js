@@ -2,18 +2,52 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ClipboardList, FileText, Users, Settings, Moon, Sun } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useNavigationBlocker } from '../context/NavigationBlockerContext';
+import UnsavedChangesModal from './UnsavedChangesModal';
+import { useNavigate } from 'react-router-dom';
 import logo from '../logo.png';
 
 const Layout = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { t, language, toggleLanguage } = useLanguage();
+  const { 
+    attemptNavigation, 
+    showModal, 
+    handleSaveAndProceed, 
+    handleDiscardAndProceed, 
+    handleCancel 
+  } = useNavigationBlocker();
 
   const menuItems = [
-    { path: '/projects', name: 'Projects', icon: ClipboardList },
-    { path: '/invoices', name: 'Invoices', icon: FileText },
-    { path: '/clients', name: 'Clients', icon: Users },
-    { path: '/settings', name: 'Settings', icon: Settings }
+    { path: '/projects', name: t('Projekty'), icon: ClipboardList },
+    { path: '/invoices', name: t('Faktúry'), icon: FileText },
+    { path: '/clients', name: t('Klienti'), icon: Users },
+    { path: '/settings', name: t('Nastavenia'), icon: Settings }
   ];
+
+  const handleNavigation = (path, e) => {
+    e.preventDefault();
+    if (attemptNavigation(path)) {
+      navigate(path);
+    }
+  };
+
+  const onSaveAndProceedWrapper = () => {
+    const path = handleSaveAndProceed();
+    if (path) {
+      navigate(path);
+    }
+  };
+
+  const onDiscardAndProceedWrapper = () => {
+    const path = handleDiscardAndProceed();
+    if (path) {
+      navigate(path);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
@@ -24,10 +58,11 @@ const Layout = ({ children }) => {
         </div>
         <nav className="flex-1 py-4">
           {menuItems.map(item => (
-            <Link
+            <a
               key={item.path}
-              to={item.path}
-              className={`flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 border-l-3 ${
+              href={item.path}
+              onClick={(e) => handleNavigation(item.path, e)}
+              className={`flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 border-l-3 cursor-pointer ${
                 location.pathname === item.path
                   ? 'bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-white border-l-blue-600 dark:border-l-white'
                   : 'border-l-transparent'
@@ -35,27 +70,36 @@ const Layout = ({ children }) => {
             >
               <item.icon className="w-5 h-5 mr-3" />
               <span className="font-medium text-base">{item.name}</span>
-            </Link>
+            </a>
           ))}
         </nav>
 
-        {/* Dark Mode Toggle */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        {/* Theme and Language Toggles */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-center">
+          {/* Theme Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 relative"
           >
-            {isDarkMode ? (
-              <>
-                <Sun className="w-5 h-5 text-yellow-500" />
-                <span className="font-medium text-gray-900 dark:text-white">Light Mode</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-5 h-5 text-gray-700" />
-                <span className="font-medium text-gray-900">Dark Mode</span>
-              </>
-            )}
+            <div className={`absolute inset-1 rounded-full bg-white dark:bg-gray-900 transition-all duration-200 flex items-center justify-center ${isDarkMode ? 'shadow-inner' : 'shadow-md'}`}>
+              {isDarkMode ? (
+                <Moon className="w-8 h-8 text-gray-700 dark:text-gray-300" />
+              ) : (
+                <Sun className="w-8 h-8 text-gray-700" />
+              )}
+            </div>
+          </button>
+
+          {/* Language Toggle */}
+          <button
+            onClick={toggleLanguage}
+            className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 relative"
+          >
+            <div className="absolute inset-1 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center shadow-md transition-all duration-200">
+              <span className="text-lg font-bold text-gray-700 dark:text-gray-300">
+                {language === 'en' ? '🇺🇸' : '🇸🇰'}
+              </span>
+            </div>
           </button>
         </div>
       </div>
@@ -68,6 +112,14 @@ const Layout = ({ children }) => {
           {children}
         </div>
       </div>
+
+      {/* Global Unsaved Changes Modal */}
+      <UnsavedChangesModal
+        isOpen={showModal}
+        onSaveAndProceed={onSaveAndProceedWrapper}
+        onDiscardAndProceed={onDiscardAndProceedWrapper}
+        onCancel={handleCancel}
+      />
     </div>
   );
 };

@@ -1,10 +1,7 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { X, Plus, Trash2, Check, Menu, Copy, Hammer } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
-import NumberInput from './NumberInput';
 
 const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
-  const { t } = useLanguage();
   const [workData, setWorkData] = useState(room.workItems || []);
   const [expandedItems, setExpandedItems] = useState({});
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);
@@ -119,8 +116,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   };
 
   const handleUpdateWorkItem = (itemId, field, value) => {
-    // NumberInput component already handles validation and returns a numeric value
-    const processedValue = value || 0;
+    // Allow empty string and handle partial numbers while typing
+    let processedValue;
+    if (value === '') {
+      processedValue = 0;
+    } else {
+      const numericValue = parseFloat(value);
+      processedValue = !isNaN(numericValue) ? numericValue : 0;
+    }
     
     setWorkData(items =>
       items.map(item =>
@@ -162,8 +165,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   };
 
   const handleUpdateDoorWindow = (itemId, type, subItemId, field, value) => {
-    // NumberInput component already handles validation and returns a numeric value
-    const processedValue = value || 0;
+    // Allow empty string and handle partial numbers while typing
+    let processedValue;
+    if (value === '') {
+      processedValue = 0;
+    } else {
+      const numericValue = parseFloat(value);
+      processedValue = !isNaN(numericValue) ? numericValue : 0;
+    }
     
     setWorkData(items =>
       items.map(item =>
@@ -298,7 +307,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           <div key={subItem.id} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {t('no.')} {index + 1}
+                No. {index + 1}
               </span>
               <div className="flex gap-1">
                 <button
@@ -318,27 +327,29 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t('Width')}</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">Width</span>
                 <div className="flex items-center gap-1">
-                  <NumberInput
+                  <input
+                    type="number"
                     value={subItem.width}
-                    onChange={(value) => handleUpdateDoorWindow(item.id, type, subItem.id, 'width', value)}
-                    size="small"
-                    className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                    min={0}
+                    onChange={(e) => handleUpdateDoorWindow(item.id, type, subItem.id, 'width', e.target.value)}
+                    className="w-16 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-center text-gray-900 dark:text-white text-xs"
+                    min="0"
+                    step="0.1"
                   />
                   <span className="text-xs text-gray-600 dark:text-gray-400">m</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t('Height')}</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">Height</span>
                 <div className="flex items-center gap-1">
-                  <NumberInput
+                  <input
+                    type="number"
                     value={subItem.height}
-                    onChange={(value) => handleUpdateDoorWindow(item.id, type, subItem.id, 'height', value)}
-                    size="small"
-                    className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                    min={0}
+                    onChange={(e) => handleUpdateDoorWindow(item.id, type, subItem.id, 'height', e.target.value)}
+                    className="w-16 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-center text-gray-900 dark:text-white text-xs"
+                    min="0"
+                    step="0.1"
                   />
                   <span className="text-xs text-gray-600 dark:text-gray-400">m</span>
                 </div>
@@ -362,11 +373,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-600 dark:text-gray-400 w-32 flex-shrink-0">{field.name}</span>
         <div className="flex items-center gap-2">
-          <NumberInput
+          <input
+            type="number"
             value={value}
-            onChange={(value) => handleUpdateWorkItem(item.id, field.name, value)}
-            className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-            min={0}
+            onChange={(e) => handleUpdateWorkItem(item.id, field.name, e.target.value)}
+            className="w-20 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-center text-gray-900 dark:text-white"
+            min="0"
+            step="0.1"
           />
           <span className="text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{field.unit}</span>
         </div>
@@ -398,7 +411,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           {showingRentalsSelector && (
             <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900 dark:text-white">{t('Select Rental Type')}</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white">Select Rental Type</h4>
                 <button
                   onClick={() => setShowingRentalsSelector(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -425,7 +438,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white">
-                  {item.name} {t('no.')} {index + 1}
+                  {item.name} no. {index + 1}
                 </span>
                 <button
                   onClick={(e) => handleRemoveWorkItem(item.id, e)}
@@ -442,11 +455,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     <div key={field.name} className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400 w-32 flex-shrink-0">{field.name}</span>
                       <div className="flex items-center gap-2">
-                        <NumberInput
+                        <input
+                          type="number"
                           value={item.fields[field.name] || 0}
-                          onChange={(value) => handleUpdateWorkItem(item.id, field.name, value)}
-                          className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                          min={0}
+                          onChange={(e) => handleUpdateWorkItem(item.id, field.name, e.target.value)}
+                          className="w-20 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-center text-gray-900 dark:text-white"
+                          min="0"
+                          step="0.1"
                         />
                         <span className="text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{field.unit}</span>
                       </div>
@@ -484,7 +499,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           {showingSanitarySelector && (
             <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900 dark:text-white">{t('Type of Sanitary')}</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white">Type of Sanitary</h4>
                 <button
                   onClick={() => setShowingSanitarySelector(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -492,12 +507,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {property.types.map(type => (
                   <button
                     key={type}
                     onClick={(e) => handleSanitaryTypeSelect(type, e)}
-                    className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
+                    className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left"
                   >
                     {type}
                   </button>
@@ -524,25 +539,29 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               {/* Count and Price fields */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400 w-32 flex-shrink-0">{t('Count')}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 w-32 flex-shrink-0">Count</span>
                   <div className="flex items-center gap-2">
-                    <NumberInput
+                    <input
+                      type="number"
                       value={item.fields['Count'] || 0}
-                      onChange={(value) => handleUpdateWorkItem(item.id, 'Count', value)}
-                      className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                      min={0}
+                      onChange={(e) => handleUpdateWorkItem(item.id, 'Count', e.target.value)}
+                      className="w-20 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-center text-gray-900 dark:text-white"
+                      min="0"
+                      step="1"
                     />
                     <span className="text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">pc</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400 w-32 flex-shrink-0">{t('Price')}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 w-32 flex-shrink-0">Price</span>
                   <div className="flex items-center gap-2">
-                    <NumberInput
+                    <input
+                      type="number"
                       value={item.fields['Price'] || 0}
-                      onChange={(value) => handleUpdateWorkItem(item.id, 'Price', value)}
-                      className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                      min={0}
+                      onChange={(e) => handleUpdateWorkItem(item.id, 'Price', e.target.value)}
+                      className="w-20 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-center text-gray-900 dark:text-white"
+                      min="0"
+                      step="0.01"
                     />
                     <span className="text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">€/pc</span>
                   </div>
@@ -559,9 +578,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h4 className="font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+            <h4 className="font-medium text-gray-900 dark:text-white">{property.name}</h4>
             {property.subtitle && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{property.subtitle}</p>
             )}
           </div>
           <button
@@ -577,7 +596,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-900 dark:text-white">
-                {property.name} {t('no.')} {existingItems.indexOf(item) + 1}
+                {property.name} no. {existingItems.indexOf(item) + 1}
               </span>
               <button
                 onClick={(e) => handleRemoveWorkItem(item.id, e)}
@@ -655,7 +674,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             {property.complementaryWorks && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Complementary works</span>
                   <button
                     onClick={(e) => toggleExpanded(item.id, e)}
                     className="text-gray-400 hover:text-gray-600"
@@ -724,7 +743,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         }
       `}</style>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl max-h-[90vh] flex flex-col">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{room.name}</h2>
@@ -749,38 +768,24 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             {/* Work section */}
             <div className="flex items-center gap-3 pb-2">
               <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Work')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Work</h3>
             </div>
             
             {/* Main properties */}
-            <div className="flex gap-2">
-              {Array.from({ length: 3 }, (_, colIndex) => (
-                <div key={colIndex} className="flex-1 space-y-2">
-                  {mainProperties
-                    .filter((_, index) => index % 3 === colIndex)
-                    .map(property => (
-                      <WorkPropertyCard key={property.id} property={property} />
-                    ))}
-                </div>
-              ))}
-            </div>
+            {mainProperties.map(property => (
+              <WorkPropertyCard key={property.id} property={property} />
+            ))}
             
             {/* Others section */}
             {othersProperties.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-3 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700">
                   <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Others')}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Others</h3>
                 </div>
-                <div className="flex gap-2">
-                  {Array.from({ length: 3 }, (_, colIndex) => (
-                    <div key={colIndex} className="flex-1 space-y-2">
-                      {othersProperties
-                        .filter((_, index) => index % 3 === colIndex)
-                        .map(property => (
-                          <WorkPropertyCard key={property.id} property={property} />
-                        ))}
-                    </div>
+                <div className="space-y-2">
+                  {othersProperties.map(property => (
+                    <WorkPropertyCard key={property.id} property={property} />
                   ))}
                 </div>
               </div>
@@ -794,13 +799,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             onClick={onClose}
             className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
-            {t('Cancel')}
+            Cancel
           </button>
           <button
             onClick={() => onSave(workData)}
             className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
           >
-            {t('Save')}
+            Save
           </button>
         </div>
         </div>

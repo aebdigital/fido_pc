@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { User, Search, ChevronRight, Plus, Trash2, Edit3, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const Clients = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { clients, addClient, updateClient, calculateProjectTotalPrice, formatPrice } = useAppData();
   const [showAddClient, setShowAddClient] = useState(false);
@@ -211,28 +213,28 @@ const Clients = () => {
             {/* Contact Section */}
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Contact</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Contact')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="space-y-3">
-                <EditableField label="Name" field="name" value={selectedClient.name} />
-                <EditableField label="Email" field="email" value={selectedClient.email} type="email" />
-                <EditableField label="Phone number" field="phone" value={selectedClient.phone} type="tel" />
+                <EditableField label={t('Name')} field="name" value={selectedClient.name} />
+                <EditableField label={t('Email')} field="email" value={selectedClient.email} type="email" />
+                <EditableField label={t('Phone number')} field="phone" value={selectedClient.phone} type="tel" />
               </div>
             </div>
 
             {/* Location Section */}
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Location</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Location')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="space-y-3">
-                <EditableField label="Street" field="street" value={selectedClient.street} />
-                <EditableField label="Additional info" field="additionalInfo" value={selectedClient.additionalInfo} />
-                <EditableField label="City" field="city" value={selectedClient.city} />
-                <EditableField label="Postal code" field="postalCode" value={selectedClient.postalCode} />
-                <EditableField label="Country" field="country" value={selectedClient.country} />
+                <EditableField label={t('Street')} field="street" value={selectedClient.street} />
+                <EditableField label={t('Additional info')} field="additionalInfo" value={selectedClient.additionalInfo} />
+                <EditableField label={t('City')} field="city" value={selectedClient.city} />
+                <EditableField label={t('Postal code')} field="postalCode" value={selectedClient.postalCode} />
+                <EditableField label={t('Country')} field="country" value={selectedClient.country} />
               </div>
             </div>
           </div>
@@ -241,7 +243,7 @@ const Clients = () => {
           {(selectedClient.type === 'business' || selectedClient.businessId || selectedClient.taxId || selectedClient.vatId || selectedClient.contactPerson) && (
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Business Information</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Business Information')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -256,7 +258,7 @@ const Clients = () => {
           {/* Client's Projects Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Client's projects</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t("Client's projects")}</h2>
               <button className="w-8 h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
@@ -271,7 +273,7 @@ const Clients = () => {
                 >
                   <div className="text-left">
                     <h3 className="font-medium text-gray-900 dark:text-white">{project.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{project.rooms} room</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{project.rooms} {t('room')}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-500 dark:text-gray-400">VAT not included</p>
@@ -285,7 +287,7 @@ const Clients = () => {
           {/* Edit Client Button */}
           <button className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-4 rounded-2xl font-medium border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
             <Edit3 className="w-4 h-4" />
-            Edit client
+            {t('Edit client')}
           </button>
         </div>
       ) : showAddClient ? (
@@ -343,7 +345,7 @@ const Clients = () => {
             <div className="flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">Name</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Name')}</label>
                   <input 
                     type="text" 
                     value={clientForm.name}
@@ -354,7 +356,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">Email</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Email')}</label>
                   <input 
                     type="email" 
                     value={clientForm.email}
@@ -365,7 +367,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">Phone number</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Phone number')}</label>
                   <input 
                     type="tel" 
                     value={clientForm.phone}
@@ -376,7 +378,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">Street</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Street')}</label>
                   <input 
                     type="text" 
                     value={clientForm.street}
@@ -387,7 +389,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">Additional info</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Additional info')}</label>
                   <input 
                     type="text" 
                     value={clientForm.additionalInfo}
@@ -398,7 +400,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">City</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('City')}</label>
                   <input 
                     type="text" 
                     value={clientForm.city}
@@ -409,7 +411,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">Postal code</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Postal code')}</label>
                   <input 
                     type="text" 
                     value={clientForm.postalCode}
@@ -420,7 +422,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">Country</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Country')}</label>
                   <input 
                     type="text" 
                     value={clientForm.country}
@@ -433,7 +435,7 @@ const Clients = () => {
                 {clientType === 'business' && (
                   <>
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">Business ID</label>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo organizácie')}</label>
                       <input 
                         type="text" 
                         value={clientForm.businessId}
@@ -444,7 +446,7 @@ const Clients = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">Tax ID</label>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Daňové identifikačné číslo')}</label>
                       <input 
                         type="text" 
                         value={clientForm.taxId}
@@ -455,7 +457,7 @@ const Clients = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">VAT Registration Number</label>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo pre daň z pridanej hodnoty')}</label>
                       <input 
                         type="text" 
                         value={clientForm.vatId}
@@ -466,7 +468,7 @@ const Clients = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">Contact person</label>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Kontaktná osoba')}</label>
                       <input 
                         type="text" 
                         value={clientForm.contactPerson}
@@ -495,7 +497,7 @@ const Clients = () => {
         <div>
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Clients</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Clients')}</h1>
             <div className="flex items-center gap-4">
               <div className="w-72 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />

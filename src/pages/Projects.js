@@ -16,9 +16,11 @@ import { useLocation } from 'react-router-dom';
 import RoomDetailsModal from '../components/RoomDetailsModal';
 import ProjectPriceList from '../components/ProjectPriceList';
 import { useAppData } from '../context/AppDataContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const Projects = () => {
   const location = useLocation();
+  const { t } = useLanguage();
   const { 
     projectCategories, 
     clients, 
@@ -77,22 +79,22 @@ const Projects = () => {
 
 
   const roomTypes = [
-    'Hallway', 'Toilet', 'Bathroom', 'Kitchen', 
-    'Living room', 'Kids room', 'Bedroom', 'Guests room',
-    'Work room', 'Custom'
+    t('Chodba'), t('WC'), t('Kúpeľňa'), t('Kuchyňa'), 
+    t('Obývačka'), t('Detská izba'), t('Spálňa'), t('Hostovská'),
+    t('Pracovňa'), t('Vlastné')
   ];
 
   const workProperties = [
     {
       id: 'preparatory',
-      name: 'Preparatory and demolition works',
-      fields: [{ name: 'Duration', unit: 'h', type: 'number' }]
+      name: t('Prípravné a búracie práce'),
+      fields: [{ name: t('Trvanie'), unit: t('hod'), type: 'number' }]
     },
     {
       id: 'wiring',
-      name: 'Wiring',
-      subtitle: 'switch, socket, light, connection point',
-      fields: [{ name: 'Number of outlets', unit: 'pc', type: 'number' }]
+      name: t('Elektroinštalatérske práce'),
+      subtitle: t('vyvínač, zásuvka, svetlo, bod napojenia'),
+      fields: [{ name: t('Počet vývodov'), unit: t('ks'), type: 'number' }]
     },
     {
       id: 'plumbing',
@@ -419,7 +421,7 @@ const Projects = () => {
       setNewProjectName('');
       setShowNewProjectModal(false);
       
-      // Optionally navigate to the new project
+      // Automatically navigate to the new project
       setSelectedProject(newProject);
       setCurrentView('details');
     }
@@ -428,8 +430,12 @@ const Projects = () => {
   const handleAddRoom = (roomType) => {
     if (!currentProject) return;
     
-    addRoomToProject(currentProject.id, { name: roomType });
+    const newRoom = addRoomToProject(currentProject.id, { name: roomType });
     setShowNewRoomModal(false);
+    
+    // Automatically open the room details modal for the new room
+    setSelectedRoom(newRoom);
+    setShowRoomDetailsModal(true);
   };
 
   const handleOpenRoomDetails = (room) => {
@@ -515,7 +521,7 @@ const Projects = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Projects</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
       
       {/* Profile Dropdown - always visible */}
       <div className="mb-6 relative" ref={dropdownRef}>
@@ -567,8 +573,8 @@ const Projects = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-3 flex justify-between items-end">
-                    <h3 className="text-lg font-bold text-white">{category.name}</h3>
-                    <span className="text-white text-sm font-medium">{category.count} projects</span>
+                    <h3 className="text-lg font-bold text-white">{t(category.name)}</h3>
+                    <span className="text-white text-sm font-medium">{category.count} {t('projekty')}</span>
                   </div>
                 </div>
               </button>
@@ -584,7 +590,7 @@ const Projects = () => {
               {/* Project List Header */}
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {projectCategories.find(cat => cat.id === activeCategory)?.name} Projects
+                  {t(projectCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
                 </h2>
                 <div className="flex gap-2">
                   <button 
@@ -601,7 +607,7 @@ const Projects = () => {
                     onClick={() => setShowNewProjectModal(true)}
                     className="px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
                   >
-                    Add Project
+{t('Pridať projekt')}
                   </button>
                 </div>
               </div>
@@ -669,7 +675,7 @@ const Projects = () => {
                   className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   <ChevronRight className="w-5 h-5 rotate-180" />
-                  Back to Project List
+                  {t('Back to Project List')}
                 </button>
               </div>
             {/* Project Header */}
@@ -678,20 +684,20 @@ const Projects = () => {
                 <span className="text-sm text-gray-500 dark:text-gray-400">{currentProject.id}</span>
                 {currentProject.status && (
                   <span className="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 text-xs font-medium rounded-full">
-                    {currentProject.status}
+                    {t(currentProject.status)}
                   </span>
                 )}
               </div>
             </div>
 
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{currentProject.name}</h1>
-            <p className="text-gray-500 dark:text-gray-400">Notes</p>
+            <p className="text-gray-500 dark:text-gray-400">{t('Notes')}</p>
 
             {/* Client Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Client</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Klient')}</h2>
               </div>
               <div 
                 onClick={handleClientSelectorOpen}
@@ -699,10 +705,10 @@ const Projects = () => {
               >
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">
-                    {selectedClientForProject ? selectedClientForProject.name : 'No client'}
+                    {selectedClientForProject ? selectedClientForProject.name : t('No client')}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {selectedClientForProject ? selectedClientForProject.email : 'Associate project with a client'}
+                    {selectedClientForProject ? selectedClientForProject.email : t('Associate project with a client')}
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -746,7 +752,7 @@ const Projects = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Project</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Projekt')}</h2>
                 </div>
                 <div className="flex gap-2">
                   <button 
@@ -781,7 +787,7 @@ const Projects = () => {
                   >
                     <div className={`transition-all duration-300 ${deleteMode ? 'flex-1 mr-4' : ''}`}>
                       <div className="font-medium text-gray-900 dark:text-white">{room.name}</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">{room.workItems.length} works</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{room.workItems.length} {t('práce')}</div>
                     </div>
                     
                     {deleteMode ? (
@@ -794,7 +800,7 @@ const Projects = () => {
                     ) : (
                       <div className="text-right flex items-center gap-2">
                         <div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">VAT not included</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                           <div className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateRoomPrice(room))}</div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -815,30 +821,30 @@ const Projects = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Total price offer</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h2>
               </div>
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-900 dark:text-white">without VAT</span>
+                    <span className="text-gray-900 dark:text-white">{t('without VAT')}</span>
                     <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(currentProject.id))}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-900 dark:text-white">VAT ({(getVATRate() * 100).toFixed(0)}%)</span>
+                    <span className="text-gray-900 dark:text-white">{t('VAT (20%)')}</span>
                     <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(currentProject.id) * getVATRate())}</span>
                   </div>
                   <hr className="border-gray-300 dark:border-gray-600" />
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-gray-900 dark:text-white">Total price</span>
+                    <span className="text-lg font-semibold text-gray-900 dark:text-white">{t('Total price')}</span>
                     <span className="text-lg font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(currentProject.id) * (1 + getVATRate()))}</span>
                   </div>
                 </div>
                 <div className="flex gap-3 mt-6">
                   <button className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-6 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
-                    <Eye className="w-4 h-4" /> Preview
+                    <Eye className="w-4 h-4" /> {t('Preview')}
                   </button>
                   <button className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
-                    <Send className="w-4 h-4" /> Send
+                    <Send className="w-4 h-4" /> {t('Send')}
                   </button>
                 </div>
               </div>
@@ -848,7 +854,7 @@ const Projects = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Project management</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Project management')}</h2>
               </div>
               <div className="space-y-3">
                 <div 
@@ -856,8 +862,8 @@ const Projects = () => {
                   className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                 >
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-white">Project price list</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">last change: 31 Oct 2025</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{t('Project price list')}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('last change')}: 31 Oct 2025</div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                 </div>
@@ -868,22 +874,22 @@ const Projects = () => {
 
               <div className="flex gap-4">
                 <button className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-6 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
-                  <Copy className="w-4 h-4" /> Duplicate
+                  <Copy className="w-4 h-4" /> {t('Duplicate')}
                 </button>
                 <button className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
-                  <Archive className="w-4 h-4" /> Archive
+                  <Archive className="w-4 h-4" /> {t('Archive')}
                 </button>
               </div>
             </div>
 
             {/* History */}
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">History</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-gray-900 dark:bg-white rounded-full"></div>
                 <div className="flex items-center gap-2">
                   <ClipboardList className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">Created</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Created')}</span>
                   <span className="text-sm text-gray-600 dark:text-gray-400">31/10/2025, 22:08</span>
                 </div>
               </div>

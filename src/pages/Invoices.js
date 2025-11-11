@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const Invoices = () => {
-  const [selectedTime, setSelectedTime] = useState('Any Time');
-  const [selectedStatus, setSelectedStatus] = useState('All');
+  const { t } = useLanguage();
+  const [selectedTime, setSelectedTime] = useState(t('Any Time'));
+  const [selectedStatus, setSelectedStatus] = useState(t('All'));
 
-  const timeFilters = ['Any Time'];
-  const statusFilters = ['All', 'Paid', 'Unpaid', 'After M'];
+  const timeFilters = [t('Any Time')];
+  const statusFilters = [t('All'), t('Paid'), t('Unpaid'), t('After M')];
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Invoices</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t('Invoices')}</h1>
       <div className="mb-6">
         <div className="flex items-center gap-2">
           <span className="text-lg font-medium text-gray-900 dark:text-white">vhh</span>
@@ -54,7 +56,7 @@ const Invoices = () => {
 
       <div className="flex items-center justify-center min-h-96 text-center">
         <div>
-          <h2 className="text-lg font-medium text-gray-600 dark:text-gray-400">There is no Invoice for selected Contractor.</h2>
+          <h2 className="text-lg font-medium text-gray-600 dark:text-gray-400">{t('There is no Invoice for selected Contractor.')}</h2>
         </div>
       </div>
     </div>
