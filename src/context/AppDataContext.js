@@ -238,7 +238,7 @@ export const AppDataProvider = ({ children }) => {
         if (category.id === categoryId) {
           return {
             ...category,
-            projects: [...category.projects, newProject],
+            projects: [newProject, ...category.projects],
             count: category.count + 1
           };
         }
