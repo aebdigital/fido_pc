@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { ClipboardList, FileText, Users, Settings, Moon, Sun, Menu, X } from 'lucide-react';
+import { ClipboardList, FileText, Users, Settings, Moon, Sun } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
@@ -20,7 +20,6 @@ const Layout = ({ children }) => {
     handleDiscardAndProceed, 
     handleCancel 
   } = useNavigationBlocker();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
     { path: '/projects', name: t('Projekty'), icon: ClipboardList },
@@ -33,7 +32,6 @@ const Layout = ({ children }) => {
     e.preventDefault();
     if (attemptNavigation(path)) {
       navigate(path);
-      setIsMobileMenuOpen(false); // Close mobile menu after navigation
     }
   };
 
