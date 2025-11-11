@@ -526,7 +526,7 @@ const Projects = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
+      <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
       
       {/* Profile Dropdown - always visible */}
       <div className="mb-6 relative" ref={dropdownRef}>
@@ -534,7 +534,7 @@ const Projects = () => {
           className="flex items-center gap-2"
           onClick={() => setShowProfileDropdown(!showProfileDropdown)}
         >
-          <span className="text-lg font-medium text-gray-900 dark:text-white">vhh</span>
+          <span className="text-xl font-medium text-gray-900 dark:text-white">vhh</span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
         </button>
         
@@ -544,8 +544,8 @@ const Projects = () => {
             <div className="p-4">
               <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer" onClick={handleCreateProfile}>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Create profile</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs">Fill out information for price offers</p>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Create profile</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Fill out information for price offers</p>
                 </div>
                 <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
                   <Plus className="w-5 h-5" />
@@ -578,8 +578,8 @@ const Projects = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-3 flex justify-between items-end">
-                    <h3 className="text-lg font-bold text-white">{t(category.name)}</h3>
-                    <span className="text-white text-sm font-medium">{category.count} {t('projekty')}</span>
+                    <h3 className="text-xl font-bold text-white">{t(category.name)}</h3>
+                    <span className="text-white text-base font-medium">{category.count} {t('projekty')}</span>
                   </div>
                 </div>
               </button>
@@ -594,7 +594,7 @@ const Projects = () => {
             <div className="p-6 space-y-6">
               {/* Project List Header */}
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
                   {t(projectCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
                 </h2>
                 <div className="flex gap-2">
@@ -631,15 +631,15 @@ const Projects = () => {
                   >
                     <div className={`flex-1 transition-all duration-300 ${projectDeleteMode ? 'mr-4' : ''}`}>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{project.id}</span>
+                        <span className="text-base text-gray-500 dark:text-gray-400">{project.id}</span>
                         {project.status && (
-                          <span className="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 text-xs font-medium rounded-full">
+                          <span className="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 text-sm font-medium rounded-full">
                             {project.status}
                           </span>
                         )}
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{project.name}</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">Notes</p>
+                      <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">{project.name}</h3>
+                      <p className="text-gray-500 dark:text-gray-400 text-base">Notes</p>
                     </div>
                     
                     {projectDeleteMode ? (
@@ -652,7 +652,7 @@ const Projects = () => {
                     ) : (
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <div className="text-xs text-gray-500 dark:text-gray-400">VAT not included</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">VAT not included</div>
                           <div className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -686,23 +686,23 @@ const Projects = () => {
             {/* Project Header */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 dark:text-gray-400">{currentProject.id}</span>
+                <span className="text-base text-gray-500 dark:text-gray-400">{currentProject.id}</span>
                 {currentProject.status && (
-                  <span className="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 text-xs font-medium rounded-full">
+                  <span className="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 text-sm font-medium rounded-full">
                     {t(currentProject.status)}
                   </span>
                 )}
               </div>
             </div>
 
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{currentProject.name}</h1>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{currentProject.name}</h1>
             <p className="text-gray-500 dark:text-gray-400">{t('Notes')}</p>
 
             {/* Client Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Klient')}</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Klient')}</h2>
               </div>
               <div 
                 onClick={handleClientSelectorOpen}
@@ -712,7 +712,7 @@ const Projects = () => {
                   <div className="font-medium text-gray-900 dark:text-white">
                     {selectedClientForProject ? selectedClientForProject.name : t('No client')}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-base text-gray-600 dark:text-gray-400">
                     {selectedClientForProject ? selectedClientForProject.email : t('Associate project with a client')}
                   </div>
                 </div>
@@ -732,7 +732,7 @@ const Projects = () => {
                           className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                         >
                           <div className="font-medium text-gray-900 dark:text-white">{client.name}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">{client.email}</div>
+                          <div className="text-base text-gray-600 dark:text-gray-400">{client.email}</div>
                         </button>
                       ))}
                       {clients.length === 0 && (
@@ -792,7 +792,7 @@ const Projects = () => {
                   >
                     <div className={`transition-all duration-300 ${deleteMode ? 'flex-1 mr-4' : ''}`}>
                       <div className="font-medium text-gray-900 dark:text-white">{room.name}</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">{room.workItems.length} {t('práce')}</div>
+                      <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems.length} {t('práce')}</div>
                     </div>
                     
                     {deleteMode ? (
@@ -868,7 +868,7 @@ const Projects = () => {
                 >
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">{t('Project price list')}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('last change')}: 31 Oct 2025</div>
+                    <div className="text-base text-gray-600 dark:text-gray-400">{t('last change')}: 31 Oct 2025</div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                 </div>

@@ -150,10 +150,10 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         <div className="flex-1">
           <h3 className="font-medium text-gray-900 dark:text-white leading-tight">{t(item.name)}</h3>
           {item.subtitle && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t(item.subtitle)}</p>
+            <p className="text-base text-gray-600 dark:text-gray-400 mt-1">{t(item.subtitle)}</p>
           )}
           {isItemModified(category, itemIndex) && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
               {t('Original')}: {originalPrices[category][itemIndex].price} {item.unit}
             </p>
           )}
@@ -168,21 +168,21 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             }
             min={0}
           />
-          <div className="text-sm text-gray-600 dark:text-gray-400">{item.unit}</div>
+          <div className="text-base text-gray-600 dark:text-gray-400">{item.unit}</div>
         </div>
       </div>
       
       {item.capacity && (
         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-base text-gray-600 dark:text-gray-400">
               {t('capacity per')} {item.unit.includes('pc') ? t('piece') : t('package')}
             </span>
             <div className="flex items-center gap-2">
               <div className="bg-white dark:bg-gray-900 rounded-xl px-3 py-1 font-semibold text-gray-900 dark:text-white">
                 {item.capacity.value}
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">{item.capacity.unit}</span>
+              <span className="text-base text-gray-600 dark:text-gray-400">{item.capacity.unit}</span>
             </div>
           </div>
         </div>
@@ -210,13 +210,13 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <ArrowLeft className="w-5 h-5" />
             {t('Back')}
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
           <div className="w-20"></div>
         </div>
 
         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 px-6 py-3 border-b border-gray-200 dark:border-gray-700">
           <Info className="w-4 h-4" />
-          <span className="text-sm">{t('Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.')}</span>
+          <span className="text-base">{t('Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.')}</span>
         </div>
 
         {/* Content */}
@@ -225,7 +225,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           <div className="mb-10 pt-6">
             <div className="flex items-center gap-2 mb-6">
               <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {localPriceList.work?.map((item, index) => (
@@ -238,7 +238,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-6">
               <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {localPriceList.material?.map((item, index) => (
@@ -251,7 +251,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-6">
               <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {localPriceList.others?.map((item, index) => (

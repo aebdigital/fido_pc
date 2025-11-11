@@ -12,10 +12,10 @@ const Invoices = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t('Invoices')}</h1>
+      <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Invoices')}</h1>
       <div className="mb-6">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-medium text-gray-900 dark:text-white">vhh</span>
+          <span className="text-xl font-medium text-gray-900 dark:text-white">vhh</span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
         </div>
       </div>
@@ -25,7 +25,7 @@ const Invoices = () => {
           {timeFilters.map(filter => (
             <button
               key={filter}
-              className={`px-4 py-2 border-2 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 py-2 border-2 rounded-full text-base font-medium transition-all ${
                 selectedTime === filter 
                   ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' 
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -41,7 +41,7 @@ const Invoices = () => {
           {statusFilters.map(filter => (
             <button
               key={filter}
-              className={`px-4 py-2 border-2 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 py-2 border-2 rounded-full text-base font-medium transition-all ${
                 selectedStatus === filter 
                   ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' 
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -56,7 +56,7 @@ const Invoices = () => {
 
       <div className="flex items-center justify-center min-h-96 text-center">
         <div>
-          <h2 className="text-lg font-medium text-gray-600 dark:text-gray-400">{t('There is no Invoice for selected Contractor.')}</h2>
+          <h2 className="text-xl font-medium text-gray-600 dark:text-gray-400">{t('There is no Invoice for selected Contractor.')}</h2>
         </div>
       </div>
     </div>

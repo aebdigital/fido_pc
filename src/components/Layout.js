@@ -69,7 +69,7 @@ const Layout = ({ children }) => {
               }`}
             >
               <item.icon className="w-5 h-5 mr-3" />
-              <span className="font-medium text-base">{item.name}</span>
+              <span className="font-medium text-lg">{item.name}</span>
             </a>
           ))}
         </nav>

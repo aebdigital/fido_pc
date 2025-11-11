@@ -130,7 +130,7 @@ const Clients = () => {
     if (isEditing) {
       return (
         <div>
-          <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+          <span className="text-base text-gray-600 dark:text-gray-400">{label}</span>
           <input
             type={type}
             value={editForm[field] || ''}
@@ -144,7 +144,7 @@ const Clients = () => {
     
     return (
       <div>
-        <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+        <span className="text-base text-gray-600 dark:text-gray-400">{label}</span>
         <p className="text-gray-900 dark:text-white font-medium">{value || '-'}</p>
       </div>
     );
@@ -200,11 +200,11 @@ const Clients = () => {
                 type="text"
                 value={editForm.name || ''}
                 onChange={(e) => handleEditInputChange('name', e.target.value)}
-                className="text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-gray-300 dark:border-gray-600 focus:border-gray-500 focus:outline-none text-center"
+                className="text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-gray-300 dark:border-gray-600 focus:border-gray-500 focus:outline-none text-center"
                 placeholder="Client name"
               />
             ) : (
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{selectedClient.name}</h1>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{selectedClient.name}</h1>
             )}
           </div>
 
@@ -213,7 +213,7 @@ const Clients = () => {
             {/* Contact Section */}
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Contact')}</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Contact')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="space-y-3">
@@ -226,7 +226,7 @@ const Clients = () => {
             {/* Location Section */}
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Location')}</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Location')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="space-y-3">
@@ -243,7 +243,7 @@ const Clients = () => {
           {(selectedClient.type === 'business' || selectedClient.businessId || selectedClient.taxId || selectedClient.vatId || selectedClient.contactPerson) && (
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Business Information')}</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Business Information')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -258,7 +258,7 @@ const Clients = () => {
           {/* Client's Projects Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t("Client's projects")}</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("Client's projects")}</h2>
               <button className="w-8 h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
@@ -273,10 +273,10 @@ const Clients = () => {
                 >
                   <div className="text-left">
                     <h3 className="font-medium text-gray-900 dark:text-white">{project.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{project.rooms} {t('room')}</p>
+                    <p className="text-base text-gray-600 dark:text-gray-400">{project.rooms} {t('room')}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">VAT not included</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">VAT not included</p>
                     <p className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(project.id))}</p>
                   </div>
                 </button>
@@ -300,14 +300,14 @@ const Clients = () => {
             >
               Cancel
             </button>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">New client</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">New client</h2>
             <div></div>
           </div>
 
           <div className="p-6 flex gap-8">
             {/* Left Side - Client Type Selection */}
             <div className="w-80 flex-shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Type of client?</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Type of client?</h3>
               <div className="flex flex-col gap-3 mb-8">
                 <button
                   className={`py-3 px-6 rounded-2xl font-medium transition-all text-left ${
@@ -335,7 +335,7 @@ const Clients = () => {
                 <div className="w-20 h-20 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
                   <User className="w-10 h-10 text-white dark:text-gray-900" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                   {clientType === 'private' ? 'Private entity' : 'Business entity'}
                 </h2>
               </div>
@@ -345,7 +345,7 @@ const Clients = () => {
             <div className="flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Name')}</label>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Name')}</label>
                   <input 
                     type="text" 
                     value={clientForm.name}
@@ -356,7 +356,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Email')}</label>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Email')}</label>
                   <input 
                     type="email" 
                     value={clientForm.email}
@@ -367,7 +367,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Phone number')}</label>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Phone number')}</label>
                   <input 
                     type="tel" 
                     value={clientForm.phone}
@@ -378,7 +378,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Street')}</label>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Street')}</label>
                   <input 
                     type="text" 
                     value={clientForm.street}
@@ -389,7 +389,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Additional info')}</label>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Additional info')}</label>
                   <input 
                     type="text" 
                     value={clientForm.additionalInfo}
@@ -400,7 +400,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('City')}</label>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('City')}</label>
                   <input 
                     type="text" 
                     value={clientForm.city}
@@ -411,7 +411,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Postal code')}</label>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Postal code')}</label>
                   <input 
                     type="text" 
                     value={clientForm.postalCode}
@@ -422,7 +422,7 @@ const Clients = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Country')}</label>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Country')}</label>
                   <input 
                     type="text" 
                     value={clientForm.country}
@@ -435,7 +435,7 @@ const Clients = () => {
                 {clientType === 'business' && (
                   <>
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo organizácie')}</label>
+                      <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo organizácie')}</label>
                       <input 
                         type="text" 
                         value={clientForm.businessId}
@@ -446,7 +446,7 @@ const Clients = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Daňové identifikačné číslo')}</label>
+                      <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Daňové identifikačné číslo')}</label>
                       <input 
                         type="text" 
                         value={clientForm.taxId}
@@ -457,7 +457,7 @@ const Clients = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo pre daň z pridanej hodnoty')}</label>
+                      <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo pre daň z pridanej hodnoty')}</label>
                       <input 
                         type="text" 
                         value={clientForm.vatId}
@@ -468,7 +468,7 @@ const Clients = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Kontaktná osoba')}</label>
+                      <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Kontaktná osoba')}</label>
                       <input 
                         type="text" 
                         value={clientForm.contactPerson}
@@ -497,7 +497,7 @@ const Clients = () => {
         <div>
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('Clients')}</h1>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Clients')}</h1>
             <div className="flex items-center gap-4">
               <div className="w-72 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
