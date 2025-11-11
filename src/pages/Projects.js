@@ -424,6 +424,9 @@ const Projects = () => {
       // Automatically navigate to the new project
       setSelectedProject(newProject);
       setCurrentView('details');
+      
+      // Auto-show room options for newly created project
+      setShowNewRoomModal(true);
     }
   };
 
@@ -470,11 +473,6 @@ const Projects = () => {
   const handleProjectSelect = (project) => {
     setSelectedProject(project);
     setCurrentView('details');
-    // Auto-show room options only for fresh projects with no rooms
-    const projectRooms = getProjectRooms(project.id);
-    if (projectRooms.length === 0) {
-      setShowNewRoomModal(true);
-    }
   };
 
   const handleBackToProjects = () => {
