@@ -542,12 +542,12 @@ const Projects = () => {
         {showProfileDropdown && (
           <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-10">
             <div className="p-4">
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer" onClick={handleCreateProfile}>
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md" onClick={handleCreateProfile}>
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Create profile</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">Fill out information for price offers</p>
                 </div>
-                <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+                <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md">
                   <Plus className="w-5 h-5" />
                 </button>
               </div>
@@ -610,7 +610,7 @@ const Projects = () => {
                   </button>
                   <button 
                     onClick={() => setShowNewProjectModal(true)}
-                    className="px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+                    className="px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md"
                   >
 {t('Pridať projekt')}
                   </button>
@@ -622,10 +622,10 @@ const Projects = () => {
                 {activeProjects.map(project => (
                   <div
                     key={project.id}
-                    className={`bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 ${
+                    className={`bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm ${
                       projectDeleteMode 
                         ? 'justify-between' 
-                        : 'justify-between hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
+                        : 'justify-between hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
                     }`}
                     onClick={projectDeleteMode ? undefined : () => handleProjectSelect(project)}
                   >
@@ -706,7 +706,7 @@ const Projects = () => {
               </div>
               <div 
                 onClick={handleClientSelectorOpen}
-                className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
               >
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">
@@ -864,7 +864,7 @@ const Projects = () => {
               <div className="space-y-3">
                 <div 
                   onClick={handleOpenProjectPriceList}
-                  className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                  className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
                 >
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">{t('Project price list')}</div>

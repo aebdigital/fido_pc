@@ -64,8 +64,8 @@ const Layout = ({ children }) => {
               onClick={(e) => handleNavigation(item.path, e)}
               className={`flex items-center px-6 py-3 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all duration-200 border-l-3 cursor-pointer ${
                 location.pathname === item.path
-                  ? 'bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-white border-l-blue-600 dark:border-l-white'
-                  : 'border-l-transparent'
+                  ? 'bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-white border-l-blue-600 dark:border-l-white shadow-sm'
+                  : 'border-l-transparent hover:shadow-sm'
               }`}
             >
               <item.icon className="w-5 h-5 mr-3" />
@@ -79,7 +79,7 @@ const Layout = ({ children }) => {
           {/* Theme Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 relative"
+            className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 relative shadow-sm hover:shadow-md"
           >
             <div className={`absolute inset-1 rounded-full bg-white dark:bg-gray-900 transition-all duration-200 flex items-center justify-center ${isDarkMode ? 'shadow-inner' : 'shadow-md'}`}>
               {isDarkMode ? (
@@ -93,7 +93,7 @@ const Layout = ({ children }) => {
           {/* Language Toggle */}
           <button
             onClick={toggleLanguage}
-            className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 relative"
+            className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 relative shadow-sm hover:shadow-md"
           >
             <div className="absolute inset-1 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center shadow-md transition-all duration-200">
               <span className="text-lg font-bold text-gray-700 dark:text-gray-300">

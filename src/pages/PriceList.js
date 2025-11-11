@@ -145,7 +145,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-4 space-y-3">
+    <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-4 space-y-3 shadow-sm">
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <h3 className="font-medium text-gray-900 dark:text-white leading-tight">{t(item.name)}</h3>
@@ -179,7 +179,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               {t('capacity per')} {item.unit.includes('pc') ? t('piece') : t('package')}
             </span>
             <div className="flex items-center gap-2">
-              <div className="bg-white dark:bg-gray-900 rounded-xl px-3 py-1 font-semibold text-gray-900 dark:text-white">
+              <div className="bg-white dark:bg-gray-900 rounded-xl px-3 py-1 font-semibold text-gray-900 dark:text-white shadow-sm">
                 {item.capacity.value}
               </div>
               <span className="text-base text-gray-600 dark:text-gray-400">{item.capacity.unit}</span>

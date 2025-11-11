@@ -380,7 +380,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Special handling for rentals
     if (property.id === 'rentals') {
       return (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 space-y-2">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 space-y-2 shadow-sm">
           {/* Always show header with plus button */}
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -396,7 +396,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Type selector when showing */}
           {showingRentalsSelector && (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Select Rental Type')}</h4>
                 <button
@@ -463,7 +463,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Special handling for sanitary installation
     if (property.id === 'sanitary_installation') {
       return (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 space-y-2">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 space-y-2 shadow-sm">
           {/* Always show header with plus button */}
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -482,7 +482,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Type selector when showing */}
           {showingSanitarySelector && (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Type of Sanitary')}</h4>
                 <button
@@ -792,13 +792,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-center">
           <button
             onClick={onClose}
-            className="px-8 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="px-8 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md"
           >
             {t('Cancel')}
           </button>
           <button
             onClick={() => onSave(workData)}
-            className="px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            className="px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md"
           >
             {t('Save')}
           </button>

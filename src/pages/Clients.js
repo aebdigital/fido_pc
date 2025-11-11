@@ -211,7 +211,7 @@ const Clients = () => {
           {/* Contact and Location - Side by Side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Contact Section */}
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Contact')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -224,7 +224,7 @@ const Clients = () => {
             </div>
 
             {/* Location Section */}
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Location')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -241,7 +241,7 @@ const Clients = () => {
 
           {/* Business Information Section (if applicable) */}
           {(selectedClient.type === 'business' || selectedClient.businessId || selectedClient.taxId || selectedClient.vatId || selectedClient.contactPerson) && (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6">
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Business Information')}</h2>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -269,7 +269,7 @@ const Clients = () => {
                 <button
                   key={index}
                   onClick={() => handleProjectOpen(project)}
-                  className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md"
                 >
                   <div className="text-left">
                     <h3 className="font-medium text-gray-900 dark:text-white">{project.name}</h3>
@@ -285,7 +285,7 @@ const Clients = () => {
           </div>
 
           {/* Edit Client Button */}
-          <button className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-4 rounded-2xl font-medium border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+          <button className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-4 rounded-2xl font-medium border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
             <Edit3 className="w-4 h-4" />
             {t('Edit client')}
           </button>
