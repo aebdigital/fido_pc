@@ -145,12 +145,12 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-4 space-y-3 shadow-sm">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <h3 className="font-medium text-gray-900 dark:text-white leading-tight">{t(item.name)}</h3>
+    <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.name)}</h3>
           {item.subtitle && (
-            <p className="text-base text-gray-600 dark:text-gray-400 mt-1">{t(item.subtitle)}</p>
+            <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">{t(item.subtitle)}</p>
           )}
           {isItemModified(category, itemIndex) && (
             <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
@@ -158,7 +158,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             </p>
           )}
         </div>
-        <div className="text-right ml-4 flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-2 sm:ml-4">
           <NumberInput
             value={item.price}
             onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
@@ -166,23 +166,24 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100' 
               : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
             }
+            size="small"
             min={0}
           />
-          <div className="text-base text-gray-600 dark:text-gray-400">{item.unit}</div>
+          <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 flex-shrink-0">{item.unit}</div>
         </div>
       </div>
       
       {item.capacity && (
         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
-          <div className="flex justify-between items-center">
-            <span className="text-base text-gray-600 dark:text-gray-400">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
               {t('capacity per')} {item.unit.includes('pc') ? t('piece') : t('package')}
             </span>
-            <div className="flex items-center gap-2">
-              <div className="bg-white dark:bg-gray-900 rounded-xl px-3 py-1 font-semibold text-gray-900 dark:text-white shadow-sm">
+            <div className="flex items-center gap-2 justify-end sm:justify-start">
+              <div className="bg-white dark:bg-gray-900 rounded-xl px-2 lg:px-3 py-1 font-semibold text-gray-900 dark:text-white shadow-sm text-lg">
                 {item.capacity.value}
               </div>
-              <span className="text-base text-gray-600 dark:text-gray-400">{item.capacity.unit}</span>
+              <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{item.capacity.unit}</span>
             </div>
           </div>
         </div>
@@ -192,8 +193,8 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
   if (!localPriceList) {
     return (
-      <div className="p-6">
-        <div className="text-center">{t('Loading...')}</div>
+      <div className="p-4 lg:p-6">
+        <div className="text-center text-lg">{t('Loading...')}</div>
       </div>
     );
   }
@@ -202,32 +203,32 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     <>
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 gap-4">
           <button 
             onClick={handleBack}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white self-start"
           >
             <ArrowLeft className="w-5 h-5" />
-            {t('Back')}
+            <span className="hidden sm:inline">{t('Back')}</span>
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
-          <div className="w-20"></div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white text-center lg:text-left">{t('General price list')}</h1>
+          <div className="w-0 lg:w-20"></div>
         </div>
 
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 px-6 py-3 border-b border-gray-200 dark:border-gray-700">
-          <Info className="w-4 h-4" />
-          <span className="text-base">{t('Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.')}</span>
+        <div className="flex items-start lg:items-center gap-2 text-gray-600 dark:text-gray-400 px-4 lg:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+          <Info className="w-4 h-4 flex-shrink-0 mt-0.5 lg:mt-0" />
+          <span className="text-sm lg:text-base">{t('Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.')}</span>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-20 lg:pb-6">
           {/* Work Section */}
-          <div className="mb-10 pt-6">
-            <div className="flex items-center gap-2 mb-6">
+          <div className="mb-8 lg:mb-10 pt-4 lg:pt-6">
+            <div className="flex items-center gap-2 mb-4 lg:mb-6">
               <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
               {localPriceList.work?.map((item, index) => (
                 <PriceCard key={index} item={item} category="work" itemIndex={index} />
               ))}
@@ -235,12 +236,12 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           </div>
 
           {/* Material Section */}
-          <div className="mb-10">
-            <div className="flex items-center gap-2 mb-6">
+          <div className="mb-8 lg:mb-10">
+            <div className="flex items-center gap-2 mb-4 lg:mb-6">
               <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
               {localPriceList.material?.map((item, index) => (
                 <PriceCard key={index} item={item} category="material" itemIndex={index} />
               ))}
@@ -248,12 +249,12 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           </div>
 
           {/* Others Section */}
-          <div className="mb-10">
-            <div className="flex items-center gap-2 mb-6">
+          <div className="mb-8 lg:mb-10">
+            <div className="flex items-center gap-2 mb-4 lg:mb-6">
               <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
               {localPriceList.others?.map((item, index) => (
                 <PriceCard key={index} item={item} category="others" itemIndex={index} />
               ))}
@@ -263,13 +264,13 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
         {/* Floating Save Button */}
         {hasChanges && (
-          <div className="fixed bottom-6 right-6 z-50">
+          <div className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50">
             <button
               onClick={handleSave}
-              className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200"
+              className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 hover:shadow-xl transition-all"
               title={t('Save changes')}
             >
-              <Save className="w-6 h-6" />
+              <Save className="w-5 h-5 lg:w-6 lg:h-6" />
             </button>
           </div>
         )}

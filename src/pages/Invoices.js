@@ -11,21 +11,21 @@ const Invoices = () => {
   const statusFilters = [t('All'), t('Paid'), t('Unpaid'), t('After M')];
 
   return (
-    <div>
-      <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Invoices')}</h1>
-      <div className="mb-6">
+    <div className="pb-20 lg:pb-0">
+      <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Invoices')}</h1>
+      <div className="mb-4 lg:mb-6">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-medium text-gray-900 dark:text-white">vhh</span>
+          <span className="text-lg lg:text-xl font-medium text-gray-900 dark:text-white">vhh</span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
         </div>
       </div>
 
-      <div className="flex gap-4 mb-8 flex-wrap">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 mb-6 lg:mb-8">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
           {timeFilters.map(filter => (
             <button
               key={filter}
-              className={`px-4 py-2 border-2 rounded-full text-base font-medium transition-all ${
+              className={`px-4 py-2 lg:py-3 border-2 rounded-full text-sm lg:text-base font-medium transition-all flex-shrink-0 shadow-sm hover:shadow-md ${
                 selectedTime === filter 
                   ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' 
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -37,11 +37,11 @@ const Invoices = () => {
           ))}
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
           {statusFilters.map(filter => (
             <button
               key={filter}
-              className={`px-4 py-2 border-2 rounded-full text-base font-medium transition-all ${
+              className={`px-4 py-2 lg:py-3 border-2 rounded-full text-sm lg:text-base font-medium transition-all flex-shrink-0 shadow-sm hover:shadow-md ${
                 selectedStatus === filter 
                   ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' 
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -54,11 +54,21 @@ const Invoices = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-96 text-center">
-        <div>
-          <h2 className="text-xl font-medium text-gray-600 dark:text-gray-400">{t('There is no Invoice for selected Contractor.')}</h2>
+      <div className="flex items-center justify-center min-h-96 text-center px-4">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 lg:p-8 max-w-md w-full shadow-sm">
+          <h2 className="text-lg lg:text-xl font-medium text-gray-600 dark:text-gray-400 leading-relaxed">{t('There is no Invoice for selected Contractor.')}</h2>
         </div>
       </div>
+
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 };
