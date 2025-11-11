@@ -384,7 +384,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           {/* Always show header with plus button */}
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h4 className="font-medium text-gray-900 dark:text-white">{property.name}</h4>
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{property.name}</h4>
             </div>
             <button
               onClick={(e) => handleAddWorkItem(property.id, e)}
@@ -398,7 +398,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           {showingRentalsSelector && (
             <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900 dark:text-white">{t('Select Rental Type')}</h4>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Select Rental Type')}</h4>
                 <button
                   onClick={() => setShowingRentalsSelector(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -467,9 +467,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           {/* Always show header with plus button */}
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h4 className="font-medium text-gray-900 dark:text-white">{property.name}</h4>
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{property.name}</h4>
               {property.subtitle && (
-                <p className="text-sm text-gray-600 dark:text-gray-400">{property.subtitle}</p>
+                <p className="text-base text-gray-600 dark:text-gray-400">{property.subtitle}</p>
               )}
             </div>
             <button
@@ -484,7 +484,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           {showingSanitarySelector && (
             <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900 dark:text-white">{t('Type of Sanitary')}</h4>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Type of Sanitary')}</h4>
                 <button
                   onClick={() => setShowingSanitarySelector(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -559,9 +559,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h4 className="font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+            <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
             {property.subtitle && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
+              <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
           <button
@@ -724,7 +724,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         }
       `}</style>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl max-h-[90vh] flex flex-col">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{room.name}</h2>
@@ -749,7 +749,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             {/* Work section */}
             <div className="flex items-center gap-3 pb-2">
               <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Work')}</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h3>
             </div>
             
             {/* Main properties */}
@@ -770,7 +770,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               <div className="space-y-2">
                 <div className="flex items-center gap-3 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700">
                   <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Others')}</h3>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h3>
                 </div>
                 <div className="flex gap-2">
                   {Array.from({ length: 3 }, (_, colIndex) => (
@@ -789,16 +789,16 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-center">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="px-8 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
             {t('Cancel')}
           </button>
           <button
             onClick={() => onSave(workData)}
-            className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            className="px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
           >
             {t('Save')}
           </button>

@@ -470,6 +470,8 @@ const Projects = () => {
   const handleProjectSelect = (project) => {
     setSelectedProject(project);
     setCurrentView('details');
+    // Auto-show room options when opening project
+    setShowNewRoomModal(true);
   };
 
   const handleBackToProjects = () => {
