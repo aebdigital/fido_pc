@@ -569,16 +569,6 @@ const Projects = () => {
     setProjectDeleteMode(!projectDeleteMode);
   };
 
-  const handleDeleteProject = (projectId) => {
-    deleteProject(activeCategory, projectId);
-    
-    // If we're currently viewing the deleted project, go back to project list
-    if (selectedProject && selectedProject.id === projectId) {
-      setSelectedProject(null);
-      setCurrentView('projects');
-    }
-  };
-
   const handleArchiveProject = (projectId) => {
     archiveProject(activeCategory, projectId);
     

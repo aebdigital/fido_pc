@@ -9,8 +9,7 @@ import {
   ClipboardList,
   BarChart3,
   Eye,
-  Send,
-  Plus
+  Send
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
