@@ -15,6 +15,7 @@ import {
 import { useLocation } from 'react-router-dom';
 import RoomDetailsModal from '../components/RoomDetailsModal';
 import ProjectPriceList from '../components/ProjectPriceList';
+import ContractorProfileModal from '../components/ContractorProfileModal';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -25,6 +26,10 @@ const Projects = () => {
     projectCategories, 
     clients, 
     generalPriceList,
+    contractors,
+    activeContractorId,
+    setActiveContractor,
+    addContractor,
     addProject, 
     archiveProject,
     assignProjectToClient,
@@ -60,6 +65,8 @@ const Projects = () => {
   const [showCustomRoomModal, setShowCustomRoomModal] = useState(false);
   const [customRoomName, setCustomRoomName] = useState('');
   const [isClosingModal, setIsClosingModal] = useState(false);
+  const [showContractorModal, setShowContractorModal] = useState(false);
+  const [showContractorSelector, setShowContractorSelector] = useState(false);
   const dropdownRef = useRef(null);
 
 
@@ -67,18 +74,18 @@ const Projects = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowProfileDropdown(false);
+        setShowContractorSelector(false);
       }
     };
 
-    if (showProfileDropdown) {
+    if (showContractorSelector) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showProfileDropdown]);
+  }, [showContractorSelector]);
 
 
   const roomTypes = [
@@ -578,6 +585,30 @@ const Projects = () => {
     }
   };
 
+  // Contractor management handlers
+  const handleCreateContractorProfile = () => {
+    setShowContractorModal(true);
+  };
+
+  const handleSaveContractor = (contractorData) => {
+    addContractor(contractorData);
+    setShowContractorModal(false);
+    
+    // Set this as active contractor if it's the first one
+    if (contractors.length === 0) {
+      setActiveContractor(contractorData.id);
+    }
+  };
+
+  const handleContractorSelect = (contractorId) => {
+    setActiveContractor(contractorId);
+    setShowContractorSelector(false);
+  };
+
+  const getCurrentContractor = () => {
+    return contractors.find(c => c.id === activeContractorId);
+  };
+
   return (
     <>
       <style jsx>{`
@@ -592,29 +623,63 @@ const Projects = () => {
       <div className="pb-20 lg:pb-0">
         <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
       
-      {/* Profile Dropdown - always visible */}
+      {/* Contractor Profile Dropdown - always visible */}
       <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
         <button 
           className="flex items-center gap-2"
-          onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+          onClick={() => setShowContractorSelector(!showContractorSelector)}
         >
-          <span className="text-lg lg:text-xl font-medium text-gray-900 dark:text-white">vhh</span>
+          <span className="text-lg lg:text-xl font-medium text-gray-900 dark:text-white">
+            {getCurrentContractor()?.name || t('Select contractor')}
+          </span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
         </button>
         
-        {/* Profile Dropdown */}
-        {showProfileDropdown && (
-          <div className="absolute top-full left-0 mt-2 w-full max-w-xs lg:w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-10">
-            <div className="p-4">
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md" onClick={handleCreateProfile}>
+        {/* Contractor Dropdown */}
+        {showContractorSelector && (
+          <div className="absolute top-full left-0 mt-2 w-full max-w-xs lg:w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-10 animate-slide-in-top">
+            <div className="p-4 space-y-3">
+              
+              {/* Create New Profile */}
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md" 
+                   onClick={handleCreateContractorProfile}>
                 <div className="mb-3 sm:mb-0">
-                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">Create profile</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm lg:text-base">Fill out information for price offers</p>
+                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('Create new profile')}</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm lg:text-base">{t('Fill out information for price offers')}</p>
                 </div>
                 <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md self-end sm:self-auto">
                   <Plus className="w-5 h-5" />
                 </button>
               </div>
+
+              {/* Existing Contractors */}
+              {contractors.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
+                    {t('Select contractor')}
+                  </div>
+                  {contractors.map(contractor => (
+                    <div 
+                      key={contractor.id}
+                      className={`p-3 rounded-xl cursor-pointer transition-colors ${
+                        activeContractorId === contractor.id 
+                          ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600' 
+                          : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                      onClick={() => handleContractorSelect(contractor.id)}
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {contractor.name}
+                      </div>
+                      {contractor.email && (
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {contractor.email}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1103,6 +1168,14 @@ const Projects = () => {
         projectId={currentProject.id}
         onClose={handleCloseProjectPriceList}
         onSave={handleSaveProjectPriceList}
+      />
+    )}
+
+    {/* Contractor Profile Modal */}
+    {showContractorModal && (
+      <ContractorProfileModal
+        onClose={() => setShowContractorModal(false)}
+        onSave={handleSaveContractor}
       />
     )}
     </div>

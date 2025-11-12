@@ -1,0 +1,230 @@
+import React, { useState } from 'react';
+import { 
+  ArrowLeft, 
+  Edit3, 
+  Trash2, 
+  Plus, 
+  Clock, 
+  Building2,
+  Mail,
+  Phone,
+  Globe
+} from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { useAppData } from '../context/AppDataContext';
+import ContractorProfileModal from '../components/ContractorProfileModal';
+
+const PriceOfferSettings = ({ onBack }) => {
+  const { t } = useLanguage();
+  const { 
+    contractors, 
+    priceOfferSettings, 
+    addContractor, 
+    updateContractor, 
+    deleteContractor,
+    updatePriceOfferSettings 
+  } = useAppData();
+
+  const [showContractorModal, setShowContractorModal] = useState(false);
+  const [editingContractor, setEditingContractor] = useState(null);
+  const [timeLimit, setTimeLimit] = useState(priceOfferSettings.timeLimit || 30);
+
+  const handleCreateContractor = () => {
+    setEditingContractor(null);
+    setShowContractorModal(true);
+  };
+
+  const handleEditContractor = (contractor) => {
+    setEditingContractor(contractor);
+    setShowContractorModal(true);
+  };
+
+  const handleSaveContractor = (contractorData) => {
+    if (editingContractor) {
+      updateContractor(editingContractor.id, contractorData);
+    } else {
+      addContractor(contractorData);
+    }
+    setShowContractorModal(false);
+    setEditingContractor(null);
+  };
+
+  const handleDeleteContractor = (contractorId) => {
+    if (window.confirm(t('Are you sure you want to delete this contractor?'))) {
+      deleteContractor(contractorId);
+    }
+  };
+
+  const handleTimeLimitChange = (newTimeLimit) => {
+    setTimeLimit(newTimeLimit);
+    updatePriceOfferSettings({ timeLimit: newTimeLimit });
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 gap-4">
+        <button 
+          onClick={onBack}
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white self-start"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="hidden sm:inline">{t('Back')}</span>
+        </button>
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white text-center lg:text-left">{t('Price offer')}</h1>
+        <div className="w-0 lg:w-20"></div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
+        
+        {/* Time Limit Settings */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Validity Period')}</h2>
+          </div>
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="font-medium text-gray-900 dark:text-white text-lg mb-1">{t('Offer validity period')}</h3>
+                <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('How long price offers remain valid')}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={timeLimit}
+                  onChange={(e) => handleTimeLimitChange(parseInt(e.target.value) || 30)}
+                  min="1"
+                  max="365"
+                  className="w-20 p-2 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 text-center"
+                />
+                <span className="text-gray-600 dark:text-gray-400">{t('days')}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contractors List */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Contractors')}</h2>
+            </div>
+            <button
+              onClick={handleCreateContractor}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t('Add contractor')}</span>
+            </button>
+          </div>
+
+          {contractors.length === 0 ? (
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-8 text-center shadow-sm">
+              <Building2 className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('No contractors yet')}</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">{t('Add your first contractor to start creating price offers')}</p>
+              <button
+                onClick={handleCreateContractor}
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+              >
+                {t('Create first contractor')}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {contractors.map((contractor) => (
+                <div key={contractor.id} className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Building2 className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{contractor.name}</h3>
+                          {contractor.contactPerson && (
+                            <p className="text-gray-600 dark:text-gray-400">{contractor.contactPerson}</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                        {contractor.email && (
+                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                            <Mail className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">{contractor.email}</span>
+                          </div>
+                        )}
+                        {contractor.phone && (
+                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                            <Phone className="w-4 h-4 flex-shrink-0" />
+                            <span>{contractor.phone}</span>
+                          </div>
+                        )}
+                        {contractor.website && (
+                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                            <Globe className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">{contractor.website}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {(contractor.street || contractor.city) && (
+                        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                          <p>
+                            {contractor.street && `${contractor.street}`}
+                            {contractor.additionalInfo && `, ${contractor.additionalInfo}`}
+                          </p>
+                          {contractor.city && (
+                            <p>
+                              {contractor.postalCode && `${contractor.postalCode} `}
+                              {contractor.city}
+                              {contractor.country && `, ${contractor.country}`}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2 self-end lg:self-auto">
+                      <button
+                        onClick={() => handleEditContractor(contractor)}
+                        className="p-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
+                        title={t('Edit contractor')}
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteContractor(contractor.id)}
+                        className="p-2 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-800 transition-colors border border-red-200 dark:border-red-700"
+                        title={t('Delete contractor')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Contractor Profile Modal */}
+      {showContractorModal && (
+        <ContractorProfileModal
+          editingContractor={editingContractor}
+          onClose={() => {
+            setShowContractorModal(false);
+            setEditingContractor(null);
+          }}
+          onSave={handleSaveContractor}
+        />
+      )}
+    </div>
+  );
+};
+
+export default PriceOfferSettings;

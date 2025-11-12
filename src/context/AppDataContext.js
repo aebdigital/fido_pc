@@ -76,6 +76,12 @@ export const AppDataProvider = ({ children }) => {
       ],
       archivedProjects: [], // Store archived projects
       projectRoomsData: {}, // Store rooms by project ID
+      contractors: [], // Store contractor profiles
+      priceOfferSettings: {
+        timeLimit: 30, // Days
+        defaultValidityPeriod: 30
+      },
+      activeContractorId: null, // Currently selected contractor
       generalPriceList: {
         work: [
           { name: 'Preparatory and demolition works', price: 15, unit: '€/h' },
@@ -183,6 +189,21 @@ export const AppDataProvider = ({ children }) => {
       // Ensure archivedProjects exists for backward compatibility
       if (!parsedData.archivedProjects) {
         parsedData.archivedProjects = [];
+      }
+      // Ensure contractors exists for backward compatibility
+      if (!parsedData.contractors) {
+        parsedData.contractors = [];
+      }
+      // Ensure priceOfferSettings exists for backward compatibility
+      if (!parsedData.priceOfferSettings) {
+        parsedData.priceOfferSettings = {
+          timeLimit: 30,
+          defaultValidityPeriod: 30
+        };
+      }
+      // Ensure activeContractorId exists for backward compatibility
+      if (parsedData.activeContractorId === undefined) {
+        parsedData.activeContractorId = null;
       }
       return parsedData;
     }
@@ -373,6 +394,46 @@ export const AppDataProvider = ({ children }) => {
         ...prev.projectRoomsData,
         [projectId]: undefined
       }
+    }));
+  };
+
+  // Contractor management functions
+  const addContractor = (contractorData) => {
+    setAppData(prev => ({
+      ...prev,
+      contractors: [...prev.contractors, contractorData]
+    }));
+  };
+
+  const updateContractor = (contractorId, contractorData) => {
+    setAppData(prev => ({
+      ...prev,
+      contractors: prev.contractors.map(contractor =>
+        contractor.id === contractorId ? { ...contractor, ...contractorData } : contractor
+      )
+    }));
+  };
+
+  const deleteContractor = (contractorId) => {
+    setAppData(prev => ({
+      ...prev,
+      contractors: prev.contractors.filter(contractor => contractor.id !== contractorId),
+      // If deleting active contractor, reset to null
+      activeContractorId: prev.activeContractorId === contractorId ? null : prev.activeContractorId
+    }));
+  };
+
+  const setActiveContractor = (contractorId) => {
+    setAppData(prev => ({
+      ...prev,
+      activeContractorId: contractorId
+    }));
+  };
+
+  const updatePriceOfferSettings = (settings) => {
+    setAppData(prev => ({
+      ...prev,
+      priceOfferSettings: { ...prev.priceOfferSettings, ...settings }
     }));
   };
 
@@ -687,6 +748,9 @@ export const AppDataProvider = ({ children }) => {
     projectRoomsData: appData.projectRoomsData,
     generalPriceList: appData.generalPriceList,
     archivedProjects: appData.archivedProjects,
+    contractors: appData.contractors,
+    priceOfferSettings: appData.priceOfferSettings,
+    activeContractorId: appData.activeContractorId,
     
     // Client functions
     addClient,
@@ -700,6 +764,13 @@ export const AppDataProvider = ({ children }) => {
     archiveProject,
     unarchiveProject,
     deleteArchivedProject,
+    
+    // Contractor functions
+    addContractor,
+    updateContractor,
+    deleteContractor,
+    setActiveContractor,
+    updatePriceOfferSettings,
     
     // Room functions
     addRoomToProject,

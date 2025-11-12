@@ -8,12 +8,14 @@ import {
 } from 'lucide-react';
 import PriceList from './PriceList';
 import Archive from './Archive';
+import PriceOfferSettings from './PriceOfferSettings';
 import { useLanguage } from '../context/LanguageContext';
 
 const Settings = () => {
   const { t } = useLanguage();
   const [showPriceList, setShowPriceList] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [showPriceOffer, setShowPriceOffer] = useState(false);
 
   const handlePriceListClick = () => {
     setShowPriceList(true);
@@ -29,6 +31,14 @@ const Settings = () => {
 
   const handleBackFromArchive = () => {
     setShowArchive(false);
+  };
+
+  const handlePriceOfferClick = () => {
+    setShowPriceOffer(true);
+  };
+
+  const handleBackFromPriceOffer = () => {
+    setShowPriceOffer(false);
   };
 
   const handleContactClick = () => {
@@ -55,6 +65,14 @@ const Settings = () => {
     return (
       <Archive 
         onBack={handleBackFromArchive} 
+      />
+    );
+  }
+
+  if (showPriceOffer) {
+    return (
+      <PriceOfferSettings 
+        onBack={handleBackFromPriceOffer} 
       />
     );
   }
@@ -106,7 +124,10 @@ const Settings = () => {
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+          <div 
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            onClick={handlePriceOfferClick}
+          >
             <div className="flex-1 min-w-0">
               <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Price offer')}</div>
               <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('supplier information, validity of price offer')}</div>
