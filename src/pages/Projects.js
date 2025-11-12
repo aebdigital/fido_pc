@@ -53,7 +53,6 @@ const Projects = () => {
   };
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
   const [showRoomDetailsModal, setShowRoomDetailsModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -417,12 +416,6 @@ const Projects = () => {
       }
     }
   }, [location.state, projectCategories]);
-
-  const handleCreateProfile = () => {
-    setShowProfileDropdown(false);
-    // Add profile creation logic here
-  };
-
 
   const handleNewProject = () => {
     if (newProjectName.trim()) {

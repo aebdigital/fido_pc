@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Building2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) => {

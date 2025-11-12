@@ -77,6 +77,7 @@ export const AppDataProvider = ({ children }) => {
       archivedProjects: [], // Store archived projects
       projectRoomsData: {}, // Store rooms by project ID
       contractors: [], // Store contractor profiles
+      contractorProjects: {}, // Store projects by contractor ID: { [contractorId]: { categories: [...], archivedProjects: [] } }
       priceOfferSettings: {
         timeLimit: 30, // Days
         defaultValidityPeriod: 30
@@ -205,6 +206,10 @@ export const AppDataProvider = ({ children }) => {
       if (parsedData.activeContractorId === undefined) {
         parsedData.activeContractorId = null;
       }
+      // Ensure contractorProjects exists for backward compatibility
+      if (!parsedData.contractorProjects) {
+        parsedData.contractorProjects = {};
+      }
       return parsedData;
     }
     
@@ -258,19 +263,47 @@ export const AppDataProvider = ({ children }) => {
       status: 'not sent'
     };
 
-    setAppData(prev => ({
-      ...prev,
-      projectCategories: prev.projectCategories.map(category => {
-        if (category.id === categoryId) {
-          return {
-            ...category,
-            projects: [newProject, ...category.projects],
-            count: category.count + 1
-          };
+    setAppData(prev => {
+      const activeContractorId = prev.activeContractorId;
+      
+      if (!activeContractorId) {
+        // Fallback to global projects if no contractor selected
+        return {
+          ...prev,
+          projectCategories: prev.projectCategories.map(category => {
+            if (category.id === categoryId) {
+              return {
+                ...category,
+                projects: [newProject, ...category.projects],
+                count: category.count + 1
+              };
+            }
+            return category;
+          })
+        };
+      }
+
+      // Add to contractor-specific projects
+      return {
+        ...prev,
+        contractorProjects: {
+          ...prev.contractorProjects,
+          [activeContractorId]: {
+            ...prev.contractorProjects[activeContractorId],
+            categories: prev.contractorProjects[activeContractorId].categories.map(category => {
+              if (category.id === categoryId) {
+                return {
+                  ...category,
+                  projects: [newProject, ...category.projects],
+                  count: category.count + 1
+                };
+              }
+              return category;
+            })
+          }
         }
-        return category;
-      })
-    }));
+      };
+    });
 
     return newProject;
   };
@@ -401,7 +434,14 @@ export const AppDataProvider = ({ children }) => {
   const addContractor = (contractorData) => {
     setAppData(prev => ({
       ...prev,
-      contractors: [...prev.contractors, contractorData]
+      contractors: [...prev.contractors, contractorData],
+      contractorProjects: {
+        ...prev.contractorProjects,
+        [contractorData.id]: {
+          categories: getDefaultCategories(),
+          archivedProjects: []
+        }
+      }
     }));
   };
 
@@ -436,6 +476,64 @@ export const AppDataProvider = ({ children }) => {
       priceOfferSettings: { ...prev.priceOfferSettings, ...settings }
     }));
   };
+
+  // Helper function to get default categories structure
+  const getDefaultCategories = () => [
+    {
+      id: 'flats',
+      name: 'Flats',
+      count: 0,
+      image: flatsImage,
+      projects: []
+    },
+    {
+      id: 'houses', 
+      name: 'Houses',
+      count: 0,
+      image: housesImage,
+      projects: []
+    },
+    {
+      id: 'companies',
+      name: 'Companies', 
+      count: 0,
+      image: companiesImage,
+      projects: []
+    },
+    {
+      id: 'cottages',
+      name: 'Cottages',
+      count: 0,
+      image: cottagesImage,
+      projects: []
+    }
+  ];
+
+  // Helper function to get project categories for a specific contractor
+  const getProjectCategoriesForContractor = (contractorId) => {
+    if (!contractorId) {
+      // Return global categories if no contractor selected (backward compatibility)
+      return appData.projectCategories;
+    }
+    
+    // Return contractor-specific categories
+    if (!appData.contractorProjects[contractorId]) {
+      return getDefaultCategories();
+    }
+    
+    return appData.contractorProjects[contractorId].categories || getDefaultCategories();
+  };
+
+  // Helper function to get archived projects for a specific contractor
+  const getArchivedProjectsForContractor = (contractorId) => {
+    if (!contractorId) {
+      // Return global archived projects if no contractor selected (backward compatibility)
+      return appData.archivedProjects;
+    }
+    
+    return appData.contractorProjects[contractorId]?.archivedProjects || [];
+  };
+
 
   // Client-Project relationship functions
   const assignProjectToClient = (clientId, projectId, projectName) => {
@@ -744,13 +842,17 @@ export const AppDataProvider = ({ children }) => {
   const contextValue = {
     // Data
     clients: appData.clients,
-    projectCategories: appData.projectCategories,
+    projectCategories: getProjectCategoriesForContractor(appData.activeContractorId),
     projectRoomsData: appData.projectRoomsData,
     generalPriceList: appData.generalPriceList,
-    archivedProjects: appData.archivedProjects,
+    archivedProjects: getArchivedProjectsForContractor(appData.activeContractorId),
     contractors: appData.contractors,
     priceOfferSettings: appData.priceOfferSettings,
     activeContractorId: appData.activeContractorId,
+    
+    // Helper functions
+    getProjectCategoriesForContractor,
+    getArchivedProjectsForContractor,
     
     // Client functions
     addClient,
