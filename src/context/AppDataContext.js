@@ -74,6 +74,7 @@ export const AppDataProvider = ({ children }) => {
           projects: []
         }
       ],
+      archivedProjects: [], // Store archived projects
       projectRoomsData: {}, // Store rooms by project ID
       generalPriceList: {
         work: [
@@ -178,6 +179,10 @@ export const AppDataProvider = ({ children }) => {
       // Ensure generalPriceList exists for backward compatibility
       if (!parsedData.generalPriceList) {
         parsedData.generalPriceList = defaultData.generalPriceList;
+      }
+      // Ensure archivedProjects exists for backward compatibility
+      if (!parsedData.archivedProjects) {
+        parsedData.archivedProjects = [];
       }
       return parsedData;
     }
@@ -288,6 +293,86 @@ export const AppDataProvider = ({ children }) => {
         ...client,
         projects: client.projects.filter(project => project.id !== projectId)
       }))
+    }));
+  };
+
+  const archiveProject = (categoryId, projectId) => {
+    // Find the project to archive
+    const projectResult = findProjectById(projectId);
+    if (!projectResult) return;
+
+    const { project } = projectResult;
+    const archivedProject = {
+      ...project,
+      originalCategoryId: categoryId,
+      archivedDate: new Date().toISOString()
+    };
+
+    setAppData(prev => ({
+      ...prev,
+      // Add to archived projects
+      archivedProjects: [...prev.archivedProjects, archivedProject],
+      // Remove from original category
+      projectCategories: prev.projectCategories.map(category => {
+        if (category.id === categoryId) {
+          return {
+            ...category,
+            projects: category.projects.filter(project => project.id !== projectId),
+            count: category.count - 1
+          };
+        }
+        return category;
+      })
+    }));
+
+    // Also remove project from any client's project list
+    setAppData(prev => ({
+      ...prev,
+      clients: prev.clients.map(client => ({
+        ...client,
+        projects: client.projects.filter(project => project.id !== projectId)
+      }))
+    }));
+  };
+
+  const unarchiveProject = (projectId) => {
+    const archivedProject = appData.archivedProjects.find(p => p.id === projectId);
+    if (!archivedProject) return;
+
+    // Remove archived project data and restore to original category
+    const { originalCategoryId, archivedDate, ...restoredProject } = archivedProject;
+
+    setAppData(prev => ({
+      ...prev,
+      // Remove from archived projects
+      archivedProjects: prev.archivedProjects.filter(project => project.id !== projectId),
+      // Add back to original category
+      projectCategories: prev.projectCategories.map(category => {
+        if (category.id === originalCategoryId) {
+          return {
+            ...category,
+            projects: [restoredProject, ...category.projects],
+            count: category.count + 1
+          };
+        }
+        return category;
+      })
+    }));
+  };
+
+  const deleteArchivedProject = (projectId) => {
+    setAppData(prev => ({
+      ...prev,
+      archivedProjects: prev.archivedProjects.filter(project => project.id !== projectId)
+    }));
+
+    // Also remove any associated rooms data
+    setAppData(prev => ({
+      ...prev,
+      projectRoomsData: {
+        ...prev.projectRoomsData,
+        [projectId]: undefined
+      }
     }));
   };
 
@@ -601,6 +686,7 @@ export const AppDataProvider = ({ children }) => {
     projectCategories: appData.projectCategories,
     projectRoomsData: appData.projectRoomsData,
     generalPriceList: appData.generalPriceList,
+    archivedProjects: appData.archivedProjects,
     
     // Client functions
     addClient,
@@ -611,6 +697,9 @@ export const AppDataProvider = ({ children }) => {
     addProject,
     updateProject,
     deleteProject,
+    archiveProject,
+    unarchiveProject,
+    deleteArchivedProject,
     
     // Room functions
     addRoomToProject,

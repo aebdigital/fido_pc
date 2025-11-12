@@ -9,6 +9,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const [expandedItems, setExpandedItems] = useState({});
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);
   const [showingRentalsSelector, setShowingRentalsSelector] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
 
@@ -28,6 +29,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
   // Separate "Others" category properties
   const othersIds = ['custom_work', 'commute', 'rentals'];
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
   const mainProperties = workProperties.filter(prop => !othersIds.includes(prop.id));
   const othersProperties = workProperties.filter(prop => othersIds.includes(prop.id));
 
@@ -396,7 +404,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Type selector when showing */}
           {showingRentalsSelector && (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top"
+                 key="rentals-selector">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Select Rental Type')}</h4>
                 <button
@@ -482,7 +491,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Type selector when showing */}
           {showingSanitarySelector && (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top"
+                 key="sanitary-selector">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Type of Sanitary')}</h4>
                 <button
@@ -723,13 +733,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           background: #9ca3af;
         }
       `}</style>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl h-[95vh] lg:h-[90vh] flex flex-col">
+      <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
+        <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl h-[95vh] lg:h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{room.name}</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-5 h-5 lg:w-6 lg:h-6" />
@@ -809,7 +819,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         {/* Footer */}
         <div className="p-4 lg:p-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-center">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-6 lg:px-8 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md text-lg"
           >
             {t('Cancel')}

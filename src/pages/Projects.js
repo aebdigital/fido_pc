@@ -26,7 +26,8 @@ const Projects = () => {
     clients, 
     generalPriceList,
     addProject, 
-    deleteProject, 
+    deleteProject,
+    archiveProject,
     assignProjectToClient,
     addRoomToProject,
     updateProjectRoom,
@@ -57,6 +58,9 @@ const Projects = () => {
   const [showClientSelector, setShowClientSelector] = useState(false);
   const [showProjectPriceList, setShowProjectPriceList] = useState(false);
   const [projectDeleteMode, setProjectDeleteMode] = useState(false);
+  const [showCustomRoomModal, setShowCustomRoomModal] = useState(false);
+  const [customRoomName, setCustomRoomName] = useState('');
+  const [isClosingModal, setIsClosingModal] = useState(false);
   const dropdownRef = useRef(null);
 
 
@@ -433,12 +437,65 @@ const Projects = () => {
   const handleAddRoom = (roomType) => {
     if (!currentProject) return;
     
+    // If custom room type is selected, show custom room name modal
+    if (roomType === t('Vlastné')) {
+      setShowCustomRoomModal(true);
+      return;
+    }
+    
     const newRoom = addRoomToProject(currentProject.id, { name: roomType });
     setShowNewRoomModal(false);
     
     // Automatically open the room details modal for the new room
     setSelectedRoom(newRoom);
     setShowRoomDetailsModal(true);
+  };
+
+  const handleCustomRoomCreate = () => {
+    if (!currentProject || !customRoomName.trim()) return;
+    
+    const newRoom = addRoomToProject(currentProject.id, { name: customRoomName.trim() });
+    setShowNewRoomModal(false);
+    setShowCustomRoomModal(false);
+    setCustomRoomName('');
+    
+    // Automatically open the room details modal for the new room
+    setSelectedRoom(newRoom);
+    setShowRoomDetailsModal(true);
+  };
+
+  const handleCustomRoomCancel = () => {
+    setIsClosingModal(true);
+    setTimeout(() => {
+      setShowCustomRoomModal(false);
+      setCustomRoomName('');
+      setIsClosingModal(false);
+    }, 300);
+  };
+
+  const handleCloseNewRoomModal = () => {
+    setIsClosingModal(true);
+    setTimeout(() => {
+      setShowNewRoomModal(false);
+      setIsClosingModal(false);
+    }, 300);
+  };
+
+  const handleCloseClientSelector = () => {
+    setIsClosingModal(true);
+    setTimeout(() => {
+      setShowClientSelector(false);
+      setIsClosingModal(false);
+    }, 300);
+  };
+
+  const handleCloseNewProjectModal = () => {
+    setIsClosingModal(true);
+    setTimeout(() => {
+      setShowNewProjectModal(false);
+      setNewProjectName('');
+      setIsClosingModal(false);
+    }, 300);
   };
 
   const handleOpenRoomDetails = (room) => {
@@ -516,6 +573,16 @@ const Projects = () => {
     deleteProject(activeCategory, projectId);
     
     // If we're currently viewing the deleted project, go back to project list
+    if (selectedProject && selectedProject.id === projectId) {
+      setSelectedProject(null);
+      setCurrentView('projects');
+    }
+  };
+
+  const handleArchiveProject = (projectId) => {
+    archiveProject(activeCategory, projectId);
+    
+    // If we're currently viewing the archived project, go back to project list
     if (selectedProject && selectedProject.id === projectId) {
       setSelectedProject(null);
       setCurrentView('projects');
@@ -614,7 +681,7 @@ const Projects = () => {
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Archive className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => setShowNewProjectModal(true)}
@@ -653,10 +720,10 @@ const Projects = () => {
                     
                     {projectDeleteMode ? (
                       <button
-                        onClick={() => handleDeleteProject(project.id)}
-                        className="bg-red-500 hover:bg-red-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 self-end sm:self-auto mt-3 sm:mt-0"
+                        onClick={() => handleArchiveProject(project.id)}
+                        className="bg-amber-500 hover:bg-amber-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 self-end sm:self-auto mt-3 sm:mt-0"
                       >
-                        <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-red-100" />
+                        <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-amber-100" />
                       </button>
                     ) : (
                       <div className="flex items-center justify-between sm:justify-end sm:gap-4 mt-3 sm:mt-0">
@@ -730,8 +797,8 @@ const Projects = () => {
               
               {/* Client Selector Modal */}
               {showClientSelector && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
+                <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
+                  <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Select Client</h3>
                     <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
                       {clients.map(client => (
@@ -751,7 +818,7 @@ const Projects = () => {
                       )}
                     </div>
                     <button
-                      onClick={() => setShowClientSelector(false)}
+                      onClick={handleCloseClientSelector}
                       className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                     >
                       Cancel
@@ -893,7 +960,10 @@ const Projects = () => {
                   <Copy className="w-4 h-4" /> 
                   <span className="text-lg">{t('Duplicate')}</span>
                 </button>
-                <button className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                <button 
+                  onClick={() => handleArchiveProject(currentProject.id)}
+                  className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                >
                   <Archive className="w-4 h-4" /> 
                   <span className="text-lg">{t('Archive')}</span>
                 </button>
@@ -921,8 +991,8 @@ const Projects = () => {
       
       {/* New Project Modal */}
       {showNewProjectModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
+      <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
+        <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">New Project</h3>
           <div className="space-y-4">
             <div>
@@ -938,10 +1008,7 @@ const Projects = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
-                onClick={() => {
-                  setShowNewProjectModal(false);
-                  setNewProjectName('');
-                }}
+                onClick={handleCloseNewProjectModal}
                 className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-lg"
               >
                 Cancel
@@ -961,26 +1028,69 @@ const Projects = () => {
     
     {/* New Room Modal */}
     {showNewRoomModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+      <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
+        <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">New room</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-            {roomTypes.map(roomType => (
+            {roomTypes.map((roomType, index) => (
               <button
                 key={roomType}
                 onClick={() => handleAddRoom(roomType)}
-                className="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center shadow-sm hover:shadow-md text-lg"
+                className="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center shadow-sm hover:shadow-md text-lg animate-slide-in-stagger"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
                 {roomType}
               </button>
             ))}
           </div>
           <button
-            onClick={() => setShowNewRoomModal(false)}
+            onClick={handleCloseNewRoomModal}
             className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-lg"
           >
             Cancel
           </button>
+        </div>
+      </div>
+    )}
+
+    {/* Custom Room Name Modal */}
+    {showCustomRoomModal && (
+      <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
+        <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Custom Room Name')}</h3>
+          <div className="mb-6">
+            <input
+              type="text"
+              value={customRoomName}
+              onChange={(e) => setCustomRoomName(e.target.value)}
+              placeholder={t('Enter room name')}
+              className="w-full p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-lg"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleCustomRoomCreate();
+                }
+                if (e.key === 'Escape') {
+                  handleCustomRoomCancel();
+                }
+              }}
+            />
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleCustomRoomCancel}
+              className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-lg"
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              onClick={handleCustomRoomCreate}
+              disabled={!customRoomName.trim()}
+              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+            >
+              {t('Create')}
+            </button>
+          </div>
         </div>
       </div>
     )}

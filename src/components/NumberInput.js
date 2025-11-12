@@ -10,63 +10,56 @@ const NumberInput = ({
   size = "normal", // "small" or "normal"
   ...props 
 }) => {
-  const [displayValue, setDisplayValue] = useState(value?.toString() || '0');
-  const [isFocused, setIsFocused] = useState(false);
+  const [internalValue, setInternalValue] = useState(value?.toString() || '0');
   const inputRef = useRef(null);
 
-  // Update display value when prop value changes
+  // Update internal value when prop changes (from external source)
   useEffect(() => {
-    if (!isFocused) {
-      setDisplayValue(value?.toString() || '0');
-    }
-  }, [value, isFocused]);
+    setInternalValue(value?.toString() || '0');
+  }, [value]);
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
-    setDisplayValue(newValue);
-    
-    // Allow empty string while typing
-    if (newValue === '') {
-      onChange(0);
-      return;
-    }
-    
-    const numericValue = parseFloat(newValue);
-    if (!isNaN(numericValue) && numericValue >= min) {
-      onChange(numericValue);
-    }
-  };
-
-  const handleInputFocus = () => {
-    setIsFocused(true);
+    setInternalValue(newValue);
+    // Don't call onChange during typing - only on blur
   };
 
   const handleInputBlur = () => {
-    setIsFocused(false);
-    // Format the display value on blur
-    const numericValue = parseFloat(displayValue);
-    if (!isNaN(numericValue)) {
-      setDisplayValue(numericValue.toString());
+    // Only format on blur, don't cause re-renders during typing
+    const numericValue = parseFloat(internalValue);
+    if (!isNaN(numericValue) && numericValue >= min) {
+      setInternalValue(numericValue.toString());
+      onChange(numericValue);
     } else {
-      setDisplayValue('0');
+      setInternalValue('0');
       onChange(0);
     }
   };
 
   const incrementValue = (step) => {
-    const currentValue = parseFloat(displayValue) || 0;
+    const currentValue = parseFloat(internalValue) || 0;
     const newValue = Math.max(min, currentValue + step);
     const roundedValue = Math.round(newValue * 100) / 100; // Round to 2 decimal places
-    setDisplayValue(roundedValue.toString());
+    setInternalValue(roundedValue.toString());
     onChange(roundedValue);
+    
+    // Refocus the input after arrow click
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   const decrementValue = (step) => {
-    const currentValue = parseFloat(displayValue) || 0;
+    const currentValue = parseFloat(internalValue) || 0;
     const newValue = Math.max(min, currentValue - step);
     const roundedValue = Math.round(newValue * 100) / 100; // Round to 2 decimal places
-    setDisplayValue(roundedValue.toString());
+    setInternalValue(roundedValue.toString());
     onChange(roundedValue);
+    
+    // Refocus the input after arrow click
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   const isSmall = size === "small";
@@ -92,9 +85,8 @@ const NumberInput = ({
         <input
           ref={inputRef}
           type="number"
-          value={displayValue}
+          value={internalValue}
           onChange={handleInputChange}
-          onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           disabled={disabled}
           className={`hide-number-arrows ${inputWidth} px-2 py-1 ${paddingRight} ${borderRadius} text-center font-semibold border-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fontSize}`}
@@ -110,6 +102,7 @@ const NumberInput = ({
             <button
               type="button"
               onClick={() => incrementValue(1)}
+              onMouseDown={(e) => e.preventDefault()}
               disabled={disabled}
               className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               title="+1"
@@ -119,6 +112,7 @@ const NumberInput = ({
             <button
               type="button"
               onClick={() => decrementValue(1)}
+              onMouseDown={(e) => e.preventDefault()}
               disabled={disabled}
               className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               title="-1"
@@ -132,6 +126,7 @@ const NumberInput = ({
             <button
               type="button"
               onClick={() => incrementValue(0.1)}
+              onMouseDown={(e) => e.preventDefault()}
               disabled={disabled}
               className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-100 dark:hover:bg-gray-700 ${isSmall ? 'rounded-tr rounded-br' : 'rounded-tr-xl rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               title="+0.1"
@@ -141,6 +136,7 @@ const NumberInput = ({
             <button
               type="button"
               onClick={() => decrementValue(0.1)}
+              onMouseDown={(e) => e.preventDefault()}
               disabled={disabled}
               className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-100 dark:hover:bg-gray-700 ${isSmall ? 'rounded-br' : 'rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               title="-0.1"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Hammer, Package, Info, Menu, Save } from 'lucide-react';
+import { ArrowLeft, Hammer, Package, Info, Menu, Save, TrendingUp } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
@@ -12,6 +12,8 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   const [localPriceList, setLocalPriceList] = useState(null);
   const [originalPrices, setOriginalPrices] = useState({});
   const [hasChanges, setHasChanges] = useState(false);
+  const [percentageIncrease, setPercentageIncrease] = useState('');
+  const [showPercentageModal, setShowPercentageModal] = useState(false);
 
   // Initialize local state with data from context
   useEffect(() => {
@@ -132,7 +134,54 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     }
   };
 
+  const handlePercentageIncrease = () => {
+    const percentage = parseFloat(percentageIncrease);
+    if (isNaN(percentage) || percentage <= 0) return;
 
+    const multiplier = 1 + (percentage / 100);
+    
+    const updatedPrices = { ...localPriceList };
+    
+    // Apply percentage increase to all categories
+    Object.keys(updatedPrices).forEach(category => {
+      updatedPrices[category] = updatedPrices[category].map(item => ({
+        ...item,
+        price: Math.round(item.price * multiplier * 100) / 100 // Round to 2 decimal places
+      }));
+    });
+    
+    setLocalPriceList(updatedPrices);
+    const newHasChanges = checkForChanges(updatedPrices);
+    setHasChanges(newHasChanges);
+    if (onHasChangesChange) {
+      onHasChangesChange(newHasChanges);
+    }
+    
+    // Block/unblock navigation based on changes
+    if (newHasChanges) {
+      blockNavigation('priceList', {
+        onSave: handleSave,
+        onDiscard: () => {
+          setLocalPriceList({ ...originalPrices });
+          setHasChanges(false);
+          if (onHasChangesChange) {
+            onHasChangesChange(false);
+          }
+        }
+      });
+    } else {
+      unblockNavigation('priceList');
+    }
+    
+    // Close modal and reset input
+    setShowPercentageModal(false);
+    setPercentageIncrease('');
+  };
+
+  const handleCancelPercentageIncrease = () => {
+    setShowPercentageModal(false);
+    setPercentageIncrease('');
+  };
 
   const handleBack = () => {
     onBack();
@@ -215,9 +264,18 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           <div className="w-0 lg:w-20"></div>
         </div>
 
-        <div className="flex items-start lg:items-center gap-2 text-gray-600 dark:text-gray-400 px-4 lg:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
-          <Info className="w-4 h-4 flex-shrink-0 mt-0.5 lg:mt-0" />
-          <span className="text-sm lg:text-base">{t('Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.')}</span>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-4 lg:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-start lg:items-center gap-2 text-gray-600 dark:text-gray-400">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5 lg:mt-0" />
+            <span className="text-sm lg:text-base">{t('Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.')}</span>
+          </div>
+          <button
+            onClick={() => setShowPercentageModal(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md text-sm lg:text-base self-start lg:self-auto"
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>{t('Increase All Prices')}</span>
+          </button>
         </div>
 
         {/* Content */}
@@ -275,6 +333,59 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           </div>
         )}
       </div>
+
+      {/* Percentage Increase Modal */}
+      {showPercentageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md animate-slide-in">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Increase All Prices')}</h3>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                {t('Percentage Increase')}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={percentageIncrease}
+                  onChange={(e) => setPercentageIncrease(e.target.value)}
+                  placeholder="10"
+                  min="0"
+                  step="0.1"
+                  className="flex-1 p-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-lg"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handlePercentageIncrease();
+                    }
+                    if (e.key === 'Escape') {
+                      handleCancelPercentageIncrease();
+                    }
+                  }}
+                />
+                <span className="text-gray-600 dark:text-gray-400 text-lg">%</span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                {t('Example: Enter 10 for 10% increase. All prices will be updated.')}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelPercentageIncrease}
+                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-lg"
+              >
+                {t('Cancel')}
+              </button>
+              <button
+                onClick={handlePercentageIncrease}
+                disabled={!percentageIncrease || parseFloat(percentageIncrease) <= 0}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-lg"
+              >
+                {t('Apply')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </>
   );
