@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { User, Search, ChevronRight, Plus, Trash2, Edit3, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
@@ -113,20 +113,20 @@ const Clients = () => {
     setEditForm({});
   };
 
-  const handleEditInputChange = (field, value) => {
+  const handleEditInputChange = useCallback((field, value) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
   const handleProjectOpen = (project) => {
     // Navigate to projects page with the specific project selected
     navigate('/projects', { state: { selectedProjectId: project.id, selectedClient: selectedClient } });
   };
 
-  // Helper component for editable fields
-  const EditableField = ({ label, field, value, type = "text" }) => {
+  // Helper component for editable fields - memoized to prevent unnecessary re-renders
+  const EditableField = React.memo(({ label, field, value, type = "text" }) => {
     if (isEditing) {
       return (
         <div>
@@ -137,6 +137,7 @@ const Clients = () => {
             onChange={(e) => handleEditInputChange(field, e.target.value)}
             className="w-full mt-1 px-3 py-2 lg:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent text-lg"
             placeholder={`Enter ${label.toLowerCase()}`}
+            autoComplete="off"
           />
         </div>
       );
@@ -148,7 +149,7 @@ const Clients = () => {
         <p className="text-gray-900 dark:text-white font-medium text-lg break-words">{value || '-'}</p>
       </div>
     );
-  };
+  });
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -285,7 +286,10 @@ const Clients = () => {
           </div>
 
           {/* Edit Client Button */}
-          <button className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-3 lg:py-4 rounded-2xl font-medium border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md text-lg">
+          <button 
+            onClick={handleEditToggle}
+            className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-3 lg:py-4 rounded-2xl font-medium border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md text-lg"
+          >
             <Edit3 className="w-4 h-4 lg:w-5 lg:h-5" />
             {t('Edit client')}
           </button>

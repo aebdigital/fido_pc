@@ -284,6 +284,29 @@ export const AppDataProvider = ({ children }) => {
       }
 
       // Add to contractor-specific projects
+      // Initialize contractor project structure if it doesn't exist
+      if (!prev.contractorProjects[activeContractorId]) {
+        return {
+          ...prev,
+          contractorProjects: {
+            ...prev.contractorProjects,
+            [activeContractorId]: {
+              categories: getDefaultCategories().map(category => {
+                if (category.id === categoryId) {
+                  return {
+                    ...category,
+                    projects: [newProject],
+                    count: 1
+                  };
+                }
+                return category;
+              }),
+              archivedProjects: []
+            }
+          }
+        };
+      }
+
       return {
         ...prev,
         contractorProjects: {
@@ -513,11 +536,11 @@ export const AppDataProvider = ({ children }) => {
   const getProjectCategoriesForContractor = (contractorId) => {
     if (!contractorId) {
       // Return global categories if no contractor selected (backward compatibility)
-      return appData.projectCategories;
+      return appData.projectCategories || getDefaultCategories();
     }
     
     // Return contractor-specific categories
-    if (!appData.contractorProjects[contractorId]) {
+    if (!appData.contractorProjects || !appData.contractorProjects[contractorId]) {
       return getDefaultCategories();
     }
     
@@ -528,10 +551,14 @@ export const AppDataProvider = ({ children }) => {
   const getArchivedProjectsForContractor = (contractorId) => {
     if (!contractorId) {
       // Return global archived projects if no contractor selected (backward compatibility)
-      return appData.archivedProjects;
+      return appData.archivedProjects || [];
     }
     
-    return appData.contractorProjects[contractorId]?.archivedProjects || [];
+    if (!appData.contractorProjects || !appData.contractorProjects[contractorId]) {
+      return [];
+    }
+    
+    return appData.contractorProjects[contractorId].archivedProjects || [];
   };
 
 

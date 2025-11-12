@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppData } from '../context/AppDataContext';
 
 const Invoices = () => {
   const { t } = useLanguage();
+  const { contractors, activeContractorId } = useAppData();
   const [selectedTime, setSelectedTime] = useState(t('Any Time'));
   const [selectedStatus, setSelectedStatus] = useState(t('All'));
+
+  const getCurrentContractor = () => {
+    return contractors.find(c => c.id === activeContractorId);
+  };
 
   const timeFilters = [t('Any Time')];
   const statusFilters = [t('All'), t('Paid'), t('Unpaid'), t('After M')];
@@ -15,7 +21,9 @@ const Invoices = () => {
       <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Invoices')}</h1>
       <div className="mb-4 lg:mb-6">
         <div className="flex items-center gap-2">
-          <span className="text-lg lg:text-xl font-medium text-gray-900 dark:text-white">vhh</span>
+          <span className="text-lg lg:text-xl font-medium text-gray-900 dark:text-white">
+            {getCurrentContractor()?.name || t('No contractor selected')}
+          </span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
         </div>
       </div>

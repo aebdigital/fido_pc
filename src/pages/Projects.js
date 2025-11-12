@@ -998,7 +998,9 @@ const Projects = () => {
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                 </div>
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-                  <div className="font-medium text-gray-900 dark:text-white text-lg">vhh</div>
+                  <div className="font-medium text-gray-900 dark:text-white text-lg">
+                    {getCurrentContractor()?.name || t('No contractor selected')}
+                  </div>
                 </div>
               </div>
 

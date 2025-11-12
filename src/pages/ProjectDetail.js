@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useAppData } from '../context/AppDataContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const ProjectDetail = () => {
   const { id } = useParams();
   const [showRoomSelector, setShowRoomSelector] = useState(false);
+  const { t } = useLanguage();
+  const { contractors, activeContractorId } = useAppData();
+  
+  const getCurrentContractor = () => {
+    return contractors.find(c => c.id === activeContractorId);
+  };
 
   const roomTypes = [
     'Hallway', 'Toilet', 'Bathroom', 'Kitchen',
@@ -129,7 +137,9 @@ const ProjectDetail = () => {
             <span className="text-gray-400">›</span>
           </div>
           <div className="bg-gray-100 rounded-2xl p-4">
-            <div className="font-medium text-gray-900">vhh</div>
+            <div className="font-medium text-gray-900">
+              {getCurrentContractor()?.name || t('No contractor selected')}
+            </div>
           </div>
         </div>
 
