@@ -26,7 +26,6 @@ const Projects = () => {
     clients, 
     generalPriceList,
     addProject, 
-    deleteProject,
     archiveProject,
     assignProjectToClient,
     addRoomToProject,
