@@ -31,6 +31,7 @@ const Projects = () => {
     setActiveContractor,
     addContractor,
     addProject, 
+    updateProject,
     archiveProject,
     assignProjectToClient,
     addRoomToProject,
@@ -529,20 +530,36 @@ const Projects = () => {
   const handleProjectSelect = (project) => {
     setSelectedProject(project);
     setCurrentView('details');
+    
+    // Load the assigned client if the project has one
+    if (project.clientId) {
+      const assignedClient = clients.find(client => client.id === project.clientId);
+      if (assignedClient) {
+        setSelectedClientForProject(assignedClient);
+      }
+    } else {
+      setSelectedClientForProject(null);
+    }
   };
 
   const handleBackToProjects = () => {
     setCurrentView('projects');
     setSelectedProject(null);
+    setSelectedClientForProject(null);
   };
 
   const handleClientSelect = (client) => {
     setSelectedClientForProject(client);
     setShowClientSelector(false);
     
-    // Assign the current project to the selected client
+    // Assign the current project to the selected client AND store client info in project
     if (currentProject) {
       assignProjectToClient(client.id, currentProject.id, currentProject.name);
+      // Also update the project to store the client information
+      updateProject(activeCategory, currentProject.id, { 
+        clientId: client.id,
+        clientName: client.name 
+      });
     }
   };
 

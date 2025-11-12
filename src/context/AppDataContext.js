@@ -332,20 +332,53 @@ export const AppDataProvider = ({ children }) => {
   };
 
   const updateProject = (categoryId, projectId, projectData) => {
-    setAppData(prev => ({
-      ...prev,
-      projectCategories: prev.projectCategories.map(category => {
-        if (category.id === categoryId) {
-          return {
-            ...category,
-            projects: category.projects.map(project => 
-              project.id === projectId ? { ...project, ...projectData } : project
-            )
-          };
+    setAppData(prev => {
+      const activeContractorId = prev.activeContractorId;
+      
+      if (!activeContractorId) {
+        // Update global projects if no contractor selected
+        return {
+          ...prev,
+          projectCategories: prev.projectCategories.map(category => {
+            if (category.id === categoryId) {
+              return {
+                ...category,
+                projects: category.projects.map(project => 
+                  project.id === projectId ? { ...project, ...projectData } : project
+                )
+              };
+            }
+            return category;
+          })
+        };
+      }
+
+      // Update contractor-specific projects
+      if (!prev.contractorProjects[activeContractorId]) {
+        return prev; // No contractor project structure to update
+      }
+
+      return {
+        ...prev,
+        contractorProjects: {
+          ...prev.contractorProjects,
+          [activeContractorId]: {
+            ...prev.contractorProjects[activeContractorId],
+            categories: prev.contractorProjects[activeContractorId].categories.map(category => {
+              if (category.id === categoryId) {
+                return {
+                  ...category,
+                  projects: category.projects.map(project => 
+                    project.id === projectId ? { ...project, ...projectData } : project
+                  )
+                };
+              }
+              return category;
+            })
+          }
         }
-        return category;
-      })
-    }));
+      };
+    });
   };
 
   const deleteProject = (categoryId, projectId) => {
