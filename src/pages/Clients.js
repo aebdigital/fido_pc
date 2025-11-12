@@ -4,6 +4,32 @@ import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 
+// Helper component for editable fields - moved outside to prevent recreation on renders
+const EditableField = React.memo(({ label, field, value, type = "text", isEditing, editForm, onInputChange }) => {
+  if (isEditing) {
+    return (
+      <div>
+        <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400 block">{label}</span>
+        <input
+          type={type}
+          value={editForm[field] || ''}
+          onChange={(e) => onInputChange(field, e.target.value)}
+          className="w-full mt-1 px-3 py-2 lg:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent text-lg"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+      </div>
+    );
+  }
+  
+  return (
+    <div>
+      <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400 block">{label}</span>
+      <p className="text-gray-900 dark:text-white font-medium text-lg break-words">{value || '-'}</p>
+    </div>
+  );
+});
+
 const Clients = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -125,31 +151,6 @@ const Clients = () => {
     navigate('/projects', { state: { selectedProjectId: project.id, selectedClient: selectedClient } });
   };
 
-  // Helper component for editable fields - memoized to prevent unnecessary re-renders
-  const EditableField = React.memo(({ label, field, value, type = "text" }) => {
-    if (isEditing) {
-      return (
-        <div>
-          <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400 block">{label}</span>
-          <input
-            type={type}
-            value={editForm[field] || ''}
-            onChange={(e) => handleEditInputChange(field, e.target.value)}
-            className="w-full mt-1 px-3 py-2 lg:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent text-lg"
-            placeholder={`Enter ${label.toLowerCase()}`}
-            autoComplete="off"
-          />
-        </div>
-      );
-    }
-    
-    return (
-      <div>
-        <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400 block">{label}</span>
-        <p className="text-gray-900 dark:text-white font-medium text-lg break-words">{value || '-'}</p>
-      </div>
-    );
-  });
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -218,9 +219,32 @@ const Clients = () => {
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="space-y-3 lg:space-y-4">
-                <EditableField label={t('Name')} field="name" value={selectedClient.name} />
-                <EditableField label={t('Email')} field="email" value={selectedClient.email} type="email" />
-                <EditableField label={t('Phone number')} field="phone" value={selectedClient.phone} type="tel" />
+                <EditableField 
+                  label={t('Name')} 
+                  field="name" 
+                  value={selectedClient.name} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label={t('Email')} 
+                  field="email" 
+                  value={selectedClient.email} 
+                  type="email" 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label={t('Phone number')} 
+                  field="phone" 
+                  value={selectedClient.phone} 
+                  type="tel" 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
               </div>
             </div>
 
@@ -231,11 +255,46 @@ const Clients = () => {
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="space-y-3 lg:space-y-4">
-                <EditableField label={t('Street')} field="street" value={selectedClient.street} />
-                <EditableField label={t('Additional info')} field="additionalInfo" value={selectedClient.additionalInfo} />
-                <EditableField label={t('City')} field="city" value={selectedClient.city} />
-                <EditableField label={t('Postal code')} field="postalCode" value={selectedClient.postalCode} />
-                <EditableField label={t('Country')} field="country" value={selectedClient.country} />
+                <EditableField 
+                  label={t('Street')} 
+                  field="street" 
+                  value={selectedClient.street} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label={t('Additional info')} 
+                  field="additionalInfo" 
+                  value={selectedClient.additionalInfo} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label={t('City')} 
+                  field="city" 
+                  value={selectedClient.city} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label={t('Postal code')} 
+                  field="postalCode" 
+                  value={selectedClient.postalCode} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label={t('Country')} 
+                  field="country" 
+                  value={selectedClient.country} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
               </div>
             </div>
           </div>
@@ -248,10 +307,38 @@ const Clients = () => {
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
-                <EditableField label="Business ID" field="businessId" value={selectedClient.businessId} />
-                <EditableField label="Tax ID" field="taxId" value={selectedClient.taxId} />
-                <EditableField label="VAT Registration Number" field="vatId" value={selectedClient.vatId} />
-                <EditableField label="Contact Person" field="contactPerson" value={selectedClient.contactPerson} />
+                <EditableField 
+                  label="Business ID" 
+                  field="businessId" 
+                  value={selectedClient.businessId} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label="Tax ID" 
+                  field="taxId" 
+                  value={selectedClient.taxId} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label="VAT Registration Number" 
+                  field="vatId" 
+                  value={selectedClient.vatId} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
+                <EditableField 
+                  label="Contact Person" 
+                  field="contactPerson" 
+                  value={selectedClient.contactPerson} 
+                  isEditing={isEditing}
+                  editForm={editForm}
+                  onInputChange={handleEditInputChange}
+                />
               </div>
             </div>
           )}

@@ -415,34 +415,57 @@ export const AppDataProvider = ({ children }) => {
     const archivedProject = {
       ...project,
       originalCategoryId: categoryId,
-      archivedDate: new Date().toISOString()
+      archivedDate: new Date().toISOString(),
+      contractorId: appData.activeContractorId // Store which contractor this project belonged to
     };
 
-    setAppData(prev => ({
-      ...prev,
-      // Add to archived projects
-      archivedProjects: [...prev.archivedProjects, archivedProject],
-      // Remove from original category
-      projectCategories: prev.projectCategories.map(category => {
-        if (category.id === categoryId) {
-          return {
-            ...category,
-            projects: category.projects.filter(project => project.id !== projectId),
-            count: category.count - 1
-          };
-        }
-        return category;
-      })
-    }));
+    setAppData(prev => {
+      const newState = {
+        ...prev,
+        // Add to archived projects
+        archivedProjects: [...prev.archivedProjects, archivedProject],
+      };
 
-    // Also remove project from any client's project list
-    setAppData(prev => ({
-      ...prev,
-      clients: prev.clients.map(client => ({
+      // Remove from contractor-specific projects if active contractor exists
+      if (prev.activeContractorId && prev.contractorProjects[prev.activeContractorId]) {
+        newState.contractorProjects = {
+          ...prev.contractorProjects,
+          [prev.activeContractorId]: {
+            ...prev.contractorProjects[prev.activeContractorId],
+            categories: prev.contractorProjects[prev.activeContractorId].categories.map(category => {
+              if (category.id === categoryId) {
+                return {
+                  ...category,
+                  projects: category.projects.filter(project => project.id !== projectId),
+                  count: category.count - 1
+                };
+              }
+              return category;
+            })
+          }
+        };
+      } else {
+        // Fallback: Remove from global project categories (for backward compatibility)
+        newState.projectCategories = prev.projectCategories.map(category => {
+          if (category.id === categoryId) {
+            return {
+              ...category,
+              projects: category.projects.filter(project => project.id !== projectId),
+              count: category.count - 1
+            };
+          }
+          return category;
+        });
+      }
+
+      // Remove project from any client's project list
+      newState.clients = prev.clients.map(client => ({
         ...client,
         projects: client.projects.filter(project => project.id !== projectId)
-      }))
-    }));
+      }));
+
+      return newState;
+    });
   };
 
   const unarchiveProject = (projectId) => {
@@ -450,24 +473,49 @@ export const AppDataProvider = ({ children }) => {
     if (!archivedProject) return;
 
     // Remove archived project data and restore to original category
-    const { originalCategoryId, archivedDate, ...restoredProject } = archivedProject;
+    const { originalCategoryId, archivedDate, contractorId, ...restoredProject } = archivedProject;
 
-    setAppData(prev => ({
-      ...prev,
-      // Remove from archived projects
-      archivedProjects: prev.archivedProjects.filter(project => project.id !== projectId),
-      // Add back to original category
-      projectCategories: prev.projectCategories.map(category => {
-        if (category.id === originalCategoryId) {
-          return {
-            ...category,
-            projects: [restoredProject, ...category.projects],
-            count: category.count + 1
-          };
-        }
-        return category;
-      })
-    }));
+    setAppData(prev => {
+      const newState = {
+        ...prev,
+        // Remove from archived projects
+        archivedProjects: prev.archivedProjects.filter(project => project.id !== projectId),
+      };
+
+      // Restore to contractor-specific projects if contractor exists
+      if (contractorId && prev.contractorProjects[contractorId]) {
+        newState.contractorProjects = {
+          ...prev.contractorProjects,
+          [contractorId]: {
+            ...prev.contractorProjects[contractorId],
+            categories: prev.contractorProjects[contractorId].categories.map(category => {
+              if (category.id === originalCategoryId) {
+                return {
+                  ...category,
+                  projects: [restoredProject, ...category.projects],
+                  count: category.count + 1
+                };
+              }
+              return category;
+            })
+          }
+        };
+      } else {
+        // Fallback: Restore to global project categories (for backward compatibility)
+        newState.projectCategories = prev.projectCategories.map(category => {
+          if (category.id === originalCategoryId) {
+            return {
+              ...category,
+              projects: [restoredProject, ...category.projects],
+              count: category.count + 1
+            };
+          }
+          return category;
+        });
+      }
+
+      return newState;
+    });
   };
 
   const deleteArchivedProject = (projectId) => {
@@ -638,12 +686,24 @@ export const AppDataProvider = ({ children }) => {
 
   // Helper function to find project by ID across all categories
   const findProjectById = (projectId) => {
+    // First, search in contractor-specific projects if we have an active contractor
+    if (appData.activeContractorId && appData.contractorProjects[appData.activeContractorId]) {
+      for (const category of appData.contractorProjects[appData.activeContractorId].categories) {
+        const project = category.projects.find(p => p.id === projectId);
+        if (project) {
+          return { project, category: category.id };
+        }
+      }
+    }
+    
+    // Fallback: search in global project categories (for backward compatibility)
     for (const category of appData.projectCategories) {
       const project = category.projects.find(p => p.id === projectId);
       if (project) {
         return { project, category: category.id };
       }
     }
+    
     return null;
   };
 
@@ -905,7 +965,7 @@ export const AppDataProvider = ({ children }) => {
     projectCategories: getProjectCategoriesForContractor(appData.activeContractorId),
     projectRoomsData: appData.projectRoomsData,
     generalPriceList: appData.generalPriceList,
-    archivedProjects: getArchivedProjectsForContractor(appData.activeContractorId),
+    archivedProjects: appData.archivedProjects,
     contractors: appData.contractors,
     priceOfferSettings: appData.priceOfferSettings,
     activeContractorId: appData.activeContractorId,

@@ -29,6 +29,9 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
     updateProjectRoom
   } = useAppData();
 
+  // Show all archived projects regardless of contractor
+  const allArchivedProjects = archivedProjects;
+
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentView, setCurrentView] = useState('archive'); // 'archive', 'details'
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -38,13 +41,13 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
   // If opened from archive with specific project ID, show that project
   React.useEffect(() => {
     if (fromArchive && projectId) {
-      const project = archivedProjects.find(p => p.id === projectId);
+      const project = allArchivedProjects.find(p => p.id === projectId);
       if (project) {
         setSelectedProject(project);
         setCurrentView('details');
       }
     }
-  }, [fromArchive, projectId, archivedProjects]);
+  }, [fromArchive, projectId, allArchivedProjects]);
 
   const handleUnarchiveProject = (projectId) => {
     unarchiveProject(projectId);
@@ -313,7 +316,7 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
       </div>
 
       {/* Archived projects list */}
-      {archivedProjects.length === 0 ? (
+      {allArchivedProjects.length === 0 ? (
         <div className="text-center py-16">
           <ArchiveIcon className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">{t('No Archived Projects')}</h3>
@@ -321,7 +324,7 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
         </div>
       ) : (
         <div className="space-y-3 lg:space-y-4">
-          {archivedProjects.map((project) => (
+          {allArchivedProjects.map((project) => (
             <div 
               key={project.id}
               className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-md"
