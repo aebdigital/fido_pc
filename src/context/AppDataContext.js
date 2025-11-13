@@ -773,6 +773,8 @@ export const AppDataProvider = ({ children }) => {
     
     room.workItems.forEach(workItem => {
       const priceItem = findPriceListItem(workItem, activePriceList);
+      
+      
       if (priceItem && workItem.fields) {
         const itemPrice = calculateWorkItemPrice(workItem, priceItem);
         totalPrice += itemPrice;
@@ -791,6 +793,7 @@ export const AppDataProvider = ({ children }) => {
     // Find the project to get its price list snapshot
     const projectResult = findProjectById(projectId);
     let projectPriceList = null;
+    
     
     if (projectResult && projectResult.project && projectResult.project.priceListSnapshot) {
       // Use project's frozen price list
@@ -843,7 +846,9 @@ export const AppDataProvider = ({ children }) => {
     };
     
     const targetName = workIdMappings[workItem.propertyId];
-    if (!targetName) return null;
+    if (!targetName) {
+      return null;
+    }
     
     // Search through all categories in the price list
     for (const category of ['work', 'material', 'others']) {
