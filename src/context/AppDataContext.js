@@ -260,7 +260,10 @@ export const AppDataProvider = ({ children }) => {
     const newProject = {
       id: `${new Date().getFullYear()}${String(Date.now()).slice(-3)}`,
       ...projectData,
-      status: 'not sent'
+      status: 'not sent',
+      // Store a snapshot of the current price list to freeze prices for this project
+      priceListSnapshot: JSON.parse(JSON.stringify(appData.generalPriceList)),
+      createdDate: new Date().toISOString()
     };
 
     setAppData(prev => {
@@ -761,38 +764,23 @@ export const AppDataProvider = ({ children }) => {
   };
 
   // Price calculation functions
-  const calculateRoomPrice = (room) => {
+  const calculateRoomPrice = (room, priceList = null) => {
     if (!room.workItems || room.workItems.length === 0) return 0;
     
-    const priceList = appData.generalPriceList;
+    // Use provided price list or fall back to general price list
+    const activePriceList = priceList || appData.generalPriceList;
     let totalPrice = 0;
     
     room.workItems.forEach(workItem => {
-      const priceItem = findPriceListItem(workItem, priceList);
+      const priceItem = findPriceListItem(workItem, activePriceList);
       if (priceItem && workItem.fields) {
         const itemPrice = calculateWorkItemPrice(workItem, priceItem);
         totalPrice += itemPrice;
-        
-        // Debug logging (remove in production)
-        console.log(`Price calculation for ${workItem.name}:`, {
-          propertyId: workItem.propertyId,
-          fields: workItem.fields,
-          priceItem: priceItem?.name,
-          unitPrice: priceItem?.price,
-          calculatedPrice: itemPrice
-        });
       } else {
-        // Debug logging for missing items
-        console.log(`No price found for work item:`, {
-          propertyId: workItem.propertyId,
-          name: workItem.name,
-          hasFields: !!workItem.fields,
-          fieldCount: Object.keys(workItem.fields || {}).length
-        });
+        console.log('No price found for work item:', workItem);
       }
     });
     
-    console.log(`Room "${room.name}" total price: €${totalPrice.toFixed(2)}`);
     return totalPrice;
   };
 
@@ -800,8 +788,18 @@ export const AppDataProvider = ({ children }) => {
     const rooms = getProjectRooms(projectId);
     let totalPrice = 0;
     
+    // Find the project to get its price list snapshot
+    const projectResult = findProjectById(projectId);
+    let projectPriceList = null;
+    
+    if (projectResult && projectResult.project && projectResult.project.priceListSnapshot) {
+      // Use project's frozen price list
+      projectPriceList = projectResult.project.priceListSnapshot;
+    }
+    // If no snapshot exists (old projects), fall back to current price list
+    
     rooms.forEach(room => {
-      totalPrice += calculateRoomPrice(room);
+      totalPrice += calculateRoomPrice(room, projectPriceList);
     });
     
     return totalPrice;

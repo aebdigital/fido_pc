@@ -946,7 +946,7 @@ const Projects = () => {
                       <div className="flex items-center justify-between sm:justify-end sm:gap-2 mt-3 sm:mt-0">
                         <div className="text-left sm:text-right">
                           <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
-                          <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateRoomPrice(room))}</div>
+                          <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateRoomPrice(room, currentProject.priceListSnapshot))}</div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </div>
