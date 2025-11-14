@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Hammer, Package, Menu, Info, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Hammer, Package, Menu, Info, RefreshCw, Wrench } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 
 const ProjectPriceList = ({ projectId, onClose, onSave }) => {
@@ -216,6 +216,21 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
               ))}
             </div>
           </div>
+
+          {/* Installations Section */}
+          {projectPriceData.installations && (
+            <div className="mb-10">
+              <div className="flex items-center gap-2 mb-6">
+                <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sanitary installations</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {projectPriceData.installations.map((item, index) => (
+                  <PriceCard key={index} item={item} category="installations" itemIndex={index} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Others Section */}
           <div className="mb-10">

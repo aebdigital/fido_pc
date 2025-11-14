@@ -8,14 +8,19 @@ const NumberInput = ({
   min = 0,
   disabled = false,
   size = "normal", // "small" or "normal"
+  placeholder = "0",
   ...props 
 }) => {
-  const [internalValue, setInternalValue] = useState(value?.toString() || '0');
+  const [internalValue, setInternalValue] = useState(
+    value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString() : ''
+  );
   const inputRef = useRef(null);
 
   // Update internal value when prop changes (from external source)
   useEffect(() => {
-    setInternalValue(value?.toString() || '0');
+    setInternalValue(
+      value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString() : ''
+    );
   }, [value]);
 
   const handleInputChange = (e) => {
@@ -26,12 +31,18 @@ const NumberInput = ({
 
   const handleInputBlur = () => {
     // Only format on blur, don't cause re-renders during typing
+    if (internalValue === '' || internalValue === null || internalValue === undefined) {
+      // Keep empty for placeholder
+      onChange(0);
+      return;
+    }
+    
     const numericValue = parseFloat(internalValue);
     if (!isNaN(numericValue) && numericValue >= min) {
       setInternalValue(numericValue.toString());
       onChange(numericValue);
     } else {
-      setInternalValue('0');
+      setInternalValue('');
       onChange(0);
     }
   };
@@ -89,6 +100,7 @@ const NumberInput = ({
           onChange={handleInputChange}
           onBlur={handleInputBlur}
           disabled={disabled}
+          placeholder={placeholder}
           className={`hide-number-arrows ${inputWidth} px-2 py-1 ${paddingRight} ${borderRadius} text-center font-semibold border-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fontSize}`}
           min={min}
           step="0.01"

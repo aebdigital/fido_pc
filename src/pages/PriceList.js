@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Hammer, Package, Info, Menu, Save, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Hammer, Package, Info, Menu, Save, TrendingUp, Wrench } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
@@ -302,6 +302,19 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
               {localPriceList.material?.map((item, index) => (
                 <PriceCard key={index} item={item} category="material" itemIndex={index} />
+              ))}
+            </div>
+          </div>
+
+          {/* Installations Section */}
+          <div className="mb-8 lg:mb-10">
+            <div className="flex items-center gap-2 mb-4 lg:mb-6">
+              <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
+              {localPriceList.installations?.map((item, index) => (
+                <PriceCard key={index} item={item} category="installations" itemIndex={index} />
               ))}
             </div>
           </div>

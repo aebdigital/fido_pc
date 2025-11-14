@@ -329,7 +329,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 sm:w-12 sm:flex-shrink-0">{t('Width')}</span>
                 <div className="flex items-center gap-2 sm:justify-end">
                   <NumberInput
-                    value={subItem.width}
+                    value={subItem.width || 0}
                     onChange={(value) => handleUpdateDoorWindow(item.id, type, subItem.id, 'width', value)}
                     size="small"
                     className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -342,7 +342,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 sm:w-12 sm:flex-shrink-0">{t('Height')}</span>
                 <div className="flex items-center gap-2 sm:justify-end">
                   <NumberInput
-                    value={subItem.height}
+                    value={subItem.height || 0}
                     onChange={(value) => handleUpdateDoorWindow(item.id, type, subItem.id, 'height', value)}
                     size="small"
                     className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -371,7 +371,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{field.name}</span>
         <div className="flex items-center gap-2 sm:justify-end">
           <NumberInput
-            value={value}
+            value={value || 0}
             onChange={(value) => handleUpdateWorkItem(item.id, field.name, value)}
             className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
             min={0}

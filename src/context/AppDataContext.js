@@ -17,40 +17,14 @@ export const useAppData = () => {
 export const AppDataProvider = ({ children }) => {
   // Default data structure
   const getDefaultData = () => ({
-      clients: [
-        {
-          id: 1,
-          name: 'lol',
-          email: 'hhh',
-          phone: '-',
-          type: 'private',
-          street: '-',
-          additionalInfo: '-',
-          city: '-',
-          postalCode: '-',
-          country: '-',
-          projects: [
-            {
-              id: '2025001',
-              name: 'lol',
-              rooms: 1,
-              price: '€6 756,75',
-              note: 'VAT not included'
-            }
-          ]
-        }
-      ],
+      clients: [],
       projectCategories: [
         {
           id: 'flats',
           name: 'Flats',
-          count: 3,
+          count: 0,
           image: flatsImage,
-          projects: [
-            { id: '2025003', name: 'test Copy', status: 'not sent' },
-            { id: '2025002', name: 'test' },
-            { id: '2025001', name: 'test', price: '€7 152,75', note: 'VAT not included', status: 'not sent' }
-          ]
+          projects: []
         },
         {
           id: 'houses',
@@ -117,20 +91,6 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Large Format', subtitle: 'above 60cm', price: 80, unit: '€/m²' },
           { name: 'Grouting', subtitle: 'tiling and paving', price: 5, unit: '€/m²' },
           { name: 'Siliconing', price: 2, unit: '€/bm' },
-          { name: 'Sanitary installation', subtitle: 'corner valve', price: 10, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'standing mixer tap', price: 25, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'wall-mounted tap', price: 80, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'flush-mounted tap', price: 120, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'toilet combi', price: 65, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'toilet with concealed cistern', price: 120, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'sink', price: 50, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'sink with cabinet', price: 120, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'bathtub', price: 150, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'shower cubicle', price: 220, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'installation of gutter', price: 99, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'urinal', price: 100, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'bath screen', price: 150, unit: '€/pc' },
-          { name: 'Sanitary installation', subtitle: 'mirror', price: 50, unit: '€/pc' },
           { name: 'Window installation', price: 7, unit: '€/bm' },
           { name: 'Installation of door jamb', price: 60, unit: '€/pc' },
           { name: 'Auxiliary and finishing work', price: 65, unit: '%' }
@@ -160,6 +120,22 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Tiles', subtitle: 'ceramic', price: 25, unit: '€/m²' },
           { name: 'Pavings', subtitle: 'ceramic', price: 25, unit: '€/m²' },
           { name: 'Auxiliary and fastening material', price: 10, unit: '%' }
+        ],
+        installations: [
+          { name: 'Sanitary installations', subtitle: 'corner valve', price: 10, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'standing mixer tap', price: 25, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'wall-mounted tap', price: 80, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'flush-mounted tap', price: 120, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'toilet combi', price: 65, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'toilet with concealed cistern', price: 120, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'sink', price: 50, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'sink with cabinet', price: 120, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'bathtub', price: 150, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'shower cubicle', price: 220, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'installation of gutter', price: 99, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'urinal', price: 100, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'bath screen', price: 150, unit: '€/pc' },
+          { name: 'Sanitary installations', subtitle: 'mirror', price: 50, unit: '€/pc' }
         ],
         others: [
           { name: 'Scaffolding', price: 10, unit: '€/days' },
@@ -837,7 +813,7 @@ export const AppDataProvider = ({ children }) => {
       'paving_under_60': 'Paving under 60cm',
       'grouting': 'Grouting',
       'siliconing': 'Siliconing',
-      'sanitary_installation': 'Sanitary installation',
+      'sanitary_installation': 'Sanitary installations',
       'window_installation': 'Window installation',
       'door_jamb_installation': 'Installation of door jamb',
       'custom_work': 'Custom work and material',
@@ -851,7 +827,7 @@ export const AppDataProvider = ({ children }) => {
     }
     
     // Search through all categories in the price list
-    for (const category of ['work', 'material', 'others']) {
+    for (const category of ['work', 'material', 'installations', 'others']) {
       if (priceList[category]) {
         // Find exact or partial match
         const item = priceList[category].find(item => {
