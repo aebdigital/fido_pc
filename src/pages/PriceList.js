@@ -142,11 +142,12 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     
     const updatedPrices = { ...localPriceList };
     
-    // Apply percentage increase to all categories
+    // Apply percentage increase to all categories, but skip VAT
     Object.keys(updatedPrices).forEach(category => {
       updatedPrices[category] = updatedPrices[category].map(item => ({
         ...item,
-        price: Math.round(item.price * multiplier * 100) / 100 // Round to 2 decimal places
+        // Skip VAT items when applying percentage increase
+        price: item.name === 'VAT' ? item.price : Math.round(item.price * multiplier * 100) / 100 // Round to 2 decimal places
       }));
     });
     

@@ -53,7 +53,7 @@ const Projects = () => {
   // Helper function to get current VAT rate from price list
   const getVATRate = () => {
     const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
-    return vatItem ? vatItem.price / 100 : 0.2; // Default to 20% if not found
+    return vatItem ? vatItem.price / 100 : 0.23; // Default to 23% if not found
   };
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -1066,7 +1066,7 @@ const Projects = () => {
                     <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(currentProject.id))}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-900 dark:text-white text-lg">{t('VAT (20%)')}</span>
+                    <span className="text-gray-900 dark:text-white text-lg">{t('VAT (23%)')}</span>
                     <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(currentProject.id) * getVATRate())}</span>
                   </div>
                   <hr className="border-gray-300 dark:border-gray-600" />

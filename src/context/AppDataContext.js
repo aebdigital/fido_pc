@@ -144,7 +144,7 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Tool rental', price: 10, unit: '€/h' },
           { name: 'Custom work and material', price: 50, unit: '€' },
           { name: 'Commute', price: 1, unit: '€/km' },
-          { name: 'VAT', price: 20, unit: '%' }
+          { name: 'VAT', price: 23, unit: '%' }
         ]
       }
     });
