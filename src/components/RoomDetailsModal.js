@@ -468,7 +468,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           
           {/* Existing rental items */}
           {existingItems.map((item, index) => (
-            <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
+            <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in-top">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
                   {t(item.name)} {t('no.')} {index + 1}
@@ -557,7 +557,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           
           {/* Show fields directly when item exists */}
           {existingItem && (
-            <div className="space-y-3 lg:space-y-2">
+            <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
               {property.fields?.map(field => (
                 <div key={field.name}>
                   {renderField(existingItem, field)}
@@ -601,14 +601,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
                     <button
                       onClick={(e) => toggleExpanded(existingItem.id, e)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       {expandedItems[existingItem.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
                     </button>
                   </div>
                   
                   {expandedItems[existingItem.id] && (
-                    <div className="space-y-3 lg:space-y-2">
+                    <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
                       {property.complementaryWorks.map((work, index) => {
                         const uniqueKey = `${work}_${index}`;
                         return (
@@ -690,7 +690,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           
           {/* Existing type items */}
           {existingItems.map(item => (
-            <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
+            <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in-top">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
                   {item.name}
@@ -751,14 +751,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
                     <button
                       onClick={(e) => toggleExpanded(item.id, e)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       {expandedItems[item.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
                     </button>
                   </div>
                   
                   {expandedItems[item.id] && (
-                    <div className="space-y-3 lg:space-y-2">
+                    <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
                       {property.complementaryWorks.map((work, index) => {
                         const uniqueKey = `${work}_${index}`;
                         return (
