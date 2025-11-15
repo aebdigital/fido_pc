@@ -499,7 +499,7 @@ export const translations = {
     "outlet": "vývod",
     "Plumbing": "Vodoinštalatérske práce",
     "Brick partitions": "Murovanie priečok",
-    "Brick load-bearing wall": "Murovanie nosného murива",
+    "Brick load-bearing wall": "Murovanie nosného muriva",
     "Plasterboarding": "Sádrokartón",
     "partition, simple": "priečka, jednoduchá",
     "partition, double": "priečka, dvojitá", 
@@ -664,6 +664,12 @@ export const translations = {
     
     // Work field names (additional)
     "Distance": "Dĺžka cesty",
+    "Duration": "Trvanie",
+    "Width": "Šírka",
+    "Height": "Výška",
+    "Length": "Dĺžka",
+    "Doors": "Dvere", 
+    "Windows": "Okná",
     "Rental duration": "Dĺžka prenájmu",
     "Select Rental Type": "Vybrať typ prenájmu",
     "Select Type": "Vybrať typ",
