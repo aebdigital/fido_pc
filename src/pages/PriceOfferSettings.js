@@ -61,25 +61,23 @@ const PriceOfferSettings = ({ onBack }) => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="pb-20 lg:pb-0">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 gap-4">
+      <div className="flex items-center gap-4 mb-6 lg:mb-8">
         <button 
           onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white self-start"
+          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span className="hidden sm:inline">{t('Back')}</span>
         </button>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white text-center lg:text-left">{t('Price offer')}</h1>
-        <div className="w-0 lg:w-20"></div>
+        <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Price offer')}</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
+      <div>
         
         {/* Time Limit Settings */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 lg:mb-6">
             <Clock className="w-5 h-5 text-gray-700 dark:text-gray-300" />
             <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Validity Period')}</h2>
           </div>
@@ -106,7 +104,7 @@ const PriceOfferSettings = ({ onBack }) => {
 
         {/* Contractors List */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 lg:mb-6">
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Contractors')}</h2>
@@ -139,7 +137,7 @@ const PriceOfferSettings = ({ onBack }) => {
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
                           <Building2 className="w-6 h-6 text-gray-600 dark:text-gray-400" />
                         </div>
                         <div className="flex-1 min-w-0">

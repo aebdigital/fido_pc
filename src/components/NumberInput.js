@@ -116,7 +116,7 @@ const NumberInput = ({
               onClick={() => incrementValue(1)}
               onMouseDown={(e) => e.preventDefault()}
               disabled={disabled}
-              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               title="+1"
             >
               <ChevronUp className={`${isSmall ? 'w-2 h-2' : 'w-3 h-3'} text-gray-600 dark:text-gray-400`} />
@@ -126,7 +126,7 @@ const NumberInput = ({
               onClick={() => decrementValue(1)}
               onMouseDown={(e) => e.preventDefault()}
               disabled={disabled}
-              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               title="-1"
             >
               <ChevronDown className={`${isSmall ? 'w-2 h-2' : 'w-3 h-3'} text-gray-600 dark:text-gray-400`} />
@@ -140,7 +140,7 @@ const NumberInput = ({
               onClick={() => incrementValue(0.1)}
               onMouseDown={(e) => e.preventDefault()}
               disabled={disabled}
-              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-100 dark:hover:bg-gray-700 ${isSmall ? 'rounded-tr rounded-br' : 'rounded-tr-xl rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 ${isSmall ? 'rounded-tr rounded-br' : 'rounded-tr-xl rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               title="+0.1"
             >
               <ChevronUp className={`${isSmall ? 'w-1.5 h-1.5' : 'w-2 h-2'} text-gray-500 dark:text-gray-500`} />
@@ -150,7 +150,7 @@ const NumberInput = ({
               onClick={() => decrementValue(0.1)}
               onMouseDown={(e) => e.preventDefault()}
               disabled={disabled}
-              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-100 dark:hover:bg-gray-700 ${isSmall ? 'rounded-br' : 'rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 ${isSmall ? 'rounded-br' : 'rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               title="-0.1"
             >
               <ChevronDown className={`${isSmall ? 'w-1.5 h-1.5' : 'w-2 h-2'} text-gray-500 dark:text-gray-500`} />

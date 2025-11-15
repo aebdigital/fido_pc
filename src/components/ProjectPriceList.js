@@ -95,7 +95,7 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-4 space-y-3">
+    <div className="bg-gray-300 dark:bg-gray-800 rounded-2xl p-4 space-y-3">
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <h3 className="font-medium text-gray-900 dark:text-white leading-tight">{item.name}</h3>

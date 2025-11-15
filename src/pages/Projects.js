@@ -10,7 +10,9 @@ import {
   Archive,
   ChevronDown,
   Eye,
-  Send
+  Send,
+  Edit3,
+  AlertTriangle
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import RoomDetailsModal from '../components/RoomDetailsModal';
@@ -34,6 +36,7 @@ const Projects = () => {
     updateProject,
     archiveProject,
     assignProjectToClient,
+    findProjectById,
     addRoomToProject,
     updateProjectRoom,
     deleteProjectRoom,
@@ -67,6 +70,9 @@ const Projects = () => {
   const [isClosingModal, setIsClosingModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [showContractorSelector, setShowContractorSelector] = useState(false);
+  const [isEditingProjectName, setIsEditingProjectName] = useState(false);
+  const [editingProjectName, setEditingProjectName] = useState('');
+  const [showContractorWarning, setShowContractorWarning] = useState(false);
   const dropdownRef = useRef(null);
 
 
@@ -98,18 +104,21 @@ const Projects = () => {
     {
       id: 'preparatory',
       name: t('Prípravné a búracie práce'),
+      behavior: 'single',
       fields: [{ name: t('Trvanie'), unit: t('hod'), type: 'number' }]
     },
     {
       id: 'wiring',
       name: t('Elektroinštalatérske práce'),
       subtitle: t('vyvínač, zásuvka, svetlo, bod napojenia'),
+      behavior: 'single',
       fields: [{ name: t('Počet vývodov'), unit: t('ks'), type: 'number' }]
     },
     {
       id: 'plumbing',
       name: 'Plumbing',
       subtitle: 'hot, cold, waste, connection point',
+      behavior: 'single',
       fields: [{ name: 'Number of outlets', unit: 'pc', type: 'number' }]
     },
     {
@@ -228,6 +237,7 @@ const Projects = () => {
     {
       id: 'corner_bead',
       name: 'Installation of corner bead',
+      behavior: 'single',
       fields: [
         { name: 'Length', unit: 'bm', type: 'number' }
       ]
@@ -235,6 +245,7 @@ const Projects = () => {
     {
       id: 'window_sash',
       name: 'Plastering of window sash',
+      behavior: 'single',
       fields: [
         { name: 'Length', unit: 'bm', type: 'number' }
       ]
@@ -322,7 +333,9 @@ const Projects = () => {
     {
       id: 'siliconing',
       name: 'Siliconing',
+      behavior: 'single',
       fields: [
+        { name: 'Length', unit: 'bm', type: 'number' },
         { name: 'Length', unit: 'bm', type: 'number' }
       ]
     },
@@ -347,6 +360,7 @@ const Projects = () => {
     {
       id: 'door_jamb_installation',
       name: 'Installation of door jamb',
+      behavior: 'single',
       fields: [
         { name: 'Count', unit: 'pc', type: 'number' },
         { name: 'Price', unit: '€/pc', type: 'number' }
@@ -363,6 +377,7 @@ const Projects = () => {
     {
       id: 'commute',
       name: 'Commute',
+      behavior: 'single',
       fields: [
         { name: 'Distance', unit: 'km', type: 'number' },
         { name: 'Duration', unit: 'days', type: 'number' }
@@ -595,6 +610,55 @@ const Projects = () => {
     }
   };
 
+  const handleDuplicateProject = (projectId) => {
+    // Check if a contractor is assigned
+    if (!activeContractorId) {
+      setShowContractorWarning(true);
+      return;
+    }
+
+    const projectResult = findProjectById(projectId);
+    if (!projectResult) return;
+
+    const { project } = projectResult;
+    
+    // Create a copy of the project with a new ID and name
+    const duplicatedProject = {
+      ...project,
+      id: `${new Date().getFullYear()}${String(Date.now()).slice(-3)}`,
+      name: `${project.name} Copy`,
+      createdDate: new Date().toISOString()
+    };
+
+    // Add the duplicated project
+    addProject(activeCategory, duplicatedProject);
+    
+    // Navigate back to project list
+    setSelectedProject(null);
+    setCurrentView('projects');
+  };
+
+  // Project name editing handlers
+  const handleEditProjectName = () => {
+    if (currentProject) {
+      setEditingProjectName(currentProject.name);
+      setIsEditingProjectName(true);
+    }
+  };
+
+  const handleSaveProjectName = () => {
+    if (currentProject && editingProjectName.trim()) {
+      updateProject(activeCategory, currentProject.id, { name: editingProjectName.trim() });
+      setIsEditingProjectName(false);
+      setEditingProjectName('');
+    }
+  };
+
+  const handleCancelEditProjectName = () => {
+    setIsEditingProjectName(false);
+    setEditingProjectName('');
+  };
+
   // Contractor management handlers
   const handleCreateContractorProfile = () => {
     setShowContractorModal(true);
@@ -651,13 +715,13 @@ const Projects = () => {
             <div className="p-4 space-y-3">
               
               {/* Create New Profile */}
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md" 
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md" 
                    onClick={handleCreateContractorProfile}>
                 <div className="mb-3 sm:mb-0">
                   <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('Create new profile')}</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm lg:text-base">{t('Fill out information for price offers')}</p>
                 </div>
-                <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md self-end sm:self-auto">
+                <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md self-end sm:self-auto">
                   <Plus className="w-5 h-5" />
                 </button>
               </div>
@@ -695,15 +759,15 @@ const Projects = () => {
         )}
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden">
+      <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden w-full">
         {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar */}
-        <div className={`lg:w-80 flex lg:flex-col overflow-hidden ${currentView === 'details' ? 'hidden lg:flex' : 'flex'}`}>
-          <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible px-4 py-4 space-x-3 lg:space-x-0 lg:space-y-3 scrollbar-hide">
+        <div className={`lg:w-80 flex lg:flex-col w-full lg:w-80 ${currentView === 'details' ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-6 py-4 space-x-2 lg:space-x-0 lg:space-y-3 scrollbar-hide">
             {projectCategories.map(category => (
               <button
                 key={category.id}
                 onClick={() => handleCategorySelect(category.id)}
-                className={`flex-shrink-0 lg:w-full w-44 rounded-2xl overflow-hidden transition-all duration-200 ${
+                className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-2xl overflow-hidden transition-all duration-200 ${
                   activeCategory === category.id 
                     ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg transform scale-105' 
                     : 'hover:shadow-md'
@@ -717,8 +781,8 @@ const Projects = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-3 flex justify-between items-end">
-                    <h3 className="text-lg lg:text-xl font-bold text-white">{t(category.name)}</h3>
-                    <span className="text-white text-sm lg:text-base font-medium">{category.count}</span>
+                    <h3 className="text-base lg:text-xl font-bold text-white">{t(category.name)}</h3>
+                    <span className="text-white text-xs lg:text-base font-medium">{category.count}</span>
                   </div>
                 </div>
               </button>
@@ -730,39 +794,41 @@ const Projects = () => {
         <div className={`flex-1 flex flex-col min-w-0 ${currentView === 'details' ? 'w-full lg:flex-1' : ''}`}>
           {/* Project List View */}
           {currentView === 'projects' && (
-            <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 overflow-hidden">
+            <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 overflow-hidden w-full">
               {/* Project List Header */}
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <h2 className="text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-white">
-                  {t(projectCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
-                </h2>
-                <div className="flex gap-2 justify-end">
-                  <button 
-                    onClick={toggleProjectDeleteMode}
-                    className={`p-2 lg:p-3 transition-colors ${
-                      projectDeleteMode 
-                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-sm hover:shadow-md' 
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Archive className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setShowNewProjectModal(true)}
-                    className="px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md"
-                  >
-                    <span className="hidden sm:inline">{t('Pridať projekt')}</span>
-                    <Plus className="w-4 h-4 sm:hidden" />
-                  </button>
+              <div className="flex flex-col gap-4 w-full">
+                <div className="flex items-center justify-between w-full">
+                  <h2 className="text-lg sm:text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
+                    {t(projectCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
+                  </h2>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button 
+                      onClick={toggleProjectDeleteMode}
+                      className={`p-2 lg:p-3 transition-colors ${
+                        projectDeleteMode 
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-sm hover:shadow-md' 
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Archive className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setShowNewProjectModal(true)}
+                      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="hidden sm:inline">{t('Pridať projekt')}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Projects List */}
-              <div className="space-y-3 min-w-0">
+              <div className="space-y-3 min-w-0 w-full">
                 {activeProjects.map(project => (
                   <div
                     key={project.id}
-                    className={`bg-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm min-w-0 ${
+                    className={`bg-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm min-w-0 w-full ${
                       projectDeleteMode 
                         ? 'justify-between' 
                         : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
@@ -834,7 +900,32 @@ const Projects = () => {
                   </span>
                 )}
               </div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">{currentProject.name}</h1>
+              <div className="flex items-center gap-3">
+                {isEditingProjectName ? (
+                  <input
+                    type="text"
+                    value={editingProjectName}
+                    onChange={(e) => setEditingProjectName(e.target.value)}
+                    onBlur={handleSaveProjectName}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveProjectName();
+                      if (e.key === 'Escape') handleCancelEditProjectName();
+                    }}
+                    className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white flex-1">{currentProject.name}</h1>
+                    <button
+                      onClick={handleEditProjectName}
+                      className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      <Edit3 className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
               <p className="text-gray-500 dark:text-gray-400 text-lg">{t('Notes')}</p>
             </div>
 
@@ -883,7 +974,7 @@ const Projects = () => {
                     </div>
                     <button
                       onClick={handleCloseClientSelector}
-                      className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                      className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     >
                       Cancel
                     </button>
@@ -984,14 +1075,14 @@ const Projects = () => {
                     <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(currentProject.id) * (1 + getVATRate()))}</span>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                  <button className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-6 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                <div className="flex gap-3 mt-6">
+                  <button className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
                     <Eye className="w-4 h-4" /> 
-                    <span className="text-lg">{t('Preview')}</span>
+                    <span className="text-sm sm:text-lg">{t('Preview')}</span>
                   </button>
-                  <button className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                  <button className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
                     <Send className="w-4 h-4" /> 
-                    <span className="text-lg">{t('Send')}</span>
+                    <span className="text-sm sm:text-lg">{t('Send')}</span>
                   </button>
                 </div>
               </div>
@@ -1021,17 +1112,20 @@ const Projects = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
-                <button className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-6 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => handleDuplicateProject(currentProject.id)}
+                  className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                >
                   <Copy className="w-4 h-4" /> 
-                  <span className="text-lg">{t('Duplicate')}</span>
+                  <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
                 </button>
                 <button 
                   onClick={() => handleArchiveProject(currentProject.id)}
-                  className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                  className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                 >
                   <Archive className="w-4 h-4" /> 
-                  <span className="text-lg">{t('Archive')}</span>
+                  <span className="text-sm sm:text-lg">{t('Archive')}</span>
                 </button>
               </div>
             </div>
@@ -1075,14 +1169,14 @@ const Projects = () => {
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 onClick={handleCloseNewProjectModal}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-lg"
+                className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
               >
                 Cancel
               </button>
               <button
                 onClick={handleNewProject}
                 disabled={!newProjectName.trim()}
-                className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
               >
                 Create
               </button>
@@ -1111,7 +1205,7 @@ const Projects = () => {
           </div>
           <button
             onClick={handleCloseNewRoomModal}
-            className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-lg"
+            className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
           >
             Cancel
           </button>
@@ -1145,7 +1239,7 @@ const Projects = () => {
           <div className="flex gap-3">
             <button
               onClick={handleCustomRoomCancel}
-              className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-lg"
+              className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
             >
               {t('Cancel')}
             </button>
@@ -1189,6 +1283,40 @@ const Projects = () => {
         onClose={() => setShowContractorModal(false)}
         onSave={handleSaveContractor}
       />
+    )}
+
+    {/* Contractor Warning Modal */}
+    {showContractorWarning && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md animate-slide-in">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-shrink-0 w-10 h-10 bg-amber-100 dark:bg-amber-900 rounded-full flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Contractor Required')}</h3>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+            {t('A contractor must be assigned to duplicate a project. Please select a contractor first.')}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowContractorWarning(false)}
+              className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              onClick={() => {
+                setShowContractorWarning(false);
+                setShowContractorSelector(true);
+              }}
+              className="flex-1 px-4 py-3 bg-amber-600 text-white rounded-xl font-medium hover:bg-amber-700 transition-colors text-lg"
+            >
+              {t('Select Contractor')}
+            </button>
+          </div>
+        </div>
+      </div>
     )}
     </div>
     </>

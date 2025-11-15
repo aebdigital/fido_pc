@@ -215,7 +215,6 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100' 
               : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
             }
-            size="small"
             min={0}
           />
           <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 flex-shrink-0">{item.unit}</div>
@@ -250,21 +249,20 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
   return (
     <>
-      <div className="h-full flex flex-col">
+      <div className="pb-20 lg:pb-0">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 gap-4">
+        <div className="flex items-center gap-4 mb-6 lg:mb-8">
           <button 
             onClick={handleBack}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white self-start"
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">{t('Back')}</span>
           </button>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white text-center lg:text-left">{t('General price list')}</h1>
-          <div className="w-0 lg:w-20"></div>
+          <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
         </div>
 
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 px-4 lg:px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+        {/* Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div className="flex items-start lg:items-center gap-2 text-gray-600 dark:text-gray-400">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5 lg:mt-0" />
             <span className="text-sm lg:text-base">{t('Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.')}</span>
@@ -279,7 +277,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-20 lg:pb-6">
+        <div>
           {/* Work Section */}
           <div className="mb-8 lg:mb-10 pt-4 lg:pt-6">
             <div className="flex items-center gap-2 mb-4 lg:mb-6">
@@ -338,7 +336,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           <div className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50">
             <button
               onClick={handleSave}
-              className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 hover:shadow-xl transition-all"
+              className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-100 hover:shadow-xl transition-all"
               title={t('Save changes')}
             >
               <Save className="w-5 h-5 lg:w-6 lg:h-6" />
@@ -384,7 +382,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <div className="flex gap-3">
               <button
                 onClick={handleCancelPercentageIncrease}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-lg"
+                className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
               >
                 {t('Cancel')}
               </button>

@@ -204,16 +204,16 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900 dark:text-white text-lg">{t('without VAT')}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(currentProject.id))}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(currentProject.id, currentProject))}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900 dark:text-white text-lg">{t('VAT (20%)')}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(currentProject.id) * getVATRate())}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(currentProject.id, currentProject) * getVATRate())}</span>
                 </div>
                 <hr className="border-gray-300 dark:border-gray-600" />
                 <div className="flex justify-between items-center">
                   <span className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Total price')}</span>
-                  <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(currentProject.id) * (1 + getVATRate()))}</span>
+                  <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(currentProject.id, currentProject) * (1 + getVATRate()))}</span>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
@@ -221,7 +221,7 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
                   <Eye className="w-4 h-4" /> 
                   <span className="text-lg">{t('Preview')}</span>
                 </button>
-                <button className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                <button className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
                   <Send className="w-4 h-4" /> 
                   <span className="text-lg">{t('Send')}</span>
                 </button>
@@ -345,7 +345,7 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
               <div className="flex items-center gap-4 mt-3 sm:mt-0">
                 <div className="text-left sm:text-right">
                   <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">VAT not included</div>
-                  <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                  <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</div>
                 </div>
                 
                 <div className="flex gap-2">

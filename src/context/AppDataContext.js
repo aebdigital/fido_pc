@@ -142,6 +142,7 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Scaffolding', subtitle: 'assembly and disassembly', price: 30, unit: '€/m²' },
           { name: 'Core Drill', price: 25, unit: '€/h' },
           { name: 'Tool rental', price: 10, unit: '€/h' },
+          { name: 'Custom work and material', price: 50, unit: '€' },
           { name: 'Commute', price: 1, unit: '€/km' },
           { name: 'VAT', price: 20, unit: '%' }
         ]
@@ -186,6 +187,56 @@ export const AppDataProvider = ({ children }) => {
       if (!parsedData.contractorProjects) {
         parsedData.contractorProjects = {};
       }
+      
+      // Migrate price list snapshots to new structure (move sanitary installations from work to installations)
+      const migratePriceListSnapshot = (snapshot) => {
+        if (!snapshot || snapshot.installations) return snapshot; // Already migrated or no snapshot
+        
+        const sanitaryItems = snapshot.work?.filter(item => item.name === 'Sanitary installation') || [];
+        if (sanitaryItems.length === 0) return snapshot; // No sanitary items to migrate
+        
+        return {
+          ...snapshot,
+          work: snapshot.work.filter(item => item.name !== 'Sanitary installation'),
+          installations: sanitaryItems.map(item => ({
+            ...item,
+            name: 'Sanitary installations'
+          }))
+        };
+      };
+      
+      // Migrate archived projects
+      if (parsedData.archivedProjects) {
+        parsedData.archivedProjects = parsedData.archivedProjects.map(project => ({
+          ...project,
+          priceListSnapshot: migratePriceListSnapshot(project.priceListSnapshot)
+        }));
+      }
+      
+      // Migrate active projects in global categories
+      if (parsedData.projectCategories) {
+        parsedData.projectCategories = parsedData.projectCategories.map(category => ({
+          ...category,
+          projects: category.projects.map(project => ({
+            ...project,
+            priceListSnapshot: migratePriceListSnapshot(project.priceListSnapshot)
+          }))
+        }));
+      }
+      
+      // Migrate contractor projects
+      if (parsedData.contractorProjects) {
+        Object.keys(parsedData.contractorProjects).forEach(contractorId => {
+          parsedData.contractorProjects[contractorId].categories = parsedData.contractorProjects[contractorId].categories.map(category => ({
+            ...category,
+            projects: category.projects.map(project => ({
+              ...project,
+              priceListSnapshot: migratePriceListSnapshot(project.priceListSnapshot)
+            }))
+          }));
+        });
+      }
+      
       return parsedData;
     }
     
@@ -762,18 +813,25 @@ export const AppDataProvider = ({ children }) => {
     return totalPrice;
   };
 
-  const calculateProjectTotalPrice = (projectId) => {
+  const calculateProjectTotalPrice = (projectId, projectOverride = null) => {
     const rooms = getProjectRooms(projectId);
     let totalPrice = 0;
     
-    // Find the project to get its price list snapshot
-    const projectResult = findProjectById(projectId);
+    // Use provided project or find it
+    let project = projectOverride;
     let projectPriceList = null;
     
+    if (!project) {
+      // Find the project to get its price list snapshot
+      const projectResult = findProjectById(projectId);
+      if (projectResult) {
+        project = projectResult.project;
+      }
+    }
     
-    if (projectResult && projectResult.project && projectResult.project.priceListSnapshot) {
+    if (project && project.priceListSnapshot) {
       // Use project's frozen price list
-      projectPriceList = projectResult.project.priceListSnapshot;
+      projectPriceList = project.priceListSnapshot;
     }
     // If no snapshot exists (old projects), fall back to current price list
     
@@ -869,12 +927,12 @@ export const AppDataProvider = ({ children }) => {
     } else if (values.Length) {
       // Linear calculation (bm)
       quantity = parseFloat(values.Length || 0);
-    } else if (values.Count || values['Number of outlets']) {
+    } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
       // Count calculation (pc)
-      quantity = parseFloat(values.Count || values['Number of outlets'] || 0);
-    } else if (values.Duration) {
+      quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+    } else if (values.Duration || values.Trvanie) {
       // Time calculation (h)
-      quantity = parseFloat(values.Duration || 0);
+      quantity = parseFloat(values.Duration || values.Trvanie || 0);
     } else if (values.Circumference) {
       // Linear calculation for circumference (bm)
       quantity = parseFloat(values.Circumference || 0);

@@ -140,7 +140,7 @@ const Layout = ({ children }) => {
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto pt-16 lg:pt-0 pb-20 lg:pb-0">
+        <div className="flex-1 overflow-y-auto pt-16 lg:pt-0 pb-20 lg:pb-0 bg-white dark:bg-gray-900">
           <div className="p-4 lg:p-6">
             {children}
           </div>

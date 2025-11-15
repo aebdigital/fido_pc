@@ -9,6 +9,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const [expandedItems, setExpandedItems] = useState({});
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);
   const [showingRentalsSelector, setShowingRentalsSelector] = useState(false);
+  const [showingTypeSelector, setShowingTypeSelector] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
@@ -57,12 +58,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       return;
     }
     
+    // Check if this property has types (like Simple/Double/Triple)
     const property = workProperties.find(p => p.id === propertyId);
+    if (property?.types && property.id !== 'sanitary_installation') {
+      setShowingTypeSelector(propertyId);
+      return;
+    }
     const newItem = {
       id: Date.now(),
       propertyId,
-      name: property.name,
-      subtitle: property.subtitle,
+      name: t(property.name),
+      subtitle: t(property.subtitle),
       fields: {},
       complementaryWorks: {},
       selectedType: property.types ? property.types[0] : null,
@@ -93,6 +99,37 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     };
     setWorkData([...workData, newItem]);
     setShowingSanitarySelector(false);
+  };
+  
+  const handleTypeSelect = (type, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    saveScrollPosition();
+    
+    const property = workProperties.find(p => p.id === showingTypeSelector);
+    if (!property) return;
+    
+    const newItem = {
+      id: Date.now(),
+      propertyId: property.id,
+      name: `${t(property.name)} ${t(type)}`,
+      subtitle: property.subtitle,
+      fields: {},
+      complementaryWorks: {},
+      selectedType: type,
+      doorWindowItems: { doors: [], windows: [] }
+    };
+    
+    // Initialize fields
+    property.fields?.forEach(field => {
+      newItem.fields[field.name] = 0;
+    });
+    
+    setWorkData([...workData, newItem]);
+    setShowingTypeSelector(null);
   };
 
   const handleRentalTypeSelect = (rentalType, e) => {
@@ -293,7 +330,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     return (
       <div className="space-y-3 lg:space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{typeName}</span>
+          <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t(typeName)}</span>
           <button
             onClick={(e) => handleAddDoorWindow(item.id, type, e)}
             className="w-7 h-7 lg:w-6 lg:h-6 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
@@ -327,12 +364,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             <div className="space-y-3 lg:space-y-1">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                 <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 sm:w-12 sm:flex-shrink-0">{t('Width')}</span>
-                <div className="flex items-center gap-2 sm:justify-end">
+                <div className="flex items-center gap-2 justify-end w-full">
                   <NumberInput
                     value={subItem.width || 0}
                     onChange={(value) => handleUpdateDoorWindow(item.id, type, subItem.id, 'width', value)}
                     size="small"
-                    className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                     min={0}
                   />
                   <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400">m</span>
@@ -340,12 +377,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                 <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 sm:w-12 sm:flex-shrink-0">{t('Height')}</span>
-                <div className="flex items-center gap-2 sm:justify-end">
+                <div className="flex items-center gap-2 justify-end w-full">
                   <NumberInput
                     value={subItem.height || 0}
                     onChange={(value) => handleUpdateDoorWindow(item.id, type, subItem.id, 'height', value)}
                     size="small"
-                    className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                     min={0}
                   />
                   <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400">m</span>
@@ -368,15 +405,15 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
     return (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{field.name}</span>
-        <div className="flex items-center gap-2 sm:justify-end">
+        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(field.name)}</span>
+        <div className="flex items-center gap-2 justify-end w-full">
           <NumberInput
             value={value || 0}
             onChange={(value) => handleUpdateWorkItem(item.id, field.name, value)}
-            className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+            className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
             min={0}
           />
-          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{field.unit}</span>
+          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t(field.unit)}</span>
         </div>
       </div>
     );
@@ -388,11 +425,11 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Special handling for rentals
     if (property.id === 'rentals') {
       return (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
+        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
           {/* Always show header with plus button */}
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{property.name}</h4>
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
             </div>
             <button
               onClick={(e) => handleAddWorkItem(property.id, e)}
@@ -420,9 +457,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   <button
                     key={item.name}
                     onClick={(e) => handleRentalTypeSelect(item.name, e)}
-                    className="p-3 lg:p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
+                    className="p-3 lg:p-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
                   >
-                    {item.name}
+                    {t(item.name)}
                   </button>
                 ))}
               </div>
@@ -434,7 +471,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
-                  {item.name} {t('no.')} {index + 1}
+                  {t(item.name)} {t('no.')} {index + 1}
                 </span>
                 <button
                   onClick={(e) => handleRemoveWorkItem(item.id, e)}
@@ -449,15 +486,15 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 <div className="space-y-3 lg:space-y-2">
                   {item.rentalFields.map(field => (
                     <div key={field.name} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                      <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{field.name}</span>
-                      <div className="flex items-center gap-2 sm:justify-end">
+                      <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(field.name)}</span>
+                      <div className="flex items-center gap-2 justify-end w-full">
                         <NumberInput
                           value={item.fields[field.name] || 0}
                           onChange={(value) => handleUpdateWorkItem(item.id, field.name, value)}
-                          className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                          className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                           min={0}
                         />
-                        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{field.unit}</span>
+                        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t(field.unit)}</span>
                       </div>
                     </div>
                   ))}
@@ -469,14 +506,298 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       );
     }
     
-    // Special handling for sanitary installation
-    if (property.id === 'sanitary_installation') {
+    // Special handling for single behavior items
+    if (property.behavior === 'single') {
+      const existingItem = workData.find(item => item.propertyId === property.id);
+      const isExpanded = existingItem !== null;
+      
       return (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
+        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
+          {/* Header with plus/minus button */}
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+              {property.subtitle && (
+                <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
+              )}
+            </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                saveScrollPosition();
+                
+                if (existingItem) {
+                  // Remove the item
+                  setWorkData(items => items.filter(item => item.id !== existingItem.id));
+                } else {
+                  // Add the item
+                  const newItem = {
+                    id: Date.now(),
+                    propertyId: property.id,
+                    name: property.name,
+                    subtitle: property.subtitle,
+                    fields: {},
+                    complementaryWorks: {},
+                    doorWindowItems: { doors: [], windows: [] }
+                  };
+                  
+                  // Initialize fields
+                  property.fields?.forEach(field => {
+                    newItem.fields[field.name] = 0;
+                  });
+                  
+                  setWorkData([...workData, newItem]);
+                }
+              }}
+              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            >
+              {existingItem ? <Trash2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            </button>
+          </div>
+          
+          {/* Show fields directly when item exists */}
+          {existingItem && (
+            <div className="space-y-3 lg:space-y-2">
+              {property.fields?.map(field => (
+                <div key={field.name}>
+                  {renderField(existingItem, field)}
+                </div>
+              ))}
+              
+              {/* Doors and Windows sections */}
+              {property.fields && (() => {
+                const hasDoors = property.fields.some(f => f.name === 'Doors');
+                const hasWindows = property.fields.some(f => f.name === 'Windows');
+                
+                if (hasDoors && hasWindows) {
+                  return (
+                    <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3">
+                      {renderDoorWindowSection(existingItem, 'doors')}
+                      {renderDoorWindowSection(existingItem, 'windows')}
+                    </div>
+                  );
+                } else if (hasWindows) {
+                  return (
+                    <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                      {renderDoorWindowSection(existingItem, 'windows')}
+                      <div className="hidden lg:block"></div>
+                    </div>
+                  );
+                } else if (hasDoors) {
+                  return (
+                    <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                      {renderDoorWindowSection(existingItem, 'doors')}
+                      <div className="hidden lg:block"></div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Complementary works */}
+              {property.complementaryWorks && (
+                <div className="space-y-3 lg:space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
+                    <button
+                      onClick={(e) => toggleExpanded(existingItem.id, e)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      {expandedItems[existingItem.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
+                    </button>
+                  </div>
+                  
+                  {expandedItems[existingItem.id] && (
+                    <div className="space-y-3 lg:space-y-2">
+                      {property.complementaryWorks.map((work, index) => {
+                        const uniqueKey = `${work}_${index}`;
+                        return (
+                          <div key={uniqueKey} className="flex items-center justify-between gap-3">
+                            <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
+                            <button
+                              onClick={(e) => handleToggleComplementaryWork(existingItem.id, uniqueKey, e)}
+                              className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                                existingItem.complementaryWorks[uniqueKey]
+                                  ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                                  : 'border-gray-300 dark:border-gray-600'
+                              }`}
+                            >
+                              {existingItem.complementaryWorks[uniqueKey] && (
+                                <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white dark:text-gray-900" />
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Special handling for properties with types (Simple/Double/Triple)
+    if (property.types && property.id !== 'sanitary_installation') {
+      const existingItems = workData.filter(item => item.propertyId === property.id);
+      
+      return (
+        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
           {/* Always show header with plus button */}
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{property.name}</h4>
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+              {property.subtitle && (
+                <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
+              )}
+            </div>
+            <button
+              onClick={(e) => handleAddWorkItem(property.id, e)}
+              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Type selector when showing */}
+          {showingTypeSelector === property.id && (
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top"
+                 key="type-selector">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Select Type')}</h4>
+                <button
+                  onClick={() => setShowingTypeSelector(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {property.types.map(type => (
+                  <button
+                    key={type}
+                    onClick={(e) => handleTypeSelect(type, e)}
+                    className="p-3 lg:p-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
+                  >
+                    {t(type)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Existing type items */}
+          {existingItems.map(item => (
+            <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-900 dark:text-white text-lg">
+                  {item.name}
+                </span>
+                <button
+                  onClick={(e) => handleRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
+              </div>
+              
+              {/* Fields */}
+              {property.fields && (
+                <div className="space-y-3 lg:space-y-2">
+                  {property.fields.map(field => (
+                    <div key={field.name}>
+                      {renderField(item, field)}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Doors and Windows sections */}
+              {property.fields && (() => {
+                const hasDoors = property.fields.some(f => f.name === 'Doors');
+                const hasWindows = property.fields.some(f => f.name === 'Windows');
+                
+                if (hasDoors && hasWindows) {
+                  return (
+                    <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3">
+                      {renderDoorWindowSection(item, 'doors')}
+                      {renderDoorWindowSection(item, 'windows')}
+                    </div>
+                  );
+                } else if (hasWindows) {
+                  return (
+                    <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                      {renderDoorWindowSection(item, 'windows')}
+                      <div className="hidden lg:block"></div>
+                    </div>
+                  );
+                } else if (hasDoors) {
+                  return (
+                    <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                      {renderDoorWindowSection(item, 'doors')}
+                      <div className="hidden lg:block"></div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Complementary works */}
+              {property.complementaryWorks && (
+                <div className="space-y-3 lg:space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
+                    <button
+                      onClick={(e) => toggleExpanded(item.id, e)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      {expandedItems[item.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
+                    </button>
+                  </div>
+                  
+                  {expandedItems[item.id] && (
+                    <div className="space-y-3 lg:space-y-2">
+                      {property.complementaryWorks.map((work, index) => {
+                        const uniqueKey = `${work}_${index}`;
+                        return (
+                          <div key={uniqueKey} className="flex items-center justify-between gap-3">
+                            <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
+                            <button
+                              onClick={(e) => handleToggleComplementaryWork(item.id, uniqueKey, e)}
+                              className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                                item.complementaryWorks[uniqueKey]
+                                  ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                                  : 'border-gray-300 dark:border-gray-600'
+                              }`}
+                            >
+                              {item.complementaryWorks[uniqueKey] && (
+                                <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white dark:text-gray-900" />
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Special handling for sanitary installation
+    if (property.id === 'sanitary_installation') {
+      return (
+        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
+          {/* Always show header with plus button */}
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
               {property.subtitle && (
                 <p className="text-base text-gray-600 dark:text-gray-400">{property.subtitle}</p>
               )}
@@ -507,9 +828,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   <button
                     key={type}
                     onClick={(e) => handleSanitaryTypeSelect(type, e)}
-                    className="p-3 lg:p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
+                    className="p-3 lg:p-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
                   >
-                    {type}
+                    {t(type)}
                   </button>
                 ))}
               </div>
@@ -521,7 +842,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
-                  {item.selectedType}
+                  {t(item.selectedType)}
                 </span>
                 <button
                   onClick={(e) => handleRemoveWorkItem(item.id, e)}
@@ -535,26 +856,26 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               <div className="space-y-3 lg:space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                   <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t('Count')}</span>
-                  <div className="flex items-center gap-2 sm:justify-end">
+                  <div className="flex items-center gap-2 justify-end w-full">
                     <NumberInput
                       value={item.fields['Count'] || 0}
                       onChange={(value) => handleUpdateWorkItem(item.id, 'Count', value)}
-                      className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                       min={0}
                     />
-                    <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">pc</span>
+                    <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t('pc')}</span>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                   <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t('Price')}</span>
-                  <div className="flex items-center gap-2 sm:justify-end">
+                  <div className="flex items-center gap-2 justify-end w-full">
                     <NumberInput
                       value={item.fields['Price'] || 0}
                       onChange={(value) => handleUpdateWorkItem(item.id, 'Price', value)}
-                      className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                       min={0}
                     />
-                    <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">€/pc</span>
+                    <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">€/{t('pc')}</span>
                   </div>
                 </div>
               </div>
@@ -566,7 +887,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     
     // Regular property card for other properties
     return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2">
+      <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
@@ -587,7 +908,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-900 dark:text-white text-lg">
-                {property.name} {t('no.')} {existingItems.indexOf(item) + 1}
+                {t(property.name)} {t('no.')} {existingItems.indexOf(item) + 1}
               </span>
               <button
                 onClick={(e) => handleRemoveWorkItem(item.id, e)}
@@ -616,10 +937,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors ${
                       item.selectedType === type
                         ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                        : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                     }`}
                   >
-                    {type}
+                    {t(type)}
                   </button>
                 ))}
               </div>
@@ -680,7 +1001,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                       const uniqueKey = `${work}_${index}`;
                       return (
                         <div key={uniqueKey} className="flex items-center justify-between gap-3">
-                          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{work}</span>
+                          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                           <button
                             onClick={(e) => handleToggleComplementaryWork(item.id, uniqueKey, e)}
                             className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
@@ -771,16 +1092,22 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 ))}
               </div>
               <div className="hidden lg:flex lg:gap-2 w-full">
-                {/* Desktop: 3 column layout */}
-                {Array.from({ length: 3 }, (_, colIndex) => (
-                  <div key={colIndex} className="flex-1 space-y-2">
-                    {mainProperties
-                      .filter((_, index) => index % 3 === colIndex)
-                      .map(property => (
-                        <WorkPropertyCard key={property.id} property={property} />
-                      ))}
-                  </div>
-                ))}
+                {/* Desktop: 3 column layout - filling top-to-bottom */}
+                {Array.from({ length: 3 }, (_, colIndex) => {
+                  const itemsPerColumn = Math.ceil(mainProperties.length / 3);
+                  const startIndex = colIndex * itemsPerColumn;
+                  const endIndex = Math.min(startIndex + itemsPerColumn, mainProperties.length);
+                  
+                  return (
+                    <div key={colIndex} className="flex-1 space-y-2">
+                      {mainProperties
+                        .slice(startIndex, endIndex)
+                        .map(property => (
+                          <WorkPropertyCard key={property.id} property={property} />
+                        ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             
@@ -799,16 +1126,22 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     ))}
                   </div>
                   <div className="hidden lg:flex lg:gap-2 w-full">
-                    {/* Desktop: 3 column layout */}
-                    {Array.from({ length: 3 }, (_, colIndex) => (
-                      <div key={colIndex} className="flex-1 space-y-2">
-                        {othersProperties
-                          .filter((_, index) => index % 3 === colIndex)
-                          .map(property => (
-                            <WorkPropertyCard key={property.id} property={property} />
-                          ))}
-                      </div>
-                    ))}
+                    {/* Desktop: 3 column layout - filling top-to-bottom */}
+                    {Array.from({ length: 3 }, (_, colIndex) => {
+                      const itemsPerColumn = Math.ceil(othersProperties.length / 3);
+                      const startIndex = colIndex * itemsPerColumn;
+                      const endIndex = Math.min(startIndex + itemsPerColumn, othersProperties.length);
+                      
+                      return (
+                        <div key={colIndex} className="flex-1 space-y-2">
+                          {othersProperties
+                            .slice(startIndex, endIndex)
+                            .map(property => (
+                              <WorkPropertyCard key={property.id} property={property} />
+                            ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

@@ -177,14 +177,14 @@ const Clients = () => {
               {isEditing && (
                 <button
                   onClick={handleEditSave}
-                  className="px-4 py-2 lg:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md text-lg"
+                  className="px-4 py-2 lg:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg"
                 >
                   Save
                 </button>
               )}
               <button
                 onClick={handleEditToggle}
-                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md"
+                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md"
                 title={isEditing ? "Cancel editing" : "Edit client information"}
               >
                 <Edit3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -194,7 +194,7 @@ const Clients = () => {
 
           {/* Client Avatar and Name */}
           <div className="text-center px-4">
-            <div className="w-20 h-20 lg:w-24 lg:h-24 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-20 h-20 lg:w-24 lg:h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="w-10 h-10 lg:w-12 lg:h-12 text-gray-600 dark:text-gray-400" />
             </div>
             {isEditing ? (
@@ -347,7 +347,7 @@ const Clients = () => {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t("Client's projects")}</h2>
-              <button className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md">
+              <button className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
                 <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
               </button>
             </div>
@@ -403,7 +403,7 @@ const Clients = () => {
                 <button
                   className={`py-3 px-4 lg:px-6 rounded-2xl font-medium transition-all text-left flex-1 sm:flex-none ${
                     clientType === 'private' 
-                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500' 
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500' 
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                   onClick={() => setClientType('private')}
@@ -413,7 +413,7 @@ const Clients = () => {
                 <button
                   className={`py-3 px-4 lg:px-6 rounded-2xl font-medium transition-all text-left flex-1 sm:flex-none ${
                     clientType === 'business' 
-                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500' 
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500' 
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                   onClick={() => setClientType('business')}
@@ -574,7 +574,7 @@ const Clients = () => {
                 <div className="mt-6 lg:mt-8 col-span-full">
                   <button 
                     onClick={handleSaveClient}
-                    className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md text-lg w-full sm:w-auto"
+                    className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg w-full sm:w-auto"
                   >
                     Add client
                   </button>
@@ -601,12 +601,12 @@ const Clients = () => {
                 />
               </div>
               <div className="flex gap-2 justify-end">
-                <button className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md">
+                <button className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md">
                   <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
                 </button>
                 <button 
                   onClick={handleCreateClient}
-                  className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md"
+                  className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
                 >
                   <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
                 </button>
@@ -637,7 +637,7 @@ const Clients = () => {
                 <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-3 lg:mb-4">Add Client</h2>
                 <p className="text-gray-600 dark:text-gray-400 mb-4 lg:mb-6 text-lg leading-relaxed">Fill in your client and then assign a project to them</p>
                 <button 
-                  className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md text-lg w-full sm:w-auto"
+                  className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg w-full sm:w-auto"
                   onClick={handleCreateClient}
                 >
                   Create

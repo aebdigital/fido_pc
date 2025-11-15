@@ -87,7 +87,7 @@ const Settings = () => {
           <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Access')}</h2>
         </div>
-        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-3 mb-2">

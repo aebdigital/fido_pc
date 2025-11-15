@@ -93,7 +93,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           
           {/* Profile Image Section */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+            <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
               <Building2 className="w-8 h-8 lg:w-12 lg:h-12 text-gray-600 dark:text-gray-400" />
             </div>
             <button className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full text-sm">
@@ -360,7 +360,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           {/* Signature */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Signature')}</h3>
-            <button className="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-4 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-lg">
+            <button className="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg">
               {t('Add signature')}
             </button>
           </div>
