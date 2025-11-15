@@ -509,7 +509,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Special handling for single behavior items
     if (property.behavior === 'single') {
       const existingItem = workData.find(item => item.propertyId === property.id);
-      const isExpanded = existingItem !== null;
       
       return (
         <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
