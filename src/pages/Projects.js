@@ -181,6 +181,13 @@ const Projects = () => {
       complementaryWorks: ['Penetration coating', 'Painting']
     },
     {
+      id: 'spacer_1',
+      name: '',
+      subtitle: '',
+      fields: [],
+      hidden: true
+    },
+    {
       id: 'netting_wall',
       name: 'Netting',
       subtitle: 'wall',

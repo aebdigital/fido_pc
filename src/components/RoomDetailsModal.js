@@ -37,8 +37,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       onClose();
     }, 300);
   };
-  const mainProperties = workProperties.filter(prop => !othersIds.includes(prop.id));
-  const othersProperties = workProperties.filter(prop => othersIds.includes(prop.id));
+  const mainProperties = workProperties.filter(prop => !othersIds.includes(prop.id) && !prop.hidden);
+  const othersProperties = workProperties.filter(prop => othersIds.includes(prop.id) && !prop.hidden);
 
   const handleAddWorkItem = (propertyId, e) => {
     if (e) {
