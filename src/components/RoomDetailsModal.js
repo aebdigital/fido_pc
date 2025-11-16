@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { X, Plus, Trash2, Check, Menu, Copy, Hammer } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -28,12 +28,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     }
   });
 
-  // Auto-save when workData changes
-  useEffect(() => {
-    if (workData && workData !== room.workItems) {
-      onSave(workData);
-    }
-  }, [workData, onSave, room.workItems]);
 
   // Separate "Others" category properties
   const othersIds = ['custom_work', 'commute', 'rentals'];
@@ -41,6 +35,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
+      // Save data before closing
+      onSave(workData);
       onClose();
     }, 300);
   };
@@ -1098,11 +1094,22 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 ))}
               </div>
               <div className="hidden lg:flex lg:gap-2 w-full">
-                {/* Desktop: 3 column layout - filling top-to-bottom */}
+                {/* Desktop: 3 column layout - custom distribution */}
                 {Array.from({ length: 3 }, (_, colIndex) => {
-                  const itemsPerColumn = Math.ceil(mainProperties.length / 3);
-                  const startIndex = colIndex * itemsPerColumn;
-                  const endIndex = Math.min(startIndex + itemsPerColumn, mainProperties.length);
+                  let startIndex, endIndex;
+                  if (colIndex === 0) {
+                    // First column: exactly 8 items (positions 1-8)
+                    startIndex = 0;
+                    endIndex = 8;
+                  } else if (colIndex === 1) {
+                    // Second column: positions 9-18 (includes Maľovanie items)
+                    startIndex = 8;
+                    endIndex = Math.min(18, mainProperties.length);
+                  } else {
+                    // Third column: remaining items from position 19+
+                    startIndex = 18;
+                    endIndex = mainProperties.length;
+                  }
                   
                   return (
                     <div key={colIndex} className="flex-1 space-y-2">
@@ -1132,7 +1139,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     ))}
                   </div>
                   <div className="hidden lg:flex lg:gap-2 w-full">
-                    {/* Desktop: 3 column layout - filling top-to-bottom */}
+                    {/* Desktop: 3 column layout - even distribution for others */}
                     {Array.from({ length: 3 }, (_, colIndex) => {
                       const itemsPerColumn = Math.ceil(othersProperties.length / 3);
                       const startIndex = colIndex * itemsPerColumn;

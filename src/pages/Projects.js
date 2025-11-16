@@ -101,7 +101,7 @@ const Projects = () => {
   ];
 
   const workProperties = [
-    // FIRST COLUMN - Prípravné a základné práce
+    // FIRST COLUMN - Prípravné a základné práce (positions 1-7)
     {
       id: 'preparatory',
       name: t('Prípravné a búracie práce'),
@@ -181,7 +181,7 @@ const Projects = () => {
       ],
       complementaryWorks: ['Penetration coating', 'Painting']
     },
-    // SECOND COLUMN - Povrchové úpravy
+    // SECOND COLUMN - Povrchové úpravy (positions 9-17)
     {
       id: 'netting_wall',
       name: 'Sieťkovanie',
@@ -244,6 +244,7 @@ const Projects = () => {
         { name: 'Length', unit: 'bm', type: 'number' }
       ]
     },
+    // THIRD COLUMN - Finishing and others (positions 15+)
     {
       id: 'window_sash',
       name: 'Omietka špalety',
@@ -280,7 +281,6 @@ const Projects = () => {
       ],
       complementaryWorks: ['Penetration coating']
     },
-    // REMAINING ITEMS - Third column area
     {
       id: 'levelling',
       name: 'Levelling',
@@ -525,6 +525,10 @@ const Projects = () => {
     if (!currentProject) return;
     
     updateProjectRoom(currentProject.id, roomId, { workItems: workData });
+    // Don't close the modal - just save the data
+  };
+
+  const handleCloseRoomDetailsModal = () => {
     setShowRoomDetailsModal(false);
     setSelectedRoom(null);
   };
@@ -1266,10 +1270,7 @@ const Projects = () => {
         room={selectedRoom}
         workProperties={workProperties}
         onSave={(workData) => handleSaveRoomWork(selectedRoom.id, workData)}
-        onClose={() => {
-          setShowRoomDetailsModal(false);
-          setSelectedRoom(null);
-        }}
+        onClose={handleCloseRoomDetailsModal}
       />
     )}
 
