@@ -187,6 +187,13 @@ export const AppDataProvider = ({ children }) => {
       if (!parsedData.contractorProjects) {
         parsedData.contractorProjects = {};
       }
+      // Update VAT rate from 20% to 23% for existing price lists
+      if (parsedData.generalPriceList?.others) {
+        const vatItem = parsedData.generalPriceList.others.find(item => item.name === 'VAT');
+        if (vatItem && vatItem.price === 20) {
+          vatItem.price = 23;
+        }
+      }
       
       // Migrate price list snapshots to new structure (move sanitary installations from work to installations)
       const migratePriceListSnapshot = (snapshot) => {
