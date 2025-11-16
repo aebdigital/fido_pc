@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { X, Plus, Trash2, Check, Menu, Copy, Hammer } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -27,6 +27,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       scrollContainerRef.current.scrollTop = scrollPositionRef.current;
     }
   });
+
+  // Auto-save when workData changes
+  useEffect(() => {
+    if (workData && workData !== room.workItems) {
+      onSave(workData);
+    }
+  }, [workData, onSave, room.workItems]);
 
   // Separate "Others" category properties
   const othersIds = ['custom_work', 'commute', 'rentals'];
@@ -1148,21 +1155,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 lg:p-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={handleClose}
-            className="px-6 lg:px-8 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md text-lg"
-          >
-            {t('Cancel')}
-          </button>
-          <button
-            onClick={() => onSave(workData)}
-            className="px-6 lg:px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm hover:shadow-md text-lg"
-          >
-            {t('Save')}
-          </button>
-        </div>
         </div>
       </div>
     </>

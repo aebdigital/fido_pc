@@ -101,6 +101,7 @@ const Projects = () => {
   ];
 
   const workProperties = [
+    // FIRST COLUMN - Prípravné a základné práce
     {
       id: 'preparatory',
       name: t('Prípravné a búracie práce'),
@@ -116,14 +117,14 @@ const Projects = () => {
     },
     {
       id: 'plumbing',
-      name: 'Plumbing',
-      subtitle: 'hot, cold, waste, connection point',
+      name: 'Vodoinštalatérske práce',
+      subtitle: 'teplá, studená, odpad, bod napojenia',
       behavior: 'single',
-      fields: [{ name: 'Number of outlets', unit: 'pc', type: 'number' }]
+      fields: [{ name: 'Počet vývodov', unit: 'ks', type: 'number' }]
     },
     {
       id: 'brick_partitions',
-      name: 'Brick partitions',
+      name: 'Murovanie priečok',
       subtitle: '75 - 175mm',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
@@ -135,7 +136,7 @@ const Projects = () => {
     },
     {
       id: 'brick_load_bearing',
-      name: 'Brick load-bearing wall',
+      name: 'Murovanie nosného muriva',
       subtitle: '200 - 450mm',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
@@ -147,8 +148,8 @@ const Projects = () => {
     },
     {
       id: 'plasterboarding_partition',
-      name: 'Plasterboarding',
-      subtitle: 'partition',
+      name: 'Sádrokartón',
+      subtitle: 'priečka',
       types: ['Simple', 'Double', 'Triple'],
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
@@ -159,8 +160,8 @@ const Projects = () => {
     },
     {
       id: 'plasterboarding_offset',
-      name: 'Plasterboarding',
-      subtitle: 'offset wall',
+      name: 'Sádrokartón',
+      subtitle: 'predsadená stena',
       types: ['Simple', 'Double'],
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
@@ -172,25 +173,19 @@ const Projects = () => {
     },
     {
       id: 'plasterboarding_ceiling',
-      name: 'Plasterboarding',
-      subtitle: 'ceiling',
+      name: 'Sádrokartón',
+      subtitle: 'strop',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Length', unit: 'm', type: 'number' }
       ],
       complementaryWorks: ['Penetration coating', 'Painting']
     },
-    {
-      id: 'spacer_1',
-      name: '',
-      subtitle: '',
-      fields: [],
-      hidden: true
-    },
+    // SECOND COLUMN - Povrchové úpravy
     {
       id: 'netting_wall',
-      name: 'Netting',
-      subtitle: 'wall',
+      name: 'Sieťkovanie',
+      subtitle: 'stena',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' },
@@ -201,8 +196,8 @@ const Projects = () => {
     },
     {
       id: 'netting_ceiling',
-      name: 'Netting',
-      subtitle: 'ceiling',
+      name: 'Sieťkovanie',
+      subtitle: 'strop',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Length', unit: 'm', type: 'number' }
@@ -211,8 +206,8 @@ const Projects = () => {
     },
     {
       id: 'plastering_wall',
-      name: 'Plastering',
-      subtitle: 'wall',
+      name: 'Omietka',
+      subtitle: 'stena',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' },
@@ -223,8 +218,8 @@ const Projects = () => {
     },
     {
       id: 'plastering_ceiling',
-      name: 'Plastering',
-      subtitle: 'ceiling',
+      name: 'Omietka',
+      subtitle: 'strop',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Length', unit: 'm', type: 'number' }
@@ -233,7 +228,7 @@ const Projects = () => {
     },
     {
       id: 'facade_plastering',
-      name: 'Facade Plastering',
+      name: 'Fasádna omietka',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' },
@@ -243,7 +238,7 @@ const Projects = () => {
     },
     {
       id: 'corner_bead',
-      name: 'Installation of corner bead',
+      name: 'Osadenie rohovej lišty',
       behavior: 'single',
       fields: [
         { name: 'Length', unit: 'bm', type: 'number' }
@@ -251,7 +246,7 @@ const Projects = () => {
     },
     {
       id: 'window_sash',
-      name: 'Plastering of window sash',
+      name: 'Omietka špalety',
       behavior: 'single',
       fields: [
         { name: 'Length', unit: 'bm', type: 'number' }
@@ -259,7 +254,7 @@ const Projects = () => {
     },
     {
       id: 'penetration_coating',
-      name: 'Penetration coating',
+      name: 'Penetračný náter',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' }
@@ -267,8 +262,8 @@ const Projects = () => {
     },
     {
       id: 'painting_wall',
-      name: 'Painting',
-      subtitle: 'wall, 2 layers',
+      name: 'Maľovanie',
+      subtitle: 'stena, 2 vrstvy',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' }
@@ -277,14 +272,15 @@ const Projects = () => {
     },
     {
       id: 'painting_ceiling',
-      name: 'Painting',
-      subtitle: 'ceiling, 2 layers',
+      name: 'Maľovanie',
+      subtitle: 'strop, 2 vrstvy',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Length', unit: 'm', type: 'number' }
       ],
       complementaryWorks: ['Penetration coating']
     },
+    // REMAINING ITEMS - Third column area
     {
       id: 'levelling',
       name: 'Levelling',
@@ -656,6 +652,8 @@ const Projects = () => {
   const handleSaveProjectName = () => {
     if (currentProject && editingProjectName.trim()) {
       updateProject(activeCategory, currentProject.id, { name: editingProjectName.trim() });
+      // Update the selected project to reflect the changes immediately
+      setSelectedProject(prev => prev ? { ...prev, name: editingProjectName.trim() } : prev);
       setIsEditingProjectName(false);
       setEditingProjectName('');
     }
