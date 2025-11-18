@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ClipboardList, FileText, Users, Settings, Moon, Sun } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
@@ -20,6 +20,32 @@ const Layout = ({ children }) => {
     handleDiscardAndProceed, 
     handleCancel 
   } = useNavigationBlocker();
+
+  // Mobile navigation auto-hide state
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Scroll detection for mobile navigation auto-hide
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerWidth >= 1024) return; // Only on mobile
+
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        // Scrolling down and past threshold - hide navigation
+        setIsNavVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up - show navigation
+        setIsNavVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   const menuItems = [
     { path: '/projects', name: t('Projekty'), icon: ClipboardList },
@@ -81,7 +107,9 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Mobile Header - Visible only on Mobile */}
-      <div className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-40">
+      <div className={`lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-40 transition-transform duration-300 ${
+        isNavVisible ? 'translate-y-0' : '-translate-y-full'
+      }`}>
         <img src={logo} alt="Fido Logo" className="h-10 w-auto" />
         
         <div className="flex items-center gap-3">
@@ -140,7 +168,7 @@ const Layout = ({ children }) => {
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto pt-16 lg:pt-0 pb-20 lg:pb-0 bg-white dark:bg-gray-900">
+        <div className="flex-1 overflow-y-auto pt-16 lg:pt-0 pb-14 lg:pb-0 bg-white dark:bg-gray-900">
           <div className="pl-4 pr-4 pt-4 pb-4 lg:p-6">
             {children}
           </div>
@@ -148,20 +176,22 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Bottom Navigation - Mobile Only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-2 py-2 z-40">
+      <div className={`lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-1.5 py-1.5 z-40 transition-transform duration-300 ${
+        isNavVisible ? 'translate-y-0' : 'translate-y-full'
+      }`}>
         <div className="flex justify-around">
           {menuItems.map(item => (
             <a
               key={item.path}
               href={item.path}
               onClick={(e) => handleNavigation(item.path, e)}
-              className={`flex flex-col items-center p-2 rounded-lg transition-all duration-200 ${
+              className={`flex flex-col items-center p-1.5 rounded-lg transition-all duration-200 ${
                 location.pathname === item.path
                   ? 'bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:shadow-sm'
               }`}
             >
-              <item.icon className="w-6 h-6 mb-1" />
+              <item.icon className="w-4 h-4 mb-0.5" />
               <span className="text-xs font-medium">{item.name}</span>
             </a>
           ))}
