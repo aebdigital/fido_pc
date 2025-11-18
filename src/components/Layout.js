@@ -91,9 +91,9 @@ const Layout = ({ children }) => {
             className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             {isDarkMode ? (
-              <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <Moon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
             ) : (
-              <Sun className="w-5 h-5 text-gray-700" />
+              <Sun className="w-6 h-6 text-gray-700" />
             )}
           </button>
 
@@ -102,7 +102,7 @@ const Layout = ({ children }) => {
             onClick={toggleLanguage}
             className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
           >
-            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+            <span className="text-base font-bold text-gray-700 dark:text-gray-300">
               {language === 'en' ? '🇺🇸' : '🇸🇰'}
             </span>
           </button>
@@ -121,9 +121,9 @@ const Layout = ({ children }) => {
                 className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 {isDarkMode ? (
-                  <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  <Moon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
                 ) : (
-                  <Sun className="w-5 h-5 text-gray-700" />
+                  <Sun className="w-6 h-6 text-gray-700" />
                 )}
               </button>
 
@@ -132,7 +132,7 @@ const Layout = ({ children }) => {
                 onClick={toggleLanguage}
                 className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
               >
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                <span className="text-base font-bold text-gray-700 dark:text-gray-300">
                   {language === 'en' ? '🇺🇸' : '🇸🇰'}
                 </span>
               </button>
@@ -141,7 +141,7 @@ const Layout = ({ children }) => {
         </div>
         
         <div className="flex-1 overflow-y-auto pt-16 lg:pt-0 pb-20 lg:pb-0 bg-white dark:bg-gray-900">
-          <div className="p-4 lg:p-6">
+          <div className="pl-4 pr-4 pt-4 pb-4 lg:p-6">
             {children}
           </div>
         </div>

@@ -808,7 +808,6 @@ export const AppDataProvider = ({ children }) => {
     room.workItems.forEach(workItem => {
       const priceItem = findPriceListItem(workItem, activePriceList);
       
-      
       if (priceItem && workItem.fields) {
         const itemPrice = calculateWorkItemPrice(workItem, priceItem);
         totalPrice += itemPrice;
@@ -818,6 +817,39 @@ export const AppDataProvider = ({ children }) => {
     });
     
     return totalPrice;
+  };
+
+  // Enhanced room calculation with materials
+  const calculateRoomPriceWithMaterials = (room, priceList = null) => {
+    if (!room.workItems || room.workItems.length === 0) return { workTotal: 0, materialTotal: 0, total: 0, items: [] };
+    
+    // Use provided price list or fall back to general price list
+    const activePriceList = priceList || appData.generalPriceList;
+    let workTotal = 0;
+    let materialTotal = 0;
+    const items = [];
+    
+    room.workItems.forEach(workItem => {
+      const priceItem = findPriceListItem(workItem, activePriceList);
+      
+      if (priceItem && workItem.fields) {
+        const calculation = calculateWorkItemWithMaterials(workItem, priceItem, activePriceList);
+        workTotal += calculation.workCost;
+        materialTotal += calculation.materialCost;
+        
+        items.push({
+          ...workItem,
+          calculation
+        });
+      }
+    });
+    
+    return { 
+      workTotal, 
+      materialTotal, 
+      total: workTotal + materialTotal, 
+      items 
+    };
   };
 
   const calculateProjectTotalPrice = (projectId, projectOverride = null) => {
@@ -920,8 +952,10 @@ export const AppDataProvider = ({ children }) => {
     const values = workItem.fields;
     
     // Handle custom work items that have their own price
-    if (workItem.propertyId === 'custom_work' && values.Price) {
-      return parseFloat(values.Price || 0);
+    if (workItem.propertyId === 'custom_work') {
+      const quantity = parseFloat(values.Quantity || 0);
+      const price = parseFloat(values.Price || 0);
+      return quantity * price;
     }
     
     // Calculate quantity based on work item type and values
@@ -957,15 +991,162 @@ export const AppDataProvider = ({ children }) => {
       quantity = duration; // For other rentals, just use duration
     }
     
-    // Subtract openings (doors, windows, etc.)
-    if (values.Doors) {
-      quantity -= parseFloat(values.Doors || 0) * 2; // Subtract door area (2m² per door)
+    // Subtract openings (doors, windows, etc.) using actual dimensions
+    if (workItem.doorWindowItems) {
+      // Calculate actual door areas
+      if (workItem.doorWindowItems.doors) {
+        workItem.doorWindowItems.doors.forEach(door => {
+          const doorArea = parseFloat(door.width || 0) * parseFloat(door.height || 0);
+          quantity -= doorArea;
+        });
+      }
+      
+      // Calculate actual window areas
+      if (workItem.doorWindowItems.windows) {
+        workItem.doorWindowItems.windows.forEach(window => {
+          const windowArea = parseFloat(window.width || 0) * parseFloat(window.height || 0);
+          quantity -= windowArea;
+        });
+      }
     }
-    if (values.Windows) {
-      quantity -= parseFloat(values.Windows || 0) * 1.5; // Subtract window area (1.5m² per window)
+    
+    // Fallback to old method if no doorWindowItems data
+    if (!workItem.doorWindowItems) {
+      if (values.Doors) {
+        quantity -= parseFloat(values.Doors || 0) * 2; // Subtract door area (2m² per door)
+      }
+      if (values.Windows) {
+        quantity -= parseFloat(values.Windows || 0) * 1.5; // Subtract window area (1.5m² per window)
+      }
     }
     
     return Math.max(0, quantity * priceItem.price);
+  };
+
+  // Material matching and calculation functions
+  const findMatchingMaterial = (workItemName, workItemSubtype, priceList) => {
+    if (!priceList || !priceList.material) return null;
+    
+    // Material mapping based on work item names (both English and Slovak)
+    const materialMappings = {
+      'Brick partitions': 'Partition masonry',
+      'Murovanie priečok': 'Partition masonry',
+      'Brick load-bearing wall': 'Load-bearing masonry', 
+      'Murovanie nosnej steny': 'Load-bearing masonry',
+      'Plasterboarding': 'Plasterboard',
+      'Sadrokartonárske práce': 'Plasterboard',
+      'Netting': 'Mesh',
+      'Sieťkovanie': 'Mesh',
+      'Plastering': 'Plaster',
+      'Omietka': 'Plaster',
+      'Facade Plastering': 'Facade Plaster',
+      'Fasádne omietky': 'Facade Plaster',
+      'Installation of corner bead': 'Corner bead',
+      'Osadenie rohových lišt': 'Corner bead',
+      'Penetration coating': 'Primer',
+      'Penetračný náter': 'Primer',
+      'Painting': 'Paint',
+      'Maľovanie': 'Paint',
+      'Levelling': 'Self-levelling compound',
+      'Vyrovnávanie': 'Self-levelling compound',
+      'Floating floor': 'Floating floor',
+      'Plávajúca podlaha': 'Floating floor',
+      'Skirting': 'Skirting board',
+      'Soklové lišty': 'Skirting board',
+      'Tiling under 60cm': 'Tiles',
+      'Obkladanie do 60cm': 'Tiles',
+      'Paving under 60cm': 'Pavings',
+      'Dlažby do 60cm': 'Pavings',
+      'Siliconing': 'Silicone',
+      'Silikónovanie': 'Silicone',
+      'Auxiliary and finishing work': 'Auxiliary and fastening material',
+      'Pomocné a ukončovacie práce': 'Auxiliary and fastening material'
+    };
+    
+    const materialName = materialMappings[workItemName];
+    if (!materialName) return null;
+    
+    // Find material with exact name match
+    let material = priceList.material.find(item => {
+      const nameMatch = item.name.toLowerCase() === materialName.toLowerCase();
+      
+      // Check subtitle match if both exist
+      if (workItemSubtype && item.subtitle) {
+        const subtitleMatch = item.subtitle.toLowerCase().includes(workItemSubtype.toLowerCase());
+        return nameMatch && subtitleMatch;
+      }
+      
+      return nameMatch;
+    });
+    
+    // If no exact match with subtitle, try without subtitle
+    if (!material && workItemSubtype) {
+      material = priceList.material.find(item => 
+        item.name.toLowerCase() === materialName.toLowerCase()
+      );
+    }
+    
+    return material;
+  };
+
+  const calculateMaterialCost = (workItem, material, workQuantity) => {
+    if (!material || !workQuantity) return 0;
+    
+    // If material has capacity, calculate based on packages needed
+    if (material.capacity) {
+      const packagesNeeded = Math.ceil(workQuantity / material.capacity.value);
+      return packagesNeeded * material.price;
+    }
+    
+    // Direct calculation for materials priced per unit area/length
+    return workQuantity * material.price;
+  };
+
+  const calculateWorkItemWithMaterials = (workItem, priceItem, priceList) => {
+    const workCost = calculateWorkItemPrice(workItem, priceItem);
+    
+    // Calculate work quantity for material calculation
+    let quantity = 0;
+    const values = workItem.fields;
+    
+    if (values.Width && values.Height) {
+      quantity = parseFloat(values.Width || 0) * parseFloat(values.Height || 0);
+    } else if (values.Width && values.Length) {
+      quantity = parseFloat(values.Width || 0) * parseFloat(values.Length || 0);
+    } else if (values.Length) {
+      quantity = parseFloat(values.Length || 0);
+    } else if (values.Circumference) {
+      quantity = parseFloat(values.Circumference || 0);
+    }
+    
+    // Subtract door/window areas from material quantity too
+    if (workItem.doorWindowItems) {
+      if (workItem.doorWindowItems.doors) {
+        workItem.doorWindowItems.doors.forEach(door => {
+          const doorArea = parseFloat(door.width || 0) * parseFloat(door.height || 0);
+          quantity -= doorArea;
+        });
+      }
+      if (workItem.doorWindowItems.windows) {
+        workItem.doorWindowItems.windows.forEach(window => {
+          const windowArea = parseFloat(window.width || 0) * parseFloat(window.height || 0);
+          quantity -= windowArea;
+        });
+      }
+    }
+    
+    quantity = Math.max(0, quantity);
+    
+    // Find matching material
+    const material = findMatchingMaterial(workItem.name, workItem.selectedType, priceList);
+    const materialCost = material ? calculateMaterialCost(workItem, material, quantity) : 0;
+    
+    return {
+      workCost,
+      materialCost,
+      material,
+      quantity
+    };
   };
 
   const formatPrice = (price) => {
@@ -1054,7 +1235,9 @@ export const AppDataProvider = ({ children }) => {
     
     // Price calculation functions
     calculateRoomPrice,
+    calculateRoomPriceWithMaterials,
     calculateProjectTotalPrice,
+    calculateWorkItemWithMaterials,
     formatPrice,
     
     // Price list management functions

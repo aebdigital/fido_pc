@@ -1,15 +1,18 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { X, Plus, Trash2, Check, Menu, Copy, Hammer } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppData } from '../context/AppDataContext';
 import NumberInput from './NumberInput';
 
 const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const { t } = useLanguage();
+  const { calculateRoomPriceWithMaterials, formatPrice, generalPriceList } = useAppData();
   const [workData, setWorkData] = useState(room.workItems || []);
   const [expandedItems, setExpandedItems] = useState({});
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);
   const [showingRentalsSelector, setShowingRentalsSelector] = useState(false);
   const [showingTypeSelector, setShowingTypeSelector] = useState(null);
+  const [showingUnitSelector, setShowingUnitSelector] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
@@ -118,21 +121,49 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     const newItem = {
       id: Date.now(),
       propertyId: property.id,
-      name: `${t(property.name)} ${t(type)}`,
+      name: property.id === 'custom_work' ? t(property.name) : `${t(property.name)} ${t(type)}`,
       subtitle: property.subtitle,
       fields: {},
       complementaryWorks: {},
       selectedType: type,
+      selectedUnit: null,
       doorWindowItems: { doors: [], windows: [] }
     };
     
     // Initialize fields
     property.fields?.forEach(field => {
-      newItem.fields[field.name] = 0;
+      newItem.fields[field.name] = field.type === 'text' ? '' : 0;
     });
     
     setWorkData([...workData, newItem]);
-    setShowingTypeSelector(null);
+    
+    // For custom work, show unit selector after type selection and close type selector
+    console.log('handleTypeSelect - property:', property.id, 'hasUnitSelector:', property.hasUnitSelector, 'newItem.id:', newItem.id);
+    if (property.id === 'custom_work' && property.hasUnitSelector) {
+      console.log('Setting unit selector for custom work item:', newItem.id);
+      setShowingTypeSelector(null);
+      setShowingUnitSelector(newItem.id);
+    } else {
+      setShowingTypeSelector(null);
+    }
+  };
+
+  const handleUnitSelect = (itemId, unit, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    saveScrollPosition();
+    
+    setWorkData(items =>
+      items.map(item =>
+        item.id === itemId
+          ? { ...item, selectedUnit: unit }
+          : item
+      )
+    );
+    setShowingUnitSelector(null);
   };
 
   const handleRentalTypeSelect = (rentalType, e) => {
@@ -166,9 +197,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     setShowingRentalsSelector(false);
   };
 
-  const handleUpdateWorkItem = (itemId, field, value) => {
-    // NumberInput component already handles validation and returns a numeric value
-    const processedValue = value || 0;
+  const handleUpdateWorkItem = (itemId, field, value, isText = false) => {
+    // Handle both text and numeric inputs
+    const processedValue = isText ? value || '' : value || 0;
     
     setWorkData(items =>
       items.map(item =>
@@ -399,24 +430,46 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   };
 
   const renderField = (item, field) => {
-    const value = item.fields[field.name] || 0;
+    const value = item.fields[field.name];
+    const isTextType = field.type === 'text';
     
     // Skip doors and windows fields as they're rendered separately
     if (field.name === 'Doors' || field.name === 'Windows') {
       return null;
     }
 
+    // Skip Name field for custom work as it's now in the header
+    if (item.propertyId === 'custom_work' && field.name === 'Name') {
+      return null;
+    }
+
+    // For custom work price field, show unit in the label
+    let unitDisplay = field.unit;
+    if (item.propertyId === 'custom_work' && field.name === 'Price' && item.selectedUnit) {
+      unitDisplay = `€/${item.selectedUnit}`;
+    }
+
     return (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
         <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(field.name)}</span>
         <div className="flex items-center gap-2 justify-end w-full">
-          <NumberInput
-            value={value || 0}
-            onChange={(value) => handleUpdateWorkItem(item.id, field.name, value)}
-            className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
-            min={0}
-          />
-          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t(field.unit)}</span>
+          {isTextType ? (
+            <input
+              type="text"
+              value={value || ''}
+              onChange={(e) => handleUpdateWorkItem(item.id, field.name, e.target.value, true)}
+              className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
+              placeholder={t(field.name)}
+            />
+          ) : (
+            <NumberInput
+              value={value || 0}
+              onChange={(value) => handleUpdateWorkItem(item.id, field.name, value)}
+              className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
+              min={0}
+            />
+          )}
+          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-16 flex-shrink-0">{unitDisplay}</span>
         </div>
       </div>
     );
@@ -909,12 +962,32 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         {existingItems.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-900 dark:text-white text-lg">
-                {t(property.name)} {t('no.')} {existingItems.indexOf(item) + 1}
-              </span>
+              {property.id === 'custom_work' ? (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
+                    {item.selectedType === 'Work' ? t('Názov práce') : t('Názov materiálu')}:
+                  </span>
+                  <input
+                    type="text"
+                    value={item.fields.Name || ''}
+                    onChange={(e) => handleUpdateWorkItem(item.id, 'Name', e.target.value, true)}
+                    className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
+                    placeholder={item.selectedType === 'Work' ? t('Názov práce') : t('Názov materiálu')}
+                  />
+                  {item.selectedUnit && (
+                    <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
+                      {item.selectedUnit}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="font-medium text-gray-900 dark:text-white text-lg">
+                  {t(property.name)} {t('no.')} {existingItems.indexOf(item) + 1}
+                </span>
+              )}
               <button
                 onClick={(e) => handleRemoveWorkItem(item.id, e)}
-                className="text-gray-400 hover:text-red-500 transition-colors"
+                className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
               >
                 <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
               </button>
@@ -945,6 +1018,73 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     {t(type)}
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* Unit selector for custom work */}
+            {console.log('Render unit selector check:', {
+              propertyId: property.id,
+              hasUnitSelector: property.hasUnitSelector,
+              selectedType: item.selectedType,
+              showingUnitSelector,
+              itemId: item.id
+            }) || (property.id === 'custom_work' && property.hasUnitSelector && item.selectedType) && (
+              <div>
+                {showingUnitSelector === item.id ? (
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top">
+                    <div className="flex items-center justify-between">
+                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Vyberte jednotku')}</span>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowingUnitSelector(null);
+                        }}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {property.units?.map(unit => (
+                        <button
+                          key={unit}
+                          onClick={(e) => handleUnitSelect(item.id, unit, e)}
+                          className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          {unit}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  item.selectedUnit ? (
+                    <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{t('Jednotka')}: {item.selectedUnit}</span>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowingUnitSelector(item.id);
+                        }}
+                        className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                      >
+                        {t('Zmeniť')}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowingUnitSelector(item.id);
+                      }}
+                      className="w-full p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      {t('Vyberte jednotku')}
+                    </button>
+                  )
+                )}
               </div>
             )}
 
@@ -1057,7 +1197,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         }
       `}</style>
       <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-        <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-7xl h-[95vh] lg:h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}>
+        <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[95vh] lg:h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{room.name}</h2>
@@ -1070,14 +1210,16 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         </div>
 
         {/* Content */}
-        <div 
-          ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar"
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#9CA3AF #F3F4F6',
-          }}
-        >
+        <div className="flex-1 flex overflow-hidden">
+          {/* Main Content Area - Scrollable */}
+          <div 
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#9CA3AF #F3F4F6',
+            }}
+          >
           <div className="space-y-3 lg:space-y-2">
             {/* Work section */}
             <div className="flex items-center gap-3 pb-2">
@@ -1160,6 +1302,132 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               </div>
             )}
           </div>
+          </div>
+
+          {/* Price Summary Sidebar - Always visible and fixed */}
+            {(() => {
+              const roomWithWorkItems = { ...room, workItems: workData };
+              const calculation = calculateRoomPriceWithMaterials(roomWithWorkItems, generalPriceList);
+              const vatRate = generalPriceList?.others?.find(item => item.name === 'VAT')?.price / 100 || 0.23;
+              const vatAmount = calculation.total * vatRate;
+              const totalWithVat = calculation.total + vatAmount;
+
+              return (
+                <div className="w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
+                  <div className="p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Celková cenová ponuka')}</h3>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 custom-scrollbar">
+                    {workData.length > 0 ? (
+                      <>
+                        {/* Work Section */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Práca')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.workTotal)}</span>
+                          </div>
+                          {calculation.items.length > 0 ? (
+                            calculation.items.map(item => {
+                              if (item.calculation?.workCost > 0) {
+                                // Determine the correct unit based on work type
+                                let unit = 'm²';
+                                let quantity = item.calculation.quantity;
+                                const values = item.fields;
+                                
+                                if (values.Duration || values.Trvanie) {
+                                  unit = 'h';
+                                  quantity = parseFloat(values.Duration || values.Trvanie || 0);
+                                } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
+                                  unit = 'ks';
+                                  quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+                                } else if (values.Length && !values.Width && !values.Height) {
+                                  unit = 'bm';
+                                  quantity = parseFloat(values.Length || 0);
+                                } else if (values.Circumference) {
+                                  unit = 'bm';
+                                  quantity = parseFloat(values.Circumference || 0);
+                                } else if (values.Distance) {
+                                  unit = 'km';
+                                  quantity = parseFloat(values.Distance || 0);
+                                }
+                                
+                                const workDescription = `${item.name}${item.selectedType ? `, ${item.selectedType}` : ''} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${unit}`;
+                                return (
+                                  <div key={`${item.id}-work`} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.workCost)}</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })
+                          ) : (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                              {t('Žiadne práce neboli pridané')}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Material Section */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Materiál')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.materialTotal)}</span>
+                          </div>
+                          {calculation.items.some(item => item.calculation?.materialCost > 0) ? (
+                            calculation.items.map(item => {
+                              if (item.calculation?.materialCost > 0 && item.calculation?.material) {
+                                const materialDescription = `${item.calculation.material.name}${item.calculation.material.subtitle ? `, ${item.calculation.material.subtitle}` : ''}`;
+                                const quantity = item.calculation.material.capacity 
+                                  ? Math.ceil(item.calculation.quantity / item.calculation.material.capacity.value)
+                                  : item.calculation.quantity;
+                                const unit = item.calculation.material.capacity?.unit || item.calculation.material.unit?.replace('€/', '');
+                                
+                                return (
+                                  <div key={`${item.id}-material`} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{materialDescription} - {quantity.toFixed(0)}{unit}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.materialCost)}</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })
+                          ) : (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                              {t('Žiadne materiály neboli identifikované')}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="bg-white dark:bg-gray-900 rounded-xl p-6 text-center">
+                        <div className="text-gray-500 dark:text-gray-400">
+                          <p className="text-base font-medium">{t('Žiadne práce')}</p>
+                          <p className="text-sm mt-1">{t('Pridajte práce pre zobrazenie cenového súhrnu')}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Totals - Fixed at bottom */}
+                  <div className="p-4 lg:p-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 space-y-2 flex-shrink-0">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400">{t('bez DPH')}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.total)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400">{t('DPH')}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{formatPrice(vatAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-lg font-bold">
+                      <span className="text-gray-900 dark:text-white">{t('Celková cena')}</span>
+                      <span className="text-gray-900 dark:text-white">{formatPrice(totalWithVat)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
         </div>
 
         </div>

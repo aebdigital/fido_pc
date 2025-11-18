@@ -48,7 +48,7 @@ const Projects = () => {
   
   const [activeCategory, setActiveCategory] = useState('flats');
   const [selectedProject, setSelectedProject] = useState(null);
-  const [currentView, setCurrentView] = useState('projects'); // 'projects', 'details'
+  const [currentView, setCurrentView] = useState(window.innerWidth < 1024 ? 'categories' : 'projects'); // 'categories', 'projects', 'details'
   
   // Helper function to get current VAT rate from price list
   const getVATRate = () => {
@@ -372,9 +372,14 @@ const Projects = () => {
     {
       id: 'custom_work',
       name: 'Custom work and material',
+      hasTypeSelector: true,
+      types: ['Work', 'Material'],
+      hasUnitSelector: true,
+      units: ['bm', 'm²', 'm³', 'ks', 'bal', 'kg', 't', 'km', 'deň', 'hod'],
       fields: [
-        { name: 'Description', unit: 'text', type: 'text' },
-        { name: 'Price', unit: '€', type: 'number' }
+        { name: 'Name', unit: 'text', type: 'text' },
+        { name: 'Quantity', unit: 'number', type: 'number' },
+        { name: 'Price', unit: '€/unit', type: 'number' }
       ]
     },
     {
@@ -703,7 +708,7 @@ const Projects = () => {
           display: none;
         }
       `}</style>
-      <div className="pb-20 lg:pb-0">
+      <div className="pb-20 lg:pb-0 overflow-hidden w-full min-w-0">
         <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
       
       {/* Contractor Profile Dropdown - always visible */}
@@ -770,8 +775,8 @@ const Projects = () => {
 
       <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden w-full">
         {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar */}
-        <div className={`lg:w-80 flex lg:flex-col w-full lg:w-80 ${currentView === 'details' ? 'hidden lg:flex' : 'flex'}`}>
-          <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-6 py-4 space-x-2 lg:space-x-0 lg:space-y-3 scrollbar-hide">
+        <div className={`lg:w-80 flex lg:flex-col w-screen lg:w-80 ${currentView === 'details' ? 'hidden lg:flex' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{maxWidth: '100vw'}}>
+          <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-6 py-4 space-x-2 lg:space-x-0 lg:space-y-3 scrollbar-hide" style={{width: '100%'}}>
             {projectCategories.map(category => (
               <button
                 key={category.id}
@@ -799,17 +804,58 @@ const Projects = () => {
           </div>
         </div>
 
-        {/* Main Content - Projects or Details */}
+        {/* Main Content - Categories, Projects or Details */}
         <div className={`flex-1 flex flex-col min-w-0 ${currentView === 'details' ? 'w-full lg:flex-1' : ''}`}>
+          {/* Category Selection View - Mobile Only */}
+          {currentView === 'categories' && (
+            <div className="pt-4 pb-4 lg:hidden space-y-6 min-w-0 w-full">
+              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                {t('Vyberte kategóriu projektov')}
+              </h2>
+              <div className="space-y-4">
+                {projectCategories.map(category => (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategorySelect(category.id)}
+                    className="w-full h-32 rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md relative"
+                  >
+                    <img 
+                      src={category.image} 
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between items-end">
+                      <h3 className="text-xl font-bold text-white">{t(category.name)}</h3>
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Project List View */}
           {currentView === 'projects' && (
-            <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 overflow-hidden w-full">
+            <div className="pt-4 pb-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 overflow-hidden w-full">
               {/* Project List Header */}
               <div className="flex flex-col gap-4 w-full">
                 <div className="flex items-center justify-between w-full">
-                  <h2 className="text-lg sm:text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
-                    {t(projectCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
-                  </h2>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <button 
+                      onClick={() => setCurrentView('categories')}
+                      className="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <h2 className="text-lg sm:text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
+                      {t(projectCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
+                    </h2>
+                  </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button 
                       onClick={toggleProjectDeleteMode}
@@ -837,7 +883,7 @@ const Projects = () => {
                 {activeProjects.map(project => (
                   <div
                     key={project.id}
-                    className={`bg-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm min-w-0 w-full ${
+                    className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm min-w-0 w-full ${
                       projectDeleteMode 
                         ? 'justify-between' 
                         : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
@@ -853,7 +899,7 @@ const Projects = () => {
                           </span>
                         )}
                       </div>
-                      <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
+                      <h3 className="text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
                       <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base">Notes</p>
                     </div>
                     
@@ -887,7 +933,7 @@ const Projects = () => {
 
           {/* Project Details View */}
           {currentView === 'details' && currentProject && (
-            <div className="flex-1 p-4 lg:p-6 overflow-y-auto space-y-4 lg:space-y-6 min-w-0">
+            <div className="flex-1 p-0 lg:p-6 overflow-y-auto space-y-4 lg:space-y-6 min-w-0">
               {/* Header with back button */}
               <div className="flex items-center gap-4">
                 <button 

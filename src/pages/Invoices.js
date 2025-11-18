@@ -28,8 +28,8 @@ const Invoices = () => {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 mb-6 lg:mb-8">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 lg:mx-0 lg:px-0">
+      <div className="mb-6 lg:mb-8 min-w-0 w-full">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 min-w-0">
           {timeFilters.map(filter => (
             <button
               key={filter}
@@ -43,9 +43,6 @@ const Invoices = () => {
               {filter} ◇
             </button>
           ))}
-        </div>
-        
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 lg:mx-0 lg:px-0">
           {statusFilters.map(filter => (
             <button
               key={filter}

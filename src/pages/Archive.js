@@ -25,6 +25,7 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
     unarchiveProject,
     deleteArchivedProject,
     calculateProjectTotalPrice,
+    calculateRoomPrice,
     formatPrice,
     updateProjectRoom
   } = useAppData();
@@ -185,7 +186,7 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
                   </div>
                   <div className="flex items-center justify-between sm:justify-end sm:gap-4 mt-3 sm:mt-0">
                     <div className="text-left sm:text-right">
-                      <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(room.workItems ? room.workItems.reduce((total, item) => total + (item.price || 0), 0) : 0)}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateRoomPrice(room, currentProject.priceListSnapshot))}</div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   </div>
