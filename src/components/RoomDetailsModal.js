@@ -138,9 +138,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     setWorkData([...workData, newItem]);
     
     // For custom work, show unit selector after type selection and close type selector
-    console.log('handleTypeSelect - property:', property.id, 'hasUnitSelector:', property.hasUnitSelector, 'newItem.id:', newItem.id);
     if (property.id === 'custom_work' && property.hasUnitSelector) {
-      console.log('Setting unit selector for custom work item:', newItem.id);
       setShowingTypeSelector(null);
       setShowingUnitSelector(newItem.id);
     } else {
@@ -1022,13 +1020,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             )}
 
             {/* Unit selector for custom work */}
-            {console.log('Render unit selector check:', {
-              propertyId: property.id,
-              hasUnitSelector: property.hasUnitSelector,
-              selectedType: item.selectedType,
-              showingUnitSelector,
-              itemId: item.id
-            }) || (property.id === 'custom_work' && property.hasUnitSelector && item.selectedType) && (
+            {property.id === 'custom_work' && property.hasUnitSelector && item.selectedType && (
               <div>
                 {showingUnitSelector === item.id ? (
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top">
