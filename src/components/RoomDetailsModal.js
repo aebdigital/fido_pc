@@ -1208,7 +1208,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Main Content Area - Scrollable */}
           <div 
             ref={scrollContainerRef}
@@ -1311,12 +1311,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               const totalWithVat = calculation.total + vatAmount;
 
               return (
-                <div className="w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col h-full">
+                <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col lg:h-full">
                   <div className="p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Celková cenová ponuka')}</h3>
                   </div>
                   
-                  <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 custom-scrollbar">
+                  <div className="lg:flex-1 lg:overflow-y-auto p-4 lg:p-6 space-y-4 custom-scrollbar">
                     {workData.length > 0 ? (
                       <>
                         {/* Work Section */}
