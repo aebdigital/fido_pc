@@ -1188,8 +1188,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           background: #9ca3af;
         }
       `}</style>
-      <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-        <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[95vh] lg:h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}>
+      <div 
+        className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+        onClick={handleClose}
+      >
+        <div 
+          className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[95vh] lg:h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{room.name}</h2>
