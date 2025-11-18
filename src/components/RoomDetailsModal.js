@@ -1299,10 +1299,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 </div>
               </div>
             )}
-          </div>
-          </div>
 
-          {/* Price Summary Sidebar - Always visible and fixed */}
+            {/* Price Summary - Mobile inline version */}
             {(() => {
               const roomWithWorkItems = { ...room, workItems: workData };
               const calculation = calculateRoomPriceWithMaterials(roomWithWorkItems, generalPriceList);
@@ -1311,7 +1309,132 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               const totalWithVat = calculation.total + vatAmount;
 
               return (
-                <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col lg:h-full">
+                <div className="lg:hidden mt-6">
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Celková cenová ponuka')}</h3>
+                    
+                    {workData.length > 0 ? (
+                      <div className="space-y-4">
+                        {/* Work Section */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Práca')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.workTotal)}</span>
+                          </div>
+                          {calculation.items.length > 0 ? (
+                            calculation.items.map(item => {
+                              if (item.calculation?.workCost > 0) {
+                                // Determine the correct unit based on work type
+                                let unit = 'm²';
+                                let quantity = item.calculation.quantity;
+                                const values = item.fields;
+                                
+                                if (values.Duration || values.Trvanie) {
+                                  unit = 'h';
+                                  quantity = parseFloat(values.Duration || values.Trvanie || 0);
+                                } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
+                                  unit = 'ks';
+                                  quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+                                } else if (values.Length && !values.Width && !values.Height) {
+                                  unit = 'bm';
+                                  quantity = parseFloat(values.Length || 0);
+                                } else if (values.Circumference) {
+                                  unit = 'bm';
+                                  quantity = parseFloat(values.Circumference || 0);
+                                } else if (values.Distance) {
+                                  unit = 'km';
+                                  quantity = parseFloat(values.Distance || 0);
+                                }
+                                
+                                const workDescription = `${item.name}${item.selectedType ? `, ${item.selectedType}` : ''} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${unit}`;
+                                return (
+                                  <div key={`${item.id}-work`} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.workCost)}</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })
+                          ) : (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                              {t('Žiadne práce neboli pridané')}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Material Section */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Materiál')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.materialTotal)}</span>
+                          </div>
+                          {calculation.items.some(item => item.calculation?.materialCost > 0) ? (
+                            calculation.items.map(item => {
+                              if (item.calculation?.materialCost > 0 && item.calculation?.material) {
+                                const materialDescription = `${item.calculation.material.name}${item.calculation.material.subtitle ? `, ${item.calculation.material.subtitle}` : ''}`;
+                                const quantity = item.calculation.material.capacity 
+                                  ? Math.ceil(item.calculation.quantity / item.calculation.material.capacity.value)
+                                  : item.calculation.quantity;
+                                const unit = item.calculation.material.capacity?.unit || item.calculation.material.unit?.replace('€/', '');
+                                
+                                return (
+                                  <div key={`${item.id}-material`} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{materialDescription} - {quantity.toFixed(0)}{unit}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.materialCost)}</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })
+                          ) : (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                              {t('Žiadne materiály neboli identifikované')}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Totals */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600 dark:text-gray-400">{t('bez DPH')}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.total)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600 dark:text-gray-400">{t('DPH')}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{formatPrice(vatAmount)}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-lg font-bold">
+                            <span className="text-gray-900 dark:text-white">{t('Celková cena')}</span>
+                            <span className="text-gray-900 dark:text-white">{formatPrice(totalWithVat)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white dark:bg-gray-900 rounded-xl p-6 text-center">
+                        <div className="text-gray-500 dark:text-gray-400">
+                          <p className="text-base font-medium">{t('Žiadne práce')}</p>
+                          <p className="text-sm mt-1">{t('Pridajte práce pre zobrazenie cenového súhrnu')}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+          </div>
+
+          {/* Price Summary Sidebar - Desktop only */}
+            {(() => {
+              const roomWithWorkItems = { ...room, workItems: workData };
+              const calculation = calculateRoomPriceWithMaterials(roomWithWorkItems, generalPriceList);
+              const vatRate = generalPriceList?.others?.find(item => item.name === 'VAT')?.price / 100 || 0.23;
+              const vatAmount = calculation.total * vatRate;
+              const totalWithVat = calculation.total + vatAmount;
+
+              return (
+                <div className="hidden lg:flex lg:w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-col h-full">
                   <div className="p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Celková cenová ponuka')}</h3>
                   </div>
