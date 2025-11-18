@@ -711,8 +711,9 @@ const Projects = () => {
       <div className="pb-20 lg:pb-0 overflow-hidden w-full min-w-0">
         <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
       
-      {/* Contractor Profile Dropdown - always visible */}
-      <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
+      {/* Contractor Profile Dropdown - only in categories view */}
+      {currentView === 'categories' && (
+        <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
         <button 
           className="flex items-center gap-2"
           onClick={() => setShowContractorSelector(!showContractorSelector)}
@@ -772,6 +773,7 @@ const Projects = () => {
           </div>
         )}
       </div>
+      )}
 
       <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden w-full">
         {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar */}
@@ -1159,11 +1161,6 @@ const Projects = () => {
                     <div className="text-base text-gray-600 dark:text-gray-400 truncate">{t('last change')}: 31 Oct 2025</div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                </div>
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-                  <div className="font-medium text-gray-900 dark:text-white text-lg">
-                    {getCurrentContractor()?.name || t('No contractor selected')}
-                  </div>
                 </div>
               </div>
 
