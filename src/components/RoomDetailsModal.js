@@ -14,6 +14,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const [showingTypeSelector, setShowingTypeSelector] = useState(null);
   const [showingUnitSelector, setShowingUnitSelector] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
+  const [newlyAddedItems, setNewlyAddedItems] = useState(new Set());
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
 
@@ -30,6 +31,16 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       scrollContainerRef.current.scrollTop = scrollPositionRef.current;
     }
   });
+
+  // Clean up newly added items after animation completes
+  useLayoutEffect(() => {
+    if (newlyAddedItems.size > 0) {
+      const timer = setTimeout(() => {
+        setNewlyAddedItems(new Set());
+      }, 500); // Remove after animation completes
+      return () => clearTimeout(timer);
+    }
+  }, [newlyAddedItems]);
 
 
   // Separate "Others" category properties
@@ -81,6 +92,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       doorWindowItems: { doors: [], windows: [] }
     };
     setWorkData([...workData, newItem]);
+    setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
   };
 
   const handleSanitaryTypeSelect = (sanitaryType, e) => {
@@ -104,6 +116,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       selectedType: sanitaryType
     };
     setWorkData([...workData, newItem]);
+    setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingSanitarySelector(false);
   };
   
@@ -136,6 +149,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     });
     
     setWorkData([...workData, newItem]);
+    setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     
     // For custom work, show unit selector after type selection and close type selector
     if (property.id === 'custom_work' && property.hasUnitSelector) {
@@ -192,6 +206,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     });
 
     setWorkData([...workData, newItem]);
+    setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingRentalsSelector(false);
   };
 
@@ -522,7 +537,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           
           {/* Existing rental items */}
           {existingItems.map((item, index) => (
-            <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in-top">
+            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? 'animate-slide-in-top' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
                   {t(item.name)} {t('no.')} {index + 1}
@@ -601,6 +616,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   });
                   
                   setWorkData([...workData, newItem]);
+                  setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
                 }
               }}
               className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
@@ -744,7 +760,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           
           {/* Existing type items */}
           {existingItems.map(item => (
-            <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in-top">
+            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? 'animate-slide-in-top' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
                   {item.name}
