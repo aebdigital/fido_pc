@@ -75,14 +75,14 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Plastering', subtitle: 'wall', price: 7, unit: '€/m²' },
           { name: 'Plastering', subtitle: 'ceiling', price: 7, unit: '€/m²' },
           { name: 'Facade Plastering', price: 80, unit: '€/m²' },
-          { name: 'Installation of corner bead', price: 3, unit: '€/bm' },
-          { name: 'Plastering of window sash', price: 5, unit: '€/bm' },
+          { name: 'Installation of corner bead', price: 3, unit: '€/m' },
+          { name: 'Plastering of window sash', price: 5, unit: '€/m' },
           { name: 'Penetration coating', price: 1, unit: '€/m²' },
           { name: 'Painting', subtitle: 'wall, 2 layers', price: 3, unit: '€/m²' },
           { name: 'Painting', subtitle: 'ceiling, 2 layers', price: 3, unit: '€/m²' },
           { name: 'Levelling', price: 7, unit: '€/m²' },
           { name: 'Floating floor', subtitle: 'laying', price: 7, unit: '€/m²' },
-          { name: 'Skirting', subtitle: 'floating floor', price: 4, unit: '€/bm' },
+          { name: 'Skirting', subtitle: 'floating floor', price: 4, unit: '€/m' },
           { name: 'Tiling under 60cm', subtitle: 'ceramic', price: 30, unit: '€/m²' },
           { name: 'Jolly Edging', price: 25, unit: '€/m' },
           { name: 'Paving under 60cm', subtitle: 'ceramic', price: 30, unit: '€/m²' },
@@ -90,8 +90,8 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Plinth', subtitle: 'bonding', price: 8, unit: '€/m' },
           { name: 'Large Format', subtitle: 'above 60cm', price: 80, unit: '€/m²' },
           { name: 'Grouting', subtitle: 'tiling and paving', price: 5, unit: '€/m²' },
-          { name: 'Siliconing', price: 2, unit: '€/bm' },
-          { name: 'Window installation', price: 7, unit: '€/bm' },
+          { name: 'Siliconing', price: 2, unit: '€/m' },
+          { name: 'Window installation', price: 7, unit: '€/m' },
           { name: 'Installation of door jamb', price: 60, unit: '€/pc' },
           { name: 'Auxiliary and finishing work', price: 65, unit: '%' }
         ],
@@ -109,14 +109,14 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Adhesive', subtitle: 'tiling and paving', price: 15, unit: '€/pkg', capacity: { value: 3, unit: 'm²' } },
           { name: 'Plaster', price: 13, unit: '€/pkg', capacity: { value: 8, unit: 'm²' } },
           { name: 'Facade Plaster', price: 25, unit: '€/pkg', capacity: { value: 10, unit: 'm²' } },
-          { name: 'Corner bead', price: 4, unit: '€/pc', capacity: { value: 3, unit: 'bm' } },
+          { name: 'Corner bead', price: 4, unit: '€/pc', capacity: { value: 3, unit: 'm' } },
           { name: 'Primer', price: 1, unit: '€/m²' },
           { name: 'Paint', subtitle: 'wall', price: 1, unit: '€/m²' },
           { name: 'Paint', subtitle: 'ceiling', price: 1, unit: '€/m²' },
           { name: 'Self-levelling compound', price: 18, unit: '€/pkg', capacity: { value: 2, unit: 'm²' } },
           { name: 'Floating floor', price: 15, unit: '€/m²' },
-          { name: 'Skirting board', price: 3, unit: '€/bm' },
-          { name: 'Silicone', price: 8, unit: '€/pkg', capacity: { value: 15, unit: 'bm' } },
+          { name: 'Skirting board', price: 3, unit: '€/m' },
+          { name: 'Silicone', price: 8, unit: '€/pkg', capacity: { value: 15, unit: 'm' } },
           { name: 'Tiles', subtitle: 'ceramic', price: 25, unit: '€/m²' },
           { name: 'Pavings', subtitle: 'ceramic', price: 25, unit: '€/m²' },
           { name: 'Auxiliary and fastening material', price: 10, unit: '%' }
@@ -1362,7 +1362,7 @@ export const AppDataProvider = ({ children }) => {
       // Area calculation (m²)
       quantity = parseFloat(values.Width || 0) * parseFloat(values.Length || 0);
     } else if (values.Length) {
-      // Linear calculation (bm)
+      // Linear calculation (m)
       quantity = parseFloat(values.Length || 0);
     } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
       // Count calculation (pc)
@@ -1376,7 +1376,7 @@ export const AppDataProvider = ({ children }) => {
       // Time calculation (h)
       quantity = parseFloat(values.Duration || values.Trvanie || 0);
     } else if (values.Circumference) {
-      // Linear calculation for circumference (bm)
+      // Linear calculation for circumference (m)
       quantity = parseFloat(values.Circumference || 0);
     } else if (values.Distance || values.Vzdialenosť) {
       // Distance calculation (km)

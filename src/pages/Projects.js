@@ -241,7 +241,7 @@ const Projects = () => {
       name: 'Installation of corner bead',
       behavior: 'single',
       fields: [
-        { name: 'Length', unit: 'bm', type: 'number' }
+        { name: 'Length', unit: 'm', type: 'number' }
       ]
     },
     // THIRD COLUMN - Finishing and others (positions 15+)
@@ -250,7 +250,7 @@ const Projects = () => {
       name: 'Plastering of window sash',
       behavior: 'single',
       fields: [
-        { name: 'Length', unit: 'bm', type: 'number' }
+        { name: 'Length', unit: 'm', type: 'number' }
       ]
     },
     {
@@ -338,7 +338,7 @@ const Projects = () => {
       name: 'Siliconing',
       behavior: 'single',
       fields: [
-        { name: 'Length', unit: 'bm', type: 'number' }
+        { name: 'Length', unit: 'm', type: 'number' }
       ]
     },
     {
@@ -355,7 +355,7 @@ const Projects = () => {
       id: 'window_installation',
       name: 'Window installation',
       fields: [
-        { name: 'Circumference', unit: 'bm', type: 'number' },
+        { name: 'Circumference', unit: 'm', type: 'number' },
         { name: 'Price', unit: '€/pc', type: 'number' }
       ]
     },
@@ -374,7 +374,7 @@ const Projects = () => {
       hasTypeSelector: true,
       types: ['Work', 'Material'],
       hasUnitSelector: true,
-      units: ['bm', 'm²', 'm³', 'ks', 'bal', 'kg', 't', 'km', 'deň', 'hod'],
+      units: ['m', 'm²', 'm³', 'ks', 'bal', 'kg', 't', 'km', 'deň', 'hod'],
       fields: [
         { name: 'Name', unit: 'text', type: 'text' },
         { name: 'Quantity', unit: 'number', type: 'number' },
@@ -397,8 +397,8 @@ const Projects = () => {
         {
           name: 'Scaffolding',
           fields: [
-            { name: 'Length', unit: 'bm', type: 'number' },
-            { name: 'Height', unit: 'bm', type: 'number' },
+            { name: 'Length', unit: 'm', type: 'number' },
+            { name: 'Height', unit: 'm', type: 'number' },
             { name: 'Rental duration', unit: 'day', type: 'number' }
           ]
         },

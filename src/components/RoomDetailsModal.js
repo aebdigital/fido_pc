@@ -1,5 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
-import { X, Plus, Trash2, Check, Menu, Copy, Hammer } from 'lucide-react';
+import { X, Plus, Trash2, Check, Menu, Copy, Hammer, Package, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import NumberInput from './NumberInput';
@@ -633,7 +633,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         ),
         newItem
       ]);
-      setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
+      // Don't add to newlyAddedItems - keep complementary works collapsed
     }
   };
 
@@ -792,16 +792,16 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       return (
         <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
           {/* Always show header with plus button */}
-          <div className="flex items-center justify-between">
+          <div
+            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={(e) => handleAddWorkItem(property.id, e)}
+          >
             <div className="flex-1">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
             </div>
-            <button
-              onClick={(e) => handleAddWorkItem(property.id, e)}
-              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-            >
+            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
               <Plus className="w-4 h-4" />
-            </button>
+            </div>
           </div>
 
           {/* Type selector when showing */}
@@ -878,51 +878,62 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       return (
         <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
           {/* Header with plus/minus button */}
-          <div className="flex items-center justify-between">
+          <div
+            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              saveScrollPosition();
+
+              if (existingItem) {
+                // Toggle expansion or remove
+                if (expandedItems[existingItem.id]) {
+                  // If expanded, collapse it
+                  setExpandedItems(prev => ({ ...prev, [existingItem.id]: false }));
+                } else {
+                  // If collapsed, expand it
+                  setExpandedItems(prev => ({ ...prev, [existingItem.id]: true }));
+                }
+              } else {
+                // Add the item and expand it
+                const newItem = {
+                  id: Date.now(),
+                  propertyId: property.id,
+                  name: property.name,
+                  subtitle: property.subtitle,
+                  fields: {},
+                  complementaryWorks: {},
+                  doorWindowItems: { doors: [], windows: [] }
+                };
+
+                // Initialize fields
+                property.fields?.forEach(field => {
+                  newItem.fields[field.name] = 0;
+                });
+
+                setWorkData([...workData, newItem]);
+                setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
+                setExpandedItems(prev => ({ ...prev, [newItem.id]: true }));
+              }
+            }}
+          >
             <div className="flex-1">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
               {property.subtitle && (
                 <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                saveScrollPosition();
-                
-                if (existingItem) {
-                  // Remove the item
-                  setWorkData(items => items.filter(item => item.id !== existingItem.id));
-                } else {
-                  // Add the item
-                  const newItem = {
-                    id: Date.now(),
-                    propertyId: property.id,
-                    name: property.name,
-                    subtitle: property.subtitle,
-                    fields: {},
-                    complementaryWorks: {},
-                    doorWindowItems: { doors: [], windows: [] }
-                  };
-                  
-                  // Initialize fields
-                  property.fields?.forEach(field => {
-                    newItem.fields[field.name] = 0;
-                  });
-                  
-                  setWorkData([...workData, newItem]);
-                  setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
-                }
-              }}
-              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-            >
-              {existingItem ? <Trash2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            </button>
+            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+              {existingItem ? (
+                expandedItems[existingItem.id] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+            </div>
           </div>
-          
-          {/* Show fields directly when item exists */}
-          {existingItem && (
+
+          {/* Show fields only when item exists AND is expanded */}
+          {existingItem && expandedItems[existingItem.id] && (
             <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
               {property.fields?.map(field => (
                 <div key={field.name}>
@@ -1027,19 +1038,19 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       return (
         <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
           {/* Always show header with plus button */}
-          <div className="flex items-center justify-between">
+          <div
+            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={(e) => handleAddWorkItem(property.id, e)}
+          >
             <div className="flex-1">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
               {property.subtitle && (
                 <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
               )}
             </div>
-            <button
-              onClick={(e) => handleAddWorkItem(property.id, e)}
-              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-            >
+            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
               <Plus className="w-4 h-4" />
-            </button>
+            </div>
           </div>
 
           {/* Type selector when showing */}
@@ -1060,8 +1071,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   <button
                     key={type}
                     onClick={(e) => handleTypeSelect(type, e)}
-                    className="p-3 lg:p-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
+                    className="p-3 lg:p-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center flex items-center justify-center gap-2"
                   >
+                    {type === 'Work' && <Hammer className="w-4 h-4" />}
+                    {type === 'Material' && <Package className="w-4 h-4" />}
                     {t(type)}
                   </button>
                 ))}
@@ -1190,19 +1203,19 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       return (
         <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
           {/* Always show header with plus button */}
-          <div className="flex items-center justify-between">
+          <div
+            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={(e) => handleAddWorkItem(property.id, e)}
+          >
             <div className="flex-1">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
               {property.subtitle && (
                 <p className="text-base text-gray-600 dark:text-gray-400">{property.subtitle}</p>
               )}
             </div>
-            <button
-              onClick={(e) => handleAddWorkItem(property.id, e)}
-              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-            >
+            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
               <Plus className="w-4 h-4" />
-            </button>
+            </div>
           </div>
 
           {/* Type selector when showing */}
@@ -1283,19 +1296,19 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Regular property card for other properties
     return (
       <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2">
-        <div className="flex items-center justify-between">
+        <div
+          className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={(e) => handleAddWorkItem(property.id, e)}
+        >
           <div className="flex-1">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
-          <button
-            onClick={(e) => handleAddWorkItem(property.id, e)}
-            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-          >
+          <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
             <Plus className="w-4 h-4" />
-          </button>
+          </div>
         </div>
 
         {/* Show existing work items for this property */}
@@ -1703,10 +1716,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                   unit = 'ks';
                                   quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
                                 } else if (values.Length && !values.Width && !values.Height) {
-                                  unit = 'bm';
+                                  unit = 'm';
                                   quantity = parseFloat(values.Length || 0);
                                 } else if (values.Circumference) {
-                                  unit = 'bm';
+                                  unit = 'm';
                                   quantity = parseFloat(values.Circumference || 0);
                                 } else if (values.Distance) {
                                   unit = 'km';
@@ -1886,10 +1899,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                   unit = 'ks';
                                   quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
                                 } else if (values.Length && !values.Width && !values.Height) {
-                                  unit = 'bm';
+                                  unit = 'm';
                                   quantity = parseFloat(values.Length || 0);
                                 } else if (values.Circumference) {
-                                  unit = 'bm';
+                                  unit = 'm';
                                   quantity = parseFloat(values.Circumference || 0);
                                 } else if (values.Distance) {
                                   unit = 'km';
@@ -1999,10 +2012,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                   unit = 'ks';
                                   quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
                                 } else if (values.Length && !values.Width && !values.Height) {
-                                  unit = 'bm';
+                                  unit = 'm';
                                   quantity = parseFloat(values.Length || 0);
                                 } else if (values.Circumference) {
-                                  unit = 'bm';
+                                  unit = 'm';
                                   quantity = parseFloat(values.Circumference || 0);
                                 } else if (values.Distance) {
                                   unit = 'km';
@@ -2182,10 +2195,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                   unit = 'ks';
                                   quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
                                 } else if (values.Length && !values.Width && !values.Height) {
-                                  unit = 'bm';
+                                  unit = 'm';
                                   quantity = parseFloat(values.Length || 0);
                                 } else if (values.Circumference) {
-                                  unit = 'bm';
+                                  unit = 'm';
                                   quantity = parseFloat(values.Circumference || 0);
                                 } else if (values.Distance) {
                                   unit = 'km';
