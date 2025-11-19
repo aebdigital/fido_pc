@@ -345,7 +345,7 @@ const Archive = ({ onBack, fromArchive = false, projectId = null }) => {
               
               <div className="flex items-center gap-4 mt-3 sm:mt-0">
                 <div className="text-left sm:text-right">
-                  <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">VAT not included</div>
+                  <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                   <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</div>
                 </div>
                 

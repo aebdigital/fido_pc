@@ -1,5 +1,5 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
-import { X, Plus, Trash2, Check, Menu, Copy, Hammer } from 'lucide-react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import { X, Plus, Trash2, Check, Menu, Copy, Hammer, Circle, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import NumberInput from './NumberInput';
@@ -13,7 +13,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const [showingRentalsSelector, setShowingRentalsSelector] = useState(false);
   const [showingTypeSelector, setShowingTypeSelector] = useState(null);
   const [showingUnitSelector, setShowingUnitSelector] = useState(null);
-  const [isClosing, setIsClosing] = useState(false);
   const [newlyAddedItems, setNewlyAddedItems] = useState(new Set());
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
@@ -22,23 +21,28 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const saveScrollPosition = () => {
     if (scrollContainerRef.current) {
       scrollPositionRef.current = scrollContainerRef.current.scrollTop;
+      shouldRestoreScroll.current = true;
     }
   };
 
-  // Restore scroll position after render
+  // Track if we should restore scroll (only for structural changes, not field updates)
+  const shouldRestoreScroll = useRef(false);
+
+  // Restore scroll position after render (only when needed)
   useLayoutEffect(() => {
-    if (scrollContainerRef.current && scrollPositionRef.current > 0) {
+    if (shouldRestoreScroll.current && scrollContainerRef.current && scrollPositionRef.current > 0) {
       scrollContainerRef.current.scrollTop = scrollPositionRef.current;
+      shouldRestoreScroll.current = false;
     }
   });
 
-  // Clean up newly added items after animation completes
-  useLayoutEffect(() => {
+  // Clean up newly added items immediately after first render to prevent re-animation
+  useEffect(() => {
     if (newlyAddedItems.size > 0) {
-      const timer = setTimeout(() => {
+      // Use requestAnimationFrame to clear after the DOM has been painted with the animation class
+      requestAnimationFrame(() => {
         setNewlyAddedItems(new Set());
-      }, 500); // Remove after animation completes
-      return () => clearTimeout(timer);
+      });
     }
   }, [newlyAddedItems]);
 
@@ -47,12 +51,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const othersIds = ['custom_work', 'commute', 'rentals'];
 
   const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      // Save data before closing
-      onSave(workData);
-      onClose();
-    }, 300);
+    // Save data before closing
+    onSave(workData);
+    onClose();
   };
   const mainProperties = workProperties.filter(prop => !othersIds.includes(prop.id) && !prop.hidden);
   const othersProperties = workProperties.filter(prop => othersIds.includes(prop.id) && !prop.hidden);
@@ -84,7 +85,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     const newItem = {
       id: Date.now(),
       propertyId,
-      name: t(property.name),
+      name: (property.id.startsWith('plasterboarding_') || property.id.startsWith('plastering_') || property.id.startsWith('painting_') || property.id.startsWith('netting_')) ? 
+        `${t(property.name)} ${t(property.subtitle)}` : t(property.name),
       subtitle: t(property.subtitle),
       fields: {},
       complementaryWorks: {},
@@ -103,6 +105,19 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     
     saveScrollPosition();
     
+    // Find the price from the price list for this sanitary type
+    let defaultPrice = 0;
+    if (generalPriceList?.installations) {
+      const sanitaryItem = generalPriceList.installations.find(item => 
+        item.name === 'Sanitary installations' && 
+        item.subtitle && 
+        item.subtitle.toLowerCase() === sanitaryType.toLowerCase()
+      );
+      if (sanitaryItem) {
+        defaultPrice = sanitaryItem.price;
+      }
+    }
+    
     const newItem = {
       id: Date.now(),
       propertyId: 'sanitary_installation',
@@ -110,7 +125,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       subtitle: sanitaryType,
       fields: {
         'Count': 0,
-        'Price': 0
+        'Price': defaultPrice
       },
       complementaryWorks: {},
       selectedType: sanitaryType
@@ -134,7 +149,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     const newItem = {
       id: Date.now(),
       propertyId: property.id,
-      name: property.id === 'custom_work' ? t(property.name) : `${t(property.name)} ${t(type)}`,
+      name: property.id === 'custom_work' ? t(property.name) : 
+             property.id.startsWith('plasterboarding_') ? 
+               (type ? `${t(property.name)} ${t(property.subtitle)}, ${t(type)}` : `${t(property.name)} ${t(property.subtitle)}`) :
+             `${t(property.name)} ${t(type)}`,
       subtitle: property.subtitle,
       fields: {},
       complementaryWorks: {},
@@ -153,6 +171,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     
     // For custom work, show unit selector after type selection and close type selector
     if (property.id === 'custom_work' && property.hasUnitSelector) {
+      console.log('[CUSTOM WORK] Setting unit selector for item:', newItem.id, 'selectedType:', type);
       setShowingTypeSelector(null);
       setShowingUnitSelector(newItem.id);
     } else {
@@ -213,13 +232,28 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const handleUpdateWorkItem = (itemId, field, value, isText = false) => {
     // Handle both text and numeric inputs
     const processedValue = isText ? value || '' : value || 0;
-    
+
     setWorkData(items =>
-      items.map(item =>
-        item.id === itemId
-          ? { ...item, fields: { ...item.fields, [field]: processedValue } }
-          : item
-      )
+      items.map(item => {
+        // Update the target item
+        if (item.id === itemId) {
+          return { ...item, fields: { ...item.fields, [field]: processedValue } };
+        }
+
+        // Also update linked complementary work items if this is a dimension field
+        if (item.linkedToParent === itemId &&
+            (field === 'Width' || field === 'Height' || field === 'Length')) {
+          // Only update if the complementary item has this field
+          const complementaryProperty = workProperties.find(p => p.id === item.propertyId);
+          const hasField = complementaryProperty?.fields?.some(f => f.name === field);
+
+          if (hasField) {
+            return { ...item, fields: { ...item.fields, [field]: processedValue } };
+          }
+        }
+
+        return item;
+      })
     );
   };
 
@@ -228,51 +262,86 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
-    
+
+    const newDoorWindow = {
+      id: Date.now(),
+      width: 0,
+      height: 0
+    };
+
     setWorkData(items =>
-      items.map(item =>
-        item.id === itemId
-          ? {
-              ...item,
-              doorWindowItems: {
-                ...item.doorWindowItems,
-                [type]: [
-                  ...(item.doorWindowItems?.[type] || []),
-                  {
-                    id: Date.now(),
-                    width: 0,
-                    height: 0
-                  }
-                ]
-              }
+      items.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            doorWindowItems: {
+              ...item.doorWindowItems,
+              [type]: [
+                ...(item.doorWindowItems?.[type] || []),
+                newDoorWindow
+              ]
             }
-          : item
-      )
+          };
+        }
+
+        // Also add to linked complementary items
+        if (item.linkedToParent === itemId) {
+          return {
+            ...item,
+            doorWindowItems: {
+              ...item.doorWindowItems,
+              [type]: [
+                ...(item.doorWindowItems?.[type] || []),
+                { ...newDoorWindow }
+              ]
+            }
+          };
+        }
+
+        return item;
+      })
     );
   };
 
   const handleUpdateDoorWindow = (itemId, type, subItemId, field, value) => {
     // NumberInput component already handles validation and returns a numeric value
     const processedValue = value || 0;
-    
+
     setWorkData(items =>
-      items.map(item =>
-        item.id === itemId
-          ? {
-              ...item,
-              doorWindowItems: {
-                ...item.doorWindowItems,
-                [type]: item.doorWindowItems?.[type]?.map(subItem =>
-                  subItem.id === subItemId
-                    ? { ...subItem, [field]: processedValue }
-                    : subItem
-                ) || []
-              }
+      items.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            doorWindowItems: {
+              ...item.doorWindowItems,
+              [type]: item.doorWindowItems?.[type]?.map(subItem =>
+                subItem.id === subItemId
+                  ? { ...subItem, [field]: processedValue }
+                  : subItem
+              ) || []
             }
-          : item
-      )
+          };
+        }
+
+        // Also update linked complementary items
+        if (item.linkedToParent === itemId) {
+          return {
+            ...item,
+            doorWindowItems: {
+              ...item.doorWindowItems,
+              [type]: item.doorWindowItems?.[type]?.map(subItem =>
+                subItem.id === subItemId
+                  ? { ...subItem, [field]: processedValue }
+                  : subItem
+              ) || []
+            }
+          };
+        }
+
+        return item;
+      })
     );
   };
 
@@ -281,18 +350,32 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       e.preventDefault();
       e.stopPropagation();
     }
+
     setWorkData(items =>
-      items.map(item =>
-        item.id === itemId
-          ? {
-              ...item,
-              doorWindowItems: {
-                ...item.doorWindowItems,
-                [type]: item.doorWindowItems?.[type]?.filter(subItem => subItem.id !== subItemId) || []
-              }
+      items.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            doorWindowItems: {
+              ...item.doorWindowItems,
+              [type]: item.doorWindowItems?.[type]?.filter(subItem => subItem.id !== subItemId) || []
             }
-          : item
-      )
+          };
+        }
+
+        // Also remove from linked complementary items
+        if (item.linkedToParent === itemId) {
+          return {
+            ...item,
+            doorWindowItems: {
+              ...item.doorWindowItems,
+              [type]: item.doorWindowItems?.[type]?.filter(subItem => subItem.id !== subItemId) || []
+            }
+          };
+        }
+
+        return item;
+      })
     );
   };
 
@@ -301,48 +384,257 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       e.preventDefault();
       e.stopPropagation();
     }
+
+    const newId = Date.now();
+
     setWorkData(items =>
-      items.map(item =>
-        item.id === itemId
-          ? {
+      items.map(item => {
+        if (item.id === itemId) {
+          const copiedItem = item.doorWindowItems[type].find(subItem => subItem.id === subItemId);
+          return {
+            ...item,
+            doorWindowItems: {
+              ...item.doorWindowItems,
+              [type]: [
+                ...(item.doorWindowItems?.[type] || []),
+                {
+                  ...copiedItem,
+                  id: newId
+                }
+              ]
+            }
+          };
+        }
+
+        // Also copy to linked complementary items
+        if (item.linkedToParent === itemId) {
+          const parentItem = items.find(i => i.id === itemId);
+          const copiedItem = parentItem?.doorWindowItems?.[type]?.find(subItem => subItem.id === subItemId);
+          if (copiedItem) {
+            return {
               ...item,
               doorWindowItems: {
                 ...item.doorWindowItems,
                 [type]: [
                   ...(item.doorWindowItems?.[type] || []),
                   {
-                    ...item.doorWindowItems[type].find(subItem => subItem.id === subItemId),
-                    id: Date.now()
+                    ...copiedItem,
+                    id: newId
                   }
                 ]
               }
-            }
-          : item
-      )
+            };
+          }
+        }
+
+        return item;
+      })
     );
   };
 
-  const handleToggleComplementaryWork = (itemId, workName, e) => {
+  const handleToggleAllComplementaryWorks = (itemId, e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
-    
-    setWorkData(items =>
-      items.map(item =>
-        item.id === itemId
-          ? { 
-              ...item, 
-              complementaryWorks: { 
-                ...item.complementaryWorks, 
-                [workName]: !item.complementaryWorks[workName] 
-              } 
-            }
-          : item
-      )
-    );
+
+    const parentItem = workData.find(item => item.id === itemId);
+    if (!parentItem) return;
+
+    const parentProperty = workProperties.find(p => p.id === parentItem.propertyId);
+    if (!parentProperty?.complementaryWorks) return;
+
+    // Get the minimum count across all complementary works
+    const counts = parentProperty.complementaryWorks.map((work, index) => {
+      const uniqueKey = `${work}_${index}`;
+      const count = workData.filter(item =>
+        item.linkedToParent === itemId && item.linkedWorkKey === uniqueKey
+      ).length;
+      return count;
+    });
+
+    const minCount = Math.min(...counts);
+
+    // If all are at 2 or higher, remove all and reset to 0
+    if (minCount >= 2) {
+      setWorkData(items =>
+        items.filter(item => item.linkedToParent !== itemId).map(item =>
+          item.id === itemId
+            ? {
+                ...item,
+                complementaryWorks: Object.fromEntries(
+                  parentProperty.complementaryWorks.map((work, index) => [
+                    `${work}_${index}`,
+                    0
+                  ])
+                )
+              }
+            : item
+        )
+      );
+      return;
+    }
+
+    // Otherwise, increment all to the next level (all go to minCount + 1)
+    parentProperty.complementaryWorks.forEach((work, index) => {
+      const uniqueKey = `${work}_${index}`;
+      const currentCount = workData.filter(item =>
+        item.linkedToParent === itemId && item.linkedWorkKey === uniqueKey
+      ).length;
+
+      // If this work is at the minimum count, increment it
+      if (currentCount === minCount) {
+        handleToggleComplementaryWork(itemId, uniqueKey, null);
+      }
+    });
+  };
+
+  const handleToggleComplementaryWork = (itemId, workKey, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    saveScrollPosition();
+
+    // Find the parent item
+    const parentItem = workData.find(item => item.id === itemId);
+    if (!parentItem) return;
+
+    // Extract work name from key (e.g., "Plastering_0" -> "Plastering")
+    const workName = workKey.replace(/_\d+$/, '');
+
+    // Count current instances
+    const currentCount = workData.filter(item =>
+      item.linkedToParent === itemId && item.linkedWorkKey === workKey
+    ).length;
+
+    console.log('[COMPLEMENTARY] Toggle clicked:', { itemId, workKey, workName, currentCount });
+
+    // If count >= 2, remove all and reset to 0
+    if (currentCount >= 2) {
+      console.log('[COMPLEMENTARY] Removing all instances');
+      setWorkData(items =>
+        items.filter(item =>
+          !(item.linkedToParent === itemId && item.linkedWorkKey === workKey)
+        ).map(item =>
+          item.id === itemId
+            ? {
+                ...item,
+                complementaryWorks: {
+                  ...item.complementaryWorks,
+                  [workKey]: 0
+                }
+              }
+            : item
+        )
+      );
+      return;
+    }
+
+    // Otherwise, create a new item and increment count
+    {
+      // Checking: Create a new complementary work item
+      const parentProperty = workProperties.find(p => p.id === parentItem.propertyId);
+
+      // Find matching complementary work property
+      let complementaryProperty = null;
+
+      // Determine which variant to use based on parent's field structure
+      const hasHeightField = parentProperty?.fields?.some(f => f.name === 'Height');
+      const hasLengthField = parentProperty?.fields?.some(f => f.name === 'Length');
+
+      if (workName === 'Plastering') {
+        complementaryProperty = workProperties.find(p =>
+          hasHeightField ? p.id === 'plastering_wall' : p.id === 'plastering_ceiling'
+        );
+      } else if (workName === 'Painting') {
+        complementaryProperty = workProperties.find(p =>
+          hasHeightField ? p.id === 'painting_wall' : p.id === 'painting_ceiling'
+        );
+      } else if (workName === 'Netting') {
+        complementaryProperty = workProperties.find(p =>
+          hasHeightField ? p.id === 'netting_wall' : p.id === 'netting_ceiling'
+        );
+      } else if (workName === 'Penetration coating') {
+        complementaryProperty = workProperties.find(p => p.id === 'penetration_coating');
+      } else if (workName === 'Tiling under 60cm') {
+        complementaryProperty = workProperties.find(p => p.id === 'tiling_under_60');
+      }
+
+      if (!complementaryProperty) {
+        console.warn('[COMPLEMENTARY] Could not find property for:', workName);
+        return;
+      }
+
+      console.log('[COMPLEMENTARY] Found property:', complementaryProperty);
+
+      // Create new complementary work item with copied dimensions
+      const newItem = {
+        id: Date.now(),
+        propertyId: complementaryProperty.id,
+        name: (complementaryProperty.id.startsWith('plasterboarding_') ||
+               complementaryProperty.id.startsWith('plastering_') ||
+               complementaryProperty.id.startsWith('painting_') ||
+               complementaryProperty.id.startsWith('netting_')) ?
+          `${t(complementaryProperty.name)} ${t(complementaryProperty.subtitle)}` :
+          t(complementaryProperty.name),
+        subtitle: t(complementaryProperty.subtitle),
+        fields: {},
+        complementaryWorks: {},
+        selectedType: complementaryProperty.types ? complementaryProperty.types[0] : null,
+        doorWindowItems: { doors: [], windows: [] },
+        linkedToParent: itemId, // Track which item this is linked to
+        linkedWorkKey: workKey // Track the specific work key
+      };
+
+      // Copy dimensions from parent to complementary item
+      if (parentItem.fields) {
+        // Copy Width
+        if (parentItem.fields.Width !== undefined) {
+          newItem.fields.Width = parentItem.fields.Width;
+        } else if (parentItem.fields.Šírka !== undefined) {
+          newItem.fields.Width = parentItem.fields.Šírka;
+        }
+
+        // Copy Height or Length depending on complementary work type
+        if (hasHeightField && (parentItem.fields.Height !== undefined || parentItem.fields.Výška !== undefined)) {
+          newItem.fields.Height = parentItem.fields.Height || parentItem.fields.Výška;
+        } else if (hasLengthField && (parentItem.fields.Length !== undefined || parentItem.fields.Dĺžka !== undefined)) {
+          newItem.fields.Length = parentItem.fields.Length || parentItem.fields.Dĺžka;
+        }
+
+        // Copy doors and windows if present
+        if (parentItem.doorWindowItems) {
+          newItem.doorWindowItems = {
+            doors: [...(parentItem.doorWindowItems.doors || [])],
+            windows: [...(parentItem.doorWindowItems.windows || [])]
+          };
+        }
+      }
+
+      console.log('[COMPLEMENTARY] Creating new item:', newItem);
+
+      // Update state: increment count and add new item
+      const newCount = currentCount + 1;
+      setWorkData(items => [
+        ...items.map(item =>
+          item.id === itemId
+            ? {
+                ...item,
+                complementaryWorks: {
+                  ...item.complementaryWorks,
+                  [workKey]: newCount
+                }
+              }
+            : item
+        ),
+        newItem
+      ]);
+      setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
+    }
   };
 
   const handleRemoveWorkItem = (itemId, e) => {
@@ -350,10 +642,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
-    
-    setWorkData(items => items.filter(item => item.id !== itemId));
+
+    // When removing an item, also remove all complementary work items linked to it
+    setWorkData(items => items.filter(item =>
+      item.id !== itemId && item.linkedToParent !== itemId
+    ));
   };
 
   const toggleExpanded = (itemId, e) => {
@@ -460,18 +755,19 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     let unitDisplay = field.unit;
     if (item.propertyId === 'custom_work' && field.name === 'Price' && item.selectedUnit) {
       unitDisplay = `€/${item.selectedUnit}`;
+      console.log('[CUSTOM WORK UNIT]', { selectedUnit: item.selectedUnit, unitDisplay });
     }
 
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(field.name)}</span>
-        <div className="flex items-center gap-2 justify-end w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400">{t(field.name)}</span>
+        <div className="flex items-center gap-1 flex-shrink-0">
           {isTextType ? (
             <input
               type="text"
               value={value || ''}
               onChange={(e) => handleUpdateWorkItem(item.id, field.name, e.target.value, true)}
-              className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
+              className="w-32 px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
               placeholder={t(field.name)}
             />
           ) : (
@@ -482,7 +778,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               min={0}
             />
           )}
-          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-16 flex-shrink-0">{unitDisplay}</span>
+          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">{unitDisplay}</span>
         </div>
       </div>
     );
@@ -671,30 +967,45 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
                     <button
                       onClick={(e) => toggleExpanded(existingItem.id, e)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                     >
                       {expandedItems[existingItem.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
                     </button>
                   </div>
-                  
+
                   {expandedItems[existingItem.id] && (
                     <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
+                      <div className="flex justify-end">
+                        <button
+                          onClick={(e) => handleToggleAllComplementaryWorks(existingItem.id, e)}
+                          className="w-8 h-8 lg:w-7 lg:h-7 rounded-full bg-gray-400 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 flex items-center justify-center transition-colors"
+                          title="Toggle all complementary works"
+                        >
+                          <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white" />
+                        </button>
+                      </div>
                       {property.complementaryWorks.map((work, index) => {
                         const uniqueKey = `${work}_${index}`;
+                        // Count how many instances exist
+                        const instanceCount = workData.filter(item =>
+                          item.linkedToParent === existingItem.id &&
+                          item.linkedWorkKey === uniqueKey
+                        ).length;
+
                         return (
                           <div key={uniqueKey} className="flex items-center justify-between gap-3">
                             <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                             <button
                               onClick={(e) => handleToggleComplementaryWork(existingItem.id, uniqueKey, e)}
                               className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                                existingItem.complementaryWorks[uniqueKey]
+                                instanceCount > 0
                                   ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
                                   : 'border-gray-300 dark:border-gray-600'
                               }`}
                             >
-                              {existingItem.complementaryWorks[uniqueKey] && (
-                                <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white dark:text-gray-900" />
-                              )}
+                              {instanceCount > 0 ? (
+                                <span className="text-xs font-bold text-white dark:text-gray-900">{instanceCount}</span>
+                              ) : null}
                             </button>
                           </div>
                         );
@@ -763,7 +1074,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? 'animate-slide-in-top' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
-                  {item.name}
+                  {t(item.name)}
                 </span>
                 <button
                   onClick={(e) => handleRemoveWorkItem(item.id, e)}
@@ -821,30 +1132,45 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
                     <button
                       onClick={(e) => toggleExpanded(item.id, e)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                     >
                       {expandedItems[item.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
                     </button>
                   </div>
-                  
+
                   {expandedItems[item.id] && (
                     <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
+                      <div className="flex justify-end">
+                        <button
+                          onClick={(e) => handleToggleAllComplementaryWorks(item.id, e)}
+                          className="w-8 h-8 lg:w-7 lg:h-7 rounded-full bg-gray-400 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 flex items-center justify-center transition-colors"
+                          title="Toggle all complementary works"
+                        >
+                          <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white" />
+                        </button>
+                      </div>
                       {property.complementaryWorks.map((work, index) => {
                         const uniqueKey = `${work}_${index}`;
+                        // Count how many instances exist
+                        const instanceCount = workData.filter(itm =>
+                          itm.linkedToParent === item.id &&
+                          itm.linkedWorkKey === uniqueKey
+                        ).length;
+
                         return (
                           <div key={uniqueKey} className="flex items-center justify-between gap-3">
                             <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                             <button
                               onClick={(e) => handleToggleComplementaryWork(item.id, uniqueKey, e)}
                               className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                                item.complementaryWorks[uniqueKey]
+                                instanceCount > 0
                                   ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
                                   : 'border-gray-300 dark:border-gray-600'
                               }`}
                             >
-                              {item.complementaryWorks[uniqueKey] && (
-                                <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white dark:text-gray-900" />
-                              )}
+                              {instanceCount > 0 ? (
+                                <span className="text-xs font-bold text-white dark:text-gray-900">{instanceCount}</span>
+                              ) : null}
                             </button>
                           </div>
                         );
@@ -1097,7 +1423,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             )}
 
             {/* Property fields */}
-            {property.fields && (
+            {property.fields && (property.id !== 'custom_work' || item.selectedUnit) && (
               <div className="space-y-3 lg:space-y-2">
                 {property.fields.map(field => (
                   <div key={field.name}>
@@ -1139,30 +1465,45 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
                   <button
                     onClick={(e) => toggleExpanded(item.id, e)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   >
                     {expandedItems[item.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
                   </button>
                 </div>
-                
+
                 {expandedItems[item.id] && (
-                  <div className="space-y-3 lg:space-y-2">
+                  <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
+                    <div className="flex justify-end">
+                      <button
+                        onClick={(e) => handleToggleAllComplementaryWorks(item.id, e)}
+                        className="w-8 h-8 lg:w-7 lg:h-7 rounded-full bg-gray-400 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 flex items-center justify-center transition-colors"
+                        title="Toggle all complementary works"
+                      >
+                        <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white" />
+                      </button>
+                    </div>
                     {property.complementaryWorks.map((work, index) => {
                       const uniqueKey = `${work}_${index}`;
+                      // Count how many instances exist
+                      const instanceCount = workData.filter(itm =>
+                        itm.linkedToParent === item.id &&
+                        itm.linkedWorkKey === uniqueKey
+                      ).length;
+
                       return (
                         <div key={uniqueKey} className="flex items-center justify-between gap-3">
                           <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                           <button
                             onClick={(e) => handleToggleComplementaryWork(item.id, uniqueKey, e)}
                             className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                              item.complementaryWorks[uniqueKey]
+                              instanceCount > 0
                                 ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
                                 : 'border-gray-300 dark:border-gray-600'
                             }`}
                           >
-                            {item.complementaryWorks[uniqueKey] && (
-                              <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white dark:text-gray-900" />
-                            )}
+                            {instanceCount > 0 ? (
+                              <span className="text-xs font-bold text-white dark:text-gray-900">{instanceCount}</span>
+                            ) : null}
                           </button>
                         </div>
                       );
@@ -1205,16 +1546,16 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         }
       `}</style>
       <div 
-        className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 animate-fade-in"
         onClick={handleClose}
       >
         <div 
-          className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[95vh] lg:h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
+          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[95vh] lg:h-[90vh] flex flex-col animate-slide-in"
           onClick={(e) => e.stopPropagation()}
         >
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{room.name}</h2>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t(room.name) !== room.name ? t(room.name) : room.name}</h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -1327,14 +1668,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               return (
                 <div className="lg:hidden mt-6">
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Celková cenová ponuka')}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h3>
                     
                     {workData.length > 0 ? (
                       <div className="space-y-4">
                         {/* Work Section */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="font-semibold text-gray-900 dark:text-white">{t('Práca')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Work')}</span>
                             <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.workTotal)}</span>
                           </div>
                           {calculation.items.length > 0 ? (
@@ -1344,10 +1685,20 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                 let unit = 'm²';
                                 let quantity = item.calculation.quantity;
                                 const values = item.fields;
-                                
-                                if (values.Duration || values.Trvanie) {
+
+                                // Check for scaffolding rental (has "- prenájom" in subtitle)
+                                if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
+                                  quantity = parseFloat(values['Rental duration'] || 0);
+                                  unit = quantity > 1 ? 'days' : 'day';
+                                } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
+                                  unit = 'km';
+                                  const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
+                                  const days = parseFloat(values.Duration || values.Trvanie || 0);
+                                  quantity = distance * (days > 0 ? days : 1);
+                                  console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
+                                } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
                                   unit = 'h';
-                                  quantity = parseFloat(values.Duration || values.Trvanie || 0);
+                                  quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
                                 } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
                                   unit = 'ks';
                                   quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
@@ -1362,7 +1713,31 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                   quantity = parseFloat(values.Distance || 0);
                                 }
                                 
-                                const workDescription = `${item.name}${item.selectedType ? `, ${item.selectedType}` : ''} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${unit}`;
+                                // For work types with subtitles (plasterboarding, plastering, painting, netting), use the constructed name directly, otherwise translate
+                                const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ? 
+                                  item.name : t(item.name);
+                                
+                                // Special handling for scaffolding items
+                                let workDescription;
+                                if ((item.subtitle && (item.subtitle.toLowerCase().includes('scaffolding') || 
+                                    item.subtitle.toLowerCase().includes('lešenie'))) ||
+                                    (item.name && item.name.toLowerCase().includes('lešenie'))) {
+                                  if (item.subtitle.includes('- prenájom')) {
+                                    // For rental component, show days
+                                    const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
+                                    const duration = parseFloat(values['Rental duration'] || 0);
+                                    workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
+                                  } else if (item.subtitle.includes('- montáž a demontáž')) {
+                                    // For assembly component, show area
+                                    const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
+                                    workDescription = `${t(item.subtitle)} - ${area.toFixed(1)}${t('m²')}`;
+                                  } else {
+                                    workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                                  }
+                                } else {
+                                  workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                                }
+                                
                                 return (
                                   <div key={`${item.id}-work`} className="flex justify-between items-center text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
@@ -1374,7 +1749,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                             })
                           ) : (
                             <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                              {t('Žiadne práce neboli pridané')}
+                              {t('No work items added')}
+                            </div>
+                          )}
+                          {/* Add auxiliary work cost at bottom of work section */}
+                          {calculation.auxiliaryWorkCost > 0 && (
+                            <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <span className="text-gray-600 dark:text-gray-400">{t('Auxiliary and finishing work')} (65%)</span>
+                              <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryWorkCost)}</span>
                             </div>
                           )}
                         </div>
@@ -1382,22 +1764,151 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                         {/* Material Section */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="font-semibold text-gray-900 dark:text-white">{t('Materiál')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Material')}</span>
                             <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.materialTotal)}</span>
                           </div>
                           {calculation.items.some(item => item.calculation?.materialCost > 0) ? (
-                            calculation.items.map(item => {
-                              if (item.calculation?.materialCost > 0 && item.calculation?.material) {
-                                const materialDescription = `${item.calculation.material.name}${item.calculation.material.subtitle ? `, ${item.calculation.material.subtitle}` : ''}`;
-                                const quantity = item.calculation.material.capacity 
-                                  ? Math.ceil(item.calculation.quantity / item.calculation.material.capacity.value)
-                                  : item.calculation.quantity;
-                                const unit = item.calculation.material.capacity?.unit || item.calculation.material.unit?.replace('€/', '');
+                            (() => {
+                              const materialGroups = {};
+                              
+                              // Group materials by name and subtitle
+                              calculation.items.forEach(item => {
+                                if (item.calculation?.materialCost > 0 && item.calculation?.material) {
+                                  const material = item.calculation.material;
+                                  const materialKey = `${material.name}-${material.subtitle || 'no-subtitle'}`;
+                                  
+                                  if (!materialGroups[materialKey]) {
+                                    materialGroups[materialKey] = {
+                                      material,
+                                      totalQuantity: 0,
+                                      totalCost: 0,
+                                      items: []
+                                    };
+                                  }
+                                  
+                                  const quantity = material.capacity 
+                                    ? Math.ceil(item.calculation.quantity / material.capacity.value)
+                                    : item.calculation.quantity;
+                                  const cost = material.capacity
+                                    ? quantity * material.price
+                                    : item.calculation.quantity * material.price;
+                                  
+                                  materialGroups[materialKey].totalQuantity += quantity;
+                                  materialGroups[materialKey].totalCost += cost;
+                                  materialGroups[materialKey].items.push(item);
+                                }
+                                
+                                // Handle additional materials (like adhesive)
+                                if (item.calculation?.additionalMaterial) {
+                                  const additionalMaterial = item.calculation.additionalMaterial;
+                                  const additionalKey = `${additionalMaterial.name}-${additionalMaterial.subtitle || 'no-subtitle'}`;
+
+                                  if (!materialGroups[additionalKey]) {
+                                    materialGroups[additionalKey] = {
+                                      material: additionalMaterial,
+                                      totalQuantity: 0,
+                                      totalCost: 0,
+                                      items: []
+                                    };
+                                  }
+
+                                  // Use additionalMaterialQuantity if available (for aggregated calculations like tiling/paving adhesive)
+                                  const quantityToUse = item.calculation.additionalMaterialQuantity || item.calculation.quantity;
+                                  const additionalQuantity = additionalMaterial.capacity
+                                    ? Math.ceil(quantityToUse / additionalMaterial.capacity.value)
+                                    : quantityToUse;
+                                  const additionalCost = additionalMaterial.capacity
+                                    ? additionalQuantity * additionalMaterial.price
+                                    : quantityToUse * additionalMaterial.price;
+
+                                  materialGroups[additionalKey].totalQuantity += additionalQuantity;
+                                  materialGroups[additionalKey].totalCost += additionalCost;
+                                  materialGroups[additionalKey].items.push(item);
+                                }
+                              });
+                              
+                              // Render grouped materials
+                              return Object.values(materialGroups).map((group, index) => {
+                                const materialDescription = `${t(group.material.name)}${group.material.subtitle ? `, ${t(group.material.subtitle)}` : ''}`;
+                                const unit = group.material.capacity 
+                                  ? (group.material.unit.includes('pc') ? 'pc' : 'pkg')
+                                  : group.material.unit?.replace('€/', '');
                                 
                                 return (
-                                  <div key={`${item.id}-material`} className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-600 dark:text-gray-400">{materialDescription} - {quantity.toFixed(0)}{unit}</span>
-                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.materialCost)}</span>
+                                  <div key={`material-group-${index}`} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{materialDescription} - {group.totalQuantity.toFixed(0)}{t(unit)}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(group.totalCost)}</span>
+                                  </div>
+                                );
+                              });
+                            })()
+                          ) : (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                              {t('No materials identified')}
+                            </div>
+                          )}
+                          {/* Add auxiliary material cost at bottom of material section */}
+                          {calculation.auxiliaryMaterialCost > 0 && (
+                            <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <span className="text-gray-600 dark:text-gray-400">{t('Auxiliary and connecting material')} (10%)</span>
+                              <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryMaterialCost)}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Others Section */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Others')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.othersTotal || 0)}</span>
+                          </div>
+                          {calculation.othersItems && calculation.othersItems.length > 0 ? (
+                            calculation.othersItems.map(item => {
+                              if (item.calculation?.workCost > 0) {
+                                // Determine the correct unit based on work type
+                                let unit = 'm²';
+                                let quantity = item.calculation.quantity;
+                                const values = item.fields;
+
+                                // Check for scaffolding rental (has "- prenájom" in subtitle)
+                                if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
+                                  quantity = parseFloat(values['Rental duration'] || 0);
+                                  unit = quantity > 1 ? 'days' : 'day';
+                                } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
+                                  unit = 'km';
+                                  const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
+                                  const days = parseFloat(values.Duration || values.Trvanie || 0);
+                                  quantity = distance * (days > 0 ? days : 1);
+                                  console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
+                                } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
+                                  unit = 'h';
+                                  quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
+                                } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
+                                  unit = 'ks';
+                                  quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+                                } else if (values.Length && !values.Width && !values.Height) {
+                                  unit = 'bm';
+                                  quantity = parseFloat(values.Length || 0);
+                                } else if (values.Circumference) {
+                                  unit = 'bm';
+                                  quantity = parseFloat(values.Circumference || 0);
+                                } else if (values.Distance) {
+                                  unit = 'km';
+                                  quantity = parseFloat(values.Distance || 0);
+                                }
+                                
+                                const workName = t(item.name);
+                                // Format quantity: for days show as integer with space, otherwise use existing format
+                                const translatedUnit = t(unit);
+                                const formattedQuantity = (unit === 'day' || unit === 'days')
+                                  ? `${Math.round(quantity)} ${translatedUnit}`
+                                  : `${quantity.toFixed(quantity < 10 ? 1 : 0)}${translatedUnit}`;
+                                const workDescription = `${workName} - ${formattedQuantity}`;
+
+                                return (
+                                  <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.workCost)}</span>
                                   </div>
                                 );
                               }
@@ -1405,7 +1916,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                             })
                           ) : (
                             <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                              {t('Žiadne materiály neboli identifikované')}
+                              {t('No other items added')}
                             </div>
                           )}
                         </div>
@@ -1413,15 +1924,15 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                         {/* Totals */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-600 dark:text-gray-400">{t('bez DPH')}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('without VAT')}</span>
                             <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.total)}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-600 dark:text-gray-400">{t('DPH')}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('VAT')}</span>
                             <span className="text-gray-600 dark:text-gray-400">{formatPrice(vatAmount)}</span>
                           </div>
                           <div className="flex justify-between items-center text-lg font-bold">
-                            <span className="text-gray-900 dark:text-white">{t('Celková cena')}</span>
+                            <span className="text-gray-900 dark:text-white">{t('Total price')}</span>
                             <span className="text-gray-900 dark:text-white">{formatPrice(totalWithVat)}</span>
                           </div>
                         </div>
@@ -1429,8 +1940,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     ) : (
                       <div className="bg-white dark:bg-gray-900 rounded-xl p-6 text-center">
                         <div className="text-gray-500 dark:text-gray-400">
-                          <p className="text-base font-medium">{t('Žiadne práce')}</p>
-                          <p className="text-sm mt-1">{t('Pridajte práce pre zobrazenie cenového súhrnu')}</p>
+                          <p className="text-base font-medium">{t('No work items')}</p>
+                          <p className="text-sm mt-1">{t('Add work items to see price summary')}</p>
                         </div>
                       </div>
                     )}
@@ -1452,7 +1963,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               return (
                 <div className="hidden lg:flex lg:w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-col h-full">
                   <div className="p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Celková cenová ponuka')}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h3>
                   </div>
                   
                   <div className="lg:flex-1 lg:overflow-y-auto p-4 lg:p-6 space-y-4 custom-scrollbar">
@@ -1461,7 +1972,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                         {/* Work Section */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="font-semibold text-gray-900 dark:text-white">{t('Práca')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Work')}</span>
                             <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.workTotal)}</span>
                           </div>
                           {calculation.items.length > 0 ? (
@@ -1471,10 +1982,20 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                 let unit = 'm²';
                                 let quantity = item.calculation.quantity;
                                 const values = item.fields;
-                                
-                                if (values.Duration || values.Trvanie) {
+
+                                // Check for scaffolding rental (has "- prenájom" in subtitle)
+                                if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
+                                  quantity = parseFloat(values['Rental duration'] || 0);
+                                  unit = quantity > 1 ? 'days' : 'day';
+                                } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
+                                  unit = 'km';
+                                  const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
+                                  const days = parseFloat(values.Duration || values.Trvanie || 0);
+                                  quantity = distance * (days > 0 ? days : 1);
+                                  console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
+                                } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
                                   unit = 'h';
-                                  quantity = parseFloat(values.Duration || values.Trvanie || 0);
+                                  quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
                                 } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
                                   unit = 'ks';
                                   quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
@@ -1489,7 +2010,31 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                   quantity = parseFloat(values.Distance || 0);
                                 }
                                 
-                                const workDescription = `${item.name}${item.selectedType ? `, ${item.selectedType}` : ''} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${unit}`;
+                                // For work types with subtitles (plasterboarding, plastering, painting, netting), use the constructed name directly, otherwise translate
+                                const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ? 
+                                  item.name : t(item.name);
+                                
+                                // Special handling for scaffolding items
+                                let workDescription;
+                                if ((item.subtitle && (item.subtitle.toLowerCase().includes('scaffolding') || 
+                                    item.subtitle.toLowerCase().includes('lešenie'))) ||
+                                    (item.name && item.name.toLowerCase().includes('lešenie'))) {
+                                  if (item.subtitle.includes('- prenájom')) {
+                                    // For rental component, show days
+                                    const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
+                                    const duration = parseFloat(values['Rental duration'] || 0);
+                                    workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
+                                  } else if (item.subtitle.includes('- montáž a demontáž')) {
+                                    // For assembly component, show area
+                                    const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
+                                    workDescription = `${t(item.subtitle)} - ${area.toFixed(1)}${t('m²')}`;
+                                  } else {
+                                    workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                                  }
+                                } else {
+                                  workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                                }
+                                
                                 return (
                                   <div key={`${item.id}-work`} className="flex justify-between items-center text-sm">
                                     <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
@@ -1501,7 +2046,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                             })
                           ) : (
                             <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                              {t('Žiadne práce neboli pridané')}
+                              {t('No work items added')}
+                            </div>
+                          )}
+                          {/* Add auxiliary work cost at bottom of work section */}
+                          {calculation.auxiliaryWorkCost > 0 && (
+                            <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <span className="text-gray-600 dark:text-gray-400">{t('Auxiliary and finishing work')} (65%)</span>
+                              <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryWorkCost)}</span>
                             </div>
                           )}
                         </div>
@@ -1509,22 +2061,151 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                         {/* Material Section */}
                         <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="font-semibold text-gray-900 dark:text-white">{t('Materiál')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Material')}</span>
                             <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.materialTotal)}</span>
                           </div>
                           {calculation.items.some(item => item.calculation?.materialCost > 0) ? (
-                            calculation.items.map(item => {
-                              if (item.calculation?.materialCost > 0 && item.calculation?.material) {
-                                const materialDescription = `${item.calculation.material.name}${item.calculation.material.subtitle ? `, ${item.calculation.material.subtitle}` : ''}`;
-                                const quantity = item.calculation.material.capacity 
-                                  ? Math.ceil(item.calculation.quantity / item.calculation.material.capacity.value)
-                                  : item.calculation.quantity;
-                                const unit = item.calculation.material.capacity?.unit || item.calculation.material.unit?.replace('€/', '');
+                            (() => {
+                              const materialGroups = {};
+                              
+                              // Group materials by name and subtitle
+                              calculation.items.forEach(item => {
+                                if (item.calculation?.materialCost > 0 && item.calculation?.material) {
+                                  const material = item.calculation.material;
+                                  const materialKey = `${material.name}-${material.subtitle || 'no-subtitle'}`;
+                                  
+                                  if (!materialGroups[materialKey]) {
+                                    materialGroups[materialKey] = {
+                                      material,
+                                      totalQuantity: 0,
+                                      totalCost: 0,
+                                      items: []
+                                    };
+                                  }
+                                  
+                                  const quantity = material.capacity 
+                                    ? Math.ceil(item.calculation.quantity / material.capacity.value)
+                                    : item.calculation.quantity;
+                                  const cost = material.capacity
+                                    ? quantity * material.price
+                                    : item.calculation.quantity * material.price;
+                                  
+                                  materialGroups[materialKey].totalQuantity += quantity;
+                                  materialGroups[materialKey].totalCost += cost;
+                                  materialGroups[materialKey].items.push(item);
+                                }
+                                
+                                // Handle additional materials (like adhesive)
+                                if (item.calculation?.additionalMaterial) {
+                                  const additionalMaterial = item.calculation.additionalMaterial;
+                                  const additionalKey = `${additionalMaterial.name}-${additionalMaterial.subtitle || 'no-subtitle'}`;
+
+                                  if (!materialGroups[additionalKey]) {
+                                    materialGroups[additionalKey] = {
+                                      material: additionalMaterial,
+                                      totalQuantity: 0,
+                                      totalCost: 0,
+                                      items: []
+                                    };
+                                  }
+
+                                  // Use additionalMaterialQuantity if available (for aggregated calculations like tiling/paving adhesive)
+                                  const quantityToUse = item.calculation.additionalMaterialQuantity || item.calculation.quantity;
+                                  const additionalQuantity = additionalMaterial.capacity
+                                    ? Math.ceil(quantityToUse / additionalMaterial.capacity.value)
+                                    : quantityToUse;
+                                  const additionalCost = additionalMaterial.capacity
+                                    ? additionalQuantity * additionalMaterial.price
+                                    : quantityToUse * additionalMaterial.price;
+
+                                  materialGroups[additionalKey].totalQuantity += additionalQuantity;
+                                  materialGroups[additionalKey].totalCost += additionalCost;
+                                  materialGroups[additionalKey].items.push(item);
+                                }
+                              });
+                              
+                              // Render grouped materials
+                              return Object.values(materialGroups).map((group, index) => {
+                                const materialDescription = `${t(group.material.name)}${group.material.subtitle ? `, ${t(group.material.subtitle)}` : ''}`;
+                                const unit = group.material.capacity 
+                                  ? (group.material.unit.includes('pc') ? 'pc' : 'pkg')
+                                  : group.material.unit?.replace('€/', '');
                                 
                                 return (
-                                  <div key={`${item.id}-material`} className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-600 dark:text-gray-400">{materialDescription} - {quantity.toFixed(0)}{unit}</span>
-                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.materialCost)}</span>
+                                  <div key={`material-group-${index}`} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{materialDescription} - {group.totalQuantity.toFixed(0)}{t(unit)}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(group.totalCost)}</span>
+                                  </div>
+                                );
+                              });
+                            })()
+                          ) : (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                              {t('No materials identified')}
+                            </div>
+                          )}
+                          {/* Add auxiliary material cost at bottom of material section */}
+                          {calculation.auxiliaryMaterialCost > 0 && (
+                            <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <span className="text-gray-600 dark:text-gray-400">{t('Auxiliary and connecting material')} (10%)</span>
+                              <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryMaterialCost)}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Others Section */}
+                        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-900 dark:text-white">{t('Others')}</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.othersTotal || 0)}</span>
+                          </div>
+                          {calculation.othersItems && calculation.othersItems.length > 0 ? (
+                            calculation.othersItems.map(item => {
+                              if (item.calculation?.workCost > 0) {
+                                // Determine the correct unit based on work type
+                                let unit = 'm²';
+                                let quantity = item.calculation.quantity;
+                                const values = item.fields;
+
+                                // Check for scaffolding rental (has "- prenájom" in subtitle)
+                                if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
+                                  quantity = parseFloat(values['Rental duration'] || 0);
+                                  unit = quantity > 1 ? 'days' : 'day';
+                                } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
+                                  unit = 'km';
+                                  const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
+                                  const days = parseFloat(values.Duration || values.Trvanie || 0);
+                                  quantity = distance * (days > 0 ? days : 1);
+                                  console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
+                                } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
+                                  unit = 'h';
+                                  quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
+                                } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
+                                  unit = 'ks';
+                                  quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+                                } else if (values.Length && !values.Width && !values.Height) {
+                                  unit = 'bm';
+                                  quantity = parseFloat(values.Length || 0);
+                                } else if (values.Circumference) {
+                                  unit = 'bm';
+                                  quantity = parseFloat(values.Circumference || 0);
+                                } else if (values.Distance) {
+                                  unit = 'km';
+                                  quantity = parseFloat(values.Distance || 0);
+                                }
+                                
+                                const workName = t(item.name);
+                                // Format quantity: for days show as integer with space, otherwise use existing format
+                                const translatedUnit = t(unit);
+                                const formattedQuantity = (unit === 'day' || unit === 'days')
+                                  ? `${Math.round(quantity)} ${translatedUnit}`
+                                  : `${quantity.toFixed(quantity < 10 ? 1 : 0)}${translatedUnit}`;
+                                const workDescription = `${workName} - ${formattedQuantity}`;
+
+                                return (
+                                  <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.workCost)}</span>
                                   </div>
                                 );
                               }
@@ -1532,16 +2213,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                             })
                           ) : (
                             <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                              {t('Žiadne materiály neboli identifikované')}
+                              {t('No other items added')}
                             </div>
                           )}
                         </div>
+
                       </>
                     ) : (
                       <div className="bg-white dark:bg-gray-900 rounded-xl p-6 text-center">
                         <div className="text-gray-500 dark:text-gray-400">
-                          <p className="text-base font-medium">{t('Žiadne práce')}</p>
-                          <p className="text-sm mt-1">{t('Pridajte práce pre zobrazenie cenového súhrnu')}</p>
+                          <p className="text-base font-medium">{t('No work items')}</p>
+                          <p className="text-sm mt-1">{t('Add work items to see price summary')}</p>
                         </div>
                       </div>
                     )}
@@ -1550,15 +2232,15 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   {/* Totals - Fixed at bottom */}
                   <div className="p-4 lg:p-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 space-y-2 flex-shrink-0">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600 dark:text-gray-400">{t('bez DPH')}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('without VAT')}</span>
                       <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.total)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600 dark:text-gray-400">{t('DPH')}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t('VAT')}</span>
                       <span className="text-gray-600 dark:text-gray-400">{formatPrice(vatAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center text-lg font-bold">
-                      <span className="text-gray-900 dark:text-white">{t('Celková cena')}</span>
+                      <span className="text-gray-900 dark:text-white">{t('Total price')}</span>
                       <span className="text-gray-900 dark:text-white">{formatPrice(totalWithVat)}</span>
                     </div>
                   </div>

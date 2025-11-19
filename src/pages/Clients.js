@@ -5,7 +5,7 @@ import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 
 // Helper component for editable fields - moved outside to prevent recreation on renders
-const EditableField = React.memo(({ label, field, value, type = "text", isEditing, editForm, onInputChange }) => {
+const EditableField = React.memo(({ label, field, value, type = "text", isEditing, editForm, onInputChange, t }) => {
   if (isEditing) {
     return (
       <div>
@@ -15,7 +15,7 @@ const EditableField = React.memo(({ label, field, value, type = "text", isEditin
           value={editForm[field] || ''}
           onChange={(e) => onInputChange(field, e.target.value)}
           className="w-full mt-1 px-3 py-2 lg:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent text-lg"
-          placeholder={`Enter ${label.toLowerCase()}`}
+          placeholder={t(`Enter ${label.toLowerCase()}`)}
           autoComplete="off"
         />
       </div>
@@ -33,7 +33,7 @@ const EditableField = React.memo(({ label, field, value, type = "text", isEditin
 const Clients = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { clients, addClient, updateClient, calculateProjectTotalPrice, formatPrice } = useAppData();
+  const { clients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice } = useAppData();
   const [showAddClient, setShowAddClient] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientType, setClientType] = useState('private');
@@ -54,6 +54,13 @@ const Clients = () => {
     vatId: '',
     contactPerson: ''
   });
+
+  const handleDeleteClient = (clientId) => {
+    if (window.confirm(t('Are you sure you want to delete this client?'))) {
+      deleteClient(clientId);
+      setSelectedClient(null); // Clear selection if deleting current client
+    }
+  };
 
   const handleCreateClient = () => {
     setShowAddClient(true);
@@ -203,7 +210,7 @@ const Clients = () => {
                 value={editForm.name || ''}
                 onChange={(e) => handleEditInputChange('name', e.target.value)}
                 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-gray-300 dark:border-gray-600 focus:border-gray-500 focus:outline-none text-center w-full max-w-md mx-auto"
-                placeholder="Client name"
+                placeholder={t('Client name')}
               />
             ) : (
               <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white break-words">{selectedClient.name}</h1>
@@ -226,6 +233,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label={t('Email')} 
@@ -235,6 +243,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label={t('Phone number')} 
@@ -244,6 +253,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
               </div>
             </div>
@@ -262,6 +272,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label={t('Additional info')} 
@@ -270,6 +281,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label={t('City')} 
@@ -278,6 +290,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label={t('Postal code')} 
@@ -286,6 +299,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label={t('Country')} 
@@ -294,6 +308,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
               </div>
             </div>
@@ -314,6 +329,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label="Tax ID" 
@@ -322,6 +338,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label="VAT Registration Number" 
@@ -330,6 +347,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
                 <EditableField 
                   label="Contact Person" 
@@ -338,6 +356,7 @@ const Clients = () => {
                   isEditing={isEditing}
                   editForm={editForm}
                   onInputChange={handleEditInputChange}
+                  t={t}
                 />
               </div>
             </div>
@@ -364,7 +383,7 @@ const Clients = () => {
                     <p className="text-base text-gray-600 dark:text-gray-400">{project.rooms} {t('room')}</p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">VAT not included</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</p>
                     <p className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</p>
                   </div>
                 </button>
@@ -441,7 +460,7 @@ const Clients = () => {
                     type="text" 
                     value={clientForm.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder={clientType === 'private' ? 'Name and surname' : 'Name of company'}
+                    placeholder={clientType === 'private' ? t('Name and surname') : t('Name of company')}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
                   />
                 </div>
@@ -452,7 +471,7 @@ const Clients = () => {
                     type="email" 
                     value={clientForm.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="Email address"
+                    placeholder={t('Email address')}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
@@ -463,7 +482,7 @@ const Clients = () => {
                     type="tel" 
                     value={clientForm.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="Number"
+                    placeholder={t('Number')}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
@@ -474,7 +493,7 @@ const Clients = () => {
                     type="text" 
                     value={clientForm.street}
                     onChange={(e) => handleInputChange('street', e.target.value)}
-                    placeholder="Street"
+                    placeholder={t('Street')}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
@@ -485,7 +504,7 @@ const Clients = () => {
                     type="text" 
                     value={clientForm.additionalInfo}
                     onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
-                    placeholder="App #, Suite (optional)"
+                    placeholder={t('App #, Suite (optional)')}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
@@ -496,7 +515,7 @@ const Clients = () => {
                     type="text" 
                     value={clientForm.city}
                     onChange={(e) => handleInputChange('city', e.target.value)}
-                    placeholder="City"
+                    placeholder={t('City')}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
@@ -507,7 +526,7 @@ const Clients = () => {
                     type="text" 
                     value={clientForm.postalCode}
                     onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                    placeholder="ZIP Code"
+                    placeholder={t('ZIP Code')}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
@@ -518,7 +537,7 @@ const Clients = () => {
                     type="text" 
                     value={clientForm.country}
                     onChange={(e) => handleInputChange('country', e.target.value)}
-                    placeholder="Country"
+                    placeholder={t('Country')}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
@@ -531,7 +550,7 @@ const Clients = () => {
                         type="text" 
                         value={clientForm.businessId}
                         onChange={(e) => handleInputChange('businessId', e.target.value)}
-                        placeholder="BID"
+                        placeholder={t('BID')}
                         className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                       />
                     </div>
@@ -542,7 +561,7 @@ const Clients = () => {
                         type="text" 
                         value={clientForm.taxId}
                         onChange={(e) => handleInputChange('taxId', e.target.value)}
-                        placeholder="TID"
+                        placeholder={t('TID')}
                         className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                       />
                     </div>
@@ -553,7 +572,7 @@ const Clients = () => {
                         type="text" 
                         value={clientForm.vatId}
                         onChange={(e) => handleInputChange('vatId', e.target.value)}
-                        placeholder="VAT ID"
+                        placeholder={t('VAT ID')}
                         className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                       />
                     </div>
@@ -596,14 +615,11 @@ const Clients = () => {
                   type="text" 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search" 
+                  placeholder={t('Search')} 
                   className="w-full pl-10 pr-4 py-2 lg:py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
                 />
               </div>
               <div className="flex gap-2 justify-end">
-                <button className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md">
-                  <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
-                </button>
                 <button 
                   onClick={handleCreateClient}
                   className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
@@ -618,14 +634,35 @@ const Clients = () => {
           {filteredClients.length > 0 ? (
             <div className="space-y-3">
               {filteredClients.map(client => (
-                <button
+                <div
                   key={client.id}
-                  onClick={() => handleClientSelect(client)}
-                  className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 text-left hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-between shadow-sm hover:shadow-md"
+                  className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 transition-colors flex items-center justify-between shadow-sm hover:shadow-md"
                 >
-                  <span className="font-medium text-gray-900 dark:text-white text-lg truncate">{client.name}</span>
-                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                </button>
+                  <button
+                    onClick={() => handleClientSelect(client)}
+                    className="flex-1 text-left hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <span className="font-medium text-gray-900 dark:text-white text-lg truncate">{client.name}</span>
+                  </button>
+                  <div className="flex items-center gap-2 ml-4">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClient(client.id);
+                      }}
+                      className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                      title={t('Delete client')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleClientSelect(client)}
+                      className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (
@@ -634,13 +671,13 @@ const Clients = () => {
                 <div className="w-14 h-14 lg:w-16 lg:h-16 bg-gray-900 dark:bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 lg:mb-6">
                   <User className="w-7 h-7 lg:w-8 lg:h-8 text-white dark:text-gray-900" />
                 </div>
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-3 lg:mb-4">Add Client</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-4 lg:mb-6 text-lg leading-relaxed">Fill in your client and then assign a project to them</p>
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-3 lg:mb-4">{t('Add Client')}</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-4 lg:mb-6 text-lg leading-relaxed">{t('Fill in your client and then assign a project to them')}</p>
                 <button 
                   className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg w-full sm:w-auto"
                   onClick={handleCreateClient}
                 >
-                  Create
+                  {t('Create')}
                 </button>
               </div>
             </div>

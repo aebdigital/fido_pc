@@ -198,13 +198,20 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.name)}</h3>
-          {item.subtitle && (
-            <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">{t(item.subtitle)}</p>
+          {/* For installations category, show only subtitle as the main heading */}
+          {category === 'installations' && item.subtitle ? (
+            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.subtitle)}</h3>
+          ) : (
+            <>
+              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.name)}</h3>
+              {item.subtitle && (
+                <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">{t(item.subtitle)}</p>
+              )}
+            </>
           )}
           {isItemModified(category, itemIndex) && (
             <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-              {t('Original')}: {originalPrices[category][itemIndex].price} {item.unit}
+              {t('Original')}: {originalPrices[category][itemIndex].price} {t(item.unit)}
             </p>
           )}
         </div>
@@ -218,7 +225,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             }
             min={0}
           />
-          <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 flex-shrink-0">{item.unit}</div>
+          <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 flex-shrink-0">{t(item.unit)}</div>
         </div>
       </div>
       

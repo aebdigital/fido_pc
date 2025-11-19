@@ -42,6 +42,7 @@ const Projects = () => {
     deleteProjectRoom,
     getProjectRooms,
     calculateRoomPrice,
+    calculateRoomPriceWithMaterials,
     calculateProjectTotalPrice,
     formatPrice
   } = useAppData();
@@ -95,36 +96,36 @@ const Projects = () => {
 
 
   const roomTypes = [
-    t('Chodba'), t('WC'), t('Kúpeľňa'), t('Kuchyňa'), 
-    t('Obývačka'), t('Detská izba'), t('Spálňa'), t('Hostovská'),
-    t('Pracovňa'), t('Vlastné')
+    t('Hallway'), t('Toilet'), t('Bathroom'), t('Kitchen'), 
+    t('Living room'), t('Kids room'), t('Bedroom'), t('Guest room'),
+    t('Work room'), t('Custom')
   ];
 
   const workProperties = [
     // FIRST COLUMN - Prípravné a základné práce (positions 1-7)
     {
       id: 'preparatory',
-      name: t('Prípravné a búracie práce'),
+      name: 'Preparatory and demolition works',
       behavior: 'single',
-      fields: [{ name: t('Trvanie'), unit: t('hod'), type: 'number' }]
+      fields: [{ name: 'Duration', unit: 'h', type: 'number' }]
     },
     {
       id: 'wiring',
-      name: t('Elektroinštalatérske práce'),
-      subtitle: t('vyvínač, zásuvka, svetlo, bod napojenia'),
+      name: 'Electrical installation work',
+      subtitle: 'switch, socket, light, connection point',
       behavior: 'single',
-      fields: [{ name: t('Počet vývodov'), unit: t('ks'), type: 'number' }]
+      fields: [{ name: 'Number of outlets', unit: 'pc', type: 'number' }]
     },
     {
       id: 'plumbing',
-      name: 'Vodoinštalatérske práce',
-      subtitle: 'teplá, studená, odpad, bod napojenia',
+      name: 'Plumbing work',
+      subtitle: 'hot, cold, waste, connection point',
       behavior: 'single',
-      fields: [{ name: 'Počet vývodov', unit: 'ks', type: 'number' }]
+      fields: [{ name: 'Number of outlets', unit: 'pc', type: 'number' }]
     },
     {
       id: 'brick_partitions',
-      name: 'Murovanie priečok',
+      name: 'Brick partitions',
       subtitle: '75 - 175mm',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
@@ -136,7 +137,7 @@ const Projects = () => {
     },
     {
       id: 'brick_load_bearing',
-      name: 'Murovanie nosného muriva',
+      name: 'Brick load-bearing wall',
       subtitle: '200 - 450mm',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
@@ -148,8 +149,8 @@ const Projects = () => {
     },
     {
       id: 'plasterboarding_partition',
-      name: 'Sádrokartón',
-      subtitle: 'priečka',
+      name: 'Plasterboarding',
+      subtitle: 'partition',
       types: ['Simple', 'Double', 'Triple'],
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
@@ -160,8 +161,8 @@ const Projects = () => {
     },
     {
       id: 'plasterboarding_offset',
-      name: 'Sádrokartón',
-      subtitle: 'predsadená stena',
+      name: 'Plasterboarding',
+      subtitle: 'offset wall',
       types: ['Simple', 'Double'],
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
@@ -173,8 +174,8 @@ const Projects = () => {
     },
     {
       id: 'plasterboarding_ceiling',
-      name: 'Sádrokartón',
-      subtitle: 'strop',
+      name: 'Plasterboarding',
+      subtitle: 'ceiling',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Length', unit: 'm', type: 'number' }
@@ -184,8 +185,8 @@ const Projects = () => {
     // SECOND COLUMN - Povrchové úpravy (positions 9-17)
     {
       id: 'netting_wall',
-      name: 'Sieťkovanie',
-      subtitle: 'stena',
+      name: 'Netting',
+      subtitle: 'wall',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' },
@@ -196,8 +197,8 @@ const Projects = () => {
     },
     {
       id: 'netting_ceiling',
-      name: 'Sieťkovanie',
-      subtitle: 'strop',
+      name: 'Netting',
+      subtitle: 'ceiling',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Length', unit: 'm', type: 'number' }
@@ -206,8 +207,8 @@ const Projects = () => {
     },
     {
       id: 'plastering_wall',
-      name: 'Omietka',
-      subtitle: 'stena',
+      name: 'Plastering',
+      subtitle: 'wall',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' },
@@ -218,8 +219,8 @@ const Projects = () => {
     },
     {
       id: 'plastering_ceiling',
-      name: 'Omietka',
-      subtitle: 'strop',
+      name: 'Plastering',
+      subtitle: 'ceiling',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Length', unit: 'm', type: 'number' }
@@ -228,7 +229,7 @@ const Projects = () => {
     },
     {
       id: 'facade_plastering',
-      name: 'Fasádna omietka',
+      name: 'Facade Plastering',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' },
@@ -238,7 +239,7 @@ const Projects = () => {
     },
     {
       id: 'corner_bead',
-      name: 'Osadenie rohovej lišty',
+      name: 'Installation of corner bead',
       behavior: 'single',
       fields: [
         { name: 'Length', unit: 'bm', type: 'number' }
@@ -247,7 +248,7 @@ const Projects = () => {
     // THIRD COLUMN - Finishing and others (positions 15+)
     {
       id: 'window_sash',
-      name: 'Omietka špalety',
+      name: 'Plastering of window sash',
       behavior: 'single',
       fields: [
         { name: 'Length', unit: 'bm', type: 'number' }
@@ -255,7 +256,7 @@ const Projects = () => {
     },
     {
       id: 'penetration_coating',
-      name: 'Penetračný náter',
+      name: 'Penetration coating',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' }
@@ -263,8 +264,8 @@ const Projects = () => {
     },
     {
       id: 'painting_wall',
-      name: 'Maľovanie',
-      subtitle: 'stena, 2 vrstvy',
+      name: 'Painting',
+      subtitle: 'wall, 2 layers',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Height', unit: 'm', type: 'number' }
@@ -273,8 +274,8 @@ const Projects = () => {
     },
     {
       id: 'painting_ceiling',
-      name: 'Maľovanie',
-      subtitle: 'strop, 2 vrstvy',
+      name: 'Painting',
+      subtitle: 'ceiling, 2 layers',
       fields: [
         { name: 'Width', unit: 'm', type: 'number' },
         { name: 'Length', unit: 'm', type: 'number' }
@@ -338,7 +339,6 @@ const Projects = () => {
       name: 'Siliconing',
       behavior: 'single',
       fields: [
-        { name: 'Length', unit: 'bm', type: 'number' },
         { name: 'Length', unit: 'bm', type: 'number' }
       ]
     },
@@ -404,11 +404,11 @@ const Projects = () => {
           ]
         },
         {
-          name: 'Core drill',
+          name: 'Core Drill',
           fields: [{ name: 'Count', unit: 'h', type: 'number' }]
         },
         {
-          name: 'Tool',
+          name: 'Tool rental',
           fields: [{ name: 'Count', unit: 'h', type: 'number' }]
         }
       ]
@@ -461,12 +461,17 @@ const Projects = () => {
     if (!currentProject) return;
     
     // If custom room type is selected, show custom room name modal
-    if (roomType === t('Vlastné')) {
+    if (roomType === t('Custom')) {
       setShowCustomRoomModal(true);
       return;
     }
     
-    const newRoom = addRoomToProject(currentProject.id, { name: roomType });
+    // Map translated roomType back to English key for storage
+    const englishRoomTypes = ['Hallway', 'Toilet', 'Bathroom', 'Kitchen', 'Living room', 'Kids room', 'Bedroom', 'Guest room', 'Work room', 'Custom'];
+    const translatedTypes = englishRoomTypes.map(type => t(type));
+    const englishRoomType = englishRoomTypes[translatedTypes.indexOf(roomType)] || roomType;
+    
+    const newRoom = addRoomToProject(currentProject.id, { name: englishRoomType });
     setShowNewRoomModal(false);
     
     // Automatically open the room details modal for the new room
@@ -602,9 +607,8 @@ const Projects = () => {
     setShowProjectPriceList(false);
   };
 
-  const handleSaveProjectPriceList = (priceData) => {
+  const handleSaveProjectPriceList = () => {
     // In a real app, this would save to backend with project ID
-    console.log('Saving project price data:', priceData);
     setShowProjectPriceList(false);
   };
 
@@ -711,8 +715,8 @@ const Projects = () => {
       <div className="pb-20 lg:pb-0 overflow-hidden w-full min-w-0">
         <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
       
-      {/* Contractor Profile Dropdown - only in categories view */}
-      {currentView === 'categories' && (
+      {/* Contractor Profile Dropdown */}
+      {(currentView === 'categories' || currentView === 'projects') && (
         <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
         <button 
           className="flex items-center gap-2"
@@ -897,12 +901,12 @@ const Projects = () => {
                         <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{project.id}</span>
                         {project.status && (
                           <span className="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 text-xs lg:text-sm font-medium rounded-full">
-                            {project.status}
+                            {t(project.status)}
                           </span>
                         )}
                       </div>
                       <h3 className="text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base">Notes</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base">{t('Notes')}</p>
                     </div>
                     
                     {projectDeleteMode ? (
@@ -915,7 +919,7 @@ const Projects = () => {
                     ) : (
                       <div className="flex items-center justify-between sm:justify-end sm:gap-4 mt-3 sm:mt-0">
                         <div className="text-left sm:text-right">
-                          <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">VAT not included</div>
+                          <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                           <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -927,7 +931,7 @@ const Projects = () => {
 
               {activeProjects.length === 0 && (
                 <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  <p>No projects in this category yet.</p>
+                  <p>{t('No projects in this category yet.')}</p>
                 </div>
               )}
             </div>
@@ -1011,7 +1015,7 @@ const Projects = () => {
               {showClientSelector && (
                 <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
                   <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Select Client</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Select Client')}</h3>
                     <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
                       {clients.map(client => (
                         <button
@@ -1025,7 +1029,7 @@ const Projects = () => {
                       ))}
                       {clients.length === 0 && (
                         <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                          <p>No clients available. Create a client first.</p>
+                          <p>{t('No clients available. Create a client first.')}</p>
                         </div>
                       )}
                     </div>
@@ -1033,7 +1037,7 @@ const Projects = () => {
                       onClick={handleCloseClientSelector}
                       className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     >
-                      Cancel
+                      {t('Cancel')}
                     </button>
                   </div>
                 </div>
@@ -1079,8 +1083,8 @@ const Projects = () => {
                     onClick={deleteMode ? undefined : () => handleOpenRoomDetails(room)}
                   >
                     <div className={`transition-all duration-300 flex-1 ${deleteMode ? 'mr-4' : ''}`}>
-                      <div className="font-medium text-gray-900 dark:text-white text-lg">{room.name}</div>
-                      <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems.length} {t('práce')}</div>
+                      <div className="font-medium text-gray-900 dark:text-white text-lg">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
+                      <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems.length} {t('works')}</div>
                     </div>
                     
                     {deleteMode ? (
@@ -1094,7 +1098,10 @@ const Projects = () => {
                       <div className="flex items-center justify-between sm:justify-end sm:gap-2 mt-3 sm:mt-0">
                         <div className="text-left sm:text-right">
                           <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
-                          <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateRoomPrice(room, currentProject.priceListSnapshot))}</div>
+                          <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice((() => {
+                            const calc = calculateRoomPriceWithMaterials(room, currentProject.priceListSnapshot);
+                            return calc.workTotal + calc.materialTotal + calc.othersTotal;
+                          })())}</div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </div>
@@ -1104,7 +1111,7 @@ const Projects = () => {
                 
                 {getProjectRooms(currentProject.id).length === 0 && (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <p>No rooms added yet. Click the + button to add a room.</p>
+                    <p>{t('No rooms added yet. Click the + button to add a room.')}</p>
                   </div>
                 )}
               </div>
@@ -1205,15 +1212,15 @@ const Projects = () => {
       {showNewProjectModal && (
       <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
         <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">New Project</h3>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-base font-medium text-gray-900 dark:text-white mb-2">Project Name</label>
+              <label className="block text-base font-medium text-gray-900 dark:text-white mb-2">{t('Project Name')}</label>
               <input
                 type="text"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="Enter project name"
+                placeholder={t('Enter project name')}
                 className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
                 autoFocus
               />
@@ -1223,14 +1230,14 @@ const Projects = () => {
                 onClick={handleCloseNewProjectModal}
                 className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
               >
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 onClick={handleNewProject}
                 disabled={!newProjectName.trim()}
                 className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
               >
-                Create
+                {t('Create')}
               </button>
             </div>
           </div>
@@ -1242,7 +1249,7 @@ const Projects = () => {
     {showNewRoomModal && (
       <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
         <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">New room</h3>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('New room')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {roomTypes.map((roomType, index) => (
               <button
@@ -1251,7 +1258,7 @@ const Projects = () => {
                 className="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center shadow-sm hover:shadow-md text-lg animate-slide-in-stagger"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                {roomType}
+                {t(roomType)}
               </button>
             ))}
           </div>
@@ -1259,7 +1266,7 @@ const Projects = () => {
             onClick={handleCloseNewRoomModal}
             className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
           >
-            Cancel
+            {t('Cancel')}
           </button>
         </div>
       </div>

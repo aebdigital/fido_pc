@@ -48,10 +48,10 @@ const Layout = ({ children }) => {
   }, [lastScrollY]);
 
   const menuItems = [
-    { path: '/projects', name: t('Projekty'), icon: ClipboardList },
-    { path: '/invoices', name: t('Faktúry'), icon: FileText },
-    { path: '/clients', name: t('Klienti'), icon: Users },
-    { path: '/settings', name: t('Nastavenia'), icon: Settings }
+    { path: '/projects', name: t('Projects'), icon: ClipboardList },
+    { path: '/invoices', name: t('Invoices'), icon: FileText },
+    { path: '/clients', name: t('Clients'), icon: Users },
+    { path: '/settings', name: t('Settings'), icon: Settings }
   ];
 
   const handleNavigation = (path, e) => {

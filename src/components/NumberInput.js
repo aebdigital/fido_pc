@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
 const NumberInput = ({ 
@@ -15,6 +15,17 @@ const NumberInput = ({
     value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString() : ''
   );
   const inputRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  // Debounced onChange for arrow button clicks to prevent scroll jumping
+  const debouncedOnChange = useCallback((value) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      onChange(value);
+    }, 300); // 300ms delay
+  }, [onChange]);
 
   // Update internal value when prop changes (from external source)
   useEffect(() => {
@@ -22,6 +33,15 @@ const NumberInput = ({
       value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString() : ''
     );
   }, [value]);
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
@@ -52,7 +72,7 @@ const NumberInput = ({
     const newValue = Math.max(min, currentValue + step);
     const roundedValue = Math.round(newValue * 100) / 100; // Round to 2 decimal places
     setInternalValue(roundedValue.toString());
-    onChange(roundedValue);
+    debouncedOnChange(roundedValue);
     
     // Refocus the input after arrow click
     if (inputRef.current) {
@@ -65,7 +85,7 @@ const NumberInput = ({
     const newValue = Math.max(min, currentValue - step);
     const roundedValue = Math.round(newValue * 100) / 100; // Round to 2 decimal places
     setInternalValue(roundedValue.toString());
-    onChange(roundedValue);
+    debouncedOnChange(roundedValue);
     
     // Refocus the input after arrow click
     if (inputRef.current) {

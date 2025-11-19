@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Hammer, Package, Menu, Info, RefreshCw, Wrench } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const ProjectPriceList = ({ projectId, onClose, onSave }) => {
   const { generalPriceList } = useAppData();
+  const { t } = useLanguage();
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -98,13 +100,13 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
     <div className="bg-gray-300 dark:bg-gray-800 rounded-2xl p-4 space-y-3">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h3 className="font-medium text-gray-900 dark:text-white leading-tight">{item.name}</h3>
+          <h3 className="font-medium text-gray-900 dark:text-white leading-tight">{t(item.name)}</h3>
           {item.subtitle && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.subtitle}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t(item.subtitle)}</p>
           )}
           {item.isOverridden && (
             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              Original: {item.originalPrice} {item.unit}
+              {t('Original')}: {item.originalPrice} {t(item.unit)}
             </p>
           )}
         </div>
@@ -121,12 +123,12 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
             step="0.01"
             min="0"
           />
-          <div className="text-sm text-gray-600 dark:text-gray-400">{item.unit}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{t(item.unit)}</div>
           {item.isOverridden && (
             <button
               onClick={() => handleResetToOriginal(category, itemIndex)}
               className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
-              title="Reset to original price"
+              title={t('Reset to original price')}
             >
               <RefreshCw className="w-3 h-3" />
             </button>
@@ -137,7 +139,7 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
       {item.capacity && (
         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600 dark:text-gray-400">capacity per {item.unit.includes('pc') ? 'piece' : 'package'}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('capacity per')} {item.unit.includes('pc') ? t('piece') : t('package')}</span>
             <div className="flex items-center gap-2">
               <div className="bg-white dark:bg-gray-900 rounded-xl px-3 py-1 font-semibold text-gray-900 dark:text-white">
                 {item.capacity.value}
@@ -154,7 +156,7 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 animate-slide-in">
-          <div className="text-center">Loading...</div>
+          <div className="text-center">{t('Loading...')}</div>
         </div>
       </div>
     );
@@ -170,23 +172,23 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
             className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
           >
             <ArrowLeft className="w-5 h-5" />
-            Back
+            {t('Back')}
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Project Price List</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h1>
           <div className="flex gap-2">
             <button
               onClick={handleSave}
               disabled={!hasChanges}
               className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Save Changes
+              {t('Save Changes')}
             </button>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 px-6 py-3 border-b border-gray-200 dark:border-gray-700">
           <Info className="w-4 h-4" />
-          <span className="text-sm">Override prices for this project only. Original prices are preserved in general settings.</span>
+          <span className="text-sm">{t('Override prices for this project only. Original prices are preserved in general settings.')}</span>
         </div>
 
         {/* Content */}
@@ -195,7 +197,7 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-6">
               <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Work</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {projectPriceData.work.map((item, index) => (
@@ -208,7 +210,7 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-6">
               <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Material</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {projectPriceData.material.map((item, index) => (
@@ -222,7 +224,7 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
             <div className="mb-10">
               <div className="flex items-center gap-2 mb-6">
                 <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sanitary installations</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {projectPriceData.installations.map((item, index) => (
@@ -236,7 +238,7 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-6">
               <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Others</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {projectPriceData.others.map((item, index) => (

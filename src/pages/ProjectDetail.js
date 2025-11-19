@@ -35,12 +35,12 @@ const ProjectDetail = () => {
       <div className="flex items-center gap-4 mb-8">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">{id}</span>
-          <span className="px-2 py-1 bg-red-50 text-red-600 text-xs font-medium rounded-full">not sent</span>
+          <span className="px-2 py-1 bg-red-50 text-red-600 text-xs font-medium rounded-full">{t('not sent')}</span>
         </div>
       </div>
 
       <h1 className="text-3xl font-bold text-gray-900 mb-2">test Copy</h1>
-      <p className="text-gray-500 mb-8">Notes</p>
+      <p className="text-gray-500 mb-8">{t('Notes')}</p>
 
       {/* Client Section */}
       <div className="mb-8">
@@ -113,7 +113,7 @@ const ProjectDetail = () => {
                 <div className="text-sm text-gray-600">{room.works} works</div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-gray-500 mb-1">VAT not included</div>
+                <div className="text-xs text-gray-500 mb-1">{t('VAT not included')}</div>
                 <div className="font-semibold text-gray-900">{room.price}</div>
                 <span className="text-gray-400 ml-2">›</span>
               </div>
