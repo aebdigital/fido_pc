@@ -1,5 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
-import { X, Plus, Trash2, Check, Menu, Copy, Hammer, Circle, CheckCircle2 } from 'lucide-react';
+import { X, Plus, Trash2, Check, Menu, Copy, Hammer } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import NumberInput from './NumberInput';
@@ -1724,7 +1724,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                     (item.name && item.name.toLowerCase().includes('lešenie'))) {
                                   if (item.subtitle.includes('- prenájom')) {
                                     // For rental component, show days
-                                    const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
                                     const duration = parseFloat(values['Rental duration'] || 0);
                                     workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
                                   } else if (item.subtitle.includes('- montáž a demontáž')) {
@@ -2021,7 +2020,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                     (item.name && item.name.toLowerCase().includes('lešenie'))) {
                                   if (item.subtitle.includes('- prenájom')) {
                                     // For rental component, show days
-                                    const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
                                     const duration = parseFloat(values['Rental duration'] || 0);
                                     workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
                                   } else if (item.subtitle.includes('- montáž a demontáž')) {

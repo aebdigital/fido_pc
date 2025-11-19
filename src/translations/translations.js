@@ -372,24 +372,17 @@ export const translations = {
     "Percentage Increase": "Percentuálne zvýšenie",
     "Example: Enter 10 for 10% increase. All prices will be updated.": "Príklad: Zadajte 10 pre 10% zvýšenie. Všetky ceny budú aktualizované.",
     
-    // ========== CLIENT MANAGEMENT ==========
+    // ========== CLIENT MANAGEMENT (additional) ==========
     "Add Client": "Pridať klienta",
     "Fill in your client and then assign a project to them": "Vyplňte údaje klienta a následne mu priraďte projekt",
-    "Create": "Vytvoriť",
     "Search": "Hľadať",
     "Client name": "Meno klienta",
-    "Name and surname": "Meno a priezvisko",
     "Name of company": "Názov spoločnosti",
-    "Email address": "E-mailová adresa",
     "Number": "Číslo",
-    "Street": "Ulica",
     "App #, Suite (optional)": "Byt č., apartmán (voliteľné)",
-    "City": "Mesto",
     "ZIP Code": "PSČ",
-    "Country": "Krajina",
     "BID": "IČO",
     "TID": "DIČ",
-    "VAT ID": "IČ DPH",
     "Delete client": "Vymazať klienta",
     "Are you sure you want to delete this client?": "Ste si istí, že chcete vymazať tohto klienta?",
     

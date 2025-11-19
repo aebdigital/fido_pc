@@ -41,7 +41,6 @@ const Projects = () => {
     updateProjectRoom,
     deleteProjectRoom,
     getProjectRooms,
-    calculateRoomPrice,
     calculateRoomPriceWithMaterials,
     calculateProjectTotalPrice,
     formatPrice
