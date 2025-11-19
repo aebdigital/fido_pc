@@ -205,7 +205,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <>
               <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.name)}</h3>
               {item.subtitle && (
-                <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">{t(item.subtitle)}</p>
+                <p className="text-sm lg:text-base text-black dark:text-white mt-1">{t(item.subtitle)}</p>
               )}
             </>
           )}
@@ -225,21 +225,21 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             }
             min={0}
           />
-          <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 flex-shrink-0">{t(item.unit)}</div>
+          <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
         </div>
       </div>
       
       {item.capacity && (
         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-            <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
+            <span className="text-sm lg:text-base text-black dark:text-white">
               {t('capacity per')} {item.unit.includes('pc') ? t('piece') : t('package')}
             </span>
             <div className="flex items-center gap-2 justify-end sm:justify-start">
               <div className="bg-white dark:bg-gray-900 rounded-xl px-2 lg:px-3 py-1 font-semibold text-gray-900 dark:text-white shadow-sm text-lg">
                 {item.capacity.value}
               </div>
-              <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{item.capacity.unit}</span>
+              <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
             </div>
           </div>
         </div>
