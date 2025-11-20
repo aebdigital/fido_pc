@@ -233,7 +233,11 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <span className="text-sm lg:text-base text-black dark:text-white">
-              {t('capacity per')} {item.unit.includes('pc') ? t('piece') : t('package')}
+              {/* Special handling for Adhesive, Plaster, and Facade Plaster */}
+              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
+                ? t('capacity per 25kg package')
+                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
+              }
             </span>
             <div className="flex items-center gap-2 justify-end sm:justify-start">
               <div className="bg-white dark:bg-gray-900 rounded-xl px-2 lg:px-3 py-1 font-semibold text-gray-900 dark:text-white shadow-sm text-lg">

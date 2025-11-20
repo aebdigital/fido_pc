@@ -52,6 +52,7 @@ export const AppDataProvider = ({ children }) => {
       projectRoomsData: {}, // Store rooms by project ID
       contractors: [], // Store contractor profiles
       contractorProjects: {}, // Store projects by contractor ID: { [contractorId]: { categories: [...], archivedProjects: [] } }
+      invoices: [], // Store all invoices
       priceOfferSettings: {
         timeLimit: 30, // Days
         defaultValidityPeriod: 30
@@ -178,6 +179,10 @@ export const AppDataProvider = ({ children }) => {
           timeLimit: 30,
           defaultValidityPeriod: 30
         };
+      }
+      // Ensure invoices exists for backward compatibility
+      if (!parsedData.invoices) {
+        parsedData.invoices = [];
       }
       // Ensure activeContractorId exists for backward compatibility
       if (parsedData.activeContractorId === undefined) {
@@ -713,6 +718,92 @@ export const AppDataProvider = ({ children }) => {
     }));
   };
 
+  // Invoice management functions
+  const createInvoice = (projectId, categoryId, invoiceData) => {
+    const project = findProjectById(projectId, categoryId);
+    if (!project) return null;
+
+    const newInvoice = {
+      id: Date.now(),
+      invoiceNumber: invoiceData.invoiceNumber,
+      projectId,
+      categoryId,
+      projectName: project.name,
+      contractorId: appData.activeContractorId,
+      createdDate: invoiceData.createdDate || new Date().toISOString(),
+      issueDate: invoiceData.issueDate,
+      dueDate: invoiceData.dueDate,
+      paymentMethod: invoiceData.paymentMethod || 'transfer', // 'transfer' or 'cash'
+      paymentDays: invoiceData.paymentDays || 30,
+      notes: invoiceData.notes || '',
+      status: 'unsent', // 'unsent' or 'sent'
+      ...invoiceData
+    };
+
+    setAppData(prev => ({
+      ...prev,
+      invoices: [...prev.invoices, newInvoice]
+    }));
+
+    // Update project to mark it has an invoice
+    updateProject(categoryId, projectId, {
+      hasInvoice: true,
+      invoiceId: newInvoice.id,
+      invoiceStatus: 'unsent'
+    });
+
+    return newInvoice;
+  };
+
+  const updateInvoice = (invoiceId, updates) => {
+    // Find the invoice before updating
+    const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+
+    setAppData(prev => ({
+      ...prev,
+      invoices: prev.invoices.map(invoice =>
+        invoice.id === invoiceId ? { ...invoice, ...updates } : invoice
+      )
+    }));
+
+    // If status is updated, also update the project
+    if (updates.status && invoice) {
+      updateProject(invoice.categoryId, invoice.projectId, {
+        invoiceStatus: updates.status
+      });
+    }
+  };
+
+  const deleteInvoice = (invoiceId) => {
+    const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+
+    setAppData(prev => ({
+      ...prev,
+      invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
+    }));
+
+    // Update project to remove invoice reference
+    if (invoice) {
+      updateProject(invoice.categoryId, invoice.projectId, {
+        hasInvoice: false,
+        invoiceId: null,
+        invoiceStatus: null
+      });
+    }
+  };
+
+  const getInvoiceById = (invoiceId) => {
+    return appData.invoices.find(inv => inv.id === invoiceId);
+  };
+
+  const getInvoicesForContractor = (contractorId) => {
+    return appData.invoices.filter(inv => inv.contractorId === contractorId);
+  };
+
+  const getInvoiceForProject = (projectId) => {
+    return appData.invoices.find(inv => inv.projectId === projectId);
+  };
+
   // Helper function to get default categories structure
   const getDefaultCategories = () => [
     {
@@ -788,10 +879,8 @@ export const AppDataProvider = ({ children }) => {
               ...client,
               projects: [...client.projects, {
                 id: projectId,
-                name: projectName,
-                rooms: 0, // This would be calculated from actual project data
-                price: '€0,00',
-                note: 'VAT not included'
+                name: projectName
+                // Room count and price are calculated dynamically when displayed
               }]
             };
           }
@@ -914,12 +1003,13 @@ export const AppDataProvider = ({ children }) => {
 
   // Enhanced room calculation with materials
   const calculateRoomPriceWithMaterials = (room, priceList = null) => {
-    if (!room.workItems || room.workItems.length === 0) return { 
-      workTotal: 0, 
-      materialTotal: 0, 
+    if (!room.workItems || room.workItems.length === 0) return {
+      workTotal: 0,
+      materialTotal: 0,
       othersTotal: 0,
-      total: 0, 
-      items: [], 
+      total: 0,
+      items: [],
+      materialItems: [],
       othersItems: [],
       baseWorkTotal: 0,
       baseMaterialTotal: 0,
@@ -933,6 +1023,7 @@ export const AppDataProvider = ({ children }) => {
     let materialTotal = 0;
     let othersTotal = 0;
     const items = [];
+    const materialItems = [];
     const othersItems = [];
     
     // Pre-calculate total area for tiling and paving to optimize adhesive calculation
@@ -1067,6 +1158,18 @@ export const AppDataProvider = ({ children }) => {
                               workItem.propertyId === 'netting_wall' ||
                               workItem.propertyId === 'netting_ceiling';
 
+            // Check if Large Format toggle is enabled for tiling/paving
+            let effectivePriceItem = priceItem;
+            if (isTilingOrPaving && workItem.fields['Large Format_above 60cm']) {
+              // Find the Large Format price item
+              const largeFormatItem = activePriceList.work.find(item =>
+                item.name === 'Large Format' && item.subtitle === 'above 60cm'
+              );
+              if (largeFormatItem) {
+                effectivePriceItem = largeFormatItem;
+              }
+            }
+
             // Only add adhesive for the first tiling/paving or netting item
             const skipTilingPavingAdhesive = isTilingOrPaving && tilingPavingAdhesiveAdded;
             const skipNettingAdhesive = isNetting && nettingAdhesiveAdded;
@@ -1074,7 +1177,7 @@ export const AppDataProvider = ({ children }) => {
 
             const calculation = calculateWorkItemWithMaterials(
               workItem,
-              priceItem,
+              effectivePriceItem,
               activePriceList,
               totalTilingPavingArea,
               skipAdhesive,
@@ -1096,6 +1199,141 @@ export const AppDataProvider = ({ children }) => {
               ...workItem,
               calculation
             });
+
+            // Track materials as separate items
+            if (calculation.material) {
+              const materialUnit = calculation.material.unit || 'm²';
+              const materialPrice = calculation.material.price || 0;
+              const materialQuantity = calculation.quantity || 0;
+              let materialCostForItem = 0;
+
+              if (calculation.material.capacity) {
+                const packagesNeeded = Math.ceil(materialQuantity / calculation.material.capacity);
+                materialCostForItem = packagesNeeded * materialPrice;
+              } else {
+                materialCostForItem = materialQuantity * materialPrice;
+              }
+
+              materialItems.push({
+                id: `${workItem.id}_material`,
+                name: calculation.material.name,
+                subtitle: calculation.material.subtitle || '',
+                calculation: {
+                  quantity: materialQuantity,
+                  materialCost: materialCostForItem,
+                  pricePerUnit: materialPrice,
+                  unit: materialUnit
+                }
+              });
+            }
+
+            // Track additional materials (adhesive)
+            if (calculation.additionalMaterial && calculation.additionalMaterialQuantity > 0) {
+              const adhesiveUnit = calculation.additionalMaterial.unit || 'pkg';
+              const adhesivePrice = calculation.additionalMaterial.price || 0;
+              const adhesiveQuantity = calculation.additionalMaterialQuantity;
+              let adhesiveCost = 0;
+
+              if (calculation.additionalMaterial.capacity) {
+                const packagesNeeded = Math.ceil(adhesiveQuantity / calculation.additionalMaterial.capacity);
+                adhesiveCost = packagesNeeded * adhesivePrice;
+              } else {
+                adhesiveCost = adhesiveQuantity * adhesivePrice;
+              }
+
+              // Check if adhesive already added to avoid duplicates (when aggregating)
+              const adhesiveName = calculation.additionalMaterial.name;
+              const adhesiveSubtitle = calculation.additionalMaterial.subtitle || '';
+              const existingAdhesive = materialItems.find(item =>
+                item.name === adhesiveName && item.subtitle === adhesiveSubtitle
+              );
+
+              if (!existingAdhesive) {
+                materialItems.push({
+                  id: `${workItem.id}_adhesive`,
+                  name: adhesiveName,
+                  subtitle: adhesiveSubtitle,
+                  calculation: {
+                    quantity: adhesiveQuantity,
+                    materialCost: adhesiveCost,
+                    pricePerUnit: adhesivePrice,
+                    unit: adhesiveUnit
+                  }
+                });
+              }
+            }
+
+            // Handle additional fields (Jolly Edging, Plinths, etc.)
+            if (workItem.fields) {
+              // Check for Jolly Edging
+              const jollyEdgingValue = workItem.fields['Jolly Edging'];
+              if (jollyEdgingValue && jollyEdgingValue > 0) {
+                const jollyEdgingPrice = activePriceList.work.find(item => item.name === 'Jolly Edging');
+                if (jollyEdgingPrice) {
+                  const jollyEdgingCost = jollyEdgingValue * jollyEdgingPrice.price;
+                  workTotal += jollyEdgingCost;
+                  items.push({
+                    ...workItem,
+                    id: `${workItem.id}_jolly`,
+                    name: 'Jolly Edging',
+                    calculation: {
+                      workCost: jollyEdgingCost,
+                      materialCost: 0,
+                      quantity: jollyEdgingValue,
+                      unit: 'm'
+                    }
+                  });
+                }
+              }
+
+              // Check for Plinth - cutting and grinding
+              const plinthCuttingValue = workItem.fields['Plinth_cutting and grinding'];
+              if (plinthCuttingValue && plinthCuttingValue > 0) {
+                const plinthCuttingPrice = activePriceList.work.find(item =>
+                  item.name === 'Plinth' && item.subtitle === 'cutting and grinding'
+                );
+                if (plinthCuttingPrice) {
+                  const plinthCuttingCost = plinthCuttingValue * plinthCuttingPrice.price;
+                  workTotal += plinthCuttingCost;
+                  items.push({
+                    ...workItem,
+                    id: `${workItem.id}_plinth_cutting`,
+                    name: 'Plinth',
+                    subtitle: 'cutting and grinding',
+                    calculation: {
+                      workCost: plinthCuttingCost,
+                      materialCost: 0,
+                      quantity: plinthCuttingValue,
+                      unit: 'm'
+                    }
+                  });
+                }
+              }
+
+              // Check for Plinth - bonding
+              const plinthBondingValue = workItem.fields['Plinth_bonding'];
+              if (plinthBondingValue && plinthBondingValue > 0) {
+                const plinthBondingPrice = activePriceList.work.find(item =>
+                  item.name === 'Plinth' && item.subtitle === 'bonding'
+                );
+                if (plinthBondingPrice) {
+                  const plinthBondingCost = plinthBondingValue * plinthBondingPrice.price;
+                  workTotal += plinthBondingCost;
+                  items.push({
+                    ...workItem,
+                    id: `${workItem.id}_plinth_bonding`,
+                    name: 'Plinth',
+                    subtitle: 'bonding',
+                    calculation: {
+                      workCost: plinthBondingCost,
+                      materialCost: 0,
+                      quantity: plinthBondingValue,
+                      unit: 'm'
+                    }
+                  });
+                }
+              }
+            }
           }
         }
       }
@@ -1110,16 +1348,17 @@ export const AppDataProvider = ({ children }) => {
     const finalWorkTotal = workTotal + auxiliaryWorkCost;
     const finalMaterialTotal = materialTotal + auxiliaryMaterialCost;
     
-    return { 
-      workTotal: finalWorkTotal, 
-      materialTotal: finalMaterialTotal, 
+    return {
+      workTotal: finalWorkTotal,
+      materialTotal: finalMaterialTotal,
       othersTotal,
-      total: finalWorkTotal + finalMaterialTotal + othersTotal, 
+      total: finalWorkTotal + finalMaterialTotal + othersTotal,
       baseWorkTotal: workTotal,
       baseMaterialTotal: materialTotal,
       auxiliaryWorkCost,
       auxiliaryMaterialCost,
       items,
+      materialItems,
       othersItems
     };
   };
@@ -1342,16 +1581,11 @@ export const AppDataProvider = ({ children }) => {
       return quantity * price;
     }
     
-    // Handle sanitary installations with custom pricing
+    // Handle sanitary installations - use price list for work, Price field is for material
     if (workItem.propertyId === 'sanitary_installation') {
       const count = parseFloat(values.Count || 0);
-      const price = parseFloat(values.Price || 0);
-      // If user has set a custom price, use it; otherwise fall back to price list
-      if (price > 0) {
-        return count * price;
-      } else {
-        return count * priceItem.price;
-      }
+      // Always use price list for installation work
+      return count * priceItem.price;
     }
     
     // Calculate quantity based on work item type and values
@@ -1698,12 +1932,22 @@ export const AppDataProvider = ({ children }) => {
     
     quantity = Math.max(0, quantity);
     
-    // Find matching material - combine work subtitle and selected type for full context
-    const fullSubtype = workItem.subtitle ? 
-      (workItem.selectedType ? `${workItem.subtitle}, ${workItem.selectedType}` : workItem.subtitle) :
-      workItem.selectedType;
-    const material = findMatchingMaterial(priceItem.name, fullSubtype, priceList);
-    let materialCost = material ? calculateMaterialCost(workItem, material, quantity) : 0;
+    // For sanitary installations, use the user-entered Price field as material cost
+    let materialCost = 0;
+    let material = null;
+
+    if (workItem.propertyId === 'sanitary_installation') {
+      const count = parseFloat(values.Count || 0);
+      const price = parseFloat(values.Price || 0);
+      materialCost = count * price; // User-entered price is for the product/material
+    } else {
+      // Find matching material - combine work subtitle and selected type for full context
+      const fullSubtype = workItem.subtitle ?
+        (workItem.selectedType ? `${workItem.subtitle}, ${workItem.selectedType}` : workItem.subtitle) :
+        workItem.selectedType;
+      material = findMatchingMaterial(priceItem.name, fullSubtype, priceList);
+      materialCost = material ? calculateMaterialCost(workItem, material, quantity) : 0;
+    }
     
     // For tiling and paving works, also add adhesive cost
     let additionalMaterial = null;
@@ -1806,16 +2050,17 @@ export const AppDataProvider = ({ children }) => {
     contractors: appData.contractors,
     priceOfferSettings: appData.priceOfferSettings,
     activeContractorId: appData.activeContractorId,
-    
+    invoices: appData.invoices,
+
     // Helper functions
     getProjectCategoriesForContractor,
     getArchivedProjectsForContractor,
-    
+
     // Client functions
     addClient,
     updateClient,
     deleteClient,
-    
+
     // Project functions
     addProject,
     updateProject,
@@ -1823,13 +2068,21 @@ export const AppDataProvider = ({ children }) => {
     archiveProject,
     unarchiveProject,
     deleteArchivedProject,
-    
+
     // Contractor functions
     addContractor,
     updateContractor,
     deleteContractor,
     setActiveContractor,
     updatePriceOfferSettings,
+
+    // Invoice functions
+    createInvoice,
+    updateInvoice,
+    deleteInvoice,
+    getInvoiceById,
+    getInvoicesForContractor,
+    getInvoiceForProject,
     
     // Room functions
     addRoomToProject,

@@ -139,7 +139,13 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
       {item.capacity && (
         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{t('capacity per')} {item.unit.includes('pc') ? t('piece') : t('package')}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {/* Special handling for Adhesive, Plaster, and Facade Plaster */}
+              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
+                ? t('capacity per 25kg package')
+                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
+              }
+            </span>
             <div className="flex items-center gap-2">
               <div className="bg-white dark:bg-gray-900 rounded-xl px-3 py-1 font-semibold text-gray-900 dark:text-white">
                 {item.capacity.value}

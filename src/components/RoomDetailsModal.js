@@ -104,20 +104,11 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     }
     
     saveScrollPosition();
-    
-    // Find the price from the price list for this sanitary type
-    let defaultPrice = 0;
-    if (generalPriceList?.installations) {
-      const sanitaryItem = generalPriceList.installations.find(item => 
-        item.name === 'Sanitary installations' && 
-        item.subtitle && 
-        item.subtitle.toLowerCase() === sanitaryType.toLowerCase()
-      );
-      if (sanitaryItem) {
-        defaultPrice = sanitaryItem.price;
-      }
-    }
-    
+
+    // Price defaults to 0 - user will enter the actual product price
+    // The work price comes from the price list separately
+    const defaultPrice = 0;
+
     const newItem = {
       id: Date.now(),
       propertyId: 'sanitary_installation',
@@ -168,14 +159,15 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     
     setWorkData([...workData, newItem]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
-    
-    // For custom work, show unit selector after type selection and close type selector
+    setShowingTypeSelector(null);
+
+    // For custom work, show unit selector after type selection
+    // Use setTimeout to ensure the item is rendered before showing the selector
     if (property.id === 'custom_work' && property.hasUnitSelector) {
       console.log('[CUSTOM WORK] Setting unit selector for item:', newItem.id, 'selectedType:', type);
-      setShowingTypeSelector(null);
-      setShowingUnitSelector(newItem.id);
-    } else {
-      setShowingTypeSelector(null);
+      setTimeout(() => {
+        setShowingUnitSelector(newItem.id);
+      }, 0);
     }
   };
 
@@ -738,9 +730,11 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   };
 
   const renderField = (item, field) => {
-    const value = item.fields[field.name];
+    const fieldKey = field.subtitle ? `${field.name}_${field.subtitle}` : field.name;
+    const value = item.fields[fieldKey];
     const isTextType = field.type === 'text';
-    
+    const isToggleType = field.type === 'toggle';
+
     // Skip doors and windows fields as they're rendered separately
     if (field.name === 'Doors' || field.name === 'Windows') {
       return null;
@@ -754,31 +748,54 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // For custom work price field, show unit in the label
     let unitDisplay = field.unit;
     if (item.propertyId === 'custom_work' && field.name === 'Price' && item.selectedUnit) {
-      unitDisplay = `€/${item.selectedUnit}`;
+      unitDisplay = `€/${t(item.selectedUnit)}`;
       console.log('[CUSTOM WORK UNIT]', { selectedUnit: item.selectedUnit, unitDisplay });
+    }
+
+    // Handle toggle type (checkbox)
+    if (isToggleType) {
+      return (
+        <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 rounded-xl p-3">
+          <div className="flex-1">
+            <div className="font-medium text-gray-900 dark:text-white text-base">{t(field.name)}</div>
+            {field.subtitle && (
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t(field.subtitle)}</div>
+            )}
+          </div>
+          <input
+            type="checkbox"
+            checked={value || false}
+            onChange={(e) => handleUpdateWorkItem(item.id, fieldKey, e.target.checked)}
+            className="w-6 h-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+        </div>
+      );
     }
 
     return (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400">{t(field.name)}</span>
+        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400">
+          {t(field.name)}
+          {field.subtitle && ` - ${t(field.subtitle)}`}
+        </span>
         <div className="flex items-center gap-1 flex-shrink-0">
           {isTextType ? (
             <input
               type="text"
               value={value || ''}
-              onChange={(e) => handleUpdateWorkItem(item.id, field.name, e.target.value, true)}
+              onChange={(e) => handleUpdateWorkItem(item.id, fieldKey, e.target.value, true)}
               className="w-32 px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
               placeholder={t(field.name)}
             />
           ) : (
             <NumberInput
               value={value || 0}
-              onChange={(value) => handleUpdateWorkItem(item.id, field.name, value)}
+              onChange={(value) => handleUpdateWorkItem(item.id, fieldKey, value)}
               className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
               min={0}
             />
           )}
-          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">{unitDisplay}</span>
+          {unitDisplay && <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">{t(unitDisplay)}</span>}
         </div>
       </div>
     );
@@ -971,6 +988,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 return null;
               })()}
 
+              {/* Additional Fields (toggles and extra inputs) */}
+              {property.additionalFields && (
+                <div className="space-y-3 lg:space-y-2">
+                  {property.additionalFields.map((field, index) => (
+                    <div key={`${field.name}-${field.subtitle || index}`}>
+                      {renderField(existingItem, field)}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Complementary works */}
               {property.complementaryWorks && (
                 <div className="space-y-3 lg:space-y-2">
@@ -1107,7 +1135,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   ))}
                 </div>
               )}
-              
+
               {/* Doors and Windows sections */}
               {property.fields && (() => {
                 const hasDoors = property.fields.some(f => f.name === 'Doors');
@@ -1137,6 +1165,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 }
                 return null;
               })()}
+
+              {/* Additional Fields (toggles and extra inputs) */}
+              {property.additionalFields && (
+                <div className="space-y-3 lg:space-y-2">
+                  {property.additionalFields.map((field, index) => (
+                    <div key={`${field.name}-${field.subtitle || index}`}>
+                      {renderField(item, field)}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Complementary works */}
               {property.complementaryWorks && (
@@ -1355,12 +1394,29 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      
+
                       saveScrollPosition();
-                      
+
+                      console.log('[TYPE BUTTON] Clicked for custom_work. Item:', item.id, 'Type:', type, 'Current selectedType:', item.selectedType, 'Property:', property.id);
+
                       setWorkData(items =>
                         items.map(i => i.id === item.id ? { ...i, selectedType: type } : i)
                       );
+
+                      // For custom work, show unit selector after selecting type
+                      if (property.id === 'custom_work' && property.hasUnitSelector && !item.selectedUnit) {
+                        console.log('[TYPE BUTTON] Scheduling unit selector for item:', item.id);
+                        setTimeout(() => {
+                          console.log('[TYPE BUTTON] setTimeout callback - setting showingUnitSelector to:', item.id);
+                          setShowingUnitSelector(item.id);
+                        }, 0);
+                      } else {
+                        console.log('[TYPE BUTTON] NOT scheduling unit selector. Conditions:', {
+                          isCustomWork: property.id === 'custom_work',
+                          hasUnitSelector: property.hasUnitSelector,
+                          hasSelectedUnit: !!item.selectedUnit
+                        });
+                      }
                     }}
                     className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors ${
                       item.selectedType === type
@@ -1375,7 +1431,18 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
             )}
 
             {/* Unit selector for custom work */}
-            {property.id === 'custom_work' && property.hasUnitSelector && item.selectedType && (
+            {(() => {
+              const shouldShow = property.id === 'custom_work' && property.hasUnitSelector && item.selectedType;
+              console.log('[RENDER] Unit selector condition check for item:', item.id, {
+                propertyId: property.id,
+                hasUnitSelector: property.hasUnitSelector,
+                selectedType: item.selectedType,
+                shouldShow,
+                showingUnitSelector,
+                isShowing: showingUnitSelector === item.id
+              });
+              return shouldShow;
+            })() && (
               <div>
                 {showingUnitSelector === item.id ? (
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top">
@@ -1470,6 +1537,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               }
               return null;
             })()}
+
+            {/* Additional Fields (toggles and extra inputs) */}
+            {property.additionalFields && (
+              <div className="space-y-3 lg:space-y-2">
+                {property.additionalFields.map((field, index) => (
+                  <div key={`${field.name}-${field.subtitle || index}`}>
+                    {renderField(item, field)}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Complementary works */}
             {property.complementaryWorks && (
@@ -1695,35 +1773,39 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                             calculation.items.map(item => {
                               if (item.calculation?.workCost > 0) {
                                 // Determine the correct unit based on work type
-                                let unit = 'm²';
+                                // First check if calculation already has a unit (e.g., for additional fields like Jolly Edging, Plinth)
+                                let unit = item.calculation.unit || 'm²';
                                 let quantity = item.calculation.quantity;
                                 const values = item.fields;
 
-                                // Check for scaffolding rental (has "- prenájom" in subtitle)
-                                if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
-                                  quantity = parseFloat(values['Rental duration'] || 0);
-                                  unit = quantity > 1 ? 'days' : 'day';
-                                } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
-                                  unit = 'km';
-                                  const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
-                                  const days = parseFloat(values.Duration || values.Trvanie || 0);
-                                  quantity = distance * (days > 0 ? days : 1);
-                                  console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
-                                } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
-                                  unit = 'h';
-                                  quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
-                                } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
-                                  unit = 'ks';
-                                  quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
-                                } else if (values.Length && !values.Width && !values.Height) {
-                                  unit = 'm';
-                                  quantity = parseFloat(values.Length || 0);
-                                } else if (values.Circumference) {
-                                  unit = 'm';
-                                  quantity = parseFloat(values.Circumference || 0);
-                                } else if (values.Distance) {
-                                  unit = 'km';
-                                  quantity = parseFloat(values.Distance || 0);
+                                // Only derive unit from fields if not already set in calculation
+                                if (!item.calculation.unit) {
+                                  // Check for scaffolding rental (has "- prenájom" in subtitle)
+                                  if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
+                                    quantity = parseFloat(values['Rental duration'] || 0);
+                                    unit = quantity > 1 ? 'days' : 'day';
+                                  } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
+                                    unit = 'km';
+                                    const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
+                                    const days = parseFloat(values.Duration || values.Trvanie || 0);
+                                    quantity = distance * (days > 0 ? days : 1);
+                                    console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
+                                  } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
+                                    unit = 'h';
+                                    quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
+                                  } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
+                                    unit = 'ks';
+                                    quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+                                  } else if (values.Length && !values.Width && !values.Height) {
+                                    unit = 'm';
+                                    quantity = parseFloat(values.Length || 0);
+                                  } else if (values.Circumference) {
+                                    unit = 'm';
+                                    quantity = parseFloat(values.Circumference || 0);
+                                  } else if (values.Distance) {
+                                    unit = 'km';
+                                    quantity = parseFloat(values.Distance || 0);
+                                  }
                                 }
                                 
                                 // For work types with subtitles (plasterboarding, plastering, painting, netting), use the constructed name directly, otherwise translate
@@ -1785,10 +1867,34 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                               
                               // Group materials by name and subtitle
                               calculation.items.forEach(item => {
-                                if (item.calculation?.materialCost > 0 && item.calculation?.material) {
+                                // Handle sanitary installations separately (no material object, just cost)
+                                if (item.propertyId === 'sanitary_installation' && item.calculation?.materialCost > 0) {
+                                  const sanitaryKey = `${item.name}-${item.subtitle || 'no-subtitle'}`;
+
+                                  if (!materialGroups[sanitaryKey]) {
+                                    materialGroups[sanitaryKey] = {
+                                      material: {
+                                        name: item.name,
+                                        subtitle: item.subtitle,
+                                        unit: 'pc'
+                                      },
+                                      totalQuantity: 0,
+                                      totalCost: 0,
+                                      items: [],
+                                      isSanitary: true
+                                    };
+                                  }
+
+                                  const quantity = parseFloat(item.fields.Count || 0);
+                                  const cost = item.calculation.materialCost;
+
+                                  materialGroups[sanitaryKey].totalQuantity += quantity;
+                                  materialGroups[sanitaryKey].totalCost += cost;
+                                  materialGroups[sanitaryKey].items.push(item);
+                                } else if (item.calculation?.materialCost > 0 && item.calculation?.material) {
                                   const material = item.calculation.material;
                                   const materialKey = `${material.name}-${material.subtitle || 'no-subtitle'}`;
-                                  
+
                                   if (!materialGroups[materialKey]) {
                                     materialGroups[materialKey] = {
                                       material,
@@ -1797,14 +1903,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                       items: []
                                     };
                                   }
-                                  
-                                  const quantity = material.capacity 
+
+                                  const quantity = material.capacity
                                     ? Math.ceil(item.calculation.quantity / material.capacity.value)
                                     : item.calculation.quantity;
                                   const cost = material.capacity
                                     ? quantity * material.price
                                     : item.calculation.quantity * material.price;
-                                  
+
                                   materialGroups[materialKey].totalQuantity += quantity;
                                   materialGroups[materialKey].totalCost += cost;
                                   materialGroups[materialKey].items.push(item);
@@ -1878,35 +1984,39 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                             calculation.othersItems.map(item => {
                               if (item.calculation?.workCost > 0) {
                                 // Determine the correct unit based on work type
-                                let unit = 'm²';
+                                // First check if calculation already has a unit (e.g., for additional fields like Jolly Edging, Plinth)
+                                let unit = item.calculation.unit || 'm²';
                                 let quantity = item.calculation.quantity;
                                 const values = item.fields;
 
-                                // Check for scaffolding rental (has "- prenájom" in subtitle)
-                                if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
-                                  quantity = parseFloat(values['Rental duration'] || 0);
-                                  unit = quantity > 1 ? 'days' : 'day';
-                                } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
-                                  unit = 'km';
-                                  const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
-                                  const days = parseFloat(values.Duration || values.Trvanie || 0);
-                                  quantity = distance * (days > 0 ? days : 1);
-                                  console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
-                                } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
-                                  unit = 'h';
-                                  quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
-                                } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
-                                  unit = 'ks';
-                                  quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
-                                } else if (values.Length && !values.Width && !values.Height) {
-                                  unit = 'm';
-                                  quantity = parseFloat(values.Length || 0);
-                                } else if (values.Circumference) {
-                                  unit = 'm';
-                                  quantity = parseFloat(values.Circumference || 0);
-                                } else if (values.Distance) {
-                                  unit = 'km';
-                                  quantity = parseFloat(values.Distance || 0);
+                                // Only derive unit from fields if not already set in calculation
+                                if (!item.calculation.unit) {
+                                  // Check for scaffolding rental (has "- prenájom" in subtitle)
+                                  if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
+                                    quantity = parseFloat(values['Rental duration'] || 0);
+                                    unit = quantity > 1 ? 'days' : 'day';
+                                  } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
+                                    unit = 'km';
+                                    const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
+                                    const days = parseFloat(values.Duration || values.Trvanie || 0);
+                                    quantity = distance * (days > 0 ? days : 1);
+                                    console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
+                                  } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
+                                    unit = 'h';
+                                    quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
+                                  } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
+                                    unit = 'ks';
+                                    quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+                                  } else if (values.Length && !values.Width && !values.Height) {
+                                    unit = 'm';
+                                    quantity = parseFloat(values.Length || 0);
+                                  } else if (values.Circumference) {
+                                    unit = 'm';
+                                    quantity = parseFloat(values.Circumference || 0);
+                                  } else if (values.Distance) {
+                                    unit = 'km';
+                                    quantity = parseFloat(values.Distance || 0);
+                                  }
                                 }
                                 
                                 const workName = t(item.name);
@@ -1991,35 +2101,39 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                             calculation.items.map(item => {
                               if (item.calculation?.workCost > 0) {
                                 // Determine the correct unit based on work type
-                                let unit = 'm²';
+                                // First check if calculation already has a unit (e.g., for additional fields like Jolly Edging, Plinth)
+                                let unit = item.calculation.unit || 'm²';
                                 let quantity = item.calculation.quantity;
                                 const values = item.fields;
 
-                                // Check for scaffolding rental (has "- prenájom" in subtitle)
-                                if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
-                                  quantity = parseFloat(values['Rental duration'] || 0);
-                                  unit = quantity > 1 ? 'days' : 'day';
-                                } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
-                                  unit = 'km';
-                                  const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
-                                  const days = parseFloat(values.Duration || values.Trvanie || 0);
-                                  quantity = distance * (days > 0 ? days : 1);
-                                  console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
-                                } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
-                                  unit = 'h';
-                                  quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
-                                } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
-                                  unit = 'ks';
-                                  quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
-                                } else if (values.Length && !values.Width && !values.Height) {
-                                  unit = 'm';
-                                  quantity = parseFloat(values.Length || 0);
-                                } else if (values.Circumference) {
-                                  unit = 'm';
-                                  quantity = parseFloat(values.Circumference || 0);
-                                } else if (values.Distance) {
-                                  unit = 'km';
-                                  quantity = parseFloat(values.Distance || 0);
+                                // Only derive unit from fields if not already set in calculation
+                                if (!item.calculation.unit) {
+                                  // Check for scaffolding rental (has "- prenájom" in subtitle)
+                                  if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
+                                    quantity = parseFloat(values['Rental duration'] || 0);
+                                    unit = quantity > 1 ? 'days' : 'day';
+                                  } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
+                                    unit = 'km';
+                                    const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
+                                    const days = parseFloat(values.Duration || values.Trvanie || 0);
+                                    quantity = distance * (days > 0 ? days : 1);
+                                    console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
+                                  } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
+                                    unit = 'h';
+                                    quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
+                                  } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
+                                    unit = 'ks';
+                                    quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+                                  } else if (values.Length && !values.Width && !values.Height) {
+                                    unit = 'm';
+                                    quantity = parseFloat(values.Length || 0);
+                                  } else if (values.Circumference) {
+                                    unit = 'm';
+                                    quantity = parseFloat(values.Circumference || 0);
+                                  } else if (values.Distance) {
+                                    unit = 'km';
+                                    quantity = parseFloat(values.Distance || 0);
+                                  }
                                 }
                                 
                                 // For work types with subtitles (plasterboarding, plastering, painting, netting), use the constructed name directly, otherwise translate
@@ -2081,10 +2195,34 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                               
                               // Group materials by name and subtitle
                               calculation.items.forEach(item => {
-                                if (item.calculation?.materialCost > 0 && item.calculation?.material) {
+                                // Handle sanitary installations separately (no material object, just cost)
+                                if (item.propertyId === 'sanitary_installation' && item.calculation?.materialCost > 0) {
+                                  const sanitaryKey = `${item.name}-${item.subtitle || 'no-subtitle'}`;
+
+                                  if (!materialGroups[sanitaryKey]) {
+                                    materialGroups[sanitaryKey] = {
+                                      material: {
+                                        name: item.name,
+                                        subtitle: item.subtitle,
+                                        unit: 'pc'
+                                      },
+                                      totalQuantity: 0,
+                                      totalCost: 0,
+                                      items: [],
+                                      isSanitary: true
+                                    };
+                                  }
+
+                                  const quantity = parseFloat(item.fields.Count || 0);
+                                  const cost = item.calculation.materialCost;
+
+                                  materialGroups[sanitaryKey].totalQuantity += quantity;
+                                  materialGroups[sanitaryKey].totalCost += cost;
+                                  materialGroups[sanitaryKey].items.push(item);
+                                } else if (item.calculation?.materialCost > 0 && item.calculation?.material) {
                                   const material = item.calculation.material;
                                   const materialKey = `${material.name}-${material.subtitle || 'no-subtitle'}`;
-                                  
+
                                   if (!materialGroups[materialKey]) {
                                     materialGroups[materialKey] = {
                                       material,
@@ -2093,14 +2231,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                                       items: []
                                     };
                                   }
-                                  
-                                  const quantity = material.capacity 
+
+                                  const quantity = material.capacity
                                     ? Math.ceil(item.calculation.quantity / material.capacity.value)
                                     : item.calculation.quantity;
                                   const cost = material.capacity
                                     ? quantity * material.price
                                     : item.calculation.quantity * material.price;
-                                  
+
                                   materialGroups[materialKey].totalQuantity += quantity;
                                   materialGroups[materialKey].totalCost += cost;
                                   materialGroups[materialKey].items.push(item);
@@ -2174,35 +2312,39 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                             calculation.othersItems.map(item => {
                               if (item.calculation?.workCost > 0) {
                                 // Determine the correct unit based on work type
-                                let unit = 'm²';
+                                // First check if calculation already has a unit (e.g., for additional fields like Jolly Edging, Plinth)
+                                let unit = item.calculation.unit || 'm²';
                                 let quantity = item.calculation.quantity;
                                 const values = item.fields;
 
-                                // Check for scaffolding rental (has "- prenájom" in subtitle)
-                                if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
-                                  quantity = parseFloat(values['Rental duration'] || 0);
-                                  unit = quantity > 1 ? 'days' : 'day';
-                                } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
-                                  unit = 'km';
-                                  const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
-                                  const days = parseFloat(values.Duration || values.Trvanie || 0);
-                                  quantity = distance * (days > 0 ? days : 1);
-                                  console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
-                                } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
-                                  unit = 'h';
-                                  quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
-                                } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
-                                  unit = 'ks';
-                                  quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
-                                } else if (values.Length && !values.Width && !values.Height) {
-                                  unit = 'm';
-                                  quantity = parseFloat(values.Length || 0);
-                                } else if (values.Circumference) {
-                                  unit = 'm';
-                                  quantity = parseFloat(values.Circumference || 0);
-                                } else if (values.Distance) {
-                                  unit = 'km';
-                                  quantity = parseFloat(values.Distance || 0);
+                                // Only derive unit from fields if not already set in calculation
+                                if (!item.calculation.unit) {
+                                  // Check for scaffolding rental (has "- prenájom" in subtitle)
+                                  if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
+                                    quantity = parseFloat(values['Rental duration'] || 0);
+                                    unit = quantity > 1 ? 'days' : 'day';
+                                  } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
+                                    unit = 'km';
+                                    const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
+                                    const days = parseFloat(values.Duration || values.Trvanie || 0);
+                                    quantity = distance * (days > 0 ? days : 1);
+                                    console.log('[COMMUTE DISPLAY]', { itemName: item.name, distance, days, quantity, values });
+                                  } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
+                                    unit = 'h';
+                                    quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
+                                  } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
+                                    unit = 'ks';
+                                    quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
+                                  } else if (values.Length && !values.Width && !values.Height) {
+                                    unit = 'm';
+                                    quantity = parseFloat(values.Length || 0);
+                                  } else if (values.Circumference) {
+                                    unit = 'm';
+                                    quantity = parseFloat(values.Circumference || 0);
+                                  } else if (values.Distance) {
+                                    unit = 'km';
+                                    quantity = parseFloat(values.Distance || 0);
+                                  }
                                 }
                                 
                                 const workName = t(item.name);

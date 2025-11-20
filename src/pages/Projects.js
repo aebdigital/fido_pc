@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  User, 
-  ClipboardList, 
-  BarChart3, 
-  Trash2, 
-  Plus, 
+import {
+  User,
+  ClipboardList,
+  BarChart3,
+  Trash2,
+  Plus,
   ChevronRight,
   Copy,
   Archive,
@@ -12,27 +12,31 @@ import {
   Eye,
   Send,
   Edit3,
-  AlertTriangle
+  AlertTriangle,
+  FileText
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import RoomDetailsModal from '../components/RoomDetailsModal';
 import ProjectPriceList from '../components/ProjectPriceList';
 import ContractorProfileModal from '../components/ContractorProfileModal';
+import InvoiceCreationModal from '../components/InvoiceCreationModal';
+import InvoiceDetailModal from '../components/InvoiceDetailModal';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import { generateInvoicePDF } from '../utils/pdfGenerator';
 
 const Projects = () => {
   const location = useLocation();
   const { t } = useLanguage();
-  const { 
-    projectCategories, 
-    clients, 
+  const {
+    projectCategories,
+    clients,
     generalPriceList,
     contractors,
     activeContractorId,
     setActiveContractor,
     addContractor,
-    addProject, 
+    addProject,
     updateProject,
     archiveProject,
     assignProjectToClient,
@@ -43,7 +47,10 @@ const Projects = () => {
     getProjectRooms,
     calculateRoomPriceWithMaterials,
     calculateProjectTotalPrice,
-    formatPrice
+    calculateProjectTotalPriceWithBreakdown,
+    formatPrice,
+    getInvoiceForProject,
+    getInvoicesForContractor
   } = useAppData();
   
   const [activeCategory, setActiveCategory] = useState('flats');
@@ -72,7 +79,11 @@ const Projects = () => {
   const [showContractorSelector, setShowContractorSelector] = useState(false);
   const [isEditingProjectName, setIsEditingProjectName] = useState(false);
   const [editingProjectName, setEditingProjectName] = useState('');
+  const [isEditingProjectNotes, setIsEditingProjectNotes] = useState(false);
+  const [editingProjectNotes, setEditingProjectNotes] = useState('');
   const [showContractorWarning, setShowContractorWarning] = useState(false);
+  const [showInvoiceCreationModal, setShowInvoiceCreationModal] = useState(false);
+  const [showInvoiceDetailModal, setShowInvoiceDetailModal] = useState(false);
   const dropdownRef = useRef(null);
 
 
@@ -322,7 +333,9 @@ const Projects = () => {
         { name: 'Length', unit: 'm', type: 'number' }
       ],
       additionalFields: [
-        { name: 'Large Format', subtitle: 'above 60cm', type: 'toggle' }
+        { name: 'Large Format', subtitle: 'above 60cm', type: 'toggle' },
+        { name: 'Plinth', subtitle: 'cutting and grinding', unit: 'm', type: 'number' },
+        { name: 'Plinth', subtitle: 'bonding', unit: 'm', type: 'number' }
       ]
     },
     {
@@ -418,14 +431,21 @@ const Projects = () => {
   const activeProjects = projectCategories.find(cat => cat.id === activeCategory)?.projects || [];
   const currentProject = selectedProject;
 
-  // Handle navigation from clients page
+  // Handle navigation from clients page and invoices
   useEffect(() => {
     if (location.state?.selectedProjectId) {
       const projectId = location.state.selectedProjectId;
       const client = location.state.selectedClient;
-      
+      const categoryId = location.state.selectedCategoryId;
+
       // Find the project in the categories
-      for (const category of projectCategories) {
+      // If categoryId is provided, search in that category first for efficiency
+      const categoriesToSearch = categoryId
+        ? [projectCategories.find(c => c.id === categoryId), ...projectCategories.filter(c => c.id !== categoryId)]
+        : projectCategories;
+
+      for (const category of categoriesToSearch) {
+        if (!category) continue;
         const project = category.projects.find(p => p.id === projectId);
         if (project) {
           setActiveCategory(category.id);
@@ -438,7 +458,7 @@ const Projects = () => {
         }
       }
     }
-  }, [location.state, projectCategories]);
+  }, [location.state, projectCategories, setActiveCategory, setSelectedProject, setCurrentView, setSelectedClientForProject]);
 
   const handleNewProject = () => {
     if (newProjectName.trim()) {
@@ -676,6 +696,29 @@ const Projects = () => {
     setEditingProjectName('');
   };
 
+  // Project notes editing handlers
+  const handleEditProjectNotes = () => {
+    if (currentProject) {
+      setEditingProjectNotes(currentProject.notes || '');
+      setIsEditingProjectNotes(true);
+    }
+  };
+
+  const handleSaveProjectNotes = () => {
+    if (currentProject) {
+      updateProject(activeCategory, currentProject.id, { notes: editingProjectNotes.trim() });
+      // Update the selected project to reflect the changes immediately
+      setSelectedProject(prev => prev ? { ...prev, notes: editingProjectNotes.trim() } : prev);
+      setIsEditingProjectNotes(false);
+      setEditingProjectNotes('');
+    }
+  };
+
+  const handleCancelEditProjectNotes = () => {
+    setIsEditingProjectNotes(false);
+    setEditingProjectNotes('');
+  };
+
   // Contractor management handlers
   const handleCreateContractorProfile = () => {
     setShowContractorModal(true);
@@ -698,6 +741,46 @@ const Projects = () => {
 
   const getCurrentContractor = () => {
     return contractors.find(c => c.id === activeContractorId);
+  };
+
+  const handlePreviewPDF = () => {
+    if (!currentProject) return;
+
+    const invoice = getInvoiceForProject(currentProject.id);
+    if (!invoice) return;
+
+    const contractor = getCurrentContractor();
+    const client = clients.find(c => c.projects.some(p => p.id === currentProject.id));
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(currentProject.id);
+
+    const vatRate = getVATRate();
+    const totalWithoutVAT = projectBreakdown?.total || 0;
+    const vat = totalWithoutVAT * vatRate;
+    const totalWithVAT = totalWithoutVAT + vat;
+
+    const formatDate = (dateString) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('sk-SK');
+    };
+
+    try {
+      const doc = generateInvoicePDF({
+        invoice,
+        contractor,
+        client,
+        projectBreakdown,
+        vatRate,
+        totalWithoutVAT,
+        vat,
+        totalWithVAT,
+        formatDate,
+        formatPrice
+      });
+      doc.output('dataurlnewwindow');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert(t('Unable to generate PDF. Please try again.'));
+    }
   };
 
   return (
@@ -896,16 +979,22 @@ const Projects = () => {
                     onClick={projectDeleteMode ? undefined : () => handleProjectSelect(project)}
                   >
                     <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{project.id}</span>
-                        {project.status && (
-                          <span className="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 text-xs lg:text-sm font-medium rounded-full">
-                            {t(project.status)}
+                        {project.invoiceStatus && (
+                          <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
+                            project.invoiceStatus === 'sent'
+                              ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                              : project.invoiceStatus === 'paid'
+                              ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                              : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                          }`}>
+                            {t(project.invoiceStatus === 'sent' ? 'sent' : project.invoiceStatus === 'paid' ? 'Paid' : 'unsent')}
                           </span>
                         )}
                       </div>
                       <h3 className="text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base">{t('Notes')}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base">{project.notes || t('Notes')}</p>
                     </div>
                     
                     {projectDeleteMode ? (
@@ -954,9 +1043,15 @@ const Projects = () => {
             <div className="flex flex-col gap-2 lg:gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{currentProject.id}</span>
-                {currentProject.status && (
-                  <span className="px-2 py-1 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 text-xs lg:text-sm font-medium rounded-full">
-                    {t(currentProject.status)}
+                {currentProject.invoiceStatus && (
+                  <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
+                    currentProject.invoiceStatus === 'sent'
+                      ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                      : currentProject.invoiceStatus === 'paid'
+                      ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                      : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                  }`}>
+                    {t(currentProject.invoiceStatus === 'sent' ? 'sent' : currentProject.invoiceStatus === 'paid' ? 'Paid' : 'unsent')}
                   </span>
                 )}
               </div>
@@ -986,7 +1081,35 @@ const Projects = () => {
                   </>
                 )}
               </div>
-              <p className="text-gray-500 dark:text-gray-400 text-lg">{t('Notes')}</p>
+              <div className="flex items-center gap-3">
+                {isEditingProjectNotes ? (
+                  <input
+                    type="text"
+                    value={editingProjectNotes}
+                    onChange={(e) => setEditingProjectNotes(e.target.value)}
+                    onBlur={handleSaveProjectNotes}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveProjectNotes();
+                      if (e.key === 'Escape') handleCancelEditProjectNotes();
+                    }}
+                    className="text-lg text-gray-500 dark:text-gray-400 bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
+                    placeholder={t('Notes')}
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <p className="text-gray-500 dark:text-gray-400 text-lg flex-1">
+                      {currentProject.notes || t('Notes')}
+                    </p>
+                    <button
+                      onClick={handleEditProjectNotes}
+                      className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Client Section */}
@@ -1138,18 +1261,72 @@ const Projects = () => {
                     <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(currentProject.id) * (1 + getVATRate()))}</span>
                   </div>
                 </div>
-                <div className="flex gap-3 mt-6">
-                  <button className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
-                    <Eye className="w-4 h-4" /> 
-                    <span className="text-sm sm:text-lg">{t('Preview')}</span>
+
+                {/* Invoice creation button */}
+                {!getInvoiceForProject(currentProject.id) ? (
+                  <button
+                    onClick={() => setShowInvoiceCreationModal(true)}
+                    className="w-full mt-6 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
                   </button>
-                  <button className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
-                    <Send className="w-4 h-4" /> 
-                    <span className="text-sm sm:text-lg">{t('Send')}</span>
-                  </button>
-                </div>
+                ) : (
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={handlePreviewPDF}
+                      className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span className="text-sm sm:text-lg">{t('Preview Invoice')}</span>
+                    </button>
+                    <button
+                      onClick={() => setShowInvoiceDetailModal(true)}
+                      className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span className="text-sm sm:text-lg">{t('Send Invoice')}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Invoices List */}
+            {getInvoiceForProject(currentProject.id) && (
+              <div className="space-y-3">
+                {getInvoicesForContractor(activeContractorId)
+                  .filter(inv => inv.projectId === currentProject.id)
+                  .map(invoice => (
+                    <div
+                      key={invoice.id}
+                      onClick={() => setShowInvoiceDetailModal(true)}
+                      className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <FileText className="w-5 h-5 text-gray-700 dark:text-gray-300 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Invoice')} {invoice.invoiceNumber}</div>
+                          <div className="text-base text-gray-600 dark:text-gray-400">{new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          invoice.status === 'sent'
+                            ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                            : invoice.status === 'paid'
+                            ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                            : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                        }`}>
+                          {t(invoice.status === 'sent' ? 'sent' : invoice.status === 'paid' ? 'Paid' : 'unsent')}
+                        </span>
+                        <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            )}
 
             {/* Project Management */}
             <div className="space-y-4">
@@ -1158,13 +1335,26 @@ const Projects = () => {
                 <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Project management')}</h2>
               </div>
               <div className="space-y-3">
-                <div 
+                <div
                   onClick={handleOpenProjectPriceList}
                   className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Project price list')}</div>
                     <div className="text-base text-gray-600 dark:text-gray-400 truncate">{t('last change')}: 31 Oct 2025</div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                </div>
+
+                <div
+                  onClick={() => setShowContractorSelector(true)}
+                  className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
+                    <div className="text-base text-gray-600 dark:text-gray-400 truncate">
+                      {getCurrentContractor()?.name || t('assign contractor to project')}
+                    </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                 </div>
@@ -1372,6 +1562,48 @@ const Projects = () => {
           </div>
         </div>
       </div>
+    )}
+
+    {/* Invoice Creation Modal */}
+    {showInvoiceCreationModal && currentProject && (
+      <InvoiceCreationModal
+        isOpen={showInvoiceCreationModal}
+        onClose={(newInvoice) => {
+          setShowInvoiceCreationModal(false);
+          if (newInvoice) {
+            // Refresh project data to show invoice status
+            setSelectedProject(prev => ({
+              ...prev,
+              hasInvoice: true,
+              invoiceId: newInvoice.id,
+              invoiceStatus: 'unsent'
+            }));
+          }
+        }}
+        project={currentProject}
+        categoryId={activeCategory}
+      />
+    )}
+
+    {/* Invoice Detail Modal */}
+    {showInvoiceDetailModal && currentProject && (
+      <InvoiceDetailModal
+        isOpen={showInvoiceDetailModal}
+        onClose={(updated) => {
+          setShowInvoiceDetailModal(false);
+          if (updated) {
+            // Refresh project data if invoice status was updated
+            const invoice = getInvoiceForProject(currentProject.id);
+            if (invoice) {
+              setSelectedProject(prev => ({
+                ...prev,
+                invoiceStatus: invoice.status
+              }));
+            }
+          }
+        }}
+        invoice={getInvoiceForProject(currentProject.id)}
+      />
     )}
     </div>
     </>

@@ -5,6 +5,7 @@ export const translations = {
   sk: {
     // ========== NAVIGATION & MAIN SECTIONS ==========
     "Projects": "Projekty",
+    "Invoice": "Faktúra",
     "Invoices": "Faktúry",
     "Clients": "Klienti",
     "Settings": "Nastavenia",
@@ -34,7 +35,9 @@ export const translations = {
     // ========== WORK TYPES - MAIN CATEGORIES ==========
     "Work": "Práca",
     "Preparatory and demolition works": "Prípravné a búracie práce",
+    "Wiring": "Elektroinštalatérske práce",
     "Electrical installation work": "Elektroinštalatérske práce",
+    "Plumbing": "Vodoinštalatérske práce",
     "Plumbing work": "Vodoinštalatérske práce",
     "Brick partitions": "Murovanie priečok",
     "Brick load-bearing wall": "Murovanie nosného muriva",
@@ -100,14 +103,21 @@ export const translations = {
     "Plaster": "Omietka",
     "Facade Plaster": "Fasádna omietka",
     "Corner strip": "Rohová lišta",
+    "Corner bead": "Rohová lišta",
     "Penetrant": "Penetrák",
+    "Primer": "Penetrák",
     "Paint": "Farba",
     "Self-leveling compound": "Samonivelizačná hmota",
+    "Self-levelling compound": "Samonivelizačná hmota",
     "Skirting boards": "Soklové lišty",
+    "Skirting board": "Soklové lišty",
     "Silicone": "Silikón",
+    "Tiles": "Obklad",
     "Wall tiles": "Obklad",
+    "Pavings": "Dlažba",
     "Floor tiles": "Dlažba",
     "Auxiliary and connecting material": "Pomocný a spojovací materiál",
+    "Auxiliary and fastening material": "Pomocný a spojovací materiál",
     
     // ========== SANITARY INSTALLATIONS ==========
     "Sanitary installation": "Inštalácia sanity",
@@ -334,6 +344,25 @@ export const translations = {
     "Overdue": "Po splatnosti",
     "There is no Invoice for selected Contractor.": "Pre vybraného dodávateľa nebola vytvorená žiadna faktúra.",
     "No invoice has been created for the selected supplier.": "Pre vybraného dodávateľa nebola vytvorená žiadna faktúra.",
+    "Create Invoice": "Vytvoriť faktúru",
+    "Invoice Number": "Číslo faktúry",
+    "Issue Date": "Dátum vystavenia",
+    "Due Date": "Dátum dodania",
+    "Payment Method": "Forma úhrady",
+    "Payment Due": "Platné do",
+    "Cash": "Hotovosť",
+    "Transfer": "Prevodom",
+    "Preview Invoice": "Náhľad faktúry",
+    "Send Invoice": "Poslať",
+    "Generate Invoice": "Vygenerovať faktúru",
+    "Invoice Settings": "Nastavenia",
+    "Invoice sent": "Odoslaný",
+    "Invoice not sent": "Neodoslaný",
+    "Mark as Sent": "Označiť ako uhradené",
+    "sent": "odoslaný",
+    "unsent": "neodoslaný",
+    "Select items and generate PDF": "vybrať položky a vegenerovať PDF",
+    "Amount": "Suma",
     
     // ========== ADDITIONAL WORK DETAILS ==========
     "Additional work": "Doplnkové práce",
@@ -351,7 +380,9 @@ export const translations = {
     "Core drill no.": "Jadrová vrtačka č.",
     
     // ========== CAPACITY & OUTPUT ==========
-    "capacity per": "kapacita na",
+    "capacity per": "výdatnosť na",
+    "capacity per 25kg package": "výdatnosť na balenie 25kg",
+    "capacity per package": "výdatnosť na balenie 25kg",
     "output per piece": "vydatnosť na kus",
     "output per 25kg package": "vydatnosť na balenie 25kg",
     "output per package": "vydatnosť na balenie",
@@ -395,7 +426,24 @@ export const translations = {
     "Privacy Policy": "Zásady ochrany osobných údajov",
     "Fido Building Calculator": "Fido Building Calculator",
     "All rights reserved": "Všetky práva vyhradené",
-    "Notes": "Poznámky"
+    "Notes": "Poznámky",
+
+    // ========== SHARING ==========
+    "Invoice details copied to clipboard": "Detaily faktúry boli skopírované do schránky",
+    "Unable to share. Please try again.": "Nepodarilo sa zdieľať. Skúste to prosím znova.",
+    "Sharing not supported on this device": "Zdieľanie nie je podporované na tomto zariadení",
+    "Unable to generate PDF. Please try again.": "Nepodarilo sa vygenerovať PDF. Skúste to prosím znova.",
+
+    // ========== CONTRACTOR ==========
+    "Select Contractor": "Vybrať dodávateľa",
+    "Select contractor": "Vybrať dodávateľa",
+    "Add Contractor": "Pridať dodávateľa",
+    "No contractors available": "Žiadni dodávatelia k dispozícii",
+    "No contractor selected": "Nevybraný žiaden dodávateľ",
+    "Create new profile": "Vytvoriť nový profil",
+    "Fill out information for price offers": "Vyplňte informácie pre cenové ponuky",
+    "Project contractor": "Dodávateľ projektu",
+    "assign contractor to project": "priradiť dodávateľa k projektu"
   }
 };
 

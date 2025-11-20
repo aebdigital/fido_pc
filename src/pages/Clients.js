@@ -33,7 +33,7 @@ const EditableField = React.memo(({ label, field, value, type = "text", isEditin
 const Clients = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { clients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice } = useAppData();
+  const { clients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice, findProjectById, getProjectRooms } = useAppData();
   const [showAddClient, setShowAddClient] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientType, setClientType] = useState('private');
@@ -154,8 +154,19 @@ const Clients = () => {
   }, []);
 
   const handleProjectOpen = (project) => {
-    // Navigate to projects page with the specific project selected
-    navigate('/projects', { state: { selectedProjectId: project.id, selectedClient: selectedClient } });
+    // Find the full project details including categoryId
+    const projectData = findProjectById(project.id);
+
+    if (projectData) {
+      // Navigate to projects page with the specific project selected
+      navigate('/projects', {
+        state: {
+          selectedProjectId: project.id,
+          selectedCategoryId: projectData.category,
+          selectedClient: selectedClient
+        }
+      });
+    }
   };
 
 
@@ -372,22 +383,25 @@ const Clients = () => {
             </div>
             
             <div className="space-y-3">
-              {selectedClient.projects.map((project, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleProjectOpen(project)}
-                  className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md gap-3 sm:gap-0"
-                >
-                  <div className="text-left flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white text-lg">{project.name}</h3>
-                    <p className="text-base text-gray-600 dark:text-gray-400">{project.rooms} {t('room')}</p>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</p>
-                    <p className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</p>
-                  </div>
-                </button>
-              ))}
+              {selectedClient.projects.map((project, index) => {
+                const roomCount = getProjectRooms(project.id).length;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleProjectOpen(project)}
+                    className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md gap-3 sm:gap-0"
+                  >
+                    <div className="text-left flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-lg">{project.name}</h3>
+                      <p className="text-base text-gray-600 dark:text-gray-400">{roomCount} {t('room')}</p>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
