@@ -273,7 +273,7 @@ export const AppDataProvider = ({ children }) => {
         const allWorkItems = [];
 
         // Query each work item table
-        for (const [propertyId, tableName] of Object.entries(PROPERTY_TO_TABLE)) {
+        for (const [, tableName] of Object.entries(PROPERTY_TO_TABLE)) {
           try {
             const records = await api.workItems.getByRoom(roomId, tableName);
             if (records && records.length > 0) {
@@ -340,7 +340,7 @@ export const AppDataProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, loadInitialData]);
 
   // Client management functions
   const addClient = async (clientData) => {
@@ -858,8 +858,6 @@ export const AppDataProvider = ({ children }) => {
 
   const updateInvoice = async (invoiceId, updates) => {
     try {
-      const invoice = appData.invoices.find(inv => inv.id === invoiceId);
-
       await api.invoices.update(invoiceId, updates);
 
       setAppData(prev => ({
@@ -879,8 +877,6 @@ export const AppDataProvider = ({ children }) => {
 
   const deleteInvoice = async (invoiceId) => {
     try {
-      const invoice = appData.invoices.find(inv => inv.id === invoiceId);
-
       await api.invoices.delete(invoiceId);
 
       setAppData(prev => ({

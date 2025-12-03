@@ -665,7 +665,7 @@ export const invoiceSettingsApi = {
 }
 
 // Export all APIs
-export default {
+const api = {
   contractors: contractorsApi,
   clients: clientsApi,
   projects: projectsApi,
@@ -675,3 +675,5 @@ export default {
   priceLists: priceListsApi,
   invoiceSettings: invoiceSettingsApi,
 }
+
+export default api

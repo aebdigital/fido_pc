@@ -26,3 +26,4 @@ FROM (
     AND t.table_type = 'BASE TABLE'
   GROUP BY t.table_name
 ) subquery;
+------------------------
