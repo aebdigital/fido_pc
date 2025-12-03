@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/supabaseApi';
 import { useAuth } from './AuthContext';
 import { workItemToDatabase, databaseToWorkItem, getTableName, PROPERTY_TO_TABLE } from '../services/workItemsMapping';
@@ -213,7 +213,7 @@ export const AppDataProvider = ({ children }) => {
   };
 
   // Load initial data from Supabase
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return getDefaultData();
@@ -324,7 +324,7 @@ export const AppDataProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const [appData, setAppData] = useState(getDefaultData);
 
