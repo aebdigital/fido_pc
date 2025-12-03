@@ -15,7 +15,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
   const contractor = contractors.find(c => c.id === invoice.contractorId);
   const project = findProjectById(invoice.projectId, invoice.categoryId);
   const projectBreakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
-  const client = clients.find(c => c.projects.some(p => p.id === invoice.projectId));
+  // Find client by ID from the invoice
+  const client = clients.find(c => c.id === invoice.clientId);
 
   // Get VAT rate
   const getVATRate = () => {

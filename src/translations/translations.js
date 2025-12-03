@@ -443,7 +443,21 @@ export const translations = {
     "Create new profile": "Vytvoriť nový profil",
     "Fill out information for price offers": "Vyplňte informácie pre cenové ponuky",
     "Project contractor": "Dodávateľ projektu",
-    "assign contractor to project": "priradiť dodávateľa k projektu"
+    "assign contractor to project": "priradiť dodávateľa k projektu",
+
+    // ========== AUTHENTICATION ==========
+    "Sign In": "Prihlásiť sa",
+    "Sign Up": "Registrovať sa",
+    "Sign Out": "Odhlásiť sa",
+    "Password": "Heslo",
+    "Enter your email": "Zadajte svoj email",
+    "Enter your password": "Zadajte svoje heslo",
+    "Password must be at least 6 characters": "Heslo musí mať aspoň 6 znakov",
+    "User already registered": "Používateľ je už zaregistrovaný",
+    "Check your email for the confirmation link": "Skontrolujte svoj email pre potvrdzovací odkaz",
+    "By signing up, you agree to our terms of service": "Registráciou súhlasíte s našimi podmienkami služby",
+    "Forgot your password?": "Zabudli ste heslo?",
+    "Construction Cost Calculator": "Kalkulačka stavebných nákladov"
   }
 };
 

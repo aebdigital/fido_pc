@@ -460,52 +460,64 @@ const Projects = () => {
     }
   }, [location.state, projectCategories, setActiveCategory, setSelectedProject, setCurrentView, setSelectedClientForProject]);
 
-  const handleNewProject = () => {
+  const handleNewProject = async () => {
     if (newProjectName.trim()) {
-      const newProject = addProject(activeCategory, { name: newProjectName.trim() });
-      
-      setNewProjectName('');
-      setShowNewProjectModal(false);
-      
-      // Automatically navigate to the new project
-      setSelectedProject(newProject);
-      setCurrentView('details');
-      
-      // Auto-show room options for newly created project
-      setShowNewRoomModal(true);
+      try {
+        const newProject = await addProject(activeCategory, { name: newProjectName.trim() });
+
+        setNewProjectName('');
+        setShowNewProjectModal(false);
+
+        // Automatically navigate to the new project
+        setSelectedProject(newProject);
+        setCurrentView('details');
+
+        // Auto-show room options for newly created project
+        setShowNewRoomModal(true);
+      } catch (error) {
+        console.error('Error creating project:', error);
+        // Show user-friendly error message if available
+        if (error.userFriendly) {
+          alert(error.message);
+        } else {
+          alert('Failed to create project. Please try again.');
+        }
+      }
     }
   };
 
-  const handleAddRoom = (roomType) => {
+  const handleAddRoom = async (roomType) => {
     if (!currentProject) return;
-    
+
     // If custom room type is selected, show custom room name modal
     if (roomType === t('Custom')) {
       setShowCustomRoomModal(true);
       return;
     }
-    
+
     // Map translated roomType back to English key for storage
     const englishRoomTypes = ['Hallway', 'Toilet', 'Bathroom', 'Kitchen', 'Living room', 'Kids room', 'Bedroom', 'Guest room', 'Work room', 'Custom'];
     const translatedTypes = englishRoomTypes.map(type => t(type));
     const englishRoomType = englishRoomTypes[translatedTypes.indexOf(roomType)] || roomType;
-    
-    const newRoom = addRoomToProject(currentProject.id, { name: englishRoomType });
+
+    const newRoom = await addRoomToProject(currentProject.id, { name: englishRoomType });
+    console.log('[Projects] handleAddRoom - newRoom returned:', newRoom, 'roomId:', newRoom?.id);
     setShowNewRoomModal(false);
-    
+
     // Automatically open the room details modal for the new room
     setSelectedRoom(newRoom);
     setShowRoomDetailsModal(true);
   };
 
-  const handleCustomRoomCreate = () => {
+  const handleCustomRoomCreate = async () => {
     if (!currentProject || !customRoomName.trim()) return;
-    
-    const newRoom = addRoomToProject(currentProject.id, { name: customRoomName.trim() });
+
+    const newRoom = await addRoomToProject(currentProject.id, { name: customRoomName.trim() });
+    console.log('[Projects] handleCustomRoomCreate - newRoom returned:', newRoom, 'roomId:', newRoom?.id);
     setShowNewRoomModal(false);
     setShowCustomRoomModal(false);
     setCustomRoomName('');
-    
+
     // Automatically open the room details modal for the new room
     setSelectedRoom(newRoom);
     setShowRoomDetailsModal(true);
@@ -546,13 +558,15 @@ const Projects = () => {
   };
 
   const handleOpenRoomDetails = (room) => {
+    console.log('[Projects] handleOpenRoomDetails - room:', room, 'roomId:', room?.id);
     setSelectedRoom(room);
     setShowRoomDetailsModal(true);
   };
 
   const handleSaveRoomWork = (roomId, workData) => {
     if (!currentProject) return;
-    
+
+    console.log('[DEBUG] handleSaveRoomWork - roomId:', roomId, 'projectId:', currentProject.id, 'workItems count:', workData?.length);
     updateProjectRoom(currentProject.id, roomId, { workItems: workData });
     // Don't close the modal - just save the data
   };
@@ -645,7 +659,7 @@ const Projects = () => {
     }
   };
 
-  const handleDuplicateProject = (projectId) => {
+  const handleDuplicateProject = async (projectId) => {
     // Check if a contractor is assigned
     if (!activeContractorId) {
       setShowContractorWarning(true);
@@ -656,21 +670,31 @@ const Projects = () => {
     if (!projectResult) return;
 
     const { project } = projectResult;
-    
-    // Create a copy of the project with a new ID and name
-    const duplicatedProject = {
-      ...project,
-      id: `${new Date().getFullYear()}${String(Date.now()).slice(-3)}`,
-      name: `${project.name} Copy`,
-      createdDate: new Date().toISOString()
-    };
 
-    // Add the duplicated project
-    addProject(activeCategory, duplicatedProject);
-    
-    // Navigate back to project list
-    setSelectedProject(null);
-    setCurrentView('projects');
+    try {
+      // Create a copy of the project with a new ID and name
+      const duplicatedProject = {
+        ...project,
+        id: `${new Date().getFullYear()}${String(Date.now()).slice(-3)}`,
+        name: `${project.name} Copy`,
+        createdDate: new Date().toISOString()
+      };
+
+      // Add the duplicated project
+      await addProject(activeCategory, duplicatedProject);
+
+      // Navigate back to project list
+      setSelectedProject(null);
+      setCurrentView('projects');
+    } catch (error) {
+      console.error('Error duplicating project:', error);
+      // Show user-friendly error message if available
+      if (error.userFriendly) {
+        alert(error.message);
+      } else {
+        alert('Failed to duplicate project. Please try again.');
+      }
+    }
   };
 
   // Project name editing handlers
@@ -724,13 +748,22 @@ const Projects = () => {
     setShowContractorModal(true);
   };
 
-  const handleSaveContractor = (contractorData) => {
-    addContractor(contractorData);
-    setShowContractorModal(false);
-    
-    // Set this as active contractor if it's the first one
-    if (contractors.length === 0) {
-      setActiveContractor(contractorData.id);
+  const handleSaveContractor = async (contractorData) => {
+    try {
+      const newContractor = await addContractor(contractorData);
+      setShowContractorModal(false);
+
+      // Set this as active contractor if it's the first one
+      if (contractors.length === 0 && newContractor) {
+        setActiveContractor(newContractor.id);
+      }
+    } catch (error) {
+      console.error('Error saving contractor:', error);
+      if (error.userFriendly) {
+        alert(error.message);
+      } else {
+        alert('Failed to save contractor. Please try again.');
+      }
     }
   };
 
@@ -750,7 +783,8 @@ const Projects = () => {
     if (!invoice) return;
 
     const contractor = getCurrentContractor();
-    const client = clients.find(c => c.projects.some(p => p.id === currentProject.id));
+    // Find client by ID from the project
+    const client = clients.find(c => c.id === currentProject.clientId);
     const projectBreakdown = calculateProjectTotalPriceWithBreakdown(currentProject.id);
 
     const vatRate = getVATRate();
@@ -1508,7 +1542,10 @@ const Projects = () => {
       <RoomDetailsModal
         room={selectedRoom}
         workProperties={workProperties}
-        onSave={(workData) => handleSaveRoomWork(selectedRoom.id, workData)}
+        onSave={(workData) => {
+          console.log('[Projects] onSave callback - selectedRoom:', selectedRoom, 'id:', selectedRoom?.id);
+          handleSaveRoomWork(selectedRoom.id, workData);
+        }}
         onClose={handleCloseRoomDetailsModal}
       />
     )}

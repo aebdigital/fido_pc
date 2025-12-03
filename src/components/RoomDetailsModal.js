@@ -52,6 +52,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
   const handleClose = () => {
     // Save data before closing
+    console.log('[RoomDetailsModal] handleClose - room:', room, 'roomId:', room?.id);
     onSave(workData);
     onClose();
   };

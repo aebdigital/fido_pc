@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ClipboardList, FileText, Users, Settings, Moon, Sun } from 'lucide-react';
+import { ClipboardList, FileText, Users, Settings, Moon, Sun, LogOut } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
+import { useAuth } from '../context/AuthContext';
 import UnsavedChangesModal from './UnsavedChangesModal';
 import { useNavigate } from 'react-router-dom';
 import logo from '../logo.png';
@@ -13,12 +14,13 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { t, language, toggleLanguage } = useLanguage();
-  const { 
-    attemptNavigation, 
-    showModal, 
-    handleSaveAndProceed, 
-    handleDiscardAndProceed, 
-    handleCancel 
+  const { signOut } = useAuth();
+  const {
+    attemptNavigation,
+    showModal,
+    handleSaveAndProceed,
+    handleDiscardAndProceed,
+    handleCancel
   } = useNavigationBlocker();
 
   // Mobile navigation auto-hide state
@@ -111,7 +113,7 @@ const Layout = ({ children }) => {
         isNavVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>
         <img src={logo} alt="Fido Logo" className="h-10 w-auto" />
-        
+
         <div className="flex items-center gap-3">
           {/* Theme Toggle */}
           <button
@@ -133,6 +135,15 @@ const Layout = ({ children }) => {
             <span className="text-base font-bold text-gray-700 dark:text-gray-300">
               {language === 'en' ? '🇺🇸' : '🇸🇰'}
             </span>
+          </button>
+
+          {/* Logout Button */}
+          <button
+            onClick={signOut}
+            className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-200 shadow-sm hover:shadow-md"
+            title={t('Sign Out')}
+          >
+            <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
           </button>
         </div>
       </div>
@@ -163,6 +174,15 @@ const Layout = ({ children }) => {
                 <span className="text-base font-bold text-gray-700 dark:text-gray-300">
                   {language === 'en' ? '🇺🇸' : '🇸🇰'}
                 </span>
+              </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={signOut}
+                className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-200 shadow-sm hover:shadow-md"
+                title={t('Sign Out')}
+              >
+                <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
               </button>
             </div>
           </div>

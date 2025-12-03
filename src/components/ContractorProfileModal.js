@@ -55,12 +55,33 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
       alert(t('Name is required'));
       return;
     }
-    
+
+    // Map form fields to actual database column names
     const contractorData = {
-      ...formData,
-      id: editingContractor?.id || `contractor_${Date.now()}`
+      name: formData.name,
+      contact_person_name: formData.contactPerson,
+      email: formData.email,
+      phone: formData.phone,
+      web: formData.website,
+      street: formData.street,
+      second_row_street: formData.additionalInfo,
+      city: formData.city,
+      postal_code: formData.postalCode,
+      country: formData.country,
+      business_id: formData.businessId,
+      tax_id: formData.taxId,
+      vat_registration_number: formData.vatNumber,
+      bank_account_number: formData.bankAccount,
+      swift_code: formData.bankCode,
+      legal_notice: formData.legalAppendix,
+      // signature_url is excluded for now (not implemented)
     };
-    
+
+    // Only add id for editing (new contractors get ID from database)
+    if (editingContractor?.id) {
+      contractorData.id = editingContractor.id;
+    }
+
     onSave(contractorData);
     handleClose();
   };

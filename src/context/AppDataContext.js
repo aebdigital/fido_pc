@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../services/supabaseApi';
+import { useAuth } from './AuthContext';
+import { workItemToDatabase, databaseToWorkItem, getTableName, PROPERTY_TO_TABLE } from '../services/workItemsMapping';
 import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';
@@ -15,6 +18,9 @@ export const useAppData = () => {
 };
 
 export const AppDataProvider = ({ children }) => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+
   // Default data structure
   const getDefaultData = () => ({
       clients: [],
@@ -150,307 +156,290 @@ export const AppDataProvider = ({ children }) => {
       }
     });
 
-  // Load initial data from localStorage or use defaults
-  const loadInitialData = () => {
-    const saved = localStorage.getItem('appData');
-    if (saved) {
-      const parsedData = JSON.parse(saved);
-      const defaultData = getDefaultData();
-      
-      // Ensure projectRoomsData exists for backward compatibility
-      if (!parsedData.projectRoomsData) {
-        parsedData.projectRoomsData = {};
+  // Helper function to get default categories structure
+  const getDefaultCategories = () => [
+    {
+      id: 'flats',
+      name: 'Flats',
+      count: 0,
+      image: flatsImage,
+      projects: []
+    },
+    {
+      id: 'houses',
+      name: 'Houses',
+      count: 0,
+      image: housesImage,
+      projects: []
+    },
+    {
+      id: 'companies',
+      name: 'Companies',
+      count: 0,
+      image: companiesImage,
+      projects: []
+    },
+    {
+      id: 'cottages',
+      name: 'Cottages',
+      count: 0,
+      image: cottagesImage,
+      projects: []
+    }
+  ];
+
+  // Helper function to transform invoice from database format to app format
+  const transformInvoiceFromDB = (dbInvoice) => {
+    if (!dbInvoice) return null;
+
+    return {
+      id: dbInvoice.id,
+      invoiceNumber: dbInvoice.number,
+      issueDate: dbInvoice.date_of_dispatch,
+      dueDate: dbInvoice.maturity_days ?
+        new Date(new Date(dbInvoice.date_of_dispatch).getTime() + dbInvoice.maturity_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0] :
+        dbInvoice.date_of_dispatch,
+      paymentMethod: dbInvoice.payment_type,
+      paymentDays: dbInvoice.maturity_days,
+      notes: dbInvoice.note,
+      status: dbInvoice.status,
+      projectId: dbInvoice.project_id,
+      projectName: dbInvoice.projects?.name || '',
+      categoryId: dbInvoice.projects?.category || '',
+      clientId: dbInvoice.client_id,
+      contractorId: dbInvoice.contractor_id || dbInvoice.c_id,
+      createdDate: dbInvoice.created_at
+    };
+  };
+
+  // Load initial data from Supabase
+  const loadInitialData = async () => {
+    if (!user) {
+      setLoading(false);
+      return getDefaultData();
+    }
+
+    try {
+      console.log('[SUPABASE] Loading data from Supabase...');
+
+      // Load all data from Supabase in parallel
+      const [contractors, clients, projects, invoices, priceListData] = await Promise.all([
+        api.contractors.getAll(),
+        api.clients.getAll(null), // We'll filter by contractor later
+        api.projects.getAll(null), // We'll filter by contractor later
+        api.invoices.getAll(null), // We'll filter by contractor later
+        api.priceLists.get(null) // Get price list
+      ]);
+
+      console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
+
+      // Build contractor projects structure
+      const contractorProjects = {};
+      contractors.forEach(contractor => {
+        const contractorProjectsList = projects.filter(p => p.c_id === contractor.id);
+
+        // Group projects by category
+        const categories = getDefaultCategories().map(cat => ({
+          ...cat,
+          projects: contractorProjectsList.filter(p => p.category === cat.id),
+          count: contractorProjectsList.filter(p => p.category === cat.id).length
+        }));
+
+        contractorProjects[contractor.id] = {
+          categories,
+          archivedProjects: contractorProjectsList.filter(p => p.is_archived)
+        };
+      });
+
+      // Build project rooms data structure and load work items
+      const projectRoomsData = {};
+      for (const project of projects) {
+        const rooms = await api.rooms.getByProject(project.id);
+        if (rooms && rooms.length > 0) {
+          // Load work items for each room from database tables
+          const roomsWithWorkItems = await Promise.all(rooms.map(async (room) => {
+            const workItems = await loadWorkItemsForRoom(room.id);
+            return {
+              ...room,
+              workItems: workItems || []
+            };
+          }));
+          projectRoomsData[project.id] = roomsWithWorkItems;
+        }
       }
-      // Ensure generalPriceList exists for backward compatibility
-      if (!parsedData.generalPriceList) {
-        parsedData.generalPriceList = defaultData.generalPriceList;
+
+      // Helper function to load work items from all tables
+      async function loadWorkItemsForRoom(roomId) {
+        const allWorkItems = [];
+
+        // Query each work item table
+        for (const [propertyId, tableName] of Object.entries(PROPERTY_TO_TABLE)) {
+          try {
+            const records = await api.workItems.getByRoom(roomId, tableName);
+            if (records && records.length > 0) {
+              // Convert database records to app work items
+              records.forEach(record => {
+                const workItem = databaseToWorkItem(record, tableName);
+                if (workItem) {
+                  allWorkItems.push(workItem);
+                }
+              });
+            }
+          } catch (error) {
+            // Table might not exist or no records, continue
+            console.debug(`No work items in ${tableName} for room ${roomId}`);
+          }
+        }
+
+        return allWorkItems;
       }
-      // Ensure archivedProjects exists for backward compatibility
-      if (!parsedData.archivedProjects) {
-        parsedData.archivedProjects = [];
-      }
-      // Ensure contractors exists for backward compatibility
-      if (!parsedData.contractors) {
-        parsedData.contractors = [];
-      }
-      // Ensure priceOfferSettings exists for backward compatibility
-      if (!parsedData.priceOfferSettings) {
-        parsedData.priceOfferSettings = {
+
+      // Get active contractor (first one or null)
+      const activeContractorId = contractors.length > 0 ? contractors[0].id : null;
+
+      // Use price list from database or default
+      const generalPriceList = priceListData?.data || getDefaultData().generalPriceList;
+
+      // Transform invoices from database format to app format
+      const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
+
+      return {
+        clients: clients || [],
+        projectCategories: getDefaultCategories(),
+        archivedProjects: projects.filter(p => p.is_archived) || [],
+        projectRoomsData,
+        contractors: contractors || [],
+        contractorProjects,
+        invoices: transformedInvoices,
+        priceOfferSettings: {
           timeLimit: 30,
           defaultValidityPeriod: 30
-        };
-      }
-      // Ensure invoices exists for backward compatibility
-      if (!parsedData.invoices) {
-        parsedData.invoices = [];
-      }
-      // Ensure activeContractorId exists for backward compatibility
-      if (parsedData.activeContractorId === undefined) {
-        parsedData.activeContractorId = null;
-      }
-      // Ensure contractorProjects exists for backward compatibility
-      if (!parsedData.contractorProjects) {
-        parsedData.contractorProjects = {};
-      }
-      // Update VAT rate from 20% to 23% for existing price lists
-      if (parsedData.generalPriceList?.others) {
-        const vatItem = parsedData.generalPriceList.others.find(item => item.name === 'VAT');
-        if (vatItem && vatItem.price === 20) {
-          vatItem.price = 23;
-        }
-        // Migrate 'Rental' to 'Tool rental' for consistency
-        const rentalItem = parsedData.generalPriceList.others.find(item => item.name === 'Rental');
-        if (rentalItem) {
-          rentalItem.name = 'Tool rental';
-        }
-        // Migrate 'Cesta' to 'Commute' for consistency
-        const cestaItem = parsedData.generalPriceList.others.find(item => item.name === 'Cesta');
-        if (cestaItem) {
-          console.log('[MIGRATION] Renaming Cesta to Commute');
-          cestaItem.name = 'Commute';
-        }
-      }
-      // Migrate 'WC podomietkové' to 'Concealed toilet' in installations
-      if (parsedData.generalPriceList?.installations) {
-        parsedData.generalPriceList.installations = parsedData.generalPriceList.installations.map(item => {
-          if (item.subtitle === 'WC podomietkové') {
-            console.log('[MIGRATION] Renaming WC podomietkové to Concealed toilet');
-            return { ...item, subtitle: 'Concealed toilet' };
-          }
-          return item;
-        });
-      }
-      // Add capacity to adhesive materials if missing
-      if (parsedData.generalPriceList?.material) {
-        parsedData.generalPriceList.material = parsedData.generalPriceList.material.map(item => {
-          if (item.name === 'Adhesive' && item.subtitle === 'netting' && !item.capacity) {
-            console.log('[MIGRATION] Adding capacity to Adhesive, netting');
-            return { ...item, capacity: { value: 6, unit: 'm²' } };
-          }
-          if (item.name === 'Adhesive' && item.subtitle === 'tiling and paving' && !item.capacity) {
-            console.log('[MIGRATION] Adding capacity to Adhesive, tiling and paving');
-            return { ...item, capacity: { value: 3, unit: 'm²' } };
-          }
-          return item;
-        });
-      }
-      // Migrate 'Paint' to 'Painting' in work category for consistency
-      if (parsedData.generalPriceList?.work) {
-        parsedData.generalPriceList.work = parsedData.generalPriceList.work.map(item => {
-          if (item.name === 'Paint') {
-            console.log('[MIGRATION] Renaming Paint to Painting');
-            return { ...item, name: 'Painting' };
-          }
-          return item;
-        });
-      }
-      
-      // Migrate price list snapshots to new structure (move sanitary installations from work to installations)
-      const migratePriceListSnapshot = (snapshot) => {
-        if (!snapshot) return snapshot;
-
-        const migratedSnapshot = { ...snapshot };
-
-        // Migrate sanitary installations if not already done
-        if (!snapshot.installations) {
-          const sanitaryItems = snapshot.work?.filter(item => item.name === 'Sanitary installation') || [];
-          if (sanitaryItems.length > 0) {
-            migratedSnapshot.work = snapshot.work.filter(item => item.name !== 'Sanitary installation');
-            migratedSnapshot.installations = sanitaryItems.map(item => ({
-              ...item,
-              name: 'Sanitary installations'
-            }));
-          }
-        }
-
-        // Migrate 'Rental' to 'Tool rental' and 'Cesta' to 'Commute' in others category
-        if (migratedSnapshot.others) {
-          migratedSnapshot.others = migratedSnapshot.others.map(item => {
-            if (item.name === 'Rental') {
-              return { ...item, name: 'Tool rental' };
-            }
-            if (item.name === 'Cesta') {
-              return { ...item, name: 'Commute' };
-            }
-            return item;
-          });
-        }
-
-        // Migrate 'Paint' to 'Painting' in work category
-        if (migratedSnapshot.work) {
-          migratedSnapshot.work = migratedSnapshot.work.map(item => {
-            if (item.name === 'Paint') {
-              return { ...item, name: 'Painting' };
-            }
-            return item;
-          });
-        }
-
-        // Migrate 'WC podomietkové' to 'Concealed toilet' in installations
-        if (migratedSnapshot.installations) {
-          migratedSnapshot.installations = migratedSnapshot.installations.map(item => {
-            if (item.subtitle === 'WC podomietkové') {
-              return { ...item, subtitle: 'Concealed toilet' };
-            }
-            return item;
-          });
-        }
-
-        // Add capacity to adhesive materials if missing in snapshots
-        if (migratedSnapshot.material) {
-          migratedSnapshot.material = migratedSnapshot.material.map(item => {
-            if (item.name === 'Adhesive' && item.subtitle === 'netting' && !item.capacity) {
-              return { ...item, capacity: { value: 6, unit: 'm²' } };
-            }
-            if (item.name === 'Adhesive' && item.subtitle === 'tiling and paving' && !item.capacity) {
-              return { ...item, capacity: { value: 3, unit: 'm²' } };
-            }
-            return item;
-          });
-        }
-
-        return migratedSnapshot;
+        },
+        activeContractorId,
+        generalPriceList
       };
-      
-      // Migrate archived projects
-      if (parsedData.archivedProjects) {
-        parsedData.archivedProjects = parsedData.archivedProjects.map(project => ({
-          ...project,
-          priceListSnapshot: migratePriceListSnapshot(project.priceListSnapshot)
-        }));
-      }
-      
-      // Migrate active projects in global categories
-      if (parsedData.projectCategories) {
-        parsedData.projectCategories = parsedData.projectCategories.map(category => ({
-          ...category,
-          projects: category.projects.map(project => ({
-            ...project,
-            priceListSnapshot: migratePriceListSnapshot(project.priceListSnapshot)
-          }))
-        }));
-      }
-      
-      // Migrate contractor projects
-      if (parsedData.contractorProjects) {
-        Object.keys(parsedData.contractorProjects).forEach(contractorId => {
-          parsedData.contractorProjects[contractorId].categories = parsedData.contractorProjects[contractorId].categories.map(category => ({
-            ...category,
-            projects: category.projects.map(project => ({
-              ...project,
-              priceListSnapshot: migratePriceListSnapshot(project.priceListSnapshot)
-            }))
-          }));
-        });
-      }
-      
-      return parsedData;
+    } catch (error) {
+      console.error('[SUPABASE] Error loading data:', error);
+      return getDefaultData();
+    } finally {
+      setLoading(false);
     }
-    
-    return getDefaultData();
   };
 
-  const [appData, setAppData] = useState(loadInitialData);
+  const [appData, setAppData] = useState(getDefaultData);
 
-  // Save to localStorage whenever data changes
+  // Load data from Supabase on mount
   useEffect(() => {
-    localStorage.setItem('appData', JSON.stringify(appData));
-  }, [appData]);
+    const loadData = async () => {
+      const data = await loadInitialData();
+      setAppData(data);
+    };
+
+    if (user) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   // Client management functions
-  const addClient = (clientData) => {
-    const newClient = {
-      id: Date.now(),
-      ...clientData,
-      projects: []
-    };
-    
-    setAppData(prev => ({
-      ...prev,
-      clients: [...prev.clients, newClient]
-    }));
-    
-    return newClient;
+  const addClient = async (clientData) => {
+    try {
+      // Map camelCase fields to snake_case database columns
+      const mappedData = {
+        name: clientData.name,
+        email: clientData.email || null,
+        phone: clientData.phone || null,
+        street: clientData.street || null,
+        second_row_street: clientData.additionalInfo || null,
+        city: clientData.city || null,
+        postal_code: clientData.postalCode || null,
+        country: clientData.country || null,
+        business_id: clientData.businessId || null,
+        tax_id: clientData.taxId || null,
+        vat_registration_number: clientData.vatId || null, // Fixed: was vat_id
+        contact_person_name: clientData.contactPerson || null, // Fixed: was contact_person
+        type: clientData.type || 'private',
+        c_id: appData.activeContractorId,
+        is_user: false
+        // Optional fields not currently used: bank_account_number, swift_code, legal_notice, logo_url, web
+      };
+
+      const newClient = await api.clients.create(mappedData);
+
+      setAppData(prev => ({
+        ...prev,
+        clients: [...prev.clients, newClient]
+      }));
+
+      return newClient;
+    } catch (error) {
+      console.error('[SUPABASE] Error adding client:', error);
+      throw error;
+    }
   };
 
-  const updateClient = (clientId, clientData) => {
-    setAppData(prev => ({
-      ...prev,
-      clients: prev.clients.map(client => 
-        client.id === clientId ? { ...client, ...clientData } : client
-      )
-    }));
+  const updateClient = async (clientId, clientData) => {
+    try {
+      await api.clients.update(clientId, clientData);
+
+      setAppData(prev => ({
+        ...prev,
+        clients: prev.clients.map(client =>
+          client.id === clientId ? { ...client, ...clientData } : client
+        )
+      }));
+    } catch (error) {
+      console.error('[SUPABASE] Error updating client:', error);
+      throw error;
+    }
   };
 
-  const deleteClient = (clientId) => {
-    setAppData(prev => ({
-      ...prev,
-      clients: prev.clients.filter(client => client.id !== clientId)
-    }));
+  const deleteClient = async (clientId) => {
+    try {
+      await api.clients.delete(clientId);
+
+      setAppData(prev => ({
+        ...prev,
+        clients: prev.clients.filter(client => client.id !== clientId)
+      }));
+    } catch (error) {
+      console.error('[SUPABASE] Error deleting client:', error);
+      throw error;
+    }
   };
 
   // Project management functions
-  const addProject = (categoryId, projectData) => {
-    const newProject = {
-      id: `${new Date().getFullYear()}${String(Date.now()).slice(-3)}`,
-      ...projectData,
-      status: 'not sent',
-      // Store a snapshot of the current price list to freeze prices for this project
-      priceListSnapshot: JSON.parse(JSON.stringify(appData.generalPriceList)),
-      createdDate: new Date().toISOString()
-    };
-
-    setAppData(prev => {
-      const activeContractorId = prev.activeContractorId;
-      
-      if (!activeContractorId) {
-        // Fallback to global projects if no contractor selected
-        return {
-          ...prev,
-          projectCategories: prev.projectCategories.map(category => {
-            if (category.id === categoryId) {
-              return {
-                ...category,
-                projects: [newProject, ...category.projects],
-                count: category.count + 1
-              };
-            }
-            return category;
-          })
-        };
+  const addProject = async (categoryId, projectData) => {
+    try {
+      // Check if contractor exists
+      if (!appData.activeContractorId) {
+        const error = new Error('Please create a contractor profile first in Settings');
+        error.userFriendly = true;
+        throw error;
       }
 
-      // Add to contractor-specific projects
-      // Initialize contractor project structure if it doesn't exist
-      if (!prev.contractorProjects[activeContractorId]) {
-        return {
-          ...prev,
-          contractorProjects: {
-            ...prev.contractorProjects,
-            [activeContractorId]: {
-              categories: getDefaultCategories().map(category => {
-                if (category.id === categoryId) {
-                  return {
-                    ...category,
-                    projects: [newProject],
-                    count: 1
-                  };
-                }
-                return category;
-              }),
-              archivedProjects: []
-            }
-          }
-        };
-      }
+      const newProject = await api.projects.create({
+        name: projectData.name,
+        category: categoryId,
+        c_id: appData.activeContractorId,
+        client_id: projectData.clientId || null,
+        contractor_id: appData.activeContractorId,
+        status: 0, // Database uses bigint: 0=not sent, 1=sent, 2=archived
+        is_archived: false,
+        number: 0,
+        notes: null,
+        price_list_id: null // We'll handle price lists separately
+        // Removed: price_list_snapshot, price_overrides, has_invoice, invoice_id, invoice_status
+      });
 
-      return {
-        ...prev,
-        contractorProjects: {
-          ...prev.contractorProjects,
-          [activeContractorId]: {
-            ...prev.contractorProjects[activeContractorId],
-            categories: prev.contractorProjects[activeContractorId].categories.map(category => {
+      setAppData(prev => {
+        const activeContractorId = prev.activeContractorId;
+
+        if (!activeContractorId) {
+          return {
+            ...prev,
+            projectCategories: prev.projectCategories.map(category => {
               if (category.id === categoryId) {
                 return {
                   ...category,
@@ -460,130 +449,121 @@ export const AppDataProvider = ({ children }) => {
               }
               return category;
             })
-          }
+          };
         }
-      };
-    });
 
-    return newProject;
-  };
+        if (!prev.contractorProjects[activeContractorId]) {
+          return {
+            ...prev,
+            contractorProjects: {
+              ...prev.contractorProjects,
+              [activeContractorId]: {
+                categories: getDefaultCategories().map(category => {
+                  if (category.id === categoryId) {
+                    return {
+                      ...category,
+                      projects: [newProject],
+                      count: 1
+                    };
+                  }
+                  return category;
+                }),
+                archivedProjects: []
+              }
+            }
+          };
+        }
 
-  const updateProject = (categoryId, projectId, projectData) => {
-    setAppData(prev => {
-      const activeContractorId = prev.activeContractorId;
-      
-      if (!activeContractorId) {
-        // Update global projects if no contractor selected
         return {
           ...prev,
-          projectCategories: prev.projectCategories.map(category => {
-            if (category.id === categoryId) {
-              return {
-                ...category,
-                projects: category.projects.map(project => 
-                  project.id === projectId ? { ...project, ...projectData } : project
-                )
-              };
+          contractorProjects: {
+            ...prev.contractorProjects,
+            [activeContractorId]: {
+              ...prev.contractorProjects[activeContractorId],
+              categories: prev.contractorProjects[activeContractorId].categories.map(category => {
+                if (category.id === categoryId) {
+                  return {
+                    ...category,
+                    projects: [newProject, ...category.projects],
+                    count: category.count + 1
+                  };
+                }
+                return category;
+              })
             }
-            return category;
-          })
+          }
         };
-      }
+      });
 
-      // Update contractor-specific projects
-      if (!prev.contractorProjects[activeContractorId]) {
-        return prev; // No contractor project structure to update
-      }
+      return newProject;
+    } catch (error) {
+      console.error('[SUPABASE] Error adding project:', error);
+      throw error;
+    }
+  };
 
-      return {
-        ...prev,
-        contractorProjects: {
-          ...prev.contractorProjects,
-          [activeContractorId]: {
-            ...prev.contractorProjects[activeContractorId],
-            categories: prev.contractorProjects[activeContractorId].categories.map(category => {
+  const updateProject = async (categoryId, projectId, projectData) => {
+    try {
+      await api.projects.update(projectId, projectData);
+
+      setAppData(prev => {
+        const activeContractorId = prev.activeContractorId;
+
+        if (!activeContractorId) {
+          return {
+            ...prev,
+            projectCategories: prev.projectCategories.map(category => {
               if (category.id === categoryId) {
                 return {
                   ...category,
-                  projects: category.projects.map(project => 
+                  projects: category.projects.map(project =>
                     project.id === projectId ? { ...project, ...projectData } : project
                   )
                 };
               }
               return category;
             })
-          }
-        }
-      };
-    });
-  };
-
-  const deleteProject = (categoryId, projectId) => {
-    setAppData(prev => ({
-      ...prev,
-      projectCategories: prev.projectCategories.map(category => {
-        if (category.id === categoryId) {
-          return {
-            ...category,
-            projects: category.projects.filter(project => project.id !== projectId),
-            count: category.count - 1
           };
         }
-        return category;
-      })
-    }));
 
-    // Also remove project from any client's project list
-    setAppData(prev => ({
-      ...prev,
-      clients: prev.clients.map(client => ({
-        ...client,
-        projects: client.projects.filter(project => project.id !== projectId)
-      }))
-    }));
-  };
+        if (!prev.contractorProjects[activeContractorId]) {
+          return prev;
+        }
 
-  const archiveProject = (categoryId, projectId) => {
-    // Find the project to archive
-    const projectResult = findProjectById(projectId);
-    if (!projectResult) return;
-
-    const { project } = projectResult;
-    const archivedProject = {
-      ...project,
-      originalCategoryId: categoryId,
-      archivedDate: new Date().toISOString(),
-      contractorId: appData.activeContractorId // Store which contractor this project belonged to
-    };
-
-    setAppData(prev => {
-      const newState = {
-        ...prev,
-        // Add to archived projects
-        archivedProjects: [...prev.archivedProjects, archivedProject],
-      };
-
-      // Remove from contractor-specific projects if active contractor exists
-      if (prev.activeContractorId && prev.contractorProjects[prev.activeContractorId]) {
-        newState.contractorProjects = {
-          ...prev.contractorProjects,
-          [prev.activeContractorId]: {
-            ...prev.contractorProjects[prev.activeContractorId],
-            categories: prev.contractorProjects[prev.activeContractorId].categories.map(category => {
-              if (category.id === categoryId) {
-                return {
-                  ...category,
-                  projects: category.projects.filter(project => project.id !== projectId),
-                  count: category.count - 1
-                };
-              }
-              return category;
-            })
+        return {
+          ...prev,
+          contractorProjects: {
+            ...prev.contractorProjects,
+            [activeContractorId]: {
+              ...prev.contractorProjects[activeContractorId],
+              categories: prev.contractorProjects[activeContractorId].categories.map(category => {
+                if (category.id === categoryId) {
+                  return {
+                    ...category,
+                    projects: category.projects.map(project =>
+                      project.id === projectId ? { ...project, ...projectData } : project
+                    )
+                  };
+                }
+                return category;
+              })
+            }
           }
         };
-      } else {
-        // Fallback: Remove from global project categories (for backward compatibility)
-        newState.projectCategories = prev.projectCategories.map(category => {
+      });
+    } catch (error) {
+      console.error('[SUPABASE] Error updating project:', error);
+      throw error;
+    }
+  };
+
+  const deleteProject = async (categoryId, projectId) => {
+    try {
+      await api.projects.delete(projectId);
+
+      setAppData(prev => ({
+        ...prev,
+        projectCategories: prev.projectCategories.map(category => {
           if (category.id === categoryId) {
             return {
               ...category,
@@ -592,116 +572,215 @@ export const AppDataProvider = ({ children }) => {
             };
           }
           return category;
-        });
-      }
-
-      // Remove project from any client's project list
-      newState.clients = prev.clients.map(client => ({
-        ...client,
-        projects: client.projects.filter(project => project.id !== projectId)
+        }),
+        clients: prev.clients.map(client => ({
+          ...client,
+          projects: client.projects.filter(project => project.id !== projectId)
+        }))
       }));
-
-      return newState;
-    });
+    } catch (error) {
+      console.error('[SUPABASE] Error deleting project:', error);
+      throw error;
+    }
   };
 
-  const unarchiveProject = (projectId) => {
-    const archivedProject = appData.archivedProjects.find(p => p.id === projectId);
-    if (!archivedProject) return;
+  const archiveProject = async (categoryId, projectId) => {
+    try {
+      const projectResult = findProjectById(projectId);
+      if (!projectResult) return;
 
-    // Remove archived project data and restore to original category
-    const { originalCategoryId, archivedDate, contractorId, ...restoredProject } = archivedProject;
+      const { project } = projectResult;
 
-    setAppData(prev => {
-      const newState = {
-        ...prev,
-        // Remove from archived projects
-        archivedProjects: prev.archivedProjects.filter(project => project.id !== projectId),
+      // Update project in database to mark as archived
+      await api.projects.update(projectId, {
+        is_archived: true,
+        category: categoryId // Store original category
+      });
+
+      const archivedProject = {
+        ...project,
+        is_archived: true,
+        originalCategoryId: categoryId,
+        archivedDate: new Date().toISOString(),
+        contractorId: appData.activeContractorId
       };
 
-      // Restore to contractor-specific projects if contractor exists
-      if (contractorId && prev.contractorProjects[contractorId]) {
-        newState.contractorProjects = {
-          ...prev.contractorProjects,
-          [contractorId]: {
-            ...prev.contractorProjects[contractorId],
-            categories: prev.contractorProjects[contractorId].categories.map(category => {
-              if (category.id === originalCategoryId) {
-                return {
-                  ...category,
-                  projects: [restoredProject, ...category.projects],
-                  count: category.count + 1
-                };
-              }
-              return category;
-            })
-          }
+      setAppData(prev => {
+        const newState = {
+          ...prev,
+          archivedProjects: [...prev.archivedProjects, archivedProject],
         };
-      } else {
-        // Fallback: Restore to global project categories (for backward compatibility)
-        newState.projectCategories = prev.projectCategories.map(category => {
-          if (category.id === originalCategoryId) {
-            return {
-              ...category,
-              projects: [restoredProject, ...category.projects],
-              count: category.count + 1
-            };
-          }
-          return category;
-        });
-      }
 
-      return newState;
-    });
+        if (prev.activeContractorId && prev.contractorProjects[prev.activeContractorId]) {
+          newState.contractorProjects = {
+            ...prev.contractorProjects,
+            [prev.activeContractorId]: {
+              ...prev.contractorProjects[prev.activeContractorId],
+              categories: prev.contractorProjects[prev.activeContractorId].categories.map(category => {
+                if (category.id === categoryId) {
+                  return {
+                    ...category,
+                    projects: category.projects.filter(project => project.id !== projectId),
+                    count: category.count - 1
+                  };
+                }
+                return category;
+              })
+            }
+          };
+        } else {
+          newState.projectCategories = prev.projectCategories.map(category => {
+            if (category.id === categoryId) {
+              return {
+                ...category,
+                projects: category.projects.filter(project => project.id !== projectId),
+                count: category.count - 1
+              };
+            }
+            return category;
+          });
+        }
+
+        newState.clients = prev.clients.map(client => ({
+          ...client,
+          projects: client.projects.filter(project => project.id !== projectId)
+        }));
+
+        return newState;
+      });
+    } catch (error) {
+      console.error('[SUPABASE] Error archiving project:', error);
+      throw error;
+    }
   };
 
-  const deleteArchivedProject = (projectId) => {
-    setAppData(prev => ({
-      ...prev,
-      archivedProjects: prev.archivedProjects.filter(project => project.id !== projectId)
-    }));
+  const unarchiveProject = async (projectId) => {
+    try {
+      const archivedProject = appData.archivedProjects.find(p => p.id === projectId);
+      if (!archivedProject) return;
 
-    // Also remove any associated rooms data
-    setAppData(prev => ({
-      ...prev,
-      projectRoomsData: {
-        ...prev.projectRoomsData,
-        [projectId]: undefined
-      }
-    }));
+      // Update project in database to unarchive
+      await api.projects.update(projectId, {
+        is_archived: false
+      });
+
+      const { originalCategoryId, archivedDate, contractorId, ...restoredProject } = archivedProject;
+
+      setAppData(prev => {
+        const newState = {
+          ...prev,
+          archivedProjects: prev.archivedProjects.filter(project => project.id !== projectId),
+        };
+
+        if (contractorId && prev.contractorProjects[contractorId]) {
+          newState.contractorProjects = {
+            ...prev.contractorProjects,
+            [contractorId]: {
+              ...prev.contractorProjects[contractorId],
+              categories: prev.contractorProjects[contractorId].categories.map(category => {
+                if (category.id === originalCategoryId) {
+                  return {
+                    ...category,
+                    projects: [restoredProject, ...category.projects],
+                    count: category.count + 1
+                  };
+                }
+                return category;
+              })
+            }
+          };
+        } else {
+          newState.projectCategories = prev.projectCategories.map(category => {
+            if (category.id === originalCategoryId) {
+              return {
+                ...category,
+                projects: [restoredProject, ...category.projects],
+                count: category.count + 1
+              };
+            }
+            return category;
+          });
+        }
+
+        return newState;
+      });
+    } catch (error) {
+      console.error('[SUPABASE] Error unarchiving project:', error);
+      throw error;
+    }
+  };
+
+  const deleteArchivedProject = async (projectId) => {
+    try {
+      await api.projects.delete(projectId);
+
+      setAppData(prev => ({
+        ...prev,
+        archivedProjects: prev.archivedProjects.filter(project => project.id !== projectId),
+        projectRoomsData: {
+          ...prev.projectRoomsData,
+          [projectId]: undefined
+        }
+      }));
+    } catch (error) {
+      console.error('[SUPABASE] Error deleting archived project:', error);
+      throw error;
+    }
   };
 
   // Contractor management functions
-  const addContractor = (contractorData) => {
-    setAppData(prev => ({
-      ...prev,
-      contractors: [...prev.contractors, contractorData],
-      contractorProjects: {
-        ...prev.contractorProjects,
-        [contractorData.id]: {
-          categories: getDefaultCategories(),
-          archivedProjects: []
+  const addContractor = async (contractorData) => {
+    try {
+      const newContractor = await api.contractors.create(contractorData);
+
+      setAppData(prev => ({
+        ...prev,
+        contractors: [...prev.contractors, newContractor],
+        contractorProjects: {
+          ...prev.contractorProjects,
+          [newContractor.id]: {
+            categories: getDefaultCategories(),
+            archivedProjects: []
+          }
         }
-      }
-    }));
+      }));
+
+      return newContractor;
+    } catch (error) {
+      console.error('[SUPABASE] Error adding contractor:', error);
+      throw error;
+    }
   };
 
-  const updateContractor = (contractorId, contractorData) => {
-    setAppData(prev => ({
-      ...prev,
-      contractors: prev.contractors.map(contractor =>
-        contractor.id === contractorId ? { ...contractor, ...contractorData } : contractor
-      )
-    }));
+  const updateContractor = async (contractorId, contractorData) => {
+    try {
+      await api.contractors.update(contractorId, contractorData);
+
+      setAppData(prev => ({
+        ...prev,
+        contractors: prev.contractors.map(contractor =>
+          contractor.id === contractorId ? { ...contractor, ...contractorData } : contractor
+        )
+      }));
+    } catch (error) {
+      console.error('[SUPABASE] Error updating contractor:', error);
+      throw error;
+    }
   };
 
-  const deleteContractor = (contractorId) => {
-    setAppData(prev => ({
-      ...prev,
-      contractors: prev.contractors.filter(contractor => contractor.id !== contractorId),
-      // If deleting active contractor, reset to null
-      activeContractorId: prev.activeContractorId === contractorId ? null : prev.activeContractorId
-    }));
+  const deleteContractor = async (contractorId) => {
+    try {
+      await api.contractors.delete(contractorId);
+
+      setAppData(prev => ({
+        ...prev,
+        contractors: prev.contractors.filter(contractor => contractor.id !== contractorId),
+        activeContractorId: prev.activeContractorId === contractorId ? null : prev.activeContractorId
+      }));
+    } catch (error) {
+      console.error('[SUPABASE] Error deleting contractor:', error);
+      throw error;
+    }
   };
 
   const setActiveContractor = (contractorId) => {
@@ -719,76 +798,101 @@ export const AppDataProvider = ({ children }) => {
   };
 
   // Invoice management functions
-  const createInvoice = (projectId, categoryId, invoiceData) => {
-    const project = findProjectById(projectId, categoryId);
-    if (!project) return null;
+  const createInvoice = async (projectId, categoryId, invoiceData) => {
+    try {
+      const project = findProjectById(projectId, categoryId);
+      if (!project) return null;
 
-    const newInvoice = {
-      id: Date.now(),
-      invoiceNumber: invoiceData.invoiceNumber,
-      projectId,
-      categoryId,
-      projectName: project.name,
-      contractorId: appData.activeContractorId,
-      createdDate: invoiceData.createdDate || new Date().toISOString(),
-      issueDate: invoiceData.issueDate,
-      dueDate: invoiceData.dueDate,
-      paymentMethod: invoiceData.paymentMethod || 'transfer', // 'transfer' or 'cash'
-      paymentDays: invoiceData.paymentDays || 30,
-      notes: invoiceData.notes || '',
-      status: 'unsent', // 'unsent' or 'sent'
-      ...invoiceData
-    };
+      // Map camelCase fields to snake_case database columns
+      const mappedInvoiceData = {
+        number: invoiceData.invoiceNumber,
+        date_of_dispatch: invoiceData.issueDate,
+        payment_type: invoiceData.paymentMethod || 'transfer',
+        maturity_days: invoiceData.paymentDays || 30,
+        note: invoiceData.notes || null,
+        project_id: projectId,
+        c_id: appData.activeContractorId,
+        client_id: project.clientId,
+        contractor_id: appData.activeContractorId,
+        status: 'unsent'
+      };
 
-    setAppData(prev => ({
-      ...prev,
-      invoices: [...prev.invoices, newInvoice]
-    }));
+      console.log('[DEBUG] Creating invoice with data:', mappedInvoiceData);
+      const dbInvoice = await api.invoices.create(mappedInvoiceData);
+      console.log('[DEBUG] Invoice created from DB:', dbInvoice);
 
-    // Update project to mark it has an invoice
-    updateProject(categoryId, projectId, {
-      hasInvoice: true,
-      invoiceId: newInvoice.id,
-      invoiceStatus: 'unsent'
-    });
+      // Transform the database invoice to app format
+      const transformedInvoice = {
+        id: dbInvoice.id,
+        invoiceNumber: dbInvoice.number,
+        issueDate: dbInvoice.date_of_dispatch,
+        dueDate: invoiceData.dueDate, // Use the dueDate from invoiceData
+        paymentMethod: dbInvoice.payment_type,
+        paymentDays: dbInvoice.maturity_days,
+        notes: dbInvoice.note,
+        status: dbInvoice.status,
+        projectId: dbInvoice.project_id,
+        projectName: project.name,
+        categoryId: categoryId,
+        clientId: dbInvoice.client_id,
+        contractorId: dbInvoice.contractor_id || dbInvoice.c_id,
+        createdDate: dbInvoice.created_at
+      };
 
-    return newInvoice;
-  };
+      console.log('[DEBUG] Transformed invoice:', transformedInvoice);
 
-  const updateInvoice = (invoiceId, updates) => {
-    // Find the invoice before updating
-    const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+      setAppData(prev => ({
+        ...prev,
+        invoices: [...prev.invoices, transformedInvoice]
+      }));
 
-    setAppData(prev => ({
-      ...prev,
-      invoices: prev.invoices.map(invoice =>
-        invoice.id === invoiceId ? { ...invoice, ...updates } : invoice
-      )
-    }));
+      // Note: Invoice-project relationship is managed via invoices.project_id
+      // No need to update project table as it doesn't have invoice fields
 
-    // If status is updated, also update the project
-    if (updates.status && invoice) {
-      updateProject(invoice.categoryId, invoice.projectId, {
-        invoiceStatus: updates.status
-      });
+      return transformedInvoice;
+    } catch (error) {
+      console.error('[SUPABASE] Error creating invoice:', error);
+      throw error;
     }
   };
 
-  const deleteInvoice = (invoiceId) => {
-    const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+  const updateInvoice = async (invoiceId, updates) => {
+    try {
+      const invoice = appData.invoices.find(inv => inv.id === invoiceId);
 
-    setAppData(prev => ({
-      ...prev,
-      invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
-    }));
+      await api.invoices.update(invoiceId, updates);
 
-    // Update project to remove invoice reference
-    if (invoice) {
-      updateProject(invoice.categoryId, invoice.projectId, {
-        hasInvoice: false,
-        invoiceId: null,
-        invoiceStatus: null
-      });
+      setAppData(prev => ({
+        ...prev,
+        invoices: prev.invoices.map(invoice =>
+          invoice.id === invoiceId ? { ...invoice, ...updates } : invoice
+        )
+      }));
+
+      // Note: Invoice status is managed via invoices table only
+      // No need to update project table as it doesn't have invoice_status field
+    } catch (error) {
+      console.error('[SUPABASE] Error updating invoice:', error);
+      throw error;
+    }
+  };
+
+  const deleteInvoice = async (invoiceId) => {
+    try {
+      const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+
+      await api.invoices.delete(invoiceId);
+
+      setAppData(prev => ({
+        ...prev,
+        invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
+      }));
+
+      // Note: Invoice-project relationship is managed via invoices.project_id
+      // No need to update project table as it doesn't have invoice fields
+    } catch (error) {
+      console.error('[SUPABASE] Error deleting invoice:', error);
+      throw error;
     }
   };
 
@@ -797,44 +901,15 @@ export const AppDataProvider = ({ children }) => {
   };
 
   const getInvoicesForContractor = (contractorId) => {
-    return appData.invoices.filter(inv => inv.contractorId === contractorId);
+    console.log('[DEBUG] getInvoicesForContractor:', { contractorId, totalInvoices: appData.invoices.length, invoices: appData.invoices });
+    const filtered = appData.invoices.filter(inv => inv.contractorId === contractorId);
+    console.log('[DEBUG] Filtered invoices:', filtered);
+    return filtered;
   };
 
   const getInvoiceForProject = (projectId) => {
     return appData.invoices.find(inv => inv.projectId === projectId);
   };
-
-  // Helper function to get default categories structure
-  const getDefaultCategories = () => [
-    {
-      id: 'flats',
-      name: 'Flats',
-      count: 0,
-      image: flatsImage,
-      projects: []
-    },
-    {
-      id: 'houses', 
-      name: 'Houses',
-      count: 0,
-      image: housesImage,
-      projects: []
-    },
-    {
-      id: 'companies',
-      name: 'Companies', 
-      count: 0,
-      image: companiesImage,
-      projects: []
-    },
-    {
-      id: 'cottages',
-      name: 'Cottages',
-      count: 0,
-      image: cottagesImage,
-      projects: []
-    }
-  ];
 
   // Helper function to get project categories for a specific contractor
   const getProjectCategoriesForContractor = (contractorId) => {
@@ -934,51 +1009,157 @@ export const AppDataProvider = ({ children }) => {
   };
 
   // Room management functions
-  const addRoomToProject = (projectId, roomData) => {
-    const newRoom = {
-      id: Date.now(),
-      ...roomData,
-      workItems: []
-    };
+  const addRoomToProject = async (projectId, roomData) => {
+    try {
+      // Create room with all required fields
+      const newRoom = await api.rooms.create({
+        project_id: projectId,
+        c_id: appData.activeContractorId,
+        name: roomData.name,
+        room_type: roomData.roomType || null,
+        floor_length: roomData.floorLength || 0,
+        floor_width: roomData.floorWidth || 0,
+        wall_height: roomData.wallHeight || 0,
+        commute_length: roomData.commuteLength || 0,
+        days_in_work: roomData.daysInWork || 0,
+        tool_rental: roomData.toolRental || 0
+      });
 
-    setAppData(prev => ({
-      ...prev,
-      projectRoomsData: {
-        ...(prev.projectRoomsData || {}),
-        [projectId]: [
-          ...((prev.projectRoomsData && prev.projectRoomsData[projectId]) || []),
-          newRoom
-        ]
-      }
-    }));
+      // Add workItems array to the new room for local state
+      const roomWithWorkItems = {
+        ...newRoom,
+        workItems: []
+      };
 
-    return newRoom;
+      setAppData(prev => ({
+        ...prev,
+        projectRoomsData: {
+          ...(prev.projectRoomsData || {}),
+          [projectId]: [
+            ...((prev.projectRoomsData && prev.projectRoomsData[projectId]) || []),
+            roomWithWorkItems
+          ]
+        }
+      }));
+
+      return newRoom;
+    } catch (error) {
+      console.error('[SUPABASE] Error adding room:', error);
+      throw error;
+    }
   };
 
-  const updateProjectRoom = (projectId, roomId, roomData) => {
-    setAppData(prev => ({
-      ...prev,
-      projectRoomsData: {
-        ...(prev.projectRoomsData || {}),
-        [projectId]: ((prev.projectRoomsData && prev.projectRoomsData[projectId]) || []).map(room =>
-          room.id === roomId ? { ...room, ...roomData } : room
-        )
+  // Helper function to save work items to database tables
+  const saveWorkItemsForRoom = async (roomId, workItems) => {
+    // Optimize: Only delete from tables that will be affected
+    const tablesToUpdate = new Set();
+
+    // First pass: determine which tables will have new data
+    workItems.forEach(workItem => {
+      const tableName = getTableName(workItem.propertyId);
+      if (tableName) {
+        tablesToUpdate.add(tableName);
       }
-    }));
+    });
+
+    // Delete existing items only from tables that will be updated
+    const deletePromises = Array.from(tablesToUpdate).map(async (tableName) => {
+      try {
+        const existingItems = await api.workItems.getByRoom(roomId, tableName);
+        if (existingItems && existingItems.length > 0) {
+          await Promise.all(existingItems.map(item =>
+            api.workItems.delete(tableName, item.id)
+          ));
+        }
+      } catch (error) {
+        console.debug(`No existing items in ${tableName}`);
+      }
+    });
+
+    // Wait for all deletes to complete
+    await Promise.all(deletePromises);
+
+    // Then insert all work items in parallel
+    const insertPromises = workItems.map(async (workItem) => {
+      const tableName = getTableName(workItem.propertyId);
+      if (!tableName) {
+        console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
+        return;
+      }
+
+      const dbRecord = workItemToDatabase(workItem, roomId, appData.activeContractorId);
+
+      if (dbRecord) {
+        try {
+          await api.workItems.create(tableName, dbRecord);
+        } catch (error) {
+          console.error(`Error saving work item to ${tableName}:`, error);
+          throw error;
+        }
+      }
+    });
+
+    // Wait for all inserts to complete
+    await Promise.all(insertPromises);
   };
 
-  const deleteProjectRoom = (projectId, roomId) => {
-    setAppData(prev => ({
-      ...prev,
-      projectRoomsData: {
-        ...(prev.projectRoomsData || {}),
-        [projectId]: ((prev.projectRoomsData && prev.projectRoomsData[projectId]) || []).filter(room => room.id !== roomId)
+  const updateProjectRoom = async (projectId, roomId, roomData) => {
+    try {
+      // Validate roomId
+      if (!roomId) {
+        console.error('[SUPABASE] updateProjectRoom called with undefined roomId', { projectId, roomData });
+        throw new Error('Room ID is required to update a room');
       }
-    }));
+
+      // Separate workItems from room data
+      const { workItems, ...otherData } = roomData;
+
+      // Only update room data if there are other fields besides workItems
+      if (Object.keys(otherData).length > 0) {
+        await api.rooms.update(roomId, otherData);
+      }
+
+      // Save work items to database tables if provided
+      if (workItems) {
+        await saveWorkItemsForRoom(roomId, workItems);
+      }
+
+      setAppData(prev => ({
+        ...prev,
+        projectRoomsData: {
+          ...(prev.projectRoomsData || {}),
+          [projectId]: ((prev.projectRoomsData && prev.projectRoomsData[projectId]) || []).map(room =>
+            room.id === roomId ? { ...room, ...roomData } : room
+          )
+        }
+      }));
+    } catch (error) {
+      console.error('[SUPABASE] Error updating room:', error);
+      throw error;
+    }
+  };
+
+  const deleteProjectRoom = async (projectId, roomId) => {
+    try {
+      await api.rooms.delete(roomId);
+
+      setAppData(prev => ({
+        ...prev,
+        projectRoomsData: {
+          ...(prev.projectRoomsData || {}),
+          [projectId]: ((prev.projectRoomsData && prev.projectRoomsData[projectId]) || []).filter(room => room.id !== roomId)
+        }
+      }));
+    } catch (error) {
+      console.error('[SUPABASE] Error deleting room:', error);
+      throw error;
+    }
   };
 
   const getProjectRooms = (projectId) => {
-    return (appData.projectRoomsData && appData.projectRoomsData[projectId]) || [];
+    const rooms = (appData.projectRoomsData && appData.projectRoomsData[projectId]) || [];
+    console.log('[DEBUG] getProjectRooms:', projectId, 'rooms:', rooms.map(r => ({ id: r.id, name: r.name })));
+    return rooms;
   };
 
   // Price calculation functions
@@ -2110,6 +2291,24 @@ export const AppDataProvider = ({ children }) => {
     updateGeneralPriceList,
     resetGeneralPriceItem
   };
+
+  // Show loading screen while data is being fetched
+  if (loading) {
+    return (
+      <AppDataContext.Provider value={contextValue}>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="text-center">
+            <div className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+              Loading data...
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Please wait while we load your projects
+            </div>
+          </div>
+        </div>
+      </AppDataContext.Provider>
+    );
+  }
 
   return (
     <AppDataContext.Provider value={contextValue}>

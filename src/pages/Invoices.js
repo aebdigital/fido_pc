@@ -82,14 +82,25 @@ const Invoices = () => {
     setShowContractorSelector(false);
   };
 
-  const handleSaveContractor = (contractorData) => {
-    if (contractorData.id) {
-      updateContractor(contractorData.id, contractorData);
-    } else {
-      const newContractor = addContractor(contractorData);
-      setActiveContractorId(newContractor.id);
+  const handleSaveContractor = async (contractorData) => {
+    try {
+      if (contractorData.id) {
+        await updateContractor(contractorData.id, contractorData);
+      } else {
+        const newContractor = await addContractor(contractorData);
+        if (newContractor) {
+          setActiveContractorId(newContractor.id);
+        }
+      }
+      setShowContractorModal(false);
+    } catch (error) {
+      console.error('Error saving contractor:', error);
+      if (error.userFriendly) {
+        alert(error.message);
+      } else {
+        alert('Failed to save contractor. Please try again.');
+      }
     }
-    setShowContractorModal(false);
   };
 
   return (
@@ -252,7 +263,7 @@ const Invoices = () => {
         invoice={selectedInvoice}
       />
 
-      <style jsx>{`
+      <style>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;

@@ -39,19 +39,38 @@ const PriceOfferSettings = ({ onBack }) => {
     setShowContractorModal(true);
   };
 
-  const handleSaveContractor = (contractorData) => {
-    if (editingContractor) {
-      updateContractor(editingContractor.id, contractorData);
-    } else {
-      addContractor(contractorData);
+  const handleSaveContractor = async (contractorData) => {
+    try {
+      if (editingContractor) {
+        await updateContractor(editingContractor.id, contractorData);
+      } else {
+        await addContractor(contractorData);
+      }
+      setShowContractorModal(false);
+      setEditingContractor(null);
+    } catch (error) {
+      console.error('Error saving contractor:', error);
+      // Show user-friendly error message
+      if (error.userFriendly) {
+        alert(error.message);
+      } else {
+        alert('Failed to save contractor. Please try again.');
+      }
     }
-    setShowContractorModal(false);
-    setEditingContractor(null);
   };
 
-  const handleDeleteContractor = (contractorId) => {
+  const handleDeleteContractor = async (contractorId) => {
     if (window.confirm(t('Are you sure you want to delete this contractor?'))) {
-      deleteContractor(contractorId);
+      try {
+        await deleteContractor(contractorId);
+      } catch (error) {
+        console.error('Error deleting contractor:', error);
+        if (error.userFriendly) {
+          alert(error.message);
+        } else {
+          alert('Failed to delete contractor. Please try again.');
+        }
+      }
     }
   };
 
