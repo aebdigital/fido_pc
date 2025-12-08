@@ -252,7 +252,10 @@ export const AppDataProvider = ({ children }) => {
       });
 
       // Build project rooms data structure and load work items
-      const projectRoomsData = {};
+      // OPTIMIZATION: We no longer load all rooms and work items on startup.
+      // They are loaded on demand when opening a project via loadProjectDetails.
+      const projectRoomsData = {}; 
+      /*
       for (const project of projects) {
         const rooms = await api.rooms.getByProject(project.id);
         if (rooms && rooms.length > 0) {
@@ -267,32 +270,7 @@ export const AppDataProvider = ({ children }) => {
           projectRoomsData[project.id] = roomsWithWorkItems;
         }
       }
-
-      // Helper function to load work items from all tables
-      async function loadWorkItemsForRoom(roomId) {
-        const allWorkItems = [];
-
-        // Query each work item table
-        for (const [, tableName] of Object.entries(PROPERTY_TO_TABLE)) {
-          try {
-            const records = await api.workItems.getByRoom(roomId, tableName);
-            if (records && records.length > 0) {
-              // Convert database records to app work items
-              records.forEach(record => {
-                const workItem = databaseToWorkItem(record, tableName);
-                if (workItem) {
-                  allWorkItems.push(workItem);
-                }
-              });
-            }
-          } catch (error) {
-            // Table might not exist or no records, continue
-            console.debug(`No work items in ${tableName} for room ${roomId}`);
-          }
-        }
-
-        return allWorkItems;
-      }
+      */
 
       // Get active contractor (first one or null)
       const activeContractorId = contractors.length > 0 ? contractors[0].id : null;
@@ -327,6 +305,73 @@ export const AppDataProvider = ({ children }) => {
   }, [user]);
 
   const [appData, setAppData] = useState(getDefaultData);
+
+  // Helper function to load work items from all tables (moved from loadInitialData)
+  const loadWorkItemsForRoom = async (roomId) => {
+    const allWorkItems = [];
+
+    // Query each work item table
+    for (const [, tableName] of Object.entries(PROPERTY_TO_TABLE)) {
+      try {
+        const records = await api.workItems.getByRoom(roomId, tableName);
+        if (records && records.length > 0) {
+          // Convert database records to app work items
+          records.forEach(record => {
+            const workItem = databaseToWorkItem(record, tableName);
+            if (workItem) {
+              allWorkItems.push(workItem);
+            }
+          });
+        }
+      } catch (error) {
+        // Table might not exist or no records, continue
+        // console.debug(`No work items in ${tableName} for room ${roomId}`);
+      }
+    }
+
+    return allWorkItems;
+  };
+
+  // Load details (rooms and work items) for a specific project
+  const loadProjectDetails = async (projectId) => {
+    try {
+      console.log(`[SUPABASE] Loading details for project ${projectId}...`);
+      
+      // Get rooms
+      const rooms = await api.rooms.getByProject(projectId);
+      
+      if (!rooms || rooms.length === 0) {
+         setAppData(prev => ({
+          ...prev,
+          projectRoomsData: {
+            ...prev.projectRoomsData,
+            [projectId]: []
+          }
+        }));
+        return;
+      }
+
+      // Load work items for each room
+      const roomsWithWorkItems = await Promise.all(rooms.map(async (room) => {
+        const workItems = await loadWorkItemsForRoom(room.id);
+        return {
+          ...room,
+          workItems: workItems || []
+        };
+      }));
+
+      setAppData(prev => ({
+        ...prev,
+        projectRoomsData: {
+          ...prev.projectRoomsData,
+          [projectId]: roomsWithWorkItems
+        }
+      }));
+      console.log(`[SUPABASE] Loaded details for project ${projectId}`);
+    } catch (error) {
+      console.error(`[SUPABASE] Error loading details for project ${projectId}:`, error);
+    }
+  };
 
   // Load data from Supabase on mount
   useEffect(() => {
@@ -2274,6 +2319,7 @@ export const AppDataProvider = ({ children }) => {
     // Helper functions
     findProjectById,
     findClientById,
+    loadProjectDetails,
     
     // Price calculation functions
     calculateRoomPrice,

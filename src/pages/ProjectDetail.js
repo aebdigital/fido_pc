@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -7,8 +7,32 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const { t } = useLanguage();
-  const { contractors, activeContractorId } = useAppData();
+  const { 
+    contractors, 
+    activeContractorId,
+    loadProjectDetails,
+    getProjectRooms,
+    findProjectById,
+    calculateRoomPriceWithMaterials
+  } = useAppData();
   
+  const [isLoading, setIsLoading] = useState(true);
+  const [project, setProject] = useState(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      await loadProjectDetails(id);
+      const projectResult = findProjectById(id);
+      if (projectResult) {
+        setProject(projectResult.project);
+      }
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, [id, loadProjectDetails, findProjectById]);
+
   const getCurrentContractor = () => {
     return contractors.find(c => c.id === activeContractorId);
   };
@@ -18,40 +42,48 @@ const ProjectDetail = () => {
     'Living room', 'Kids room', 'Bedroom', 'Guests room',
     'Work room', 'Custom'
   ];
+  
+  const rooms = getProjectRooms(id);
 
+  if (isLoading) {
+    return <div className="p-8 text-center">{t('Loading...')}</div>;
+  }
 
-  const rooms = [
-    { name: 'Hallway', works: 0, price: '€0,00' },
-    { name: 'Toilet', works: 0, price: '€0,00' }
-  ];
+  if (!project) {
+    return <div className="p-8 text-center">{t('Project not found')}</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Link to="/projects" className="text-gray-600 hover:text-gray-900 text-lg">‹ Back</Link>
+        <Link to="/projects" className="text-gray-600 hover:text-gray-900 text-lg">‹ {t('Back')}</Link>
       </div>
 
       <div className="flex items-center gap-4 mb-8">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">{id}</span>
-          <span className="px-2 py-1 bg-red-50 text-red-600 text-xs font-medium rounded-full">{t('not sent')}</span>
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+            project.invoiceStatus === 'sent' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+          }`}>
+            {t(project.invoiceStatus === 'sent' ? 'sent' : 'not sent')}
+          </span>
         </div>
       </div>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">test Copy</h1>
-      <p className="text-gray-500 mb-8">{t('Notes')}</p>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">{project.name}</h1>
+      <p className="text-gray-500 mb-8">{project.notes || t('Notes')}</p>
 
       {/* Client Section */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xl">👤</span>
-          <h2 className="text-xl font-semibold text-gray-900">Client</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('Client')}</h2>
         </div>
         <div className="bg-gray-100 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 transition-colors cursor-pointer">
           <div>
-            <div className="font-medium text-gray-900">No client</div>
-            <div className="text-sm text-gray-600">Associate project with a client</div>
+            <div className="font-medium text-gray-900">{project.clientName || t('No client')}</div>
+            <div className="text-sm text-gray-600">{t('Associate project with a client')}</div>
           </div>
           <span className="text-gray-400">›</span>
         </div>
@@ -62,7 +94,7 @@ const ProjectDetail = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xl">📋</span>
-            <h2 className="text-xl font-semibold text-gray-900">Project</h2>
+            <h2 className="text-xl font-semibold text-gray-900">{t('Project')}</h2>
           </div>
           <div className="flex gap-2">
             <button className="p-2 text-gray-600 hover:text-gray-900">🗑️</button>
@@ -79,7 +111,7 @@ const ProjectDetail = () => {
         {showRoomSelector && (
           <div className="bg-gray-100 rounded-2xl p-6 mb-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">New room</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('New room')}</h3>
               <button 
                 className="text-gray-600 hover:text-gray-900"
                 onClick={() => setShowRoomSelector(false)}
@@ -93,7 +125,7 @@ const ProjectDetail = () => {
                   key={room}
                   className="bg-white rounded-xl p-3 text-gray-900 font-medium hover:bg-gray-50 transition-colors"
                 >
-                  {room}
+                  {t(room)}
                 </button>
               ))}
             </div>
@@ -102,23 +134,27 @@ const ProjectDetail = () => {
 
         {/* Existing Rooms */}
         <div className="space-y-3">
-          {rooms.map((room, index) => (
+          {rooms.map((room) => {
+             const calc = calculateRoomPriceWithMaterials(room, project.priceListSnapshot);
+             const price = calc.workTotal + calc.materialTotal + calc.othersTotal;
+             
+             return (
             <Link
-              key={index}
-              to={`/projects/${id}/room/${room.name.toLowerCase()}`}
+              key={room.id}
+              to={`/projects/${id}/room/${room.id}`}
               className="bg-gray-100 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 transition-colors"
             >
               <div>
                 <div className="font-medium text-gray-900">{room.name}</div>
-                <div className="text-sm text-gray-600">{room.works} works</div>
+                <div className="text-sm text-gray-600">{room.workItems?.length || 0} {t('works')}</div>
               </div>
               <div className="text-right">
                 <div className="text-xs text-gray-500 mb-1">{t('VAT not included')}</div>
-                <div className="font-semibold text-gray-900">{room.price}</div>
+                <div className="font-semibold text-gray-900">€{price.toFixed(2)}</div>
                 <span className="text-gray-400 ml-2">›</span>
               </div>
             </Link>
-          ))}
+          )})}
         </div>
       </div>
 
@@ -126,13 +162,13 @@ const ProjectDetail = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xl">📊</span>
-          <h2 className="text-xl font-semibold text-gray-900">Project management</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('Project management')}</h2>
         </div>
         <div className="space-y-3">
           <div className="bg-gray-100 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 transition-colors cursor-pointer">
             <div>
-              <div className="font-medium text-gray-900">Project price list</div>
-              <div className="text-sm text-gray-600">last change: 31 Oct 2025</div>
+              <div className="font-medium text-gray-900">{t('Project price list')}</div>
+              <div className="text-sm text-gray-600">{t('last change')}: 31 Oct 2025</div>
             </div>
             <span className="text-gray-400">›</span>
           </div>
@@ -145,21 +181,21 @@ const ProjectDetail = () => {
 
         <div className="flex gap-4 mt-6">
           <button className="flex-1 bg-white border-2 border-gray-300 text-gray-900 py-3 px-6 rounded-2xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-            <span>📋</span> Duplicate
+            <span>📋</span> {t('Duplicate')}
           </button>
           <button className="flex-1 bg-gray-900 text-white py-3 px-6 rounded-2xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
-            <span>📁</span> Archive
+            <span>📁</span> {t('Archive')}
           </button>
         </div>
       </div>
 
       {/* History */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">History</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('History')}</h2>
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-900">📋 Created</span>
+            <span className="text-sm font-medium text-gray-900">📋 {t('Created')}</span>
             <span className="text-sm text-gray-600">31/10/2025, 22:08</span>
           </div>
         </div>

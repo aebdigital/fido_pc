@@ -50,12 +50,14 @@ const Projects = () => {
     calculateProjectTotalPriceWithBreakdown,
     formatPrice,
     getInvoiceForProject,
-    getInvoicesForContractor
+    getInvoicesForContractor,
+    loadProjectDetails
   } = useAppData();
   
   const [activeCategory, setActiveCategory] = useState('flats');
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentView, setCurrentView] = useState(window.innerWidth < 1024 ? 'categories' : 'projects'); // 'categories', 'projects', 'details'
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   
   // Helper function to get current VAT rate from price list
   const getVATRate = () => {
@@ -592,9 +594,14 @@ const Projects = () => {
     setCurrentView('projects');
   };
 
-  const handleProjectSelect = (project) => {
+  const handleProjectSelect = async (project) => {
     setSelectedProject(project);
     setCurrentView('details');
+    
+    // Load details asynchronously
+    setIsLoadingDetails(true);
+    await loadProjectDetails(project.id);
+    setIsLoadingDetails(false);
     
     // Load the assigned client if the project has one
     if (project.clientId) {
@@ -1228,6 +1235,13 @@ const Projects = () => {
               </div>
 
               <div className="space-y-3">
+                {isLoadingDetails ? (
+                  <div className="text-center py-12">
+                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
+                     <p className="text-gray-500 dark:text-gray-400 font-medium">{t('Loading project details...')}</p>
+                  </div>
+                ) : (
+                  <>
                 {getProjectRooms(currentProject.id).map(room => (
                   <div 
                     key={room.id}
@@ -1269,6 +1283,8 @@ const Projects = () => {
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <p>{t('No rooms added yet. Click the + button to add a room.')}</p>
                   </div>
+                )}
+                  </>
                 )}
               </div>
             </div>
