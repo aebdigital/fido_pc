@@ -13,7 +13,8 @@ import {
   Send,
   Edit3,
   AlertTriangle,
-  FileText
+  FileText,
+  DollarSign
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import RoomDetailsModal from '../components/RoomDetailsModal';
@@ -51,7 +52,8 @@ const Projects = () => {
     formatPrice,
     getInvoiceForProject,
     getInvoicesForContractor,
-    loadProjectDetails
+    loadProjectDetails,
+    getProjectHistory
   } = useAppData();
   
   const [activeCategory, setActiveCategory] = useState('flats');
@@ -389,7 +391,8 @@ const Projects = () => {
       hasTypeSelector: true,
       types: ['Work', 'Material'],
       hasUnitSelector: true,
-      units: ['m', 'm²', 'm³', 'ks', 'bal', 'kg', 't', 'km', 'deň', 'hod'],
+      workUnits: ['bm', 'm²', 'm³', 'ks', 'bal', 'hod', 'km', 'deň'],
+      materialUnits: ['bm', 'ml', 'mš', 'ks', 'bal', 'kg', 't', 'km'],
       fields: [
         { name: 'Name', unit: 'text', type: 'text' },
         { name: 'Quantity', unit: 'number', type: 'number' },
@@ -805,7 +808,7 @@ const Projects = () => {
     };
 
     try {
-      const doc = generateInvoicePDF({
+      generateInvoicePDF({
         invoice,
         contractor,
         client,
@@ -817,10 +820,83 @@ const Projects = () => {
         formatDate,
         formatPrice
       });
-      doc.output('dataurlnewwindow');
+      // Window opening is now handled inside generateInvoicePDF
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert(t('Unable to generate PDF. Please try again.'));
+    }
+  };
+
+  const handleSendInvoice = async () => {
+    if (!currentProject) return;
+    const invoice = getInvoiceForProject(currentProject.id);
+    if (!invoice) return;
+
+    const contractor = getCurrentContractor();
+    const client = clients.find(c => c.id === currentProject.clientId);
+    
+    // Calculate totals
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(currentProject.id);
+    const vatRate = getVATRate();
+    const totalWithoutVAT = projectBreakdown?.total || 0;
+    const vat = totalWithoutVAT * vatRate;
+    const totalWithVAT = totalWithoutVAT + vat;
+
+    const formatDate = (dateString) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('sk-SK');
+    };
+
+    // Generate invoice data to share
+    const invoiceText = `
+${t('Invoice')} ${invoice.invoiceNumber}
+${currentProject.name}
+
+${t('Contractor')}: ${contractor?.name || '-'}
+${t('Client')}: ${client?.name || '-'}
+
+${t('Issue Date')}: ${formatDate(invoice.issueDate)}
+${t('Due Date')}: ${formatDate(invoice.dueDate)}
+${t('Payment Method')}: ${t(invoice.paymentMethod === 'cash' ? 'Cash' : 'Transfer')}
+
+${t('without VAT')}: ${formatPrice(totalWithoutVAT)}
+${t('VAT (23%)')}: ${formatPrice(vat)}
+${t('Total price')}: ${formatPrice(totalWithVAT)}
+${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
+    `.trim();
+
+    const fallbackShare = (text) => {
+      // Copy to clipboard as fallback
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text)
+          .then(() => {
+            alert(t('Invoice details copied to clipboard'));
+          })
+          .catch(() => {
+            alert(t('Unable to share. Please try again.'));
+          });
+      } else {
+        alert(t('Sharing not supported on this device'));
+      }
+    };
+
+    // Check if Web Share API is supported
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${t('Invoice')} ${invoice.invoiceNumber}`,
+          text: invoiceText,
+        });
+      } catch (error) {
+        // User cancelled or share failed
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing:', error);
+          fallbackShare(invoiceText);
+        }
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      fallbackShare(invoiceText);
     }
   };
 
@@ -916,16 +992,16 @@ const Projects = () => {
                     : 'hover:shadow-md'
                 }`}
               >
-                <div className="h-24 lg:h-32 relative">
-                  <img 
-                    src={category.image} 
+                <div className="h-24 lg:h-32 relative shadow-lg">
+                  <img
+                    src={category.image}
                     alt={category.name}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-3 flex justify-between items-end">
-                    <h3 className="text-base lg:text-xl font-bold text-white">{t(category.name)}</h3>
-                    <span className="text-white text-xs lg:text-base font-medium">{category.count}</span>
+                    <h3 className="text-base lg:text-xl font-bold text-gray-900">{t(category.name)}</h3>
+                    <span className="text-gray-900 text-xs lg:text-sm font-medium">{category.count} {t('projects')}</span>
                   </div>
                 </div>
               </button>
@@ -937,28 +1013,23 @@ const Projects = () => {
         <div className={`flex-1 flex flex-col min-w-0 ${currentView === 'details' ? 'w-full lg:flex-1' : ''}`}>
           {/* Category Selection View - Mobile Only */}
           {currentView === 'categories' && (
-            <div className="pt-4 pb-4 lg:hidden space-y-6 min-w-0 w-full">
-              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-6">
-                {t('Vyberte kategóriu projektov')}
-              </h2>
+            <div className="pt-2 pb-4 lg:hidden min-w-0 w-full">
               <div className="space-y-4">
                 {projectCategories.map(category => (
                   <button
                     key={category.id}
                     onClick={() => handleCategorySelect(category.id)}
-                    className="w-full h-32 rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md relative"
+                    className="w-full h-56 rounded-3xl overflow-hidden transition-all duration-200 relative shadow-lg hover:shadow-xl"
                   >
-                    <img 
-                      src={category.image} 
+                    <img
+                      src={category.image}
                       alt={category.name}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
                     <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between items-end">
-                      <h3 className="text-xl font-bold text-white">{t(category.name)}</h3>
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <h3 className="text-3xl font-bold text-gray-900">{t(category.name)}</h3>
+                      <span className="text-sm font-medium text-gray-900">{category.count} {t('projects')}</span>
                     </div>
                   </button>
                 ))}
@@ -1331,7 +1402,7 @@ const Projects = () => {
                       <span className="text-sm sm:text-lg">{t('Preview Invoice')}</span>
                     </button>
                     <button
-                      onClick={() => setShowInvoiceDetailModal(true)}
+                      onClick={handleSendInvoice}
                       className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                     >
                       <Send className="w-4 h-4" />
@@ -1431,15 +1502,81 @@ const Projects = () => {
             {/* History */}
             <div className="space-y-4">
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-gray-900 dark:bg-white rounded-full flex-shrink-0"></div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                  <div className="flex items-center gap-2">
-                    <ClipboardList className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Created')}</span>
+              <div className="space-y-3">
+                {/* Project Created - always show */}
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-gray-900 dark:bg-white rounded-full flex-shrink-0"></div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Created')}</span>
+                    </div>
+                    <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
+                      {currentProject?.created_at ? new Date(currentProject.created_at).toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                    </span>
                   </div>
-                  <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">31/10/2025, 22:08</span>
                 </div>
+
+                {/* Dynamic history events */}
+                {getProjectHistory(currentProject?.id)?.slice().reverse().map((event, index) => {
+                  const getEventIcon = () => {
+                    switch (event.type) {
+                      case 'invoice_created':
+                        return <FileText className="w-4 h-4 text-gray-700 dark:text-gray-300" />;
+                      case 'invoice_sent':
+                        return <Send className="w-4 h-4 text-green-600 dark:text-green-400" />;
+                      case 'invoice_paid':
+                        return <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+                      case 'invoice_deleted':
+                        return <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />;
+                      default:
+                        return <ClipboardList className="w-4 h-4 text-gray-700 dark:text-gray-300" />;
+                    }
+                  };
+
+                  const getEventLabel = () => {
+                    switch (event.type) {
+                      case 'invoice_created':
+                        return t('Invoice Created');
+                      case 'invoice_sent':
+                        return t('Invoice Sent');
+                      case 'invoice_paid':
+                        return t('Invoice Paid');
+                      case 'invoice_deleted':
+                        return t('Invoice Deleted');
+                      default:
+                        return event.type;
+                    }
+                  };
+
+                  const getEventColor = () => {
+                    switch (event.type) {
+                      case 'invoice_sent':
+                        return 'bg-green-500';
+                      case 'invoice_paid':
+                        return 'bg-blue-500';
+                      case 'invoice_deleted':
+                        return 'bg-red-500';
+                      default:
+                        return 'bg-gray-900 dark:bg-white';
+                    }
+                  };
+
+                  return (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className={`w-3 h-3 ${getEventColor()} rounded-full flex-shrink-0`}></div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                        <div className="flex items-center gap-2">
+                          {getEventIcon()}
+                          <span className="text-base font-medium text-gray-900 dark:text-white">{getEventLabel()}</span>
+                        </div>
+                        <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
+                          {new Date(event.date).toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

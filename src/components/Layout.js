@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ClipboardList, FileText, Users, Settings, Moon, Sun, LogOut } from 'lucide-react';
-import { useDarkMode } from '../context/DarkModeContext';
-import { useLanguage } from '../context/LanguageContext';
+import { ClipboardList, FileText, Users, Settings, LogOut } from 'lucide-react';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import UnsavedChangesModal from './UnsavedChangesModal';
 import { useNavigate } from 'react-router-dom';
 import logo from '../logo.png';
@@ -12,9 +11,8 @@ import logo from '../logo.png';
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { t, language, toggleLanguage } = useLanguage();
-  const { signOut } = useAuth();
+  const { t } = useLanguage();
+  const { signOut, user } = useAuth();
   const {
     attemptNavigation,
     showModal,
@@ -85,7 +83,7 @@ const Layout = ({ children }) => {
         <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
           <img src={logo} alt="Fido Logo" className="h-12 w-auto" />
         </div>
-        
+
         {/* Desktop Navigation */}
         <nav className="flex-1 px-4 py-6">
           <div className="space-y-2">
@@ -106,89 +104,43 @@ const Layout = ({ children }) => {
             ))}
           </div>
         </nav>
+
+        {/* Account Section at bottom */}
+        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={signOut}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 group"
+          >
+            <div className="flex items-center min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <span className="text-lg font-semibold text-gray-600 dark:text-gray-300">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="ml-3 min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {user?.email || 'User'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('Sign Out')}
+                </p>
+              </div>
+            </div>
+            <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors flex-shrink-0" />
+          </button>
+        </div>
       </div>
 
       {/* Mobile Header - Visible only on Mobile */}
-      <div className={`lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 h-16 flex items-center justify-between fixed top-0 left-0 right-0 z-40 transition-transform duration-300 ${
+      <div className={`lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 h-16 flex items-center justify-center fixed top-0 left-0 right-0 z-40 transition-transform duration-300 ${
         isNavVisible ? 'translate-y-0' : '-translate-y-full'
       }`}>
         <img src={logo} alt="Fido Logo" className="h-10 w-auto" />
-
-        <div className="flex items-center gap-3">
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleDarkMode}
-            className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
-          >
-            {isDarkMode ? (
-              <Moon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-            ) : (
-              <Sun className="w-6 h-6 text-gray-700" />
-            )}
-          </button>
-
-          {/* Language Toggle */}
-          <button
-            onClick={toggleLanguage}
-            className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
-          >
-            <span className="text-base font-bold text-gray-700 dark:text-gray-300">
-              {language === 'en' ? '🇺🇸' : '🇸🇰'}
-            </span>
-          </button>
-
-          {/* Logout Button */}
-          <button
-            onClick={signOut}
-            className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-200 shadow-sm hover:shadow-md"
-            title={t('Sign Out')}
-          >
-            <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
-          </button>
-        </div>
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:ml-0">
-        {/* Desktop Top Bar - Hidden on Mobile */}
-        <div className="hidden lg:block h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-          <div className="h-full flex items-center justify-end px-6">
-            <div className="flex items-center gap-3">
-              {/* Theme Toggle */}
-              <button
-                onClick={toggleDarkMode}
-                className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                {isDarkMode ? (
-                  <Moon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-                ) : (
-                  <Sun className="w-6 h-6 text-gray-700" />
-                )}
-              </button>
-
-              {/* Language Toggle */}
-              <button
-                onClick={toggleLanguage}
-                className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                <span className="text-base font-bold text-gray-700 dark:text-gray-300">
-                  {language === 'en' ? '🇺🇸' : '🇸🇰'}
-                </span>
-              </button>
-
-              {/* Logout Button */}
-              <button
-                onClick={signOut}
-                className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-200 shadow-sm hover:shadow-md"
-                title={t('Sign Out')}
-              >
-                <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto pt-16 lg:pt-0 pb-14 lg:pb-0 bg-white dark:bg-gray-900">
+        <div className="flex-1 overflow-y-auto pt-16 lg:pt-0 pb-24 lg:pb-0 bg-white dark:bg-gray-900">
           <div className="pl-4 pr-4 pt-4 pb-4 lg:p-6">
             {children}
           </div>
@@ -196,25 +148,34 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Bottom Navigation - Mobile Only */}
-      <div className={`lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-1.5 py-1.5 z-40 transition-transform duration-300 ${
-        isNavVisible ? 'translate-y-0' : 'translate-y-full'
+      <div className={`lg:hidden fixed bottom-4 left-4 right-4 z-40 transition-transform duration-300 ${
+        isNavVisible ? 'translate-y-0' : 'translate-y-[calc(100%+16px)]'
       }`}>
-        <div className="flex justify-around">
-          {menuItems.map(item => (
-            <a
-              key={item.path}
-              href={item.path}
-              onClick={(e) => handleNavigation(item.path, e)}
-              className={`flex flex-col items-center p-1.5 rounded-lg transition-all duration-200 ${
-                location.pathname === item.path
-                  ? 'bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:shadow-sm'
-              }`}
-            >
-              <item.icon className="w-4 h-4 mb-0.5" />
-              <span className="text-xs font-medium">{item.name}</span>
-            </a>
-          ))}
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-[2rem] border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+          <div className="flex justify-around">
+            {menuItems.map(item => {
+              const isActive = location.pathname === item.path;
+              return (
+                <a
+                  key={item.path}
+                  href={item.path}
+                  onClick={(e) => handleNavigation(item.path, e)}
+                  className="flex flex-col items-center p-2 transition-all duration-200"
+                >
+                  <item.icon
+                    className="w-7 h-7 mb-1"
+                    style={{ color: isActive ? '#53a1fb' : '#9ca3af' }}
+                  />
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: isActive ? '#53a1fb' : '#9ca3af' }}
+                  >
+                    {item.name}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
         </div>
       </div>
 

@@ -1,8 +1,9 @@
-import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
-import { X, Plus, Trash2, Check, Menu, Copy, Hammer, Package, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
+import { X, Plus, Trash2, Check, Menu, Copy, Hammer, Package, ChevronDown, ChevronUp, Save, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import NumberInput from './NumberInput';
+import UnsavedChangesModal from './UnsavedChangesModal';
 
 const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const { t } = useLanguage();
@@ -12,10 +13,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);
   const [showingRentalsSelector, setShowingRentalsSelector] = useState(false);
   const [showingTypeSelector, setShowingTypeSelector] = useState(null);
-  const [showingUnitSelector, setShowingUnitSelector] = useState(null);
   const [newlyAddedItems, setNewlyAddedItems] = useState(new Set());
+  const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
+
+  // Store initial data for comparison
+  const initialWorkDataRef = useRef(JSON.stringify(room.workItems || []));
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = JSON.stringify(workData) !== initialWorkDataRef.current;
 
   // Save scroll position before any state change
   const saveScrollPosition = () => {
@@ -50,11 +58,44 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   // Separate "Others" category properties
   const othersIds = ['custom_work', 'commute', 'rentals'];
 
-  const handleClose = () => {
-    // Save data before closing
-    console.log('[RoomDetailsModal] handleClose - room:', room, 'roomId:', room?.id);
+  // Manual save function
+  const handleSave = async () => {
+    console.log('[RoomDetailsModal] handleSave - room:', room, 'roomId:', room?.id);
+    setIsSaving(true);
     onSave(workData);
+    // Simulate brief delay for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 500));
+    // Update the initial data ref after saving
+    initialWorkDataRef.current = JSON.stringify(workData);
+    setIsSaving(false);
+  };
+
+  // Handle close - check for unsaved changes
+  const handleClose = () => {
+    if (hasUnsavedChanges) {
+      setShowUnsavedChangesModal(true);
+    } else {
+      onClose();
+    }
+  };
+
+  // Save and close
+  const handleSaveAndClose = () => {
+    console.log('[RoomDetailsModal] handleSaveAndClose - room:', room, 'roomId:', room?.id);
+    onSave(workData);
+    setShowUnsavedChangesModal(false);
     onClose();
+  };
+
+  // Discard and close
+  const handleDiscardAndClose = () => {
+    setShowUnsavedChangesModal(false);
+    onClose();
+  };
+
+  // Cancel closing
+  const handleCancelClose = () => {
+    setShowUnsavedChangesModal(false);
   };
   const mainProperties = workProperties.filter(prop => !othersIds.includes(prop.id) && !prop.hidden);
   const othersProperties = workProperties.filter(prop => othersIds.includes(prop.id) && !prop.hidden);
@@ -76,9 +117,28 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       setShowingRentalsSelector(true);
       return;
     }
-    
-    // Check if this property has types (like Simple/Double/Triple)
+
     const property = workProperties.find(p => p.id === propertyId);
+
+    // For custom_work, create item directly - user will select type from inline buttons
+    if (propertyId === 'custom_work') {
+      const newItem = {
+        id: Date.now(),
+        propertyId,
+        name: t(property.name),
+        subtitle: t(property.subtitle),
+        fields: {},
+        complementaryWorks: {},
+        selectedType: null,
+        selectedUnit: null,
+        doorWindowItems: { doors: [], windows: [] }
+      };
+      setWorkData([...workData, newItem]);
+      setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
+      return;
+    }
+
+    // Check if this property has types (like Simple/Double/Triple)
     if (property?.types && property.id !== 'sanitary_installation') {
       setShowingTypeSelector(propertyId);
       return;
@@ -161,15 +221,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     setWorkData([...workData, newItem]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingTypeSelector(null);
-
-    // For custom work, show unit selector after type selection
-    // Use setTimeout to ensure the item is rendered before showing the selector
-    if (property.id === 'custom_work' && property.hasUnitSelector) {
-      console.log('[CUSTOM WORK] Setting unit selector for item:', newItem.id, 'selectedType:', type);
-      setTimeout(() => {
-        setShowingUnitSelector(newItem.id);
-      }, 0);
-    }
   };
 
   const handleUnitSelect = (itemId, unit, e) => {
@@ -187,7 +238,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           : item
       )
     );
-    setShowingUnitSelector(null);
   };
 
   const handleRentalTypeSelect = (rentalType, e) => {
@@ -746,11 +796,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       return null;
     }
 
-    // For custom work price field, show unit in the label
+    // For custom work, show selected unit for Quantity and Price fields
     let unitDisplay = field.unit;
-    if (item.propertyId === 'custom_work' && field.name === 'Price' && item.selectedUnit) {
-      unitDisplay = `€/${t(item.selectedUnit)}`;
-      console.log('[CUSTOM WORK UNIT]', { selectedUnit: item.selectedUnit, unitDisplay });
+    if (item.propertyId === 'custom_work' && item.selectedUnit) {
+      if (field.name === 'Quantity') {
+        unitDisplay = item.selectedUnit;
+      } else if (field.name === 'Price') {
+        unitDisplay = `€/${item.selectedUnit}`;
+      }
     }
 
     // Handle toggle type (checkbox)
@@ -808,7 +861,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Special handling for rentals
     if (property.id === 'rentals') {
       return (
-        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
+        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Always show header with plus button */}
           <div
             className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
@@ -824,7 +877,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Type selector when showing */}
           {showingRentalsSelector && (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top"
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm "
                  key="rentals-selector">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Select Rental Type')}</h4>
@@ -851,7 +904,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           
           {/* Existing rental items */}
           {existingItems.map((item, index) => (
-            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? 'animate-slide-in-top' : ''}`}>
+            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
                   {t(item.name)} {t('no.')} {index + 1}
@@ -894,7 +947,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       const existingItem = workData.find(item => item.propertyId === property.id);
       
       return (
-        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
+        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItem ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Header with plus/minus button */}
           <div
             className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
@@ -913,7 +966,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   setExpandedItems(prev => ({ ...prev, [existingItem.id]: true }));
                 }
               } else {
-                // Add the item and expand it
+                // Add the item
                 const newItem = {
                   id: Date.now(),
                   propertyId: property.id,
@@ -931,7 +984,15 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
                 setWorkData([...workData, newItem]);
                 setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
-                setExpandedItems(prev => ({ ...prev, [newItem.id]: true }));
+                
+                // Auto-expand ONLY if it's NOT an "Other" property (e.g. expand Wiring, but keep Commute collapsed)
+                const isOtherProperty = othersIds.includes(property.id);
+                if (!isOtherProperty) {
+                  setExpandedItems(prev => ({ ...prev, [newItem.id]: true }));
+                } else {
+                  // Explicitly collapse "Other" properties when adding
+                  setExpandedItems(prev => ({ ...prev, [newItem.id]: false }));
+                }
               }
             }}
           >
@@ -952,7 +1013,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Show fields only when item exists AND is expanded */}
           {existingItem && expandedItems[existingItem.id] && (
-            <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
+            <div className="space-y-3 lg:space-y-2 ">
               {property.fields?.map(field => (
                 <div key={field.name}>
                   {renderField(existingItem, field)}
@@ -1014,7 +1075,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   </div>
 
                   {expandedItems[existingItem.id] && (
-                    <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
+                    <div className="space-y-3 lg:space-y-2 ">
                       <div className="flex justify-end">
                         <button
                           onClick={(e) => handleToggleAllComplementaryWorks(existingItem.id, e)}
@@ -1060,12 +1121,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       );
     }
 
-    // Special handling for properties with types (Simple/Double/Triple)
-    if (property.types && property.id !== 'sanitary_installation') {
+    // Special handling for properties with types (Simple/Double/Triple) - but NOT custom_work
+    // custom_work is handled in the regular property card section below
+    if (property.types && property.id !== 'sanitary_installation' && property.id !== 'custom_work') {
       const existingItems = workData.filter(item => item.propertyId === property.id);
       
       return (
-        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
+        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Always show header with plus button */}
           <div
             className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
@@ -1084,7 +1146,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Type selector when showing */}
           {showingTypeSelector === property.id && (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top"
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm "
                  key="type-selector">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Select Type')}</h4>
@@ -1113,7 +1175,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           
           {/* Existing type items */}
           {existingItems.map(item => (
-            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? 'animate-slide-in-top' : ''}`}>
+            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
                   {t(item.name)}
@@ -1192,7 +1254,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                   </div>
 
                   {expandedItems[item.id] && (
-                    <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
+                    <div className="space-y-3 lg:space-y-2 ">
                       <div className="flex justify-end">
                         <button
                           onClick={(e) => handleToggleAllComplementaryWorks(item.id, e)}
@@ -1241,7 +1303,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Special handling for sanitary installation
     if (property.id === 'sanitary_installation') {
       return (
-        <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm">
+        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Always show header with plus button */}
           <div
             className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
@@ -1260,7 +1322,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Type selector when showing */}
           {showingSanitarySelector && (
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top"
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm "
                  key="sanitary-selector">
               <div className="flex items-center justify-between">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Type of Sanitary')}</h4>
@@ -1335,7 +1397,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     
     // Regular property card for other properties
     return (
-      <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2">
+      <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         <div
           className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
           onClick={(e) => handleAddWorkItem(property.id, e)}
@@ -1355,24 +1417,24 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         {existingItems.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
             <div className="flex items-center justify-between">
-              {property.id === 'custom_work' ? (
+              {property.id === 'custom_work' && item.selectedUnit ? (
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
                     {item.selectedType === 'Work' ? t('Názov práce') : t('Názov materiálu')}:
                   </span>
                   <input
+                    id={`custom-work-name-${item.id}`}
                     type="text"
-                    value={item.fields.Name || ''}
-                    onChange={(e) => handleUpdateWorkItem(item.id, 'Name', e.target.value, true)}
+                    defaultValue={item.fields.Name || ''}
+                    onBlur={(e) => handleUpdateWorkItem(item.id, 'Name', e.target.value, true)}
                     className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
                     placeholder={item.selectedType === 'Work' ? t('Názov práce') : t('Názov materiálu')}
                   />
-                  {item.selectedUnit && (
-                    <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
-                      {item.selectedUnit}
-                    </span>
-                  )}
                 </div>
+              ) : property.id === 'custom_work' ? (
+                <span className="font-medium text-gray-900 dark:text-white text-lg">
+                  {t(property.name)}
+                </span>
               ) : (
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
                   {t(property.name)} {t('no.')} {existingItems.indexOf(item) + 1}
@@ -1386,8 +1448,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               </button>
             </div>
 
-            {/* Property type selection */}
-            {property.types && (
+            {/* Property type selection - for custom_work, only show if unit not yet selected */}
+            {property.types && (property.id !== 'custom_work' || !item.selectedUnit) && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {property.types.map(type => (
                   <button
@@ -1398,108 +1460,39 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
                       saveScrollPosition();
 
-                      console.log('[TYPE BUTTON] Clicked for custom_work. Item:', item.id, 'Type:', type, 'Current selectedType:', item.selectedType, 'Property:', property.id);
-
                       setWorkData(items =>
                         items.map(i => i.id === item.id ? { ...i, selectedType: type } : i)
                       );
-
-                      // For custom work, show unit selector after selecting type
-                      if (property.id === 'custom_work' && property.hasUnitSelector && !item.selectedUnit) {
-                        console.log('[TYPE BUTTON] Scheduling unit selector for item:', item.id);
-                        setTimeout(() => {
-                          console.log('[TYPE BUTTON] setTimeout callback - setting showingUnitSelector to:', item.id);
-                          setShowingUnitSelector(item.id);
-                        }, 0);
-                      } else {
-                        console.log('[TYPE BUTTON] NOT scheduling unit selector. Conditions:', {
-                          isCustomWork: property.id === 'custom_work',
-                          hasUnitSelector: property.hasUnitSelector,
-                          hasSelectedUnit: !!item.selectedUnit
-                        });
-                      }
                     }}
-                    className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors ${
+                    className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex items-center justify-center gap-2 ${
                       item.selectedType === type
-                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
-                        : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                   >
+                    {type === 'Work' && <Hammer className="w-4 h-4" />}
+                    {type === 'Material' && <Package className="w-4 h-4" />}
                     {t(type)}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Unit selector for custom work */}
-            {(() => {
-              const shouldShow = property.id === 'custom_work' && property.hasUnitSelector && item.selectedType;
-              console.log('[RENDER] Unit selector condition check for item:', item.id, {
-                propertyId: property.id,
-                hasUnitSelector: property.hasUnitSelector,
-                selectedType: item.selectedType,
-                shouldShow,
-                showingUnitSelector,
-                isShowing: showingUnitSelector === item.id
-              });
-              return shouldShow;
-            })() && (
-              <div>
-                {showingUnitSelector === item.id ? (
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3 shadow-sm animate-slide-in-top">
-                    <div className="flex items-center justify-between">
-                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Vyberte jednotku')}</span>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setShowingUnitSelector(null);
-                        }}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {property.units?.map(unit => (
-                        <button
-                          key={unit}
-                          onClick={(e) => handleUnitSelect(item.id, unit, e)}
-                          className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                        >
-                          {unit}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  item.selectedUnit ? (
-                    <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{t('Jednotka')}: {item.selectedUnit}</span>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setShowingUnitSelector(item.id);
-                        }}
-                        className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                      >
-                        {t('Zmeniť')}
-                      </button>
-                    </div>
-                  ) : (
+            {/* Unit selector for custom work - only show after type is selected but before unit is selected */}
+            {property.id === 'custom_work' && property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
+                <span className="text-base font-medium text-gray-900 dark:text-white">{t('Vyberte jednotku')}</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowingUnitSelector(item.id);
-                      }}
-                      className="w-full p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      key={unit}
+                      onClick={(e) => handleUnitSelect(item.id, unit, e)}
+                      className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                     >
-                      {t('Vyberte jednotku')}
+                      {unit}
                     </button>
-                  )
-                )}
+                  ))}
+                </div>
               </div>
             )}
 
@@ -1564,7 +1557,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 </div>
 
                 {expandedItems[item.id] && (
-                  <div className="space-y-3 lg:space-y-2 animate-slide-in-top">
+                  <div className="space-y-3 lg:space-y-2 ">
                     <div className="flex justify-end">
                       <button
                         onClick={(e) => handleToggleAllComplementaryWorks(item.id, e)}
@@ -1638,22 +1631,40 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         }
       `}</style>
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 animate-fade-in"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 "
         onClick={handleClose}
       >
         <div 
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[95vh] lg:h-[90vh] flex flex-col animate-slide-in"
+          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[95vh] lg:h-[90vh] flex flex-col "
           onClick={(e) => e.stopPropagation()}
         >
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t(room.name) !== room.name ? t(room.name) : room.name}</h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-5 h-5 lg:w-6 lg:h-6" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSave}
+              disabled={!hasUnsavedChanges || isSaving}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+                hasUnsavedChanges && !isSaving
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{isSaving ? t('Saving...') : t('Save')}</span>
+            </button>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5 lg:w-6 lg:h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -2405,6 +2416,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
         </div>
       </div>
+
+      {/* Unsaved Changes Modal */}
+      <UnsavedChangesModal
+        isOpen={showUnsavedChangesModal}
+        onSaveAndProceed={handleSaveAndClose}
+        onDiscardAndProceed={handleDiscardAndClose}
+        onCancel={handleCancelClose}
+      />
     </>
   );
 };

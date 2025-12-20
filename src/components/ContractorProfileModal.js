@@ -1,39 +1,42 @@
-import React, { useState } from 'react';
-import { Building2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Building2, Upload, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) => {
   const { t } = useLanguage();
   const [isClosing, setIsClosing] = useState(false);
+  const logoInputRef = useRef(null);
+  const signatureInputRef = useRef(null);
   
   // Form state
   const [formData, setFormData] = useState({
     // Contact details
     name: editingContractor?.name || '',
-    contactPerson: editingContractor?.contactPerson || '',
+    contactPerson: editingContractor?.contactPerson || editingContractor?.contact_person_name || '',
     email: editingContractor?.email || '',
     phone: editingContractor?.phone || '',
-    website: editingContractor?.website || '',
+    website: editingContractor?.website || editingContractor?.web || '',
     
     // Address
     street: editingContractor?.street || '',
-    additionalInfo: editingContractor?.additionalInfo || '',
+    additionalInfo: editingContractor?.additionalInfo || editingContractor?.second_row_street || '',
     city: editingContractor?.city || '',
-    postalCode: editingContractor?.postalCode || '',
+    postalCode: editingContractor?.postalCode || editingContractor?.postal_code || '',
     country: editingContractor?.country || '',
     
     // Business information
-    businessId: editingContractor?.businessId || '',
-    taxId: editingContractor?.taxId || '',
-    vatNumber: editingContractor?.vatNumber || '',
+    businessId: editingContractor?.businessId || editingContractor?.business_id || '',
+    taxId: editingContractor?.taxId || editingContractor?.tax_id || '',
+    vatNumber: editingContractor?.vatNumber || editingContractor?.vat_registration_number || '',
     
     // Banking details
-    bankAccount: editingContractor?.bankAccount || '',
-    bankCode: editingContractor?.bankCode || '',
-    legalAppendix: editingContractor?.legalAppendix || '',
+    bankAccount: editingContractor?.bankAccount || editingContractor?.bank_account_number || '',
+    bankCode: editingContractor?.bankCode || editingContractor?.swift_code || '',
+    legalAppendix: editingContractor?.legalAppendix || editingContractor?.legal_notice || '',
     
-    // Signature (placeholder for now)
-    signature: editingContractor?.signature || null
+    // Images
+    logo: editingContractor?.logo || editingContractor?.logo_url || null,
+    signature: editingContractor?.signature || editingContractor?.signature_url || null
   });
 
   const handleInputChange = (field, value) => {
@@ -41,6 +44,30 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleImageUpload = (e, field) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          [field]: reader.result
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = (field) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: null
+    }));
+    // Reset file input
+    if (field === 'logo' && logoInputRef.current) logoInputRef.current.value = '';
+    if (field === 'signature' && signatureInputRef.current) signatureInputRef.current.value = '';
   };
 
   const handleClose = () => {
@@ -74,7 +101,8 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
       bank_account_number: formData.bankAccount,
       swift_code: formData.bankCode,
       legal_notice: formData.legalAppendix,
-      // signature_url is excluded for now (not implemented)
+      logo_url: formData.logo,
+      signature_url: formData.signature
     };
 
     // Only add id for editing (new contractors get ID from database)
@@ -114,12 +142,44 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           
           {/* Profile Image Section */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-              <Building2 className="w-8 h-8 lg:w-12 lg:h-12 text-gray-600 dark:text-gray-400" />
+            <div 
+              className="w-24 h-24 lg:w-32 lg:h-32 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 overflow-hidden relative cursor-pointer group border-2 border-gray-200 dark:border-gray-600"
+              onClick={() => logoInputRef.current?.click()}
+            >
+              {formData.logo ? (
+                <>
+                  <img src={formData.logo} alt="Logo" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Upload className="w-6 h-6 text-white" />
+                  </div>
+                </>
+              ) : (
+                <Building2 className="w-8 h-8 lg:w-12 lg:h-12 text-gray-600 dark:text-gray-400" />
+              )}
             </div>
-            <button className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full text-sm">
-              {t('Change photo')}
-            </button>
+            <input 
+              type="file" 
+              ref={logoInputRef}
+              onChange={(e) => handleImageUpload(e, 'logo')}
+              className="hidden" 
+              accept="image/*"
+            />
+            <div className="flex gap-2">
+              <button 
+                onClick={() => logoInputRef.current?.click()}
+                className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                {formData.logo ? t('Change logo') : t('Upload logo')}
+              </button>
+              {formData.logo && (
+                <button 
+                  onClick={() => removeImage('logo')}
+                  className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-2 rounded-full text-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Contractor Details */}
@@ -381,9 +441,47 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           {/* Signature */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Signature')}</h3>
-            <button className="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg">
-              {t('Add signature')}
-            </button>
+            <div 
+              className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mb-4 overflow-hidden relative cursor-pointer group border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+              onClick={() => signatureInputRef.current?.click()}
+            >
+              {formData.signature ? (
+                <>
+                  <img src={formData.signature} alt="Signature" className="h-full object-contain" />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Upload className="w-6 h-6 text-white" />
+                  </div>
+                </>
+              ) : (
+                <div className="text-gray-500 dark:text-gray-400 flex flex-col items-center">
+                  <Upload className="w-6 h-6 mb-2" />
+                  <span className="text-sm">{t('Upload signature image')}</span>
+                </div>
+              )}
+            </div>
+            <input 
+              type="file" 
+              ref={signatureInputRef}
+              onChange={(e) => handleImageUpload(e, 'signature')}
+              className="hidden" 
+              accept="image/*"
+            />
+            <div className="flex gap-2">
+              <button 
+                onClick={() => signatureInputRef.current?.click()}
+                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-lg"
+              >
+                {formData.signature ? t('Change signature') : t('Add signature')}
+              </button>
+              {formData.signature && (
+                <button 
+                  onClick={() => removeImage('signature')}
+                  className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
           </div>
 
         </div>

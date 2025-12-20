@@ -383,7 +383,7 @@ const Clients = () => {
             </div>
             
             <div className="space-y-3">
-              {selectedClient.projects.map((project, index) => {
+              {(selectedClient.projects || []).map((project, index) => {
                 const roomCount = getProjectRooms(project.id).length;
                 return (
                   <button

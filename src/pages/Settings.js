@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
-import { 
-  Wrench, 
-  Settings as SettingsIcon, 
-  Send, 
+import {
+  Wrench,
+  Settings as SettingsIcon,
+  Send,
   ChevronRight,
-  Edit
+  Edit,
+  Moon,
+  Sun,
+  Globe,
+  LogOut
 } from 'lucide-react';
 import PriceList from './PriceList';
 import Archive from './Archive';
 import PriceOfferSettings from './PriceOfferSettings';
 import { useLanguage } from '../context/LanguageContext';
+import { useDarkMode } from '../context/DarkModeContext';
+import { useAuth } from '../context/AuthContext';
 
 const Settings = () => {
-  const { t } = useLanguage();
+  const { t, language, toggleLanguage } = useLanguage();
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { signOut } = useAuth();
   const [showPriceList, setShowPriceList] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [showPriceOffer, setShowPriceOffer] = useState(false);
@@ -113,7 +121,42 @@ const Settings = () => {
           <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Preferences')}</h2>
         </div>
         <div className="space-y-3 lg:space-y-4">
-          <div 
+          {/* Dark Mode Toggle */}
+          <div
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            onClick={toggleDarkMode}
+          >
+            <div className="flex items-center gap-3">
+              {isDarkMode ? (
+                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              ) : (
+                <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              )}
+              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Dark Mode')}</div>
+            </div>
+            <div className={`w-12 h-7 rounded-full p-1 transition-colors ${isDarkMode ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`} />
+            </div>
+          </div>
+
+          {/* Language Toggle */}
+          <div
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            onClick={toggleLanguage}
+          >
+            <div className="flex items-center gap-3">
+              <Globe className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Language')}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-base text-gray-600 dark:text-gray-400">
+                {language === 'en' ? 'English 🇺🇸' : 'Slovenčina 🇸🇰'}
+              </span>
+              <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            </div>
+          </div>
+
+          <div
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handleArchiveClick}
           >
@@ -124,7 +167,7 @@ const Settings = () => {
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
-          <div 
+          <div
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handlePriceOfferClick}
           >
@@ -135,7 +178,7 @@ const Settings = () => {
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
-          <div 
+          <div
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handlePriceListClick}
           >
@@ -144,6 +187,17 @@ const Settings = () => {
               <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('set default price list')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          </div>
+
+          {/* Sign Out - Mobile only */}
+          <div
+            className="lg:hidden bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 flex items-center justify-between hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            onClick={signOut}
+          >
+            <div className="flex items-center gap-3">
+              <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
+              <div className="font-medium text-red-600 dark:text-red-400 text-lg">{t('Sign Out')}</div>
+            </div>
           </div>
 
         </div>

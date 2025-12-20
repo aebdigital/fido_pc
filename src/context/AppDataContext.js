@@ -56,6 +56,7 @@ export const AppDataProvider = ({ children }) => {
       ],
       archivedProjects: [], // Store archived projects
       projectRoomsData: {}, // Store rooms by project ID
+      projectHistory: {}, // Store history events by project ID: { [projectId]: [{ type, date, ... }] }
       contractors: [], // Store contractor profiles
       contractorProjects: {}, // Store projects by contractor ID: { [contractorId]: { categories: [...], archivedProjects: [] } }
       invoices: [], // Store all invoices
@@ -233,10 +234,34 @@ export const AppDataProvider = ({ children }) => {
 
       console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
 
+      // Transform projects to parse price_list_snapshot from JSON and map snake_case to camelCase
+      const transformedProjects = (projects || []).map(project => {
+        let priceListSnapshot = null;
+        if (project.price_list_snapshot) {
+          try {
+            priceListSnapshot = typeof project.price_list_snapshot === 'string'
+              ? JSON.parse(project.price_list_snapshot)
+              : project.price_list_snapshot;
+          } catch (e) {
+            console.warn('Failed to parse price_list_snapshot for project:', project.id);
+          }
+        }
+        return {
+          ...project,
+          priceListSnapshot,
+          // Map snake_case database fields to camelCase for app usage
+          clientId: project.client_id,
+          hasInvoice: project.has_invoice,
+          invoiceId: project.invoice_id,
+          invoiceStatus: project.invoice_status,
+          isArchived: project.is_archived
+        };
+      });
+
       // Build contractor projects structure
       const contractorProjects = {};
       contractors.forEach(contractor => {
-        const contractorProjectsList = projects.filter(p => p.c_id === contractor.id);
+        const contractorProjectsList = transformedProjects.filter(p => p.c_id === contractor.id);
 
         // Group projects by category
         const categories = getDefaultCategories().map(cat => ({
@@ -284,8 +309,9 @@ export const AppDataProvider = ({ children }) => {
       return {
         clients: clients || [],
         projectCategories: getDefaultCategories(),
-        archivedProjects: projects.filter(p => p.is_archived) || [],
+        archivedProjects: transformedProjects.filter(p => p.is_archived) || [],
         projectRoomsData,
+        projectHistory: {}, // Initialize empty, will be populated during session
         contractors: contractors || [],
         contractorProjects,
         invoices: transformedInvoices,
@@ -426,7 +452,23 @@ export const AppDataProvider = ({ children }) => {
 
   const updateClient = async (clientId, clientData) => {
     try {
-      await api.clients.update(clientId, clientData);
+      // Map camelCase fields to snake_case database columns
+      const mappedData = {};
+      if (clientData.name !== undefined) mappedData.name = clientData.name;
+      if (clientData.email !== undefined) mappedData.email = clientData.email || null;
+      if (clientData.phone !== undefined) mappedData.phone = clientData.phone || null;
+      if (clientData.street !== undefined) mappedData.street = clientData.street || null;
+      if (clientData.additionalInfo !== undefined) mappedData.second_row_street = clientData.additionalInfo || null;
+      if (clientData.city !== undefined) mappedData.city = clientData.city || null;
+      if (clientData.postalCode !== undefined) mappedData.postal_code = clientData.postalCode || null;
+      if (clientData.country !== undefined) mappedData.country = clientData.country || null;
+      if (clientData.businessId !== undefined) mappedData.business_id = clientData.businessId || null;
+      if (clientData.taxId !== undefined) mappedData.tax_id = clientData.taxId || null;
+      if (clientData.vatId !== undefined) mappedData.vat_registration_number = clientData.vatId || null;
+      if (clientData.contactPerson !== undefined) mappedData.contact_person_name = clientData.contactPerson || null;
+      if (clientData.type !== undefined) mappedData.type = clientData.type;
+
+      await api.clients.update(clientId, mappedData);
 
       setAppData(prev => ({
         ...prev,
@@ -464,6 +506,9 @@ export const AppDataProvider = ({ children }) => {
         throw error;
       }
 
+      // Create a deep copy of the current general price list as a snapshot for this project
+      const priceListSnapshot = JSON.parse(JSON.stringify(appData.generalPriceList));
+
       const newProject = await api.projects.create({
         name: projectData.name,
         category: categoryId,
@@ -474,9 +519,15 @@ export const AppDataProvider = ({ children }) => {
         is_archived: false,
         number: 0,
         notes: null,
-        price_list_id: null // We'll handle price lists separately
-        // Removed: price_list_snapshot, price_overrides, has_invoice, invoice_id, invoice_status
+        price_list_id: null, // We'll handle price lists separately
+        price_list_snapshot: JSON.stringify(priceListSnapshot) // Store price snapshot in database
       });
+
+      // Add the price list snapshot to the project object (stored in local state)
+      const projectWithSnapshot = {
+        ...newProject,
+        priceListSnapshot
+      };
 
       setAppData(prev => {
         const activeContractorId = prev.activeContractorId;
@@ -488,7 +539,7 @@ export const AppDataProvider = ({ children }) => {
               if (category.id === categoryId) {
                 return {
                   ...category,
-                  projects: [newProject, ...category.projects],
+                  projects: [projectWithSnapshot, ...category.projects],
                   count: category.count + 1
                 };
               }
@@ -507,7 +558,7 @@ export const AppDataProvider = ({ children }) => {
                   if (category.id === categoryId) {
                     return {
                       ...category,
-                      projects: [newProject],
+                      projects: [projectWithSnapshot],
                       count: 1
                     };
                   }
@@ -529,7 +580,7 @@ export const AppDataProvider = ({ children }) => {
                 if (category.id === categoryId) {
                   return {
                     ...category,
-                    projects: [newProject, ...category.projects],
+                    projects: [projectWithSnapshot, ...category.projects],
                     count: category.count + 1
                   };
                 }
@@ -540,7 +591,7 @@ export const AppDataProvider = ({ children }) => {
         };
       });
 
-      return newProject;
+      return projectWithSnapshot;
     } catch (error) {
       console.error('[SUPABASE] Error adding project:', error);
       throw error;
@@ -549,7 +600,22 @@ export const AppDataProvider = ({ children }) => {
 
   const updateProject = async (categoryId, projectId, projectData) => {
     try {
-      await api.projects.update(projectId, projectData);
+      // Map camelCase fields to snake_case database columns
+      const mappedData = {};
+      if (projectData.name !== undefined) mappedData.name = projectData.name;
+      if (projectData.clientId !== undefined) mappedData.client_id = projectData.clientId || null;
+      if (projectData.status !== undefined) mappedData.status = projectData.status;
+      if (projectData.hasInvoice !== undefined) mappedData.has_invoice = projectData.hasInvoice;
+      if (projectData.invoiceId !== undefined) mappedData.invoice_id = projectData.invoiceId;
+      if (projectData.invoiceStatus !== undefined) mappedData.invoice_status = projectData.invoiceStatus;
+      if (projectData.isArchived !== undefined) mappedData.is_archived = projectData.isArchived;
+      if (projectData.priceListSnapshot !== undefined) {
+        mappedData.price_list_snapshot = typeof projectData.priceListSnapshot === 'string'
+          ? projectData.priceListSnapshot
+          : JSON.stringify(projectData.priceListSnapshot);
+      }
+
+      await api.projects.update(projectId, mappedData);
 
       setAppData(prev => {
         const activeContractorId = prev.activeContractorId;
@@ -557,11 +623,11 @@ export const AppDataProvider = ({ children }) => {
         if (!activeContractorId) {
           return {
             ...prev,
-            projectCategories: prev.projectCategories.map(category => {
+            projectCategories: (prev.projectCategories || []).map(category => {
               if (category.id === categoryId) {
                 return {
                   ...category,
-                  projects: category.projects.map(project =>
+                  projects: (category.projects || []).map(project =>
                     project.id === projectId ? { ...project, ...projectData } : project
                   )
                 };
@@ -571,7 +637,7 @@ export const AppDataProvider = ({ children }) => {
           };
         }
 
-        if (!prev.contractorProjects[activeContractorId]) {
+        if (!prev.contractorProjects?.[activeContractorId]?.categories) {
           return prev;
         }
 
@@ -585,7 +651,7 @@ export const AppDataProvider = ({ children }) => {
                 if (category.id === categoryId) {
                   return {
                     ...category,
-                    projects: category.projects.map(project =>
+                    projects: (category.projects || []).map(project =>
                       project.id === projectId ? { ...project, ...projectData } : project
                     )
                   };
@@ -842,6 +908,28 @@ export const AppDataProvider = ({ children }) => {
     }));
   };
 
+  // Project history tracking
+  const addProjectHistoryEntry = (projectId, historyEntry) => {
+    setAppData(prev => ({
+      ...prev,
+      projectHistory: {
+        ...prev.projectHistory,
+        [projectId]: [
+          ...(prev.projectHistory[projectId] || []),
+          {
+            ...historyEntry,
+            date: new Date().toISOString()
+          }
+        ]
+      }
+    }));
+  };
+
+  const getProjectHistory = (projectId) => {
+    if (!appData.projectHistory || !projectId) return [];
+    return appData.projectHistory[projectId] || [];
+  };
+
   // Invoice management functions
   const createInvoice = async (projectId, categoryId, invoiceData) => {
     try {
@@ -888,7 +976,19 @@ export const AppDataProvider = ({ children }) => {
 
       setAppData(prev => ({
         ...prev,
-        invoices: [...prev.invoices, transformedInvoice]
+        invoices: [...prev.invoices, transformedInvoice],
+        // Add history entry for invoice creation
+        projectHistory: {
+          ...prev.projectHistory,
+          [projectId]: [
+            ...(prev.projectHistory[projectId] || []),
+            {
+              type: 'invoice_created',
+              invoiceNumber: transformedInvoice.invoiceNumber,
+              date: new Date().toISOString()
+            }
+          ]
+        }
       }));
 
       // Note: Invoice-project relationship is managed via invoices.project_id
@@ -903,14 +1003,51 @@ export const AppDataProvider = ({ children }) => {
 
   const updateInvoice = async (invoiceId, updates) => {
     try {
+      // Find the invoice first to get projectId for history tracking
+      const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+
       await api.invoices.update(invoiceId, updates);
 
-      setAppData(prev => ({
-        ...prev,
-        invoices: prev.invoices.map(invoice =>
-          invoice.id === invoiceId ? { ...invoice, ...updates } : invoice
-        )
-      }));
+      setAppData(prev => {
+        const updatedState = {
+          ...prev,
+          invoices: prev.invoices.map(inv =>
+            inv.id === invoiceId ? { ...inv, ...updates } : inv
+          )
+        };
+
+        // Track status changes in project history
+        if (updates.status && invoice) {
+          const projectId = invoice.projectId;
+          let historyEntry = null;
+
+          if (updates.status === 'sent') {
+            historyEntry = {
+              type: 'invoice_sent',
+              invoiceNumber: invoice.invoiceNumber,
+              date: new Date().toISOString()
+            };
+          } else if (updates.status === 'paid') {
+            historyEntry = {
+              type: 'invoice_paid',
+              invoiceNumber: invoice.invoiceNumber,
+              date: new Date().toISOString()
+            };
+          }
+
+          if (historyEntry) {
+            updatedState.projectHistory = {
+              ...prev.projectHistory,
+              [projectId]: [
+                ...(prev.projectHistory[projectId] || []),
+                historyEntry
+              ]
+            };
+          }
+        }
+
+        return updatedState;
+      });
 
       // Note: Invoice status is managed via invoices table only
       // No need to update project table as it doesn't have invoice_status field
@@ -922,12 +1059,34 @@ export const AppDataProvider = ({ children }) => {
 
   const deleteInvoice = async (invoiceId) => {
     try {
+      // Find the invoice first to get projectId for history tracking
+      const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+
       await api.invoices.delete(invoiceId);
 
-      setAppData(prev => ({
-        ...prev,
-        invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
-      }));
+      setAppData(prev => {
+        const updatedState = {
+          ...prev,
+          invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
+        };
+
+        // Add history entry for invoice deletion
+        if (invoice) {
+          updatedState.projectHistory = {
+            ...prev.projectHistory,
+            [invoice.projectId]: [
+              ...(prev.projectHistory[invoice.projectId] || []),
+              {
+                type: 'invoice_deleted',
+                invoiceNumber: invoice.invoiceNumber,
+                date: new Date().toISOString()
+              }
+            ]
+          };
+        }
+
+        return updatedState;
+      });
 
       // Note: Invoice-project relationship is managed via invoices.project_id
       // No need to update project table as it doesn't have invoice fields
@@ -988,12 +1147,13 @@ export const AppDataProvider = ({ children }) => {
       ...prev,
       clients: prev.clients.map(client => {
         if (client.id === clientId) {
+          const clientProjects = client.projects || [];
           // Check if project is already assigned
-          const existingProject = client.projects.find(p => p.id === projectId);
+          const existingProject = clientProjects.find(p => p.id === projectId);
           if (!existingProject) {
             return {
               ...client,
-              projects: [...client.projects, {
+              projects: [...clientProjects, {
                 id: projectId,
                 name: projectName
                 // Room count and price are calculated dynamically when displayed
@@ -1013,7 +1173,7 @@ export const AppDataProvider = ({ children }) => {
         if (client.id === clientId) {
           return {
             ...client,
-            projects: client.projects.filter(project => project.id !== projectId)
+            projects: (client.projects || []).filter(project => project.id !== projectId)
           };
         }
         return client;
@@ -1024,23 +1184,25 @@ export const AppDataProvider = ({ children }) => {
   // Helper function to find project by ID across all categories
   const findProjectById = (projectId) => {
     // First, search in contractor-specific projects if we have an active contractor
-    if (appData.activeContractorId && appData.contractorProjects[appData.activeContractorId]) {
+    if (appData.activeContractorId && appData.contractorProjects[appData.activeContractorId]?.categories) {
       for (const category of appData.contractorProjects[appData.activeContractorId].categories) {
+        if (!category.projects) continue;
         const project = category.projects.find(p => p.id === projectId);
         if (project) {
           return { project, category: category.id };
         }
       }
     }
-    
+
     // Fallback: search in global project categories (for backward compatibility)
-    for (const category of appData.projectCategories) {
+    for (const category of (appData.projectCategories || [])) {
+      if (!category.projects) continue;
       const project = category.projects.find(p => p.id === projectId);
       if (project) {
         return { project, category: category.id };
       }
     }
-    
+
     return null;
   };
 
@@ -2305,7 +2467,11 @@ export const AppDataProvider = ({ children }) => {
     getInvoiceById,
     getInvoicesForContractor,
     getInvoiceForProject,
-    
+
+    // History functions
+    getProjectHistory,
+    addProjectHistoryEntry,
+
     // Room functions
     addRoomToProject,
     updateProjectRoom,

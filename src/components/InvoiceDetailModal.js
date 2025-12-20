@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Eye, Send, CheckCircle, FileText, User, Calendar } from 'lucide-react';
+import { X, Eye, Send, CheckCircle, FileText, User, Calendar, DollarSign } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +39,11 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
     onClose(true); // Pass true to indicate the invoice was updated
   };
 
+  const handleMarkAsPaid = () => {
+    updateInvoice(invoice.id, { status: 'paid' });
+    onClose(true); // Pass true to indicate the invoice was updated
+  };
+
   const handleViewProject = () => {
     onClose();
     navigate('/projects', {
@@ -51,7 +56,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
 
   const handlePreview = () => {
     try {
-      const doc = generateInvoicePDF({
+      generateInvoicePDF({
         invoice,
         contractor,
         client,
@@ -63,7 +68,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
         formatDate,
         formatPrice
       });
-      doc.output('dataurlnewwindow');
+      // Window opening is now handled inside generateInvoicePDF
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert(t('Unable to generate PDF. Please try again.'));
@@ -147,15 +152,15 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         {/* Content */}
         <div className="p-6 space-y-6">
           {/* Status Badge */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className={`px-4 py-2 text-sm font-medium rounded-full ${
-              invoice.status === 'sent'
-                ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                : invoice.status === 'paid'
+              invoice.status === 'paid'
                 ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                : invoice.status === 'sent'
+                ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
                 : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
             }`}>
-              {t(invoice.status === 'sent' ? 'Invoice sent' : invoice.status === 'paid' ? 'Paid' : 'Invoice not sent')}
+              {t(invoice.status === 'paid' ? 'Paid' : invoice.status === 'sent' ? 'Invoice sent' : 'Invoice not sent')}
             </span>
             {invoice.status !== 'sent' && invoice.status !== 'paid' && (
               <button
@@ -164,6 +169,15 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               >
                 <CheckCircle className="w-4 h-4" />
                 {t('Mark as Sent')}
+              </button>
+            )}
+            {invoice.status === 'sent' && (
+              <button
+                onClick={handleMarkAsPaid}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <DollarSign className="w-4 h-4" />
+                {t('Mark as Paid')}
               </button>
             )}
           </div>
