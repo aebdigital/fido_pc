@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { X, Plus, Trash2, Check, Menu, Copy, Hammer, Package, ChevronDown, ChevronUp, Save, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
