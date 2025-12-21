@@ -255,9 +255,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     const rentalItem = workProperties.find(p => p.id === 'rentals')?.items?.find(item => item.name === rentalType);
     if (!rentalItem) return;
 
+    let specificPropertyId = 'rentals';
+    if (rentalType === 'Scaffolding') specificPropertyId = 'scaffolding';
+    else if (rentalType === 'Core Drill') specificPropertyId = 'core_drill';
+    else if (rentalType === 'Tool rental') specificPropertyId = 'tool_rental';
+
     const newItem = {
       id: Date.now(),
-      propertyId: 'rentals',
+      propertyId: specificPropertyId,
       name: rentalType,
       subtitle: 'no. 1',
       fields: {},

@@ -31,7 +31,9 @@ export const PROPERTY_TO_TABLE = {
   // Floor works
   'levelling': 'levellings',
   'tile_ceramic': 'tile_ceramics',
+  'tiling_under_60': 'tile_ceramics',
   'paving_ceramic': 'paving_ceramics',
+  'paving_under_60': 'paving_ceramics',
   'floating_floor': 'laying_floating_floors',
   'skirting_floor': 'skirting_of_floating_floors',
 
@@ -41,11 +43,13 @@ export const PROPERTY_TO_TABLE = {
   'sanitary_installation': 'installation_of_sanitaries',
   'corner_bead': 'installation_of_corner_beads',
   'door_jamb': 'installation_of_door_jambs',
+  'door_jamb_installation': 'installation_of_door_jambs',
   'window_installation': 'window_installations',
 
   // Others
   'preparatory': 'demolitions',
   'demolition': 'demolitions',
+  'commute': 'custom_works', // Map commute to custom_works for now as there is no specific table
   'core_drill': 'core_drills',
   'grouting': 'groutings',
   'penetration_coating': 'penetration_coatings',
