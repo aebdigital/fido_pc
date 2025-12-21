@@ -216,12 +216,12 @@ export const AppDataProvider = ({ children }) => {
           console.log('[SUPABASE] Loading data from Supabase...');
     
           // Load all data from Supabase in parallel
-          const [contractors, clients, projects, invoices, priceListData] = await Promise.all([
+          const [contractors, clients, projects, invoices, allPriceLists] = await Promise.all([
             api.contractors.getAll(),
             api.clients.getAll(null), // We'll filter by contractor later
             api.projects.getAll(null), // We'll filter by contractor later
             api.invoices.getAll(null), // We'll filter by contractor later
-            api.priceLists.get(null) // Get price list
+            api.priceLists.getAll() // Get all price lists
           ]);
     
           console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
@@ -288,6 +288,8 @@ export const AppDataProvider = ({ children }) => {
           const activeContractorId = transformedContractors.length > 0 ? transformedContractors[0].id : null;
     
           // Use price list from database or default
+          // Find the price list that matches the active contractor
+          const priceListData = (allPriceLists || []).find(pl => pl.c_id === activeContractorId);
           const generalPriceList = priceListData?.data || getDefaultData().generalPriceList;
     
           // Transform invoices from database format to app format

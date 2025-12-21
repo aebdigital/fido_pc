@@ -588,6 +588,22 @@ export const workItemsApi = {
 // ========== PRICE LISTS ==========
 
 export const priceListsApi = {
+  // Get all price lists for current user
+  getAll: async () => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('price_lists')
+        .select('*')
+        .eq('user_id', userId)
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      handleError('priceListsApi.getAll', error)
+    }
+  },
+
   // Get price list for contractor
   get: async (contractorId) => {
     try {
