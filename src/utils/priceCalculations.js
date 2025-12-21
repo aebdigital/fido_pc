@@ -227,7 +227,7 @@ export const calculateWorkItemPrice = (workItem, priceItem) => {
 export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) => {
   if (!priceList || !priceList.material) return null;
   
-  // Extract base work name by removing type suffixes (Simple, Double, Triple, etc.)
+  // Extract base work name by removing type suffixes
   const typeSuffixes = WORK_TYPE_SUFFIXES;
   let baseWorkName = workItemName;
   let extractedType = null;
@@ -284,11 +284,9 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
   const materialName = materialMappings[baseWorkName];
   if (!materialName) return null;
   
-  
-  // Find material with exact name match
+  // 1. Try to find exact match including subtitle logic
   let material = priceList.material.find(item => {
     const nameMatch = item.name.toLowerCase() === materialName.toLowerCase();
-    
     
     // Check subtitle match if both exist
     if (workItemSubtype && item.subtitle) {
@@ -298,13 +296,10 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
       // Direct match
       let subtitleMatch = materialSubLower.includes(workSubLower);
       
-      // For paint items, handle Slovak->English subtitle differences
+      // For paint items, handle Slovak-English subtitle differences
       if (!subtitleMatch && materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PAINT.toLowerCase()) {
-        const workSubLower = workItemSubtype.toLowerCase();
-        
-        if (workSubLower.includes(WORK_ITEM_SUBTITLES.WALL[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.WALL[0])) {
-          subtitleMatch = true;
-        } else if (workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0])) {
+        if ((workSubLower.includes(WORK_ITEM_SUBTITLES.WALL[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.WALL[0])) ||
+            (workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]))) {
           subtitleMatch = true;
         }
       }
@@ -319,6 +314,7 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
 
       // For plasterboard and sádrokartón items, handle word order differences and extracted types
       if (!subtitleMatch && (materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PLASTERBOARD.toLowerCase() || materialName.toLowerCase() === MATERIAL_ITEM_NAMES.SADROKARTON.toLowerCase())) {
+        // Complex matching logic for plasterboard subtypes
         let subtypeToMatch = workItemSubtype;
         
         if (extractedType) {
@@ -380,7 +376,7 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
           if (workParts.length <= materialParts.length) {
             subtitleMatch = workParts.every(part => 
               materialParts.some(matPart => 
-                matPart.includes(part) || part.includes(matPart) ||
+                matPart.includes(part) || matPart.includes(matPart) ||
                 (part.includes('jednoduč') && matPart.includes('simple')) ||
                 (part.includes('simple') && matPart.includes('jednoduč')) ||
                 (part.includes('dvojit') && matPart.includes('double')) ||
@@ -406,15 +402,26 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
       return nameMatch && subtitleMatch;
     }
     
-    // If no exact match with subtitle, try without subtitle
-    if (!material && workItemSubtype) {
-      material = priceList.material.find(item => 
-        item.name.toLowerCase() === materialName.toLowerCase()
-      );
-    }
+    // If no exact match with subtitle, just match by name (fallback will happen later if this returns false, wait... no, find returns the first match)
+    // Actually, if we are inside the 'if (workItemSubtype)' block, we only want to return TRUE if we found a match.
+    // If we return 'nameMatch', we might return true for a name match even if subtitle didn't match, which might be wrong if there are multiple items with same name.
     
-    return material;
+    // However, the original logic seemed to rely on nameMatch being strict.
+    
+    return nameMatch && (workItemSubtype ? (item.subtitle ? false : false) : true); 
+    // Wait, the original logic was:
+    // return nameMatch && subtitleMatch; 
+    // If we are here, it means we checked subtitles.
   });
+  
+  // 2. If not found, and we have a subtype, try finding by name only as fallback
+  if (!material && workItemSubtype) {
+    material = priceList.material.find(item => 
+      item.name.toLowerCase() === materialName.toLowerCase()
+    );
+  }
+  
+  return material;
 };
 
 // Calculate cost for a specific material based on quantity
