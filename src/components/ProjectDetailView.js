@@ -971,6 +971,7 @@ ${t('Notes')}: ${invoice.notes}` : ''}
           onClose={() => setShowRoomDetailsModal(false)}
           onSave={(workData) => handleSaveRoomWork(selectedRoom.id, workData)}
           isReadOnly={project.is_archived}
+          priceList={project.priceListSnapshot}
         />
       )}
 

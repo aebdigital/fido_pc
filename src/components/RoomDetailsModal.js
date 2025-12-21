@@ -7,7 +7,7 @@ import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 
-const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
+const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) => {
   const { t } = useLanguage();
   useAppData(); // No destructuring needed here
   const [workData, setWorkData] = useState(room.workItems || []);
@@ -902,7 +902,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 <div className="lg:hidden mt-6">
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h3>
-                    <RoomPriceSummary room={room} workData={workData} />
+                    <RoomPriceSummary room={room} workData={workData} priceList={priceList} />
                   </div>
                 </div>
               </div>
@@ -910,7 +910,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
             {/* Price Summary Sidebar - Desktop only */}
             <div className="hidden lg:flex lg:w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-col h-full">
-              <RoomPriceSummary room={room} workData={workData} />
+              <RoomPriceSummary room={room} workData={workData} priceList={priceList} />
             </div>
           </div>
         </div>

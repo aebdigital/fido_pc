@@ -8,13 +8,14 @@ import {
   MATERIAL_ITEM_NAMES
 } from '../config/constants';
 
-const RoomPriceSummary = ({ room, workData }) => {
+const RoomPriceSummary = ({ room, workData, priceList }) => {
   const { t } = useLanguage();
   const { calculateRoomPriceWithMaterials, formatPrice, generalPriceList } = useAppData();
 
+  const activePriceList = priceList || generalPriceList;
   const roomWithWorkItems = { ...room, workItems: workData };
-  const calculation = calculateRoomPriceWithMaterials(roomWithWorkItems, generalPriceList);
-  const vatRate = generalPriceList?.others?.find(item => item.name === 'VAT')?.price / 100 || 0.23;
+  const calculation = calculateRoomPriceWithMaterials(roomWithWorkItems, activePriceList);
+  const vatRate = activePriceList?.others?.find(item => item.name === 'VAT')?.price / 100 || 0.23;
   const vatAmount = calculation.total * vatRate;
   const totalWithVat = calculation.total + vatAmount;
 
