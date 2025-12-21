@@ -686,18 +686,18 @@ const Projects = () => {
   };
 
   const handleBackToProjects = () => {
-    if (viewSource === 'archive') {
+    // Check both local state and location state for maximum robustness
+    if (viewSource === 'archive' || location.state?.fromArchive) {
       navigate('/archive');
-      // Reset view source after navigation
-      setViewSource('projects'); 
+      // No need to reset viewSource here as component will unmount/navigate away
     } else {
       setCurrentView('projects');
+      setSelectedProject(null);
+      setSelectedClientForProject(null);
+      setProjectDetailNotes('');
+      setProjectPhotos([]);
+      setIsEditingDetailNotes(false);
     }
-    setSelectedProject(null);
-    setSelectedClientForProject(null);
-    setProjectDetailNotes('');
-    setProjectPhotos([]);
-    setIsEditingDetailNotes(false);
   };
 
   const handleClientSelect = (client) => {
