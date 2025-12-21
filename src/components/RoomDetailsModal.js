@@ -882,7 +882,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Special handling for rentals
     if (property.id === 'rentals') {
       return (
-        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
+        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm transition-all duration-300 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Always show header with plus button */}
           <div
             className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
@@ -933,7 +933,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           
           {/* Existing rental items */}
           {expandedItems[property.id] && existingItems.map((item, index) => (
-            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
+            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in ${newlyAddedItems.has(item.id) ? '' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
                   {t(item.name)} {t('no.')} {index + 1}
@@ -998,7 +998,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       const isFilled = hasInput(existingItem);
       
       return (
-        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${isFilled ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
+        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm transition-all duration-300 ${isFilled ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Header with plus/minus button */}
           <div
             className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
@@ -1064,7 +1064,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
           {/* Show fields only when item exists AND is expanded */}
           {existingItem && expandedItems[existingItem.id] && (
-            <div className="space-y-3 lg:space-y-2 ">
+            <div className="space-y-3 lg:space-y-2 animate-slide-in">
               {property.fields?.map(field => (
                 <div key={field.name}>
                   {renderField(existingItem, field)}
