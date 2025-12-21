@@ -157,10 +157,11 @@ const Projects = () => {
       }
 
       if (projectFound && client) {
-        setSelectedClientForProject(client);
+        // Client selection is handled by ProjectDetailView or context if needed
+        // setSelectedClientForProject(client); 
       }
     }
-  }, [location.state, projectCategories, archivedProjects, setActiveCategory, setSelectedProject, setCurrentView, setSelectedClientForProject]);
+  }, [location.state, projectCategories, archivedProjects, setActiveCategory, setSelectedProject, setCurrentView]);
 
   const handleNewProject = async () => {
     if (newProjectName.trim()) {
@@ -174,8 +175,8 @@ const Projects = () => {
         setSelectedProject(newProject);
         setCurrentView('details');
 
-        // Auto-show room options for newly created project
-        setShowNewRoomModal(true);
+        // Auto-show room options for newly created project - handled by user interaction now
+        // setShowNewRoomModal(true);
       } catch (error) {
         console.error('Error creating project:', error);
         // Show user-friendly error message if available
@@ -211,24 +212,11 @@ const Projects = () => {
     setSelectedProject(project);
     setCurrentView('details');
 
-    // Load details asynchronously
+    // Load details asynchronously (optional here if ProjectDetailView also loads it, but good for pre-cache)
+    // ProjectDetailView will handle displaying the specific details
     setIsLoadingDetails(true);
     await loadProjectDetails(project.id);
     setIsLoadingDetails(false);
-
-    // Load the assigned client if the project has one
-    if (project.clientId) {
-      const assignedClient = clients.find(client => client.id === project.clientId);
-      if (assignedClient) {
-        setSelectedClientForProject(assignedClient);
-      }
-    } else {
-      setSelectedClientForProject(null);
-    }
-
-    // Load project notes and photos
-    setProjectDetailNotes(project.detail_notes || '');
-    setProjectPhotos(project.photos || []);
   };
 
   const handleBackToProjects = () => {
@@ -239,10 +227,6 @@ const Projects = () => {
     } else {
       setCurrentView('projects');
       setSelectedProject(null);
-      setSelectedClientForProject(null);
-      setProjectDetailNotes('');
-      setProjectPhotos([]);
-      setIsEditingDetailNotes(false);
     }
   };
 
