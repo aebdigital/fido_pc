@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp, Save, X, Loader2 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -9,6 +9,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const { t } = useLanguage();
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Add isSaving state
   const [expandedSections, setExpandedSections] = useState({
     work: true,
     material: true,
@@ -173,22 +174,30 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
       <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] max-h-[90vh] flex flex-col animate-slide-in">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-2xl">
-          <button 
-            onClick={onClose}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            {t('Back')}
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h1>
-          <div className="flex gap-2">
+        <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-2xl">
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h2>
+          <div className="flex items-center gap-3">
             <button
               onClick={handleSave}
-              disabled={!hasChanges}
-              className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!hasChanges || isSaving}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+                hasChanges && !isSaving
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              }`}
             >
-              {t('Save Changes')}
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{isSaving ? t('Saving...') : t('Save')}</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5 lg:w-6 lg:h-6" />
             </button>
           </div>
         </div>
