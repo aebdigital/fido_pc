@@ -559,7 +559,7 @@ export const useProjectManager = (appData, setAppData) => {
     }
   }, [appData.activeContractorId, setAppData]);
 
-  const saveWorkItemsForRoom = async (roomId, workItems) => {
+  const saveWorkItemsForRoom = useCallback(async (roomId, workItems) => {
     const tablesToUpdate = new Set();
     workItems.forEach(workItem => {
       const tableName = getTableName(workItem.propertyId);
@@ -599,7 +599,7 @@ export const useProjectManager = (appData, setAppData) => {
     });
 
     await Promise.all(insertPromises);
-  };
+  }, [appData.activeContractorId]);
 
   const updateProjectRoom = useCallback(async (projectId, roomId, roomData) => {
     try {
@@ -628,7 +628,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error updating room:', error);
       throw error;
     }
-  }, [setAppData, appData.activeContractorId, saveWorkItemsForRoom]);
+  }, [setAppData, saveWorkItemsForRoom]);
 
   const deleteProjectRoom = useCallback(async (projectId, roomId) => {
     try {
