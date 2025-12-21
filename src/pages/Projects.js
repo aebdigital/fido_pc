@@ -18,7 +18,7 @@ import {
   X,
   StickyNote
 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import RoomDetailsModal from '../components/RoomDetailsModal';
 import ProjectPriceList from '../components/ProjectPriceList';
 import ContractorProfileModal from '../components/ContractorProfileModal';
@@ -30,6 +30,7 @@ import { generateInvoicePDF } from '../utils/pdfGenerator';
 
 const Projects = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useLanguage();
   const {
     projectCategories,
@@ -42,6 +43,9 @@ const Projects = () => {
     addProject,
     updateProject,
     archiveProject,
+    archivedProjects,
+    unarchiveProject,
+    deleteArchivedProject,
     assignProjectToClient,
     findProjectById,
     addRoomToProject,
@@ -62,6 +66,7 @@ const Projects = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentView, setCurrentView] = useState(window.innerWidth < 1024 ? 'categories' : 'projects'); // 'categories', 'projects', 'details'
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [viewSource, setViewSource] = useState('projects'); // 'projects' or 'archive'
   
   // Helper function to get current VAT rate from price list
   const getVATRate = () => {
@@ -471,18 +476,26 @@ const Projects = () => {
     }
   }, [activeProjects, loadProjectDetails]);
 
-  // Handle navigation from clients page and invoices
+  // Handle navigation from clients page and invoices and archive
   useEffect(() => {
     if (location.state?.selectedProjectId) {
       const projectId = location.state.selectedProjectId;
       const client = location.state.selectedClient;
       const categoryId = location.state.selectedCategoryId;
+      const fromArchive = location.state.fromArchive;
 
-      // Find the project in the categories
-      // If categoryId is provided, search in that category first for efficiency
+      if (fromArchive) {
+        setViewSource('archive');
+      } else {
+        setViewSource('projects');
+      }
+
+      // Search in categories first (active projects)
       const categoriesToSearch = categoryId
         ? [projectCategories.find(c => c.id === categoryId), ...projectCategories.filter(c => c.id !== categoryId)]
         : projectCategories;
+
+      let projectFound = false;
 
       for (const category of categoriesToSearch) {
         if (!category) continue;
@@ -491,14 +504,30 @@ const Projects = () => {
           setActiveCategory(category.id);
           setSelectedProject(project);
           setCurrentView('details');
-          if (client) {
-            setSelectedClientForProject(client);
-          }
+          projectFound = true;
           break;
         }
       }
+
+      // If not found in active categories, search in archived projects
+      if (!projectFound && archivedProjects) {
+        const project = archivedProjects.find(p => p.id === projectId);
+        if (project) {
+          // For archived projects, we might not set active category, or set it to original
+          if (project.originalCategoryId) {
+             setActiveCategory(project.originalCategoryId);
+          }
+          setSelectedProject(project);
+          setCurrentView('details');
+          projectFound = true;
+        }
+      }
+
+      if (projectFound && client) {
+        setSelectedClientForProject(client);
+      }
     }
-  }, [location.state, projectCategories, setActiveCategory, setSelectedProject, setCurrentView, setSelectedClientForProject]);
+  }, [location.state, projectCategories, archivedProjects, setActiveCategory, setSelectedProject, setCurrentView, setSelectedClientForProject]);
 
   const handleNewProject = async () => {
     if (newProjectName.trim()) {
@@ -657,7 +686,13 @@ const Projects = () => {
   };
 
   const handleBackToProjects = () => {
-    setCurrentView('projects');
+    if (viewSource === 'archive') {
+      navigate('/archive');
+      // Reset view source after navigation
+      setViewSource('projects'); 
+    } else {
+      setCurrentView('projects');
+    }
     setSelectedProject(null);
     setSelectedClientForProject(null);
     setProjectDetailNotes('');
@@ -1645,20 +1680,48 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               </div>
 
               <div className="flex gap-3">
-                <button 
-                  onClick={() => handleDuplicateProject(currentProject.id)}
-                  className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                >
-                  <Copy className="w-4 h-4" /> 
-                  <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
-                </button>
-                <button 
-                  onClick={() => handleArchiveProject(currentProject.id)}
-                  className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                >
-                  <Archive className="w-4 h-4" /> 
-                  <span className="text-sm sm:text-lg">{t('Archive')}</span>
-                </button>
+                {currentProject.is_archived ? (
+                  <>
+                    <button 
+                      onClick={() => {
+                        unarchiveProject(currentProject.id);
+                        if (viewSource === 'archive') navigate('/archive');
+                        else handleBackToProjects();
+                      }}
+                      className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      <span className="text-sm sm:text-lg">{t('Unarchive')}</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        deleteArchivedProject(currentProject.id);
+                        if (viewSource === 'archive') navigate('/archive');
+                        else handleBackToProjects();
+                      }}
+                      className="flex-1 bg-red-600 text-white py-3 px-4 rounded-2xl font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      <Trash2 className="w-4 h-4" /> 
+                      <span className="text-sm sm:text-lg">{t('Delete Forever')}</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => handleDuplicateProject(currentProject.id)}
+                      className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      <Copy className="w-4 h-4" /> 
+                      <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
+                    </button>
+                    <button 
+                      onClick={() => handleArchiveProject(currentProject.id)}
+                      className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      <Archive className="w-4 h-4" /> 
+                      <span className="text-sm sm:text-lg">{t('Archive')}</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
