@@ -543,6 +543,15 @@ export const calculateWorkItemWithMaterials = (
     const count = parseFloat(values.Count || 0);
     const price = parseFloat(values.Price || 0);
     materialCost = count * price; // User-entered price is for the product/material
+  } else if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) {
+    // Window installation: Price field is the cost of the actual window (material)
+    const price = parseFloat(values.Price || 0);
+    materialCost = price; // Each window item has its own price
+  } else if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) {
+    // Door jamb installation: Price field is the cost per door jamb (material)
+    const count = parseFloat(values.Count || 0);
+    const price = parseFloat(values.Price || 0);
+    materialCost = count * price; // Count * price per piece
   } else {
     // Find matching material - combine work subtitle and selected type for full context
     const fullSubtype = workItem.subtitle ?
