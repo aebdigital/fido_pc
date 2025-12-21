@@ -83,26 +83,27 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
       return;
     }
 
-    // Map form fields to actual database column names
+    // Map form fields to App format (camelCase)
+    // AppDataContext will handle transformation to DB format (snake_case)
     const contractorData = {
       name: formData.name,
-      contact_person_name: formData.contactPerson,
+      contactPerson: formData.contactPerson,
       email: formData.email,
       phone: formData.phone,
-      web: formData.website,
+      website: formData.website,
       street: formData.street,
-      second_row_street: formData.additionalInfo,
+      additionalInfo: formData.additionalInfo,
       city: formData.city,
-      postal_code: formData.postalCode,
+      postalCode: formData.postalCode,
       country: formData.country,
-      business_id: formData.businessId,
-      tax_id: formData.taxId,
-      vat_registration_number: formData.vatNumber,
-      bank_account_number: formData.bankAccount,
-      swift_code: formData.bankCode,
-      legal_notice: formData.legalAppendix,
-      logo_url: formData.logo,
-      signature_url: formData.signature
+      businessId: formData.businessId,
+      taxId: formData.taxId,
+      vatNumber: formData.vatNumber,
+      bankAccount: formData.bankAccount,
+      bankCode: formData.bankCode,
+      legalAppendix: formData.legalAppendix,
+      logo: formData.logo,
+      signature: formData.signature
     };
 
     // Only add id for editing (new contractors get ID from database)

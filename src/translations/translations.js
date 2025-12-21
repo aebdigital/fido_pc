@@ -283,6 +283,7 @@ export const translations = {
     "set general price list": "nastavte všeobecný cenník",
     "set default price list": "nastaviť predvolený cenník",
     "Price offer": "Cenová ponuka",
+    "Supplier": "Dodávateľ",
     "supplier, validity of price offer": "dodávateľ, platnosť cenovej ponuky",
     "supplier information, validity of price offer": "informácie o dodávateľovi, platnosť cenovej ponuky",
     
@@ -345,6 +346,8 @@ export const translations = {
     "There is no Invoice for selected Contractor.": "Pre vybraného dodávateľa nebola vytvorená žiadna faktúra.",
     "No invoice has been created for the selected supplier.": "Pre vybraného dodávateľa nebola vytvorená žiadna faktúra.",
     "Create Invoice": "Vytvoriť faktúru",
+    "Edit Invoice": "Upraviť faktúru",
+    "Save Changes": "Uložiť zmeny",
     "Invoice Number": "Číslo faktúry",
     "Issue Date": "Dátum vystavenia",
     "Due Date": "Dátum dodania",
@@ -363,6 +366,7 @@ export const translations = {
     "Invoice Created": "Faktúra vytvorená",
     "Invoice Sent": "Faktúra odoslaná",
     "Invoice Paid": "Faktúra uhradená",
+    "Invoice Edited": "Faktúra upravená",
     "Invoice Deleted": "Faktúra zmazaná",
     "sent": "odoslaný",
     "unsent": "neodoslaný",
@@ -432,6 +436,11 @@ export const translations = {
     "Fido Building Calculator": "Fido Building Calculator",
     "All rights reserved": "Všetky práva vyhradené",
     "Notes": "Poznámky",
+    "Poznámky": "Poznámky",
+    "Fotografie": "Fotografie",
+    "Add notes about this project...": "Pridajte poznámky k tomuto projektu...",
+    "Click to add notes...": "Kliknite pre pridanie poznámok...",
+    "Click to add photos": "Kliknite pre pridanie fotografií",
 
     // ========== SHARING ==========
     "Invoice details copied to clipboard": "Detaily faktúry boli skopírované do schránky",

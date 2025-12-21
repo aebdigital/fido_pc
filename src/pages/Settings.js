@@ -172,7 +172,7 @@ const Settings = () => {
             onClick={handlePriceOfferClick}
           >
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Price offer')}</div>
+              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Supplier')}</div>
               <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('supplier information, validity of price offer')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />

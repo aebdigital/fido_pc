@@ -113,6 +113,7 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     case 'painting_walls':
     case 'painting_ceilings':
     case 'facade_plasterings':
+    case 'penetration_coatings':
       return {
         ...baseRecord,
         size1: workItem.fields?.Width || workItem.fields?.Length || 0,
@@ -156,19 +157,19 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     case 'custom_works':
       return {
         ...baseRecord,
-        title: workItem.name || '',
+        title: workItem.fields?.Name || workItem.name || '',
         unit: workItem.selectedUnit || '',
-        number_of_units: workItem.fields?.['Number of units'] || 0,
-        price_per_unit: workItem.fields?.['Price per unit'] || 0
+        number_of_units: workItem.fields?.Quantity || 0,
+        price_per_unit: workItem.fields?.Price || 0
       };
 
     case 'custom_materials':
       return {
         ...baseRecord,
-        title: workItem.name || '',
+        title: workItem.fields?.Name || workItem.name || '',
         unit: workItem.selectedUnit || '',
-        number_of_units: workItem.fields?.['Number of units'] || 0,
-        price_per_unit: workItem.fields?.['Price per unit'] || 0
+        number_of_units: workItem.fields?.Quantity || 0,
+        price_per_unit: workItem.fields?.Price || 0
       };
 
     default:
@@ -244,6 +245,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
     case 'painting_walls':
     case 'painting_ceilings':
     case 'facade_plasterings':
+    case 'penetration_coatings':
       return {
         ...baseItem,
         fields: {
@@ -302,8 +304,9 @@ export function databaseToWorkItem(dbRecord, tableName) {
         name: dbRecord.title,
         selectedUnit: dbRecord.unit,
         fields: {
-          'Number of units': dbRecord.number_of_units || 0,
-          'Price per unit': dbRecord.price_per_unit || 0
+          Name: dbRecord.title,
+          Quantity: dbRecord.number_of_units || 0,
+          Price: dbRecord.price_per_unit || 0
         }
       };
 

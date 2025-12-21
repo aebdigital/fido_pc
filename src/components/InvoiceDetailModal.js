@@ -1,14 +1,19 @@
-import React from 'react';
-import { X, Eye, Send, CheckCircle, FileText, User, Calendar, DollarSign } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Eye, Send, CheckCircle, FileText, User, Calendar, DollarSign, Edit3, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
+import InvoiceCreationModal from './InvoiceCreationModal';
 
 const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
   const { t } = useLanguage();
-  const { updateInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList } = useAppData();
+  const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList } = useAppData();
   const navigate = useNavigate();
+
+  // Edit mode state - now opens a modal instead of inline editing
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!isOpen || !invoice) return null;
 
@@ -32,6 +37,28 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('sk-SK');
+  };
+
+  const handleStartEdit = () => {
+    setShowEditModal(true);
+  };
+
+  const handleEditModalClose = (updated) => {
+    setShowEditModal(false);
+    if (updated) {
+      onClose(true); // Refresh the list
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteInvoice(invoice.id);
+      setShowDeleteConfirm(false);
+      onClose(true); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      alert(t('Failed to delete invoice'));
+    }
   };
 
   const handleMarkAsSent = () => {
@@ -129,6 +156,42 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
     }
   };
 
+  // Delete confirmation dialog
+  if (showDeleteConfirm) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+              <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Delete Invoice')}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{invoice.invoiceNumber}</p>
+            </div>
+          </div>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            {t('Are you sure you want to delete this invoice? This action cannot be undone.')}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white py-3 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              onClick={handleDelete}
+              className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
+            >
+              {t('Delete')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -141,12 +204,28 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               <p className="text-sm text-gray-500 dark:text-gray-400">{invoice.projectName}</p>
             </div>
           </div>
-          <button
-            onClick={() => onClose()}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleStartEdit}
+              className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              title={t('Edit')}
+            >
+              <Edit3 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              title={t('Delete')}
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => onClose()}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -226,27 +305,34 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               )}
             </div>
 
-            {/* Right Column */}
+            {/* Right Column - Invoice Settings */}
             <div className="space-y-4">
               <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   {t('Invoice Settings')}
                 </h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
+                <div className="space-y-3">
+                  {/* Invoice Number */}
+                  <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">{t('Invoice Number')}</span>
                     <span className="font-medium text-gray-900 dark:text-white">{invoice.invoiceNumber}</span>
                   </div>
-                  <div className="flex justify-between">
+
+                  {/* Issue Date */}
+                  <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">{t('Issue Date')}</span>
                     <span className="font-medium text-gray-900 dark:text-white">{formatDate(invoice.issueDate)}</span>
                   </div>
-                  <div className="flex justify-between">
+
+                  {/* Due Date */}
+                  <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">{t('Due Date')}</span>
                     <span className="font-medium text-gray-900 dark:text-white">{formatDate(invoice.dueDate)}</span>
                   </div>
-                  <div className="flex justify-between">
+
+                  {/* Payment Method */}
+                  <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500 dark:text-gray-400">{t('Payment Method')}</span>
                     <span className="font-medium text-gray-900 dark:text-white">
                       {t(invoice.paymentMethod === 'cash' ? 'Cash' : 'Transfer')}
@@ -255,6 +341,14 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Notes Section */}
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('Notes')}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+              {invoice.notes || <span className="italic text-gray-400">{t('No notes')}</span>}
+            </p>
           </div>
 
           {/* Project Summary */}
@@ -284,14 +378,6 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               </div>
             </div>
           </div>
-
-          {/* Notes */}
-          {invoice.notes && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('Notes')}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{invoice.notes}</p>
-            </div>
-          )}
         </div>
 
         {/* Footer Actions */}
@@ -314,6 +400,16 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           </div>
         </div>
       </div>
+
+      {/* Edit Invoice Modal */}
+      <InvoiceCreationModal
+        isOpen={showEditModal}
+        onClose={handleEditModalClose}
+        project={project}
+        categoryId={invoice.categoryId}
+        editMode={true}
+        existingInvoice={invoice}
+      />
     </div>
   );
 };

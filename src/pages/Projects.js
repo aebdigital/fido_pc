@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   User,
   ClipboardList,
@@ -14,7 +14,10 @@ import {
   Edit3,
   AlertTriangle,
   FileText,
-  DollarSign
+  DollarSign,
+  Image,
+  X,
+  StickyNote
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import RoomDetailsModal from '../components/RoomDetailsModal';
@@ -88,6 +91,11 @@ const Projects = () => {
   const [showContractorWarning, setShowContractorWarning] = useState(false);
   const [showInvoiceCreationModal, setShowInvoiceCreationModal] = useState(false);
   const [showInvoiceDetailModal, setShowInvoiceDetailModal] = useState(false);
+  const [projectPhotos, setProjectPhotos] = useState([]);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
+  const [projectDetailNotes, setProjectDetailNotes] = useState('');
+  const [isEditingDetailNotes, setIsEditingDetailNotes] = useState(false);
+  const photoInputRef = useRef(null);
   const dropdownRef = useRef(null);
 
 
@@ -433,8 +441,36 @@ const Projects = () => {
   ];
 
 
-  const activeProjects = projectCategories.find(cat => cat.id === activeCategory)?.projects || [];
+  const activeProjects = useMemo(() => {
+    return projectCategories.find(cat => cat.id === activeCategory)?.projects || [];
+  }, [projectCategories, activeCategory]);
   const currentProject = selectedProject;
+
+  // Track which projects have been loaded to avoid re-fetching
+  const loadedProjectsRef = useRef(new Set());
+
+  // Preload project details (rooms and work items) for all visible projects in background
+  useEffect(() => {
+    const preloadProjectDetails = async () => {
+      // Load details for all projects in the active category
+      for (const project of activeProjects) {
+        // Only load if not already loaded (tracked by ref to avoid infinite loops)
+        if (!loadedProjectsRef.current.has(project.id)) {
+          loadedProjectsRef.current.add(project.id);
+          // Load in background without blocking UI
+          loadProjectDetails(project.id).catch(err => {
+            console.warn(`Failed to preload project ${project.id}:`, err);
+            // Remove from loaded set so it can be retried
+            loadedProjectsRef.current.delete(project.id);
+          });
+        }
+      }
+    };
+
+    if (activeProjects.length > 0) {
+      preloadProjectDetails();
+    }
+  }, [activeProjects, loadProjectDetails]);
 
   // Handle navigation from clients page and invoices
   useEffect(() => {
@@ -600,12 +636,12 @@ const Projects = () => {
   const handleProjectSelect = async (project) => {
     setSelectedProject(project);
     setCurrentView('details');
-    
+
     // Load details asynchronously
     setIsLoadingDetails(true);
     await loadProjectDetails(project.id);
     setIsLoadingDetails(false);
-    
+
     // Load the assigned client if the project has one
     if (project.clientId) {
       const assignedClient = clients.find(client => client.id === project.clientId);
@@ -615,26 +651,39 @@ const Projects = () => {
     } else {
       setSelectedClientForProject(null);
     }
+
+    // Load project notes and photos
+    setProjectDetailNotes(project.detail_notes || '');
+    setProjectPhotos(project.photos || []);
   };
 
   const handleBackToProjects = () => {
     setCurrentView('projects');
     setSelectedProject(null);
     setSelectedClientForProject(null);
+    setProjectDetailNotes('');
+    setProjectPhotos([]);
+    setIsEditingDetailNotes(false);
   };
 
   const handleClientSelect = (client) => {
     setSelectedClientForProject(client);
     setShowClientSelector(false);
-    
+
     // Assign the current project to the selected client AND store client info in project
     if (currentProject) {
       assignProjectToClient(client.id, currentProject.id, currentProject.name);
       // Also update the project to store the client information
-      updateProject(activeCategory, currentProject.id, { 
+      updateProject(activeCategory, currentProject.id, {
         clientId: client.id,
-        clientName: client.name 
+        clientName: client.name
       });
+      // Also update the local selectedProject state so InvoiceCreationModal gets the updated clientId
+      setSelectedProject(prev => prev ? {
+        ...prev,
+        clientId: client.id,
+        clientName: client.name
+      } : prev);
     }
   };
 
@@ -753,6 +802,71 @@ const Projects = () => {
     setEditingProjectNotes('');
   };
 
+  // Detail notes handlers (for the right sidebar)
+  const handleSaveDetailNotes = () => {
+    if (currentProject) {
+      updateProject(activeCategory, currentProject.id, { detail_notes: projectDetailNotes });
+      setSelectedProject(prev => prev ? { ...prev, detail_notes: projectDetailNotes } : prev);
+      setIsEditingDetailNotes(false);
+    }
+  };
+
+  // Photo handlers
+  const handlePhotoUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    if (!files.length || !currentProject) return;
+
+    const newPhotos = [];
+    for (const file of files) {
+      // Convert file to base64 for local storage (for now)
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+      newPhotos.push({
+        id: Date.now() + Math.random(),
+        url: base64,
+        name: file.name,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    const updatedPhotos = [...projectPhotos, ...newPhotos];
+    setProjectPhotos(updatedPhotos);
+    updateProject(activeCategory, currentProject.id, { photos: updatedPhotos });
+    setSelectedProject(prev => prev ? { ...prev, photos: updatedPhotos } : prev);
+
+    // Reset input
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
+    }
+  };
+
+  const handleDeletePhoto = (photoId) => {
+    if (!currentProject) return;
+    const updatedPhotos = projectPhotos.filter(p => p.id !== photoId);
+    setProjectPhotos(updatedPhotos);
+    updateProject(activeCategory, currentProject.id, { photos: updatedPhotos });
+    setSelectedProject(prev => prev ? { ...prev, photos: updatedPhotos } : prev);
+  };
+
+  const handleOpenPhoto = (index) => {
+    setSelectedPhotoIndex(index);
+  };
+
+  const handleClosePhoto = () => {
+    setSelectedPhotoIndex(null);
+  };
+
+  const handleNextPhoto = () => {
+    setSelectedPhotoIndex(prev => (prev + 1) % projectPhotos.length);
+  };
+
+  const handlePrevPhoto = () => {
+    setSelectedPhotoIndex(prev => (prev - 1 + projectPhotos.length) % projectPhotos.length);
+  };
+
   // Contractor management handlers
   const handleCreateContractorProfile = () => {
     setShowContractorModal(true);
@@ -795,6 +909,9 @@ const Projects = () => {
     const contractor = getCurrentContractor();
     // Find client by ID from the project
     const client = clients.find(c => c.id === currentProject.clientId);
+    console.log('[PDF] currentProject.clientId:', currentProject.clientId);
+    console.log('[PDF] Found client:', client);
+    console.log('[PDF] All clients:', clients);
     const projectBreakdown = calculateProjectTotalPriceWithBreakdown(currentProject.id);
 
     const vatRate = getVATRate();
@@ -902,15 +1019,6 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
   return (
     <>
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
       <div className="pb-20 lg:pb-0 overflow-hidden w-full min-w-0">
         <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
       
@@ -979,8 +1087,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
       )}
 
       <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden w-full">
-        {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar */}
-        <div className={`lg:w-80 flex lg:flex-col w-screen lg:w-80 ${currentView === 'details' ? 'hidden lg:flex' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{maxWidth: '100vw'}}>
+        {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar - Hidden when viewing project details */}
+        <div className={`lg:w-80 flex lg:flex-col w-screen lg:w-80 ${currentView === 'details' ? 'hidden' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{maxWidth: '100vw'}}>
           <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-6 py-4 space-x-2 lg:space-x-0 lg:space-y-3 scrollbar-hide" style={{width: '100%'}}>
             {projectCategories.map(category => (
               <button
@@ -1139,90 +1247,95 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
           {/* Project Details View */}
           {currentView === 'details' && currentProject && (
-            <div className="flex-1 p-0 lg:p-6 overflow-y-auto space-y-4 lg:space-y-6 min-w-0">
-              {/* Header with back button */}
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={handleBackToProjects}
-                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5 rotate-180" />
-                  <span className="hidden sm:inline">{t('Back to Project List')}</span>
-                  <span className="sm:hidden">Back</span>
-                </button>
-              </div>
-            {/* Project Header */}
-            <div className="flex flex-col gap-2 lg:gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{currentProject.id}</span>
-                {currentProject.invoiceStatus && (
-                  <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
-                    currentProject.invoiceStatus === 'sent'
-                      ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                      : currentProject.invoiceStatus === 'paid'
-                      ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                      : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                  }`}>
-                    {t(currentProject.invoiceStatus === 'sent' ? 'sent' : currentProject.invoiceStatus === 'paid' ? 'Paid' : 'unsent')}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                {isEditingProjectName ? (
-                  <input
-                    type="text"
-                    value={editingProjectName}
-                    onChange={(e) => setEditingProjectName(e.target.value)}
-                    onBlur={handleSaveProjectName}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveProjectName();
-                      if (e.key === 'Escape') handleCancelEditProjectName();
-                    }}
-                    className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white flex-1">{currentProject.name}</h1>
+            <div className="flex-1 p-0 lg:p-6 overflow-y-auto min-w-0">
+              
+              {/* Project Header - Moved outside the two-column layout to sit on top */}
+              <div className="mb-6">
+                <div className="flex flex-col gap-2 lg:gap-4">
+                  {/* Back arrow and project name */}
+                  <div className="flex items-center gap-3">
                     <button
-                      onClick={handleEditProjectName}
+                      onClick={handleBackToProjects}
                       className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     >
-                      <Edit3 className="w-5 h-5" />
+                      <ChevronRight className="w-5 h-5 rotate-180" />
                     </button>
-                  </>
-                )}
+                    {isEditingProjectName ? (
+                      <input
+                        type="text"
+                        value={editingProjectName}
+                        onChange={(e) => setEditingProjectName(e.target.value)}
+                        onBlur={handleSaveProjectName}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveProjectName();
+                          if (e.key === 'Escape') handleCancelEditProjectName();
+                        }}
+                        className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white flex-1">{currentProject.name}</h1>
+                        <button
+                          onClick={handleEditProjectName}
+                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        >
+                          <Edit3 className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {/* Project ID and status below the name */}
+                  <div className="flex items-center gap-2 ml-11">
+                    <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{currentProject.id}</span>
+                    {currentProject.invoiceStatus && (
+                      <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
+                        currentProject.invoiceStatus === 'sent'
+                          ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                          : currentProject.invoiceStatus === 'paid'
+                          ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                          : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                      }`}>
+                        {t(currentProject.invoiceStatus === 'sent' ? 'sent' : currentProject.invoiceStatus === 'paid' ? 'Paid' : 'unsent')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {isEditingProjectNotes ? (
+                      <input
+                        type="text"
+                        value={editingProjectNotes}
+                        onChange={(e) => setEditingProjectNotes(e.target.value)}
+                        onBlur={handleSaveProjectNotes}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveProjectNotes();
+                          if (e.key === 'Escape') handleCancelEditProjectNotes();
+                        }}
+                        className="text-lg text-gray-500 dark:text-gray-400 bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
+                        placeholder={t('Notes')}
+                        autoFocus
+                      />
+                    ) : (
+                      <>
+                        <p className="text-gray-500 dark:text-gray-400 text-lg flex-1">
+                          {currentProject.notes || t('Notes')}
+                        </p>
+                        <button
+                          onClick={handleEditProjectNotes}
+                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                {isEditingProjectNotes ? (
-                  <input
-                    type="text"
-                    value={editingProjectNotes}
-                    onChange={(e) => setEditingProjectNotes(e.target.value)}
-                    onBlur={handleSaveProjectNotes}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveProjectNotes();
-                      if (e.key === 'Escape') handleCancelEditProjectNotes();
-                    }}
-                    className="text-lg text-gray-500 dark:text-gray-400 bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
-                    placeholder={t('Notes')}
-                    autoFocus
-                  />
-                ) : (
-                  <>
-                    <p className="text-gray-500 dark:text-gray-400 text-lg flex-1">
-                      {currentProject.notes || t('Notes')}
-                    </p>
-                    <button
-                      onClick={handleEditProjectNotes}
-                      className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+
+              {/* Two column layout */}
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Left column - Main project content */}
+                <div className="flex-1 space-y-4 lg:space-y-6 min-w-0">
 
             {/* Client Section */}
             <div className="space-y-4">
@@ -1499,91 +1612,188 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               </div>
             </div>
 
-            {/* History */}
-            <div className="space-y-4">
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
-              <div className="space-y-3">
-                {/* Project Created - always show */}
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-gray-900 dark:bg-white rounded-full flex-shrink-0"></div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Created')}</span>
-                    </div>
-                    <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
-                      {currentProject?.created_at ? new Date(currentProject.created_at).toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
-                    </span>
-                  </div>
                 </div>
 
-                {/* Dynamic history events */}
-                {getProjectHistory(currentProject?.id)?.slice().reverse().map((event, index) => {
-                  const getEventIcon = () => {
-                    switch (event.type) {
-                      case 'invoice_created':
-                        return <FileText className="w-4 h-4 text-gray-700 dark:text-gray-300" />;
-                      case 'invoice_sent':
-                        return <Send className="w-4 h-4 text-green-600 dark:text-green-400" />;
-                      case 'invoice_paid':
-                        return <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
-                      case 'invoice_deleted':
-                        return <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />;
-                      default:
-                        return <ClipboardList className="w-4 h-4 text-gray-700 dark:text-gray-300" />;
-                    }
-                  };
-
-                  const getEventLabel = () => {
-                    switch (event.type) {
-                      case 'invoice_created':
-                        return t('Invoice Created');
-                      case 'invoice_sent':
-                        return t('Invoice Sent');
-                      case 'invoice_paid':
-                        return t('Invoice Paid');
-                      case 'invoice_deleted':
-                        return t('Invoice Deleted');
-                      default:
-                        return event.type;
-                    }
-                  };
-
-                  const getEventColor = () => {
-                    switch (event.type) {
-                      case 'invoice_sent':
-                        return 'bg-green-500';
-                      case 'invoice_paid':
-                        return 'bg-blue-500';
-                      case 'invoice_deleted':
-                        return 'bg-red-500';
-                      default:
-                        return 'bg-gray-900 dark:bg-white';
-                    }
-                  };
-
-                  return (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className={`w-3 h-3 ${getEventColor()} rounded-full flex-shrink-0`}></div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                        <div className="flex items-center gap-2">
-                          {getEventIcon()}
-                          <span className="text-base font-medium text-gray-900 dark:text-white">{getEventLabel()}</span>
-                        </div>
-                        <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
-                          {new Date(event.date).toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
+                {/* Right column - Notes and Photos (sticky on desktop) */}
+                <div className="lg:w-80 xl:w-96 flex-shrink-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
+                  {/* Poznámky (Notes) Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <StickyNote className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                      <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Poznámky')}</h2>
                     </div>
-                  );
-                })}
+                    {isEditingDetailNotes ? (
+                      <div className="space-y-3">
+                        <textarea
+                          value={projectDetailNotes}
+                          onChange={(e) => setProjectDetailNotes(e.target.value)}
+                          placeholder={t('Add notes about this project...')}
+                          className="w-full h-40 p-3 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setIsEditingDetailNotes(false);
+                              setProjectDetailNotes(currentProject.detail_notes || '');
+                            }}
+                            className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                          >
+                            {t('Cancel')}
+                          </button>
+                          <button
+                            onClick={handleSaveDetailNotes}
+                            className="flex-1 px-3 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                          >
+                            {t('Save')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors overflow-auto whitespace-pre-wrap shadow-sm"
+                        onClick={() => setIsEditingDetailNotes(true)}
+                      >
+                        {projectDetailNotes || <span className="text-gray-400 dark:text-gray-500">{t('Click to add notes...')}</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Fotografie (Photos) Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                        <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fotografie')}</h2>
+                      </div>
+                      <button
+                        onClick={() => photoInputRef.current?.click()}
+                        className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                      <input
+                        ref={photoInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </div>
+
+                    {projectPhotos.length > 0 ? (
+                      <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm">
+                        <div className="grid grid-cols-3 gap-2">
+                          {projectPhotos.map((photo, index) => (
+                            <div
+                              key={photo.id}
+                              className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
+                              onClick={() => handleOpenPhoto(index)}
+                            >
+                              <img
+                                src={photo.url}
+                                alt={photo.name || `Photo ${index + 1}`}
+                                className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeletePhoto(photo.id);
+                                }}
+                                className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="min-h-[120px] flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-sm"
+                        onClick={() => photoInputRef.current?.click()}
+                      >
+                        <Image className="w-8 h-8 mb-2" />
+                        <span className="text-sm">{t('Click to add photos')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* História (History) Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                      <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
+                    </div>
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
+                      {/* Project Created - always show */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 bg-gray-900 dark:bg-white rounded-full flex-shrink-0"></div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Created')}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {currentProject?.created_at ? new Date(currentProject.created_at).toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Dynamic history events */}
+                      {getProjectHistory(currentProject?.id)?.slice().reverse().map((event, index) => {
+                        const getEventColor = () => {
+                          switch (event.type) {
+                            case 'invoice_sent':
+                              return 'bg-green-500';
+                            case 'invoice_paid':
+                              return 'bg-blue-500';
+                            case 'invoice_deleted':
+                              return 'bg-red-500';
+                            case 'invoice_edited':
+                              return 'bg-amber-500';
+                            default:
+                              return 'bg-gray-900 dark:bg-white';
+                          }
+                        };
+
+                        const getEventLabel = () => {
+                          switch (event.type) {
+                            case 'invoice_created':
+                              return t('Invoice Created');
+                            case 'invoice_sent':
+                              return t('Invoice Sent');
+                            case 'invoice_paid':
+                              return t('Invoice Paid');
+                            case 'invoice_deleted':
+                              return t('Invoice Deleted');
+                            case 'invoice_edited':
+                              return t('Invoice Edited');
+                            default:
+                              return event.type;
+                          }
+                        };
+
+                        return (
+                          <div key={index} className="flex items-center gap-3">
+                            <div className={`w-2.5 h-2.5 ${getEventColor()} rounded-full flex-shrink-0`}></div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{getEventLabel()}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {new Date(event.date).toLocaleString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
           )}
         </div>
       </div>
-      
+
       {/* New Project Modal */}
       {showNewProjectModal && (
       <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
@@ -1794,6 +2004,62 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         }}
         invoice={getInvoiceForProject(currentProject.id)}
       />
+    )}
+
+    {/* Photo Viewer Modal - Lightbox with blur and zoom animation */}
+    {selectedPhotoIndex !== null && projectPhotos.length > 0 && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in"
+        onClick={handleClosePhoto}
+      >
+        {/* Blurred backdrop */}
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+
+        {/* Close button */}
+        <button
+          onClick={handleClosePhoto}
+          className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white transition-colors bg-black/30 rounded-full hover:bg-black/50"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        {/* Navigation arrows */}
+        {projectPhotos.length > 1 && (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrevPhoto();
+              }}
+              className="absolute left-4 z-10 p-3 text-white/80 hover:text-white transition-all bg-black/30 rounded-full hover:bg-black/50 hover:scale-110"
+            >
+              <ChevronRight className="w-6 h-6 rotate-180" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNextPhoto();
+              }}
+              className="absolute right-4 z-10 p-3 text-white/80 hover:text-white transition-all bg-black/30 rounded-full hover:bg-black/50 hover:scale-110"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </>
+        )}
+
+        {/* Image with zoom-in animation */}
+        <img
+          src={projectPhotos[selectedPhotoIndex]?.url}
+          alt={projectPhotos[selectedPhotoIndex]?.name || 'Photo'}
+          className="relative z-10 max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl animate-zoom-in"
+          onClick={(e) => e.stopPropagation()}
+        />
+
+        {/* Photo counter */}
+        <div className="absolute bottom-6 z-10 px-4 py-2 text-white/90 text-sm font-medium bg-black/40 rounded-full backdrop-blur-sm">
+          {selectedPhotoIndex + 1} / {projectPhotos.length}
+        </div>
+      </div>
     )}
     </div>
     </>

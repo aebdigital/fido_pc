@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { User, Search, ChevronRight, Plus, Trash2, Edit3, ArrowLeft } from 'lucide-react';
+import { User, Search, ChevronRight, Plus, Trash2, Edit3, ArrowLeft, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import RpoAutocomplete from '../components/RpoAutocomplete';
 
 // Helper component for editable fields - moved outside to prevent recreation on renders
 const EditableField = React.memo(({ label, field, value, type = "text", isEditing, editForm, onInputChange, t }) => {
@@ -31,7 +32,7 @@ const EditableField = React.memo(({ label, field, value, type = "text", isEditin
 });
 
 const Clients = () => {
-  const { t } = useLanguage();
+  const { t, isSlovak } = useLanguage();
   const navigate = useNavigate();
   const { clients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice, findProjectById, getProjectRooms } = useAppData();
   const [showAddClient, setShowAddClient] = useState(false);
@@ -40,6 +41,8 @@ const Clients = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [showRpoSearch, setShowRpoSearch] = useState(false);
+  
   const [clientForm, setClientForm] = useState({
     name: '',
     email: '',
@@ -78,11 +81,13 @@ const Clients = () => {
       vatId: '',
       contactPerson: ''
     });
+    setShowRpoSearch(false);
   };
 
   const handleCancel = () => {
     setShowAddClient(false);
     setSelectedClient(null);
+    setShowRpoSearch(false);
   };
 
   const handleInputChange = (field, value) => {
@@ -90,6 +95,25 @@ const Clients = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleRpoSelect = (entity) => {
+    const streetPart = entity.address?.street || '';
+    const numberPart = entity.address?.buildingNumber || '';
+    const fullStreet = [streetPart, numberPart].filter(Boolean).join(' ');
+
+    setClientForm(prev => ({
+      ...prev,
+      name: entity.name || '',
+      street: fullStreet,
+      city: entity.address?.municipality || '',
+      postalCode: entity.address?.postalCode || '',
+      country: 'Slovensko',
+      businessId: entity.ico || '',
+      taxId: entity.dic || '',
+      // vatId is not provided by public RPO
+    }));
+    setShowRpoSearch(false);
   };
 
   const handleSaveClient = () => {
@@ -468,6 +492,32 @@ const Clients = () => {
             {/* Form Fields */}
             <div className="flex-1">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                
+                {/* RPO Search Button / Component */}
+                {clientType === 'business' && isSlovak && (
+                  <div className="col-span-1 lg:col-span-2 mb-2">
+                    {showRpoSearch ? (
+                      <div className="relative">
+                        <RpoAutocomplete onSelect={handleRpoSelect} t={t} />
+                        <button 
+                          onClick={() => setShowRpoSearch(false)}
+                          className="absolute right-[-40px] top-2 text-gray-500 hover:text-gray-700"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowRpoSearch(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
+                      >
+                        <Building2 className="w-4 h-4" />
+                        Vyplniť podľa IČO
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Name')}</label>
                   <input 

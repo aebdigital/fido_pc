@@ -108,6 +108,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     
     saveScrollPosition();
     
+    // Ensure the group is expanded when adding an item
+    setExpandedItems(prev => ({ ...prev, [propertyId]: true }));
+    
     if (propertyId === 'sanitary_installation') {
       setShowingSanitarySelector(true);
       return;
@@ -221,6 +224,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     setWorkData([...workData, newItem]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingTypeSelector(null);
+    setExpandedItems(prev => ({ ...prev, [property.id]: true }));
   };
 
   const handleUnitSelect = (itemId, unit, e) => {
@@ -270,6 +274,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     setWorkData([...workData, newItem]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingRentalsSelector(false);
+    setExpandedItems(prev => ({ ...prev, ['rentals']: true }));
   };
 
   const handleUpdateWorkItem = (itemId, field, value, isText = false) => {
@@ -688,6 +693,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
     saveScrollPosition();
 
+    // Check if we are removing the last item of a group, if so, collapse the group
+    const itemToRemove = workData.find(i => i.id === itemId);
+    if (itemToRemove) {
+      const propId = itemToRemove.propertyId;
+      const itemsOfThisProp = workData.filter(i => i.propertyId === propId);
+      // If this is the last item (or somehow we have 0), collapse the group
+      if (itemsOfThisProp.length <= 1) {
+         setExpandedItems(prev => ({ ...prev, [propId]: false }));
+      }
+    }
+
     // When removing an item, also remove all complementary work items linked to it
     setWorkData(items => items.filter(item =>
       item.id !== itemId && item.linkedToParent !== itemId
@@ -864,13 +880,21 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Always show header with plus button */}
           <div
-            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={(e) => handleAddWorkItem(property.id, e)}
+            className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
+            onClick={(e) => {
+              if (existingItems.length > 0) {
+                e.preventDefault();
+                toggleExpanded(property.id, e);
+              }
+            }}
           >
             <div className="flex-1">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
             </div>
-            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+            <div 
+              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              onClick={(e) => handleAddWorkItem(property.id, e)}
+            >
               <Plus className="w-4 h-4" />
             </div>
           </div>
@@ -903,7 +927,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           )}
           
           {/* Existing rental items */}
-          {existingItems.map((item, index) => (
+          {expandedItems[property.id] && existingItems.map((item, index) => (
             <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
@@ -945,9 +969,31 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Special handling for single behavior items
     if (property.behavior === 'single') {
       const existingItem = workData.find(item => item.propertyId === property.id);
+
+      const hasInput = (item) => {
+        if (!item) return false;
+        // Check fields
+        if (item.fields) {
+          const hasFieldInput = Object.entries(item.fields).some(([key, value]) => {
+            if (typeof value === 'number') return value > 0;
+            if (typeof value === 'string') return value.trim().length > 0;
+            if (typeof value === 'boolean') return value === true;
+            return false;
+          });
+          if (hasFieldInput) return true;
+        }
+        // Check doors/windows
+        if (item.doorWindowItems) {
+          if (item.doorWindowItems.doors?.length > 0) return true;
+          if (item.doorWindowItems.windows?.length > 0) return true;
+        }
+        return false;
+      };
+
+      const isFilled = hasInput(existingItem);
       
       return (
-        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItem ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
+        <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${isFilled ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Header with plus/minus button */}
           <div
             className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
@@ -1130,8 +1176,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
         <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
           {/* Always show header with plus button */}
           <div
-            className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={(e) => handleAddWorkItem(property.id, e)}
+            className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
+            onClick={(e) => {
+              if (existingItems.length > 0) {
+                e.preventDefault();
+                toggleExpanded(property.id, e);
+              }
+            }}
           >
             <div className="flex-1">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
@@ -1139,7 +1190,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
                 <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
               )}
             </div>
-            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+            <div 
+              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              onClick={(e) => handleAddWorkItem(property.id, e)}
+            >
               <Plus className="w-4 h-4" />
             </div>
           </div>
@@ -1174,7 +1228,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
           )}
           
           {/* Existing type items */}
-          {existingItems.map(item => (
+          {expandedItems[property.id] && existingItems.map(item => (
             <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">
@@ -1399,8 +1453,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     return (
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         <div
-          className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={(e) => handleAddWorkItem(property.id, e)}
+          className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
+          onClick={(e) => {
+            if (existingItems.length > 0) {
+              e.preventDefault();
+              toggleExpanded(property.id, e);
+            }
+          }}
         >
           <div className="flex-1">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
@@ -1408,13 +1467,16 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
-          <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+          <div 
+            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            onClick={(e) => handleAddWorkItem(property.id, e)}
+          >
             <Plus className="w-4 h-4" />
           </div>
         </div>
 
         {/* Show existing work items for this property */}
-        {existingItems.map(item => (
+        {expandedItems[property.id] && existingItems.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
             <div className="flex items-center justify-between">
               {property.id === 'custom_work' && item.selectedUnit ? (
@@ -1605,31 +1667,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
   return (
     <>
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f3f4f6;
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #9ca3af;
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #6b7280;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-track {
-          background: #374151;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #6b7280;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #9ca3af;
-        }
-      `}</style>
       <div 
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 "
         onClick={handleClose}

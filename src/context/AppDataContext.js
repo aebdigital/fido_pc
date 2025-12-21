@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/supabaseApi';
 import { useAuth } from './AuthContext';
 import { workItemToDatabase, databaseToWorkItem, getTableName, PROPERTY_TO_TABLE } from '../services/workItemsMapping';
@@ -193,15 +193,25 @@ export const AppDataProvider = ({ children }) => {
   const transformInvoiceFromDB = (dbInvoice) => {
     if (!dbInvoice) return null;
 
+    // Determine Issue Date (Datum vystavenia) - prefer date_created, fallback to created_at
+    const issueDateRaw = dbInvoice.date_created || dbInvoice.created_at;
+    const issueDate = issueDateRaw ? new Date(issueDateRaw).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
+    // Determine Dispatch Date (Datum dodania) - use date_of_dispatch
+    const dispatchDate = dbInvoice.date_of_dispatch || issueDate;
+
+    // Calculate Maturity Date (Datum splatnosti) based on Issue Date + Maturity Days
+    const maturityDays = dbInvoice.maturity_days || 14;
+    const dueDate = new Date(new Date(issueDate).getTime() + maturityDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
     return {
       id: dbInvoice.id,
       invoiceNumber: dbInvoice.number,
-      issueDate: dbInvoice.date_of_dispatch,
-      dueDate: dbInvoice.maturity_days ?
-        new Date(new Date(dbInvoice.date_of_dispatch).getTime() + dbInvoice.maturity_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0] :
-        dbInvoice.date_of_dispatch,
+      issueDate: issueDate,
+      dispatchDate: dispatchDate, // New field
+      dueDate: dueDate,
       paymentMethod: dbInvoice.payment_type,
-      paymentDays: dbInvoice.maturity_days,
+      paymentDays: maturityDays,
       notes: dbInvoice.note,
       status: dbInvoice.status,
       projectId: dbInvoice.project_id,
@@ -213,275 +223,349 @@ export const AppDataProvider = ({ children }) => {
     };
   };
 
-  // Load initial data from Supabase
-  const loadInitialData = useCallback(async () => {
-    if (!user) {
-      setLoading(false);
-      return getDefaultData();
-    }
-
-    try {
-      console.log('[SUPABASE] Loading data from Supabase...');
-
-      // Load all data from Supabase in parallel
-      const [contractors, clients, projects, invoices, priceListData] = await Promise.all([
-        api.contractors.getAll(),
-        api.clients.getAll(null), // We'll filter by contractor later
-        api.projects.getAll(null), // We'll filter by contractor later
-        api.invoices.getAll(null), // We'll filter by contractor later
-        api.priceLists.get(null) // Get price list
-      ]);
-
-      console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
-
-      // Transform projects to parse price_list_snapshot from JSON and map snake_case to camelCase
-      const transformedProjects = (projects || []).map(project => {
-        let priceListSnapshot = null;
-        if (project.price_list_snapshot) {
-          try {
-            priceListSnapshot = typeof project.price_list_snapshot === 'string'
-              ? JSON.parse(project.price_list_snapshot)
-              : project.price_list_snapshot;
-          } catch (e) {
-            console.warn('Failed to parse price_list_snapshot for project:', project.id);
-          }
-        }
+      // Helper to transform contractor from DB (snake_case) to App (camelCase)
+      const transformContractorFromDB = (dbContractor) => {
+        if (!dbContractor) return null;
         return {
-          ...project,
-          priceListSnapshot,
-          // Map snake_case database fields to camelCase for app usage
-          clientId: project.client_id,
-          hasInvoice: project.has_invoice,
-          invoiceId: project.invoice_id,
-          invoiceStatus: project.invoice_status,
-          isArchived: project.is_archived
+          id: dbContractor.id,
+          name: dbContractor.name,
+          contactPerson: dbContractor.contact_person_name,
+          email: dbContractor.email,
+          phone: dbContractor.phone,
+          website: dbContractor.web,
+          street: dbContractor.street,
+          additionalInfo: dbContractor.second_row_street,
+          city: dbContractor.city,
+          postalCode: dbContractor.postal_code,
+          country: dbContractor.country,
+          businessId: dbContractor.business_id,
+          taxId: dbContractor.tax_id,
+          vatNumber: dbContractor.vat_registration_number,
+          bankAccount: dbContractor.bank_account_number,
+          bankCode: dbContractor.swift_code,
+          legalAppendix: dbContractor.legal_notice,
+          logo: dbContractor.logo_url,
+          signature: dbContractor.signature_url,
+          userId: dbContractor.user_id,
+          createdAt: dbContractor.created_at
         };
-      });
-
-      // Build contractor projects structure
-      const contractorProjects = {};
-      contractors.forEach(contractor => {
-        const contractorProjectsList = transformedProjects.filter(p => p.c_id === contractor.id);
-
-        // Group projects by category
-        const categories = getDefaultCategories().map(cat => ({
-          ...cat,
-          projects: contractorProjectsList.filter(p => p.category === cat.id),
-          count: contractorProjectsList.filter(p => p.category === cat.id).length
-        }));
-
-        contractorProjects[contractor.id] = {
-          categories,
-          archivedProjects: contractorProjectsList.filter(p => p.is_archived)
-        };
-      });
-
-      // Build project rooms data structure and load work items
-      // OPTIMIZATION: We no longer load all rooms and work items on startup.
-      // They are loaded on demand when opening a project via loadProjectDetails.
-      const projectRoomsData = {}; 
-      /*
-      for (const project of projects) {
-        const rooms = await api.rooms.getByProject(project.id);
-        if (rooms && rooms.length > 0) {
-          // Load work items for each room from database tables
-          const roomsWithWorkItems = await Promise.all(rooms.map(async (room) => {
-            const workItems = await loadWorkItemsForRoom(room.id);
-            return {
-              ...room,
-              workItems: workItems || []
-            };
-          }));
-          projectRoomsData[project.id] = roomsWithWorkItems;
-        }
-      }
-      */
-
-      // Get active contractor (first one or null)
-      const activeContractorId = contractors.length > 0 ? contractors[0].id : null;
-
-      // Use price list from database or default
-      const generalPriceList = priceListData?.data || getDefaultData().generalPriceList;
-
-      // Transform invoices from database format to app format
-      const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
-
-      return {
-        clients: clients || [],
-        projectCategories: getDefaultCategories(),
-        archivedProjects: transformedProjects.filter(p => p.is_archived) || [],
-        projectRoomsData,
-        projectHistory: {}, // Initialize empty, will be populated during session
-        contractors: contractors || [],
-        contractorProjects,
-        invoices: transformedInvoices,
-        priceOfferSettings: {
-          timeLimit: 30,
-          defaultValidityPeriod: 30
-        },
-        activeContractorId,
-        generalPriceList
       };
-    } catch (error) {
-      console.error('[SUPABASE] Error loading data:', error);
-      return getDefaultData();
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const [appData, setAppData] = useState(getDefaultData);
-
-  // Helper function to load work items from all tables (moved from loadInitialData)
-  const loadWorkItemsForRoom = async (roomId) => {
-    const allWorkItems = [];
-
-    // Query each work item table
-    for (const [, tableName] of Object.entries(PROPERTY_TO_TABLE)) {
-      try {
-        const records = await api.workItems.getByRoom(roomId, tableName);
-        if (records && records.length > 0) {
-          // Convert database records to app work items
-          records.forEach(record => {
-            const workItem = databaseToWorkItem(record, tableName);
-            if (workItem) {
-              allWorkItems.push(workItem);
-            }
-          });
+    
+      // Helper to transform contractor from App (camelCase) to DB (snake_case)
+      const transformContractorToDB = (contractorData) => {
+        return {
+          name: contractorData.name,
+          contact_person_name: contractorData.contactPerson,
+          email: contractorData.email,
+          phone: contractorData.phone,
+          web: contractorData.website,
+          street: contractorData.street,
+          second_row_street: contractorData.additionalInfo,
+          city: contractorData.city,
+          postal_code: contractorData.postalCode,
+          country: contractorData.country,
+          business_id: contractorData.businessId,
+          tax_id: contractorData.taxId,
+          vat_registration_number: contractorData.vatNumber,
+          bank_account_number: contractorData.bankAccount,
+          swift_code: contractorData.bankCode,
+          legal_notice: contractorData.legalAppendix,
+          logo_url: contractorData.logo,
+          signature_url: contractorData.signature
+        };
+      };
+    
+      // Helper to transform client from DB (snake_case) to App (camelCase)
+      const transformClientFromDB = (dbClient) => {
+        if (!dbClient) return null;
+        return {
+          id: dbClient.id,
+          name: dbClient.name,
+          email: dbClient.email,
+          phone: dbClient.phone,
+          street: dbClient.street,
+          additionalInfo: dbClient.second_row_street,
+          city: dbClient.city,
+          postalCode: dbClient.postal_code,
+          country: dbClient.country,
+          businessId: dbClient.business_id,
+          taxId: dbClient.tax_id,
+          vatId: dbClient.vat_registration_number,
+          contactPerson: dbClient.contact_person_name,
+          type: dbClient.type,
+          contractorId: dbClient.contractor_id || dbClient.c_id,
+          userId: dbClient.user_id,
+          createdAt: dbClient.created_at,
+          projects: dbClient.projects || [] // Preserve if joined
+        };
+      };
+    
+      // Helper to transform client from App (camelCase) to DB (snake_case)
+      const transformClientToDB = (clientData) => {
+        return {
+          name: clientData.name,
+          email: clientData.email || null,
+          phone: clientData.phone || null,
+          street: clientData.street || null,
+          second_row_street: clientData.additionalInfo || null,
+          city: clientData.city || null,
+          postal_code: clientData.postalCode || null,
+          country: clientData.country || null,
+          business_id: clientData.businessId || null,
+          tax_id: clientData.taxId || null,
+          vat_registration_number: clientData.vatId || null,
+          contact_person_name: clientData.contactPerson || null,
+          type: clientData.type || 'private'
+        };
+      };
+    
+      // Load initial data from Supabase
+      const loadInitialData = useCallback(async () => {
+        if (!user) {
+          setLoading(false);
+          return getDefaultData();
         }
+    
+        try {
+          console.log('[SUPABASE] Loading data from Supabase...');
+    
+          // Load all data from Supabase in parallel
+          const [contractors, clients, projects, invoices, priceListData] = await Promise.all([
+            api.contractors.getAll(),
+            api.clients.getAll(null), // We'll filter by contractor later
+            api.projects.getAll(null), // We'll filter by contractor later
+            api.invoices.getAll(null), // We'll filter by contractor later
+            api.priceLists.get(null) // Get price list
+          ]);
+    
+          console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
+    
+          // Transform contractors
+          const transformedContractors = (contractors || []).map(transformContractorFromDB);
+    
+          // Transform clients
+          const transformedClients = (clients || []).map(transformClientFromDB);
+    
+          // Transform projects to parse price_list_snapshot and photos from JSON
+          const transformedProjects = (projects || []).map(project => {
+            let priceListSnapshot = null;
+            if (project.price_list_snapshot) {
+              try {
+                priceListSnapshot = typeof project.price_list_snapshot === 'string'
+                  ? JSON.parse(project.price_list_snapshot)
+                  : project.price_list_snapshot;
+              } catch (e) {
+                console.warn('Failed to parse price_list_snapshot for project:', project.id);
+              }
+            }
+            let photos = [];
+            if (project.photos) {
+              try {
+                photos = typeof project.photos === 'string'
+                  ? JSON.parse(project.photos)
+                  : project.photos;
+              } catch (e) {
+                console.warn('Failed to parse photos for project:', project.id);
+              }
+            }
+            return {
+              ...project,
+              priceListSnapshot,
+              photos,
+              // Map snake_case to camelCase for frontend usage
+              clientId: project.client_id,
+              hasInvoice: project.has_invoice,
+              invoiceId: project.invoice_id,
+              invoiceStatus: project.invoice_status,
+              isArchived: project.is_archived
+            };
+          });
+    
+          // Build contractor projects structure
+          const contractorProjects = {};
+          transformedContractors.forEach(contractor => {
+            const contractorProjectsList = transformedProjects.filter(p => p.c_id === contractor.id);
+    
+            // Group projects by category
+            const categories = getDefaultCategories().map(cat => ({
+              ...cat,
+              projects: contractorProjectsList.filter(p => p.category === cat.id),
+              count: contractorProjectsList.filter(p => p.category === cat.id).length
+            }));
+    
+            contractorProjects[contractor.id] = {
+              categories,
+              archivedProjects: contractorProjectsList.filter(p => p.is_archived)
+            };
+          });
+    
+          // Get active contractor (first one or null)
+          const activeContractorId = transformedContractors.length > 0 ? transformedContractors[0].id : null;
+    
+          // Use price list from database or default
+          const generalPriceList = priceListData?.data || getDefaultData().generalPriceList;
+    
+          // Transform invoices from database format to app format
+          const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
+    
+          return {
+            clients: transformedClients || [],
+            projectCategories: getDefaultCategories(),
+            archivedProjects: transformedProjects.filter(p => p.is_archived) || [],
+            projectRoomsData: {}, // Initialize empty, will be populated on demand
+            projectHistory: {}, // Initialize empty, will be populated during session
+            contractors: transformedContractors || [],
+            contractorProjects,
+            invoices: transformedInvoices,
+            priceOfferSettings: {
+              timeLimit: 30,
+              defaultValidityPeriod: 30
+            },
+            activeContractorId,
+            generalPriceList
+          };
+        } catch (error) {
+          console.error('[SUPABASE] Error loading data:', error);
+          return getDefaultData();
+        } finally {
+          setLoading(false);
+        }
+      }, [user]);  
+    const [appData, setAppData] = useState(getDefaultData);
+  
+    // Helper function to load work items from all tables (optimized with RPC)
+    const loadWorkItemsForRoom = async (roomId) => {
+      try {
+        const { data, error } = await api.workItems.getAllForRoomRPC(roomId);
+        
+        if (error) {
+          console.error('[SUPABASE] RPC get_room_items error:', error);
+          return [];
+        }
+
+        if (!data || data.length === 0) return [];
+
+        const allWorkItems = [];
+        
+        data.forEach(record => {
+          // The RPC adds '_table_name' to each record
+          const tableName = record._table_name;
+          const workItem = databaseToWorkItem(record, tableName);
+          if (workItem) {
+            allWorkItems.push(workItem);
+          }
+        });
+
+        return allWorkItems;
       } catch (error) {
-        // Table might not exist or no records, continue
-        // console.debug(`No work items in ${tableName} for room ${roomId}`);
+        console.error('[SUPABASE] Error loading work items via RPC:', error);
+        return [];
       }
-    }
-
-    return allWorkItems;
-  };
-
-  // Load details (rooms and work items) for a specific project
-  const loadProjectDetails = async (projectId) => {
-    try {
-      console.log(`[SUPABASE] Loading details for project ${projectId}...`);
-      
-      // Get rooms
-      const rooms = await api.rooms.getByProject(projectId);
-      
-      if (!rooms || rooms.length === 0) {
-         setAppData(prev => ({
+    };
+  
+    // Load details (rooms and work items) for a specific project
+    const loadProjectDetails = async (projectId) => {
+      try {
+        console.log(`[SUPABASE] Loading details for project ${projectId}...`);
+        
+        // Get rooms
+        const rooms = await api.rooms.getByProject(projectId);
+        
+        if (!rooms || rooms.length === 0) {
+           setAppData(prev => ({
+            ...prev,
+            projectRoomsData: {
+              ...prev.projectRoomsData,
+              [projectId]: []
+            }
+          }));
+          return;
+        }
+  
+        // Load work items for each room
+        const roomsWithWorkItems = await Promise.all(rooms.map(async (room) => {
+          const workItems = await loadWorkItemsForRoom(room.id);
+          return {
+            ...room,
+            workItems: workItems || []
+          };
+        }));
+  
+        setAppData(prev => ({
           ...prev,
           projectRoomsData: {
             ...prev.projectRoomsData,
-            [projectId]: []
+            [projectId]: roomsWithWorkItems
           }
         }));
-        return;
+        console.log(`[SUPABASE] Loaded details for project ${projectId}`);
+      } catch (error) {
+        console.error(`[SUPABASE] Error loading details for project ${projectId}:`, error);
       }
-
-      // Load work items for each room
-      const roomsWithWorkItems = await Promise.all(rooms.map(async (room) => {
-        const workItems = await loadWorkItemsForRoom(room.id);
-        return {
-          ...room,
-          workItems: workItems || []
-        };
-      }));
-
-      setAppData(prev => ({
-        ...prev,
-        projectRoomsData: {
-          ...prev.projectRoomsData,
-          [projectId]: roomsWithWorkItems
-        }
-      }));
-      console.log(`[SUPABASE] Loaded details for project ${projectId}`);
-    } catch (error) {
-      console.error(`[SUPABASE] Error loading details for project ${projectId}:`, error);
-    }
-  };
-
-  // Load data from Supabase on mount
-  useEffect(() => {
-    const loadData = async () => {
-      const data = await loadInitialData();
-      setAppData(data);
     };
-
-    if (user) {
-      loadData();
-    } else {
-      setLoading(false);
-    }
-  }, [user, loadInitialData]);
-
-  // Client management functions
-  const addClient = async (clientData) => {
-    try {
-      // Map camelCase fields to snake_case database columns
-      const mappedData = {
-        name: clientData.name,
-        email: clientData.email || null,
-        phone: clientData.phone || null,
-        street: clientData.street || null,
-        second_row_street: clientData.additionalInfo || null,
-        city: clientData.city || null,
-        postal_code: clientData.postalCode || null,
-        country: clientData.country || null,
-        business_id: clientData.businessId || null,
-        tax_id: clientData.taxId || null,
-        vat_registration_number: clientData.vatId || null, // Fixed: was vat_id
-        contact_person_name: clientData.contactPerson || null, // Fixed: was contact_person
-        type: clientData.type || 'private',
-        c_id: appData.activeContractorId,
-        is_user: false
-        // Optional fields not currently used: bank_account_number, swift_code, legal_notice, logo_url, web
-      };
-
-      const newClient = await api.clients.create(mappedData);
-
-      setAppData(prev => ({
-        ...prev,
-        clients: [...prev.clients, newClient]
-      }));
-
-      return newClient;
-    } catch (error) {
-      console.error('[SUPABASE] Error adding client:', error);
-      throw error;
-    }
-  };
-
-  const updateClient = async (clientId, clientData) => {
-    try {
-      // Map camelCase fields to snake_case database columns
-      const mappedData = {};
-      if (clientData.name !== undefined) mappedData.name = clientData.name;
-      if (clientData.email !== undefined) mappedData.email = clientData.email || null;
-      if (clientData.phone !== undefined) mappedData.phone = clientData.phone || null;
-      if (clientData.street !== undefined) mappedData.street = clientData.street || null;
-      if (clientData.additionalInfo !== undefined) mappedData.second_row_street = clientData.additionalInfo || null;
-      if (clientData.city !== undefined) mappedData.city = clientData.city || null;
-      if (clientData.postalCode !== undefined) mappedData.postal_code = clientData.postalCode || null;
-      if (clientData.country !== undefined) mappedData.country = clientData.country || null;
-      if (clientData.businessId !== undefined) mappedData.business_id = clientData.businessId || null;
-      if (clientData.taxId !== undefined) mappedData.tax_id = clientData.taxId || null;
-      if (clientData.vatId !== undefined) mappedData.vat_registration_number = clientData.vatId || null;
-      if (clientData.contactPerson !== undefined) mappedData.contact_person_name = clientData.contactPerson || null;
-      if (clientData.type !== undefined) mappedData.type = clientData.type;
-
-      await api.clients.update(clientId, mappedData);
-
-      setAppData(prev => ({
-        ...prev,
-        clients: prev.clients.map(client =>
-          client.id === clientId ? { ...client, ...clientData } : client
-        )
-      }));
-    } catch (error) {
-      console.error('[SUPABASE] Error updating client:', error);
-      throw error;
-    }
-  };
-
+  
+      // Load data from Supabase on mount
+      useEffect(() => {
+        const loadData = async () => {
+          const data = await loadInitialData();
+          setAppData(prev => ({
+            ...data,
+            // Preserve existing room data to prevent wiping it on re-renders/tab switches
+            projectRoomsData: {
+              ...(prev?.projectRoomsData || {}),
+              ...(data.projectRoomsData || {})
+            }
+          }));
+        };
+    
+        if (user) {
+          loadData();
+        } else {
+          setLoading(false);
+        }
+      }, [user, loadInitialData]);  
+    // Client management functions
+    const addClient = async (clientData) => {
+      try {
+        // Map camelCase fields to snake_case database columns
+        // Note: c_id links client to contractor. Remove unique constraint on c_id in Supabase if getting duplicate key errors
+        const mappedData = {
+          ...transformClientToDB(clientData),
+          c_id: appData.activeContractorId,
+          is_user: false
+        };
+  
+        const newClientDB = await api.clients.create(mappedData);
+        const newClient = transformClientFromDB(newClientDB);
+  
+        setAppData(prev => ({
+          ...prev,
+          clients: [...prev.clients, newClient]
+        }));
+  
+        return newClient;
+      } catch (error) {
+        console.error('[SUPABASE] Error adding client:', error);
+        throw error;
+      }
+    };
+  
+    const updateClient = async (clientId, clientData) => {
+      try {
+        const mappedData = transformClientToDB(clientData);
+        await api.clients.update(clientId, mappedData);
+  
+        setAppData(prev => ({
+          ...prev,
+          clients: prev.clients.map(client =>
+            client.id === clientId ? { ...client, ...clientData } : client
+          )
+        }));
+      } catch (error) {
+        console.error('[SUPABASE] Error updating client:', error);
+        throw error;
+      }
+    };
   const deleteClient = async (clientId) => {
     try {
       await api.clients.delete(clientId);
@@ -614,6 +698,13 @@ export const AppDataProvider = ({ children }) => {
           ? projectData.priceListSnapshot
           : JSON.stringify(projectData.priceListSnapshot);
       }
+      if (projectData.detail_notes !== undefined) mappedData.detail_notes = projectData.detail_notes;
+      if (projectData.photos !== undefined) {
+        mappedData.photos = typeof projectData.photos === 'string'
+          ? projectData.photos
+          : JSON.stringify(projectData.photos);
+      }
+      if (projectData.notes !== undefined) mappedData.notes = projectData.notes;
 
       await api.projects.update(projectId, mappedData);
 
@@ -842,7 +933,9 @@ export const AppDataProvider = ({ children }) => {
   // Contractor management functions
   const addContractor = async (contractorData) => {
     try {
-      const newContractor = await api.contractors.create(contractorData);
+      const mappedData = transformContractorToDB(contractorData);
+      const newContractorDB = await api.contractors.create(mappedData);
+      const newContractor = transformContractorFromDB(newContractorDB);
 
       setAppData(prev => ({
         ...prev,
@@ -865,7 +958,8 @@ export const AppDataProvider = ({ children }) => {
 
   const updateContractor = async (contractorId, contractorData) => {
     try {
-      await api.contractors.update(contractorId, contractorData);
+      const mappedData = transformContractorToDB(contractorData);
+      await api.contractors.update(contractorId, mappedData);
 
       setAppData(prev => ({
         ...prev,
@@ -937,9 +1031,12 @@ export const AppDataProvider = ({ children }) => {
       if (!project) return null;
 
       // Map camelCase fields to snake_case database columns
+      // Issue Date (Datum vystavenia) maps to date_created (timestamp)
+      // Dispatch Date (Datum dodania) maps to date_of_dispatch (date)
       const mappedInvoiceData = {
         number: invoiceData.invoiceNumber,
-        date_of_dispatch: invoiceData.issueDate,
+        date_created: new Date(invoiceData.issueDate).toISOString(), // Persist Issue Date
+        date_of_dispatch: invoiceData.dispatchDate, // Persist Dispatch Date
         payment_type: invoiceData.paymentMethod || 'transfer',
         maturity_days: invoiceData.paymentDays || 30,
         note: invoiceData.notes || null,
@@ -955,11 +1052,18 @@ export const AppDataProvider = ({ children }) => {
       console.log('[DEBUG] Invoice created from DB:', dbInvoice);
 
       // Transform the database invoice to app format
+      // Use the newly created helper logic or manual transform
+      const issueDate = invoiceData.issueDate;
+      const dispatchDate = invoiceData.dispatchDate;
+      const maturityDays = invoiceData.paymentDays || 30;
+      const dueDate = new Date(new Date(issueDate).getTime() + maturityDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
       const transformedInvoice = {
         id: dbInvoice.id,
         invoiceNumber: dbInvoice.number,
-        issueDate: dbInvoice.date_of_dispatch,
-        dueDate: invoiceData.dueDate, // Use the dueDate from invoiceData
+        issueDate: issueDate,
+        dispatchDate: dispatchDate,
+        dueDate: dueDate,
         paymentMethod: dbInvoice.payment_type,
         paymentDays: dbInvoice.maturity_days,
         notes: dbInvoice.note,
@@ -1016,31 +1120,50 @@ export const AppDataProvider = ({ children }) => {
           )
         };
 
-        // Track status changes in project history
-        if (updates.status && invoice) {
+        if (invoice) {
           const projectId = invoice.projectId;
-          let historyEntry = null;
+          const newHistoryEntries = [];
 
-          if (updates.status === 'sent') {
-            historyEntry = {
-              type: 'invoice_sent',
-              invoiceNumber: invoice.invoiceNumber,
-              date: new Date().toISOString()
-            };
-          } else if (updates.status === 'paid') {
-            historyEntry = {
-              type: 'invoice_paid',
-              invoiceNumber: invoice.invoiceNumber,
-              date: new Date().toISOString()
-            };
+          // Track status changes
+          if (updates.status) {
+            if (updates.status === 'sent') {
+              newHistoryEntries.push({
+                type: 'invoice_sent',
+                invoiceNumber: invoice.invoiceNumber,
+                date: new Date().toISOString()
+              });
+            } else if (updates.status === 'paid') {
+              newHistoryEntries.push({
+                type: 'invoice_paid',
+                invoiceNumber: invoice.invoiceNumber,
+                date: new Date().toISOString()
+              });
+            }
           }
 
-          if (historyEntry) {
+          // Track edits (check for non-status fields)
+          // We check if any of the main editable fields are present in updates
+          // and if they are different from existing values (optional optimization, but simple check is fine)
+          const isEdit = updates.invoiceNumber || updates.issueDate || updates.paymentMethod || updates.notes || updates.dueDate || updates.paymentDays || updates.dispatchDate;
+          
+          // Avoid duplicate entry if it's just a status update (which might also be considered an edit technically, but we want distinct events)
+          // If 'status' is the ONLY field, it's a status change. If other fields are present, it's an edit.
+          const hasNonStatusUpdates = Object.keys(updates).some(key => key !== 'status');
+
+          if (hasNonStatusUpdates && isEdit) {
+             newHistoryEntries.push({
+              type: 'invoice_edited',
+              invoiceNumber: updates.invoiceNumber || invoice.invoiceNumber,
+              date: new Date().toISOString()
+            });
+          }
+
+          if (newHistoryEntries.length > 0) {
             updatedState.projectHistory = {
               ...prev.projectHistory,
               [projectId]: [
                 ...(prev.projectHistory[projectId] || []),
-                historyEntry
+                ...newHistoryEntries
               ]
             };
           }

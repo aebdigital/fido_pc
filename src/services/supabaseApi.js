@@ -506,6 +506,19 @@ export const invoicesApi = {
 // ========== WORK ITEMS (Generic for all work types) ==========
 
 export const workItemsApi = {
+  // Get all work items for a room using optimized RPC function
+  getAllForRoomRPC: async (roomId) => {
+    try {
+      const { data, error } = await supabase.rpc('get_room_items', { p_room_id: roomId })
+      if (error) throw error
+      return { data, error: null }
+    } catch (error) {
+      // Don't throw for RPC errors, just log and return null so fallback or empty state can handle it
+      console.error('RPC Error:', error)
+      return { data: [], error }
+    }
+  },
+
   // Get work items by room and table
   getByRoom: async (roomId, tableName) => {
     try {
