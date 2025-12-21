@@ -296,7 +296,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 animate-slide-in">
               {localPriceList.work?.map((item, index) => (
                 <PriceCard key={index} item={item} category="work" itemIndex={index} />
               ))}
@@ -309,7 +309,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 animate-slide-in">
               {localPriceList.material?.map((item, index) => (
                 <PriceCard key={index} item={item} category="material" itemIndex={index} />
               ))}
@@ -322,7 +322,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 animate-slide-in">
               {localPriceList.installations?.map((item, index) => (
                 <PriceCard key={index} item={item} category="installations" itemIndex={index} />
               ))}
@@ -335,7 +335,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 animate-slide-in">
               {localPriceList.others?.map((item, index) => (
                 <PriceCard key={index} item={item} category="others" itemIndex={index} />
               ))}
