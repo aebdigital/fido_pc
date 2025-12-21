@@ -151,6 +151,20 @@ export const calculateWorkItemPrice = (workItem, priceItem) => {
     // Always use price list for installation work
     return count * priceItem.price;
   }
+
+  // Handle window installation - work cost based on circumference, Price field is for window material
+  if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) {
+    const circumference = parseFloat(values.Circumference || 0);
+    // Work cost = circumference * price per meter from price list
+    return circumference * priceItem.price;
+  }
+
+  // Handle door jamb installation - work cost based on count, Price field is for door jamb material
+  if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) {
+    const count = parseFloat(values.Count || 0);
+    // Work cost = count * price per piece from price list
+    return count * priceItem.price;
+  }
   
   // Calculate quantity based on work item type and values
   if (values.Width && values.Height) {
@@ -782,6 +796,42 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
                 materialCost: materialCostForItem,
                 pricePerUnit: materialPrice,
                 unit: materialUnit
+              }
+            });
+          }
+
+          // Track window installation materials (Okná)
+          if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION && calculation.materialCost > 0) {
+            const price = parseFloat(workItem.fields?.Price || 0);
+            // Each window item is 1 piece
+            materialItems.push({
+              id: `${workItem.id}_window_material`,
+              name: WORK_ITEM_NAMES.OKNA_DISPLAY_NAME,
+              subtitle: '',
+              propertyId: WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION,
+              calculation: {
+                quantity: 1,
+                materialCost: price,
+                pricePerUnit: price,
+                unit: UNIT_TYPES.PIECE
+              }
+            });
+          }
+
+          // Track door jamb installation materials (Zárubne)
+          if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION && calculation.materialCost > 0) {
+            const count = parseFloat(workItem.fields?.Count || 0);
+            const price = parseFloat(workItem.fields?.Price || 0);
+            materialItems.push({
+              id: `${workItem.id}_doorjamb_material`,
+              name: WORK_ITEM_NAMES.ZARUBNA_DISPLAY_NAME,
+              subtitle: '',
+              propertyId: WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION,
+              calculation: {
+                quantity: count,
+                materialCost: count * price,
+                pricePerUnit: price,
+                unit: UNIT_TYPES.PIECE
               }
             });
           }

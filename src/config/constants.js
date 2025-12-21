@@ -134,7 +134,11 @@ export const WORK_ITEM_NAMES = {
   OBKLAD_DO_60CM: 'Obklad do 60cm',
   DLAZBA_DO_60_CM: 'Dlažba do 60 cm',
   SILIKONOVANIE: 'Silikónovanie',
-  POMOCNE_A_UKONCOVACIE_PRACE: 'Pomocné a ukončovacie práce'
+  POMOCNE_A_UKONCOVACIE_PRACE: 'Pomocné a ukončovacie práce',
+
+  // Display names for aggregated material items
+  OKNA_DISPLAY_NAME: 'Okná',
+  ZARUBNA_DISPLAY_NAME: 'Zárubne'
 };
 
 export const WORK_ITEM_PROPERTY_IDS = {
