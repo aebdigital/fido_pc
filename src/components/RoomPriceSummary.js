@@ -154,6 +154,37 @@ const RoomPriceSummary = ({ room, workData }) => {
                       materialGroups[sanitaryKey].totalQuantity += quantity;
                       materialGroups[sanitaryKey].totalCost += cost;
                       materialGroups[sanitaryKey].items.push(item);
+                    } else if ((item.propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION || item.propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) && item.calculation?.materialCost > 0) {
+                      // Handle Windows and Door Jambs
+                      const isWindow = item.propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION;
+                      const groupName = isWindow ? WORK_ITEM_NAMES.OKNA_DISPLAY_NAME : WORK_ITEM_NAMES.ZARUBNA_DISPLAY_NAME;
+                      const key = `${groupName}-custom`; // Simple key
+
+                      if (!materialGroups[key]) {
+                        materialGroups[key] = {
+                          material: {
+                            name: groupName,
+                            subtitle: '', 
+                            unit: UNIT_TYPES.PIECE
+                          },
+                          totalQuantity: 0,
+                          totalCost: 0,
+                          items: []
+                        };
+                      }
+
+                      // For windows, quantity is 1 per item (user enters price per piece).
+                      // For door jambs, quantity is defined in Count field.
+                      let quantity = 1;
+                      if (!isWindow) {
+                         quantity = parseFloat(item.fields[WORK_ITEM_NAMES.COUNT] || 0);
+                      }
+                      
+                      const cost = item.calculation.materialCost;
+
+                      materialGroups[key].totalQuantity += quantity;
+                      materialGroups[key].totalCost += cost;
+                      materialGroups[key].items.push(item);
                     } else if (item.calculation?.materialCost > 0 && item.calculation?.material) {
                       const material = item.calculation.material;
                       const materialKey = `${material.name}-${material.subtitle || 'no-subtitle'}`;
