@@ -78,7 +78,7 @@ export const findPriceListItem = (workItem, priceList) => {
           const subtitleMatch = item.subtitle.toLowerCase().includes(workItem.selectedType.toLowerCase());
           
           // For plasterboarding, check both the work subtype (partition/offset wall/ceiling) and type (simple/double)
-          if (nameMatch && targetName.toLowerCase() === WORK_ITEM_NAMES.PLASTERBOARDING.toLowerCase() && workItem.subtitle) {
+          if (nameMatch && !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.PLASTERBOARDING.toLowerCase() && workItem.subtitle) {
             const workSubtitle = workItem.subtitle.toLowerCase();
             const itemSubtitle = item.subtitle.toLowerCase();
             const workType = workItem.selectedType ? workItem.selectedType.toLowerCase() : '';
@@ -100,7 +100,7 @@ export const findPriceListItem = (workItem, priceList) => {
         }
 
         // Special check for Plasterboarding to avoid incorrect matching of subtypes when selectedType is missing (e.g. ceiling)
-        if (nameMatch && targetName.toLowerCase() === WORK_ITEM_NAMES.PLASTERBOARDING.toLowerCase() && item.subtitle && workItem.subtitle) {
+        if (nameMatch && !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.PLASTERBOARDING.toLowerCase() && item.subtitle && workItem.subtitle) {
            const workSubLower = workItem.subtitle.toLowerCase();
            const itemSubLower = item.subtitle.toLowerCase();
            
@@ -121,7 +121,7 @@ export const findPriceListItem = (workItem, priceList) => {
         }
 
         // Special check for Netting to ensure correct subtype matching (wall vs ceiling)
-        if (nameMatch && targetName.toLowerCase() === WORK_ITEM_NAMES.NETTING.toLowerCase() && item.subtitle && workItem.subtitle) {
+        if (nameMatch && !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.NETTING.toLowerCase() && item.subtitle && workItem.subtitle) {
            const workSubLower = workItem.subtitle.toLowerCase();
            const itemSubLower = item.subtitle.toLowerCase();
            
@@ -137,7 +137,7 @@ export const findPriceListItem = (workItem, priceList) => {
         }
         
         // For sanitary installations, match subtitle (the actual type like "Concealed toilet")
-        if (workItem.subtitle && item.subtitle && targetName.toLowerCase() === WORK_ITEM_NAMES.SANITARY_INSTALLATIONS.toLowerCase()) {
+        if (workItem.subtitle && item.subtitle && !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.SANITARY_INSTALLATIONS.toLowerCase()) {
           const workSubLower = workItem.subtitle.toLowerCase();
           const itemSubLower = item.subtitle.toLowerCase();
 
@@ -148,7 +148,7 @@ export const findPriceListItem = (workItem, priceList) => {
         }
 
         // For painting work items, handle Slovak-English subtitle differences
-        if (workItem.subtitle && item.subtitle && targetName.toLowerCase() === WORK_ITEM_NAMES.PAINTING.toLowerCase()) {
+        if (workItem.subtitle && item.subtitle && !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.PAINTING.toLowerCase()) {
           const workSubLower = workItem.subtitle.toLowerCase();
           const itemSubLower = item.subtitle.toLowerCase();
 
