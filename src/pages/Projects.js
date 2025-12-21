@@ -14,7 +14,6 @@ import {
   Edit3,
   AlertTriangle,
   FileText,
-  DollarSign,
   Image,
   X,
   StickyNote
@@ -753,6 +752,26 @@ const Projects = () => {
       } else {
         alert('Failed to duplicate project. Please try again.');
       }
+    }
+  };
+
+  const handleAssignProjectContractor = async (newContractorId) => {
+    if (!currentProject) return;
+    try {
+      // Update project with new contractor ID
+      await updateProject(activeCategory, currentProject.id, { c_id: newContractorId });
+      
+      // Switch active contractor to the new one so we land in the correct list
+      setActiveContractor(newContractorId);
+      
+      // Go back to project list
+      handleBackToProjects();
+      
+      // Close selector
+      setShowContractorSelector(false);
+    } catch (error) {
+      console.error("Failed to reassign project:", error);
+      alert(t("Failed to reassign project"));
     }
   };
 
@@ -1580,17 +1599,45 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                 </div>
 
-                <div
-                  onClick={() => setShowContractorSelector(true)}
-                  className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
-                    <div className="text-base text-gray-600 dark:text-gray-400 truncate">
-                      {getCurrentContractor()?.name || t('assign contractor to project')}
+                <div className="relative">
+                  <div
+                    onClick={() => setShowContractorSelector(!showContractorSelector)}
+                    className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
+                      <div className="text-base text-gray-600 dark:text-gray-400 truncate">
+                        {getCurrentContractor()?.name || t('assign contractor to project')}
+                      </div>
                     </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+
+                  {showContractorSelector && (
+                    <div className="absolute bottom-full left-0 mb-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl z-20 overflow-hidden animate-slide-in">
+                      <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
+                        <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-3 py-2">
+                          {t('Select Contractor')}
+                        </div>
+                        {contractors.map(contractor => (
+                          <button
+                            key={contractor.id}
+                            onClick={() => handleAssignProjectContractor(contractor.id)}
+                            className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${
+                              (currentProject.c_id || activeContractorId) === contractor.id
+                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                            }`}
+                          >
+                            <span className="font-medium truncate">{contractor.name}</span>
+                            {(currentProject.c_id || activeContractorId) === contractor.id && (
+                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

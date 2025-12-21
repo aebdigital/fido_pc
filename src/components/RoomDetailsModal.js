@@ -274,7 +274,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     setWorkData([...workData, newItem]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingRentalsSelector(false);
-    setExpandedItems(prev => ({ ...prev, ['rentals']: true }));
+    setExpandedItems(prev => ({ ...prev, rentals: true }));
   };
 
   const handleUpdateWorkItem = (itemId, field, value, isText = false) => {

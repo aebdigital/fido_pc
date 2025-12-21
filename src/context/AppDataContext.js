@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/supabaseApi';
 import { useAuth } from './AuthContext';
-import { workItemToDatabase, databaseToWorkItem, getTableName, PROPERTY_TO_TABLE } from '../services/workItemsMapping';
+import { workItemToDatabase, databaseToWorkItem, getTableName } from '../services/workItemsMapping';
 import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';
@@ -687,6 +687,7 @@ export const AppDataProvider = ({ children }) => {
       // Map camelCase fields to snake_case database columns
       const mappedData = {};
       if (projectData.name !== undefined) mappedData.name = projectData.name;
+      if (projectData.c_id !== undefined) mappedData.c_id = projectData.c_id;
       if (projectData.clientId !== undefined) mappedData.client_id = projectData.clientId || null;
       if (projectData.status !== undefined) mappedData.status = projectData.status;
       if (projectData.hasInvoice !== undefined) mappedData.has_invoice = projectData.hasInvoice;
@@ -709,6 +710,59 @@ export const AppDataProvider = ({ children }) => {
       await api.projects.update(projectId, mappedData);
 
       setAppData(prev => {
+        // If c_id is changing, we need to move the project to another contractor's list
+        if (projectData.c_id && prev.activeContractorId && projectData.c_id !== prev.activeContractorId) {
+          // 1. Find the project object in the current list
+          let projectToMove = null;
+          const oldContractorId = prev.activeContractorId;
+          const newContractorId = projectData.c_id;
+
+          // Check if destination exists
+          if (!prev.contractorProjects[newContractorId]) return prev;
+
+          // Find and remove from old list
+          const updatedOldCategories = prev.contractorProjects[oldContractorId].categories.map(category => {
+            if (category.id === categoryId) {
+              const found = category.projects.find(p => p.id === projectId);
+              if (found) projectToMove = { ...found, ...projectData }; // Update with new data
+              return {
+                ...category,
+                projects: category.projects.filter(p => p.id !== projectId),
+                count: Math.max(0, category.count - 1)
+              };
+            }
+            return category;
+          });
+
+          // Add to new list
+          const updatedNewCategories = prev.contractorProjects[newContractorId].categories.map(category => {
+            if (category.id === categoryId && projectToMove) {
+              return {
+                ...category,
+                projects: [projectToMove, ...category.projects],
+                count: category.count + 1
+              };
+            }
+            return category;
+          });
+
+          return {
+            ...prev,
+            contractorProjects: {
+              ...prev.contractorProjects,
+              [oldContractorId]: {
+                ...prev.contractorProjects[oldContractorId],
+                categories: updatedOldCategories
+              },
+              [newContractorId]: {
+                ...prev.contractorProjects[newContractorId],
+                categories: updatedNewCategories
+              }
+            }
+          };
+        }
+
+        // Standard update (no move)
         const activeContractorId = prev.activeContractorId;
 
         if (!activeContractorId) {

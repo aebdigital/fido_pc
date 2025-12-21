@@ -102,7 +102,6 @@ export const generateInvoicePDF = ({
     // Track vertical position for address (left) and business info (right)
     const contentStartY = clientY;
     let addressY = contentStartY;
-    let businessY = contentStartY;
 
     if (client) {
       // --- LEFT COLUMN: Address ---
