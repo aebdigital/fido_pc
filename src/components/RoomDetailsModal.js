@@ -5,6 +5,7 @@ import { useAppData } from '../context/AppDataContext';
 import UnsavedChangesModal from './UnsavedChangesModal';
 import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
+import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 
 const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const { t } = useLanguage();
@@ -57,7 +58,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
 
   // Separate "Others" category properties
-  const othersIds = ['custom_work', 'commute', 'rentals'];
+  const othersIds = [WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK, WORK_ITEM_PROPERTY_IDS.COMMUTE, WORK_ITEM_PROPERTY_IDS.RENTALS];
 
   // Manual save function
   const handleSave = async () => {
@@ -112,12 +113,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     // Ensure the group is expanded when adding an item
     setExpandedItems(prev => ({ ...prev, [propertyId]: true }));
     
-    if (propertyId === 'sanitary_installation') {
+    if (propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) {
       setShowingSanitarySelector(true);
       return;
     }
     
-    if (propertyId === 'rentals') {
+    if (propertyId === WORK_ITEM_PROPERTY_IDS.RENTALS) {
       setShowingRentalsSelector(true);
       return;
     }
@@ -125,7 +126,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     const property = workProperties.find(p => p.id === propertyId);
 
     // For custom_work, create item directly - user will select type from inline buttons
-    if (propertyId === 'custom_work') {
+    if (propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
       const newItem = {
         id: Date.now(),
         propertyId,
@@ -143,7 +144,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     }
 
     // Check if this property has types (like Simple/Double/Triple)
-    if (property?.types && property.id !== 'sanitary_installation') {
+    if (property?.types && property.id !== WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) {
       setShowingTypeSelector(propertyId);
       return;
     }
@@ -176,12 +177,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
     const newItem = {
       id: Date.now(),
-      propertyId: 'sanitary_installation',
-      name: 'Sanitary installation',
+      propertyId: WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION,
+      name: WORK_ITEM_NAMES.SANITARY_INSTALLATIONS,
       subtitle: sanitaryType,
       fields: {
-        'Count': 0,
-        'Price': defaultPrice
+        [WORK_ITEM_NAMES.COUNT]: 0,
+        [WORK_ITEM_NAMES.PRICE]: defaultPrice
       },
       complementaryWorks: {},
       selectedType: sanitaryType
@@ -205,7 +206,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     const newItem = {
       id: Date.now(),
       propertyId: property.id,
-      name: property.id === 'custom_work' ? t(property.name) : 
+      name: property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ? t(property.name) : 
              property.id.startsWith('plasterboarding_') ? 
                (type ? `${t(property.name)} ${t(property.subtitle)}, ${t(type)}` : `${t(property.name)} ${t(property.subtitle)}`) :
              `${t(property.name)} ${t(type)}`,
@@ -253,14 +254,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     
     saveScrollPosition();
     
-    const rentalItem = workProperties.find(p => p.id === 'rentals')?.items?.find(item => item.name === rentalType);
+    const rentalItem = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.RENTALS)?.items?.find(item => item.name === rentalType);
     if (!rentalItem) return;
 
-    let specificPropertyId = 'rentals';
-    if (rentalType === 'Scaffolding') specificPropertyId = 'scaffolding';
-    else if (rentalType === 'Core Drill') specificPropertyId = 'core_drill';
-    else if (rentalType === 'Tool rental') specificPropertyId = 'tool_rental';
-
+    let specificPropertyId = WORK_ITEM_PROPERTY_IDS.RENTALS;
+    // Map rental types to property IDs if needed, or keep generic 'rentals' and rely on name
+    // For now we keep it simple as propertyId isn't strictly enforced for sub-items
+    
     const newItem = {
       id: Date.now(),
       propertyId: specificPropertyId,
@@ -280,7 +280,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     setWorkData([...workData, newItem]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingRentalsSelector(false);
-    setExpandedItems(prev => ({ ...prev, rentals: true }));
+    setExpandedItems(prev => ({ ...prev, [WORK_ITEM_PROPERTY_IDS.RENTALS]: true }));
   };
 
   const handleUpdateWorkItem = (itemId, field, value, isText = false) => {
@@ -296,7 +296,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
 
         // Also update linked complementary work items if this is a dimension field
         if (item.linkedToParent === itemId &&
-            (field === 'Width' || field === 'Height' || field === 'Length')) {
+            (field === WORK_ITEM_NAMES.WIDTH || field === WORK_ITEM_NAMES.HEIGHT || field === WORK_ITEM_NAMES.LENGTH)) {
           // Only update if the complementary item has this field
           const complementaryProperty = workProperties.find(p => p.id === item.propertyId);
           const hasField = complementaryProperty?.fields?.some(f => f.name === field);
@@ -603,25 +603,25 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       let complementaryProperty = null;
 
       // Determine which variant to use based on parent's field structure
-      const hasHeightField = parentProperty?.fields?.some(f => f.name === 'Height');
-      const hasLengthField = parentProperty?.fields?.some(f => f.name === 'Length');
+      const hasHeightField = parentProperty?.fields?.some(f => f.name === WORK_ITEM_NAMES.HEIGHT);
+      const hasLengthField = parentProperty?.fields?.some(f => f.name === WORK_ITEM_NAMES.LENGTH);
 
-      if (workName === 'Plastering') {
+      if (workName === WORK_ITEM_NAMES.PLASTERING) {
         complementaryProperty = workProperties.find(p =>
-          hasHeightField ? p.id === 'plastering_wall' : p.id === 'plastering_ceiling'
+          hasHeightField ? p.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING
         );
-      } else if (workName === 'Painting') {
+      } else if (workName === WORK_ITEM_NAMES.PAINTING) {
         complementaryProperty = workProperties.find(p =>
-          hasHeightField ? p.id === 'painting_wall' : p.id === 'painting_ceiling'
+          hasHeightField ? p.id === WORK_ITEM_PROPERTY_IDS.PAINTING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING
         );
-      } else if (workName === 'Netting') {
+      } else if (workName === WORK_ITEM_NAMES.NETTING) {
         complementaryProperty = workProperties.find(p =>
-          hasHeightField ? p.id === 'netting_wall' : p.id === 'netting_ceiling'
+          hasHeightField ? p.id === WORK_ITEM_PROPERTY_IDS.NETTING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING
         );
-      } else if (workName === 'Penetration coating') {
-        complementaryProperty = workProperties.find(p => p.id === 'penetration_coating');
-      } else if (workName === 'Tiling under 60cm') {
-        complementaryProperty = workProperties.find(p => p.id === 'tiling_under_60');
+      } else if (workName === WORK_ITEM_NAMES.PENETRATION_COATING) {
+        complementaryProperty = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING);
+      } else if (workName === WORK_ITEM_NAMES.TILING_UNDER_60CM) {
+        complementaryProperty = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60);
       }
 
       if (!complementaryProperty) {
@@ -653,17 +653,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       // Copy dimensions from parent to complementary item
       if (parentItem.fields) {
         // Copy Width
-        if (parentItem.fields.Width !== undefined) {
-          newItem.fields.Width = parentItem.fields.Width;
+        if (parentItem.fields[WORK_ITEM_NAMES.WIDTH] !== undefined) {
+          newItem.fields[WORK_ITEM_NAMES.WIDTH] = parentItem.fields[WORK_ITEM_NAMES.WIDTH];
         } else if (parentItem.fields.Šírka !== undefined) {
-          newItem.fields.Width = parentItem.fields.Šírka;
+          newItem.fields[WORK_ITEM_NAMES.WIDTH] = parentItem.fields.Šírka;
         }
 
         // Copy Height or Length depending on complementary work type
-        if (hasHeightField && (parentItem.fields.Height !== undefined || parentItem.fields.Výška !== undefined)) {
-          newItem.fields.Height = parentItem.fields.Height || parentItem.fields.Výška;
-        } else if (hasLengthField && (parentItem.fields.Length !== undefined || parentItem.fields.Dĺžka !== undefined)) {
-          newItem.fields.Length = parentItem.fields.Length || parentItem.fields.Dĺžka;
+        if (hasHeightField && (parentItem.fields[WORK_ITEM_NAMES.HEIGHT] !== undefined || parentItem.fields.Výška !== undefined)) {
+          newItem.fields[WORK_ITEM_NAMES.HEIGHT] = parentItem.fields[WORK_ITEM_NAMES.HEIGHT] || parentItem.fields.Výška;
+        } else if (hasLengthField && (parentItem.fields[WORK_ITEM_NAMES.LENGTH] !== undefined || parentItem.fields.Dĺžka !== undefined)) {
+          newItem.fields[WORK_ITEM_NAMES.LENGTH] = parentItem.fields[WORK_ITEM_NAMES.LENGTH] || parentItem.fields.Dĺžka;
         }
 
         // Copy doors and windows if present

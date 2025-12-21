@@ -1,9 +1,3 @@
-
-// Helper to format price string
-export const formatPrice = (price) => {
-  return `€${price.toFixed(2).replace('.', ',')}`;
-};
-
 import {
   WORK_TYPE_SUFFIXES,
   WORK_ITEM_SUBTITLES,
@@ -13,6 +7,11 @@ import {
   WORK_ITEM_PROPERTY_IDS,
   UNIT_TYPES
 } from '../config/constants';
+
+// Helper to format price string
+export const formatPrice = (price) => {
+  return `€${price.toFixed(2).replace('.', ',')}`;
+};
 
 // Find matching price list item for a work item
 export const findPriceListItem = (workItem, priceList) => {
@@ -54,7 +53,7 @@ export const findPriceListItem = (workItem, priceList) => {
 
   // For rental items, use the actual rental item name instead of generic mapping
   let targetName;
-  if (workItem.propertyId === 'rentals' && workItem.name) {
+  if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.RENTALS && workItem.name) {
     targetName = workItem.name; // Use "Scaffolding", "Core Drill", or "Tool rental"
   } else {
     targetName = workIdMappings[workItem.propertyId];
@@ -301,8 +300,11 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
       
       // For paint items, handle Slovak->English subtitle differences
       if (!subtitleMatch && materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PAINT.toLowerCase()) {
-        if ((workSubLower.includes(WORK_ITEM_SUBTITLES.WALL[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.WALL[0])) ||
-            (workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]))) {
+        const workSubLower = workItemSubtype.toLowerCase();
+        
+        if (workSubLower.includes(WORK_ITEM_SUBTITLES.WALL[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.WALL[0])) {
+          subtitleMatch = true;
+        } else if (workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0])) {
           subtitleMatch = true;
         }
       }
@@ -378,7 +380,7 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
           if (workParts.length <= materialParts.length) {
             subtitleMatch = workParts.every(part => 
               materialParts.some(matPart => 
-                matPart.includes(part) || matPart.includes(matPart) ||
+                matPart.includes(part) || part.includes(matPart) ||
                 (part.includes('jednoduč') && matPart.includes('simple')) ||
                 (part.includes('simple') && matPart.includes('jednoduč')) ||
                 (part.includes('dvojit') && matPart.includes('double')) ||
@@ -404,18 +406,15 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
       return nameMatch && subtitleMatch;
     }
     
-    // If no subtitle on either side, just match by name
-    return nameMatch;
+    // If no exact match with subtitle, try without subtitle
+    if (!material && workItemSubtype) {
+      material = priceList.material.find(item => 
+        item.name.toLowerCase() === materialName.toLowerCase()
+      );
+    }
+    
+    return material;
   });
-  
-  // If no exact match with subtitle, try without subtitle
-  if (!material && workItemSubtype) {
-    material = priceList.material.find(item => 
-      item.name.toLowerCase() === materialName.toLowerCase()
-    );
-  }
-  
-  return material;
 };
 
 // Calculate cost for a specific material based on quantity
@@ -551,6 +550,80 @@ export const calculateWorkItemWithMaterials = (
   };
 };
 
+// Enhanced room calculation with materials
+export const calculateRoomPriceWithMaterials = (room, priceList) => {
+  if (!room.workItems || room.workItems.length === 0) return {
+    workTotal: 0,
+    materialTotal: 0,
+    othersTotal: 0,
+    total: 0,
+    items: [],
+    materialItems: [],
+    othersItems: [],
+    baseWorkTotal: 0,
+    baseMaterialTotal: 0,
+    auxiliaryWorkCost: 0,
+    auxiliaryMaterialCost: 0
+  };
+  
+  // Use provided price list (mandatory for this utility)
+  const activePriceList = priceList;
+  if (!activePriceList) return {
+    workTotal: 0, materialTotal: 0, othersTotal: 0, total: 0, items: [], materialItems: [], othersItems: [],
+    baseWorkTotal: 0, baseMaterialTotal: 0, auxiliaryWorkCost: 0, auxiliaryMaterialCost: 0
+  };
+
+  let workTotal = 0;
+  let materialTotal = 0;
+  let othersTotal = 0;
+  const items = [];
+  const materialItems = [];
+  const othersItems = [];
+  
+  // Pre-calculate total area for tiling and paving to optimize adhesive calculation
+  let totalTilingPavingArea = 0;
+  let tilingPavingAdhesiveAdded = false;
+  let totalNettingArea = 0;
+  let nettingAdhesiveAdded = false;
+
+  room.workItems.forEach(workItem => {
+    const priceItem = findPriceListItem(workItem, activePriceList);
+    if (priceItem && workItem.fields) {
+      const isTilingOrPaving = (priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.TILING.toLowerCase()) ||
+                                 priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.OBKLAD.toLowerCase()) ||
+                                 workItem.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60) ||
+                                (priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.PAVING.toLowerCase()) ||
+                                 priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.DLAZBA.toLowerCase()) ||
+                                 workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60);
+      const isNetting = priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.NETTING.toLowerCase()) ||
+                        priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SIETKOVANIE.toLowerCase()) ||
+                        workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_WALL ||
+                        workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING;
+
+      if (isTilingOrPaving) {
+        const values = workItem.fields;
+        let area = 0;
+        if (values.Width && values.Length) {
+          area = parseFloat(values.Width || 0) * parseFloat(values.Length || 0);
+        } else if (values.Width && values.Height) {
+          area = parseFloat(values.Width || 0) * parseFloat(values.Height || 0);
+        }
+        totalTilingPavingArea += area;
+      }
+
+      if (isNetting) {
+        const values = workItem.fields;
+        let area = 0;
+        if (values.Width && values.Length) {
+          area = parseFloat(values.Width || 0) * parseFloat(values.Length || 0);
+        } else if (values.Width && values.Height) {
+          area = parseFloat(values.Width || 0) * parseFloat(values.Height || 0);
+        }
+        totalNettingArea += area;
+      }
+    }
+  });
+
   room.workItems.forEach(workItem => {
     const priceItem = findPriceListItem(workItem, activePriceList);
 
@@ -643,7 +716,7 @@ export const calculateWorkItemWithMaterials = (
           if (isTilingOrPaving && workItem.fields[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD]) {
             // Find the Large Format price item
             const largeFormatItem = activePriceList.work.find(item =>
-              item.name === WORK_ITEM_NAMES.LARGE_FORMAT && item.subtitle === WORK_ITEM_NAMES.ABOVE_60CM_FIELD
+              item.name === WORK_ITEM_NAMES.LARGE_FORMAT && item.subtitle === WORK_ITEM_NAMES.ABOVE_60CM
             );
             if (largeFormatItem) {
               effectivePriceItem = largeFormatItem;
@@ -813,3 +886,29 @@ export const calculateWorkItemWithMaterials = (
       }
     }
   });
+  
+  const auxiliaryWorkCost = workTotal * 0.65;
+  const auxiliaryMaterialCost = materialTotal * 0.10;
+  
+  const finalWorkTotal = workTotal + auxiliaryWorkCost;
+  const finalMaterialTotal = materialTotal + auxiliaryMaterialCost;
+  
+  return {
+    workTotal: finalWorkTotal,
+    materialTotal: finalMaterialTotal,
+    othersTotal,
+    total: finalWorkTotal + finalMaterialTotal + othersTotal,
+    baseWorkTotal: workTotal,
+    baseMaterialTotal: materialTotal,
+    auxiliaryWorkCost,
+    auxiliaryMaterialCost,
+    items,
+    materialItems,
+    othersItems
+  };
+};
+
+export const calculateRoomPrice = (room, priceList) => {
+  const calculation = calculateRoomPriceWithMaterials(room, priceList);
+  return calculation.total;
+};

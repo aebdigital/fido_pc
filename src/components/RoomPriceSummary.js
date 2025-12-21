@@ -1,6 +1,12 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
+import { 
+  WORK_ITEM_NAMES, 
+  WORK_ITEM_PROPERTY_IDS, 
+  UNIT_TYPES,
+  MATERIAL_ITEM_NAMES
+} from '../config/constants';
 
 const RoomPriceSummary = ({ room, workData }) => {
   const { t } = useLanguage();
@@ -32,36 +38,36 @@ const RoomPriceSummary = ({ room, workData }) => {
                   if (item.calculation?.workCost > 0) {
                     // Determine the correct unit based on work type
                     // First check if calculation already has a unit (e.g., for additional fields like Jolly Edging, Plinth)
-                    let unit = item.calculation.unit || 'm²';
+                    let unit = item.calculation.unit || UNIT_TYPES.METER_SQUARE;
                     let quantity = item.calculation.quantity;
                     const values = item.fields;
 
                     // Only derive unit from fields if not already set in calculation
                     if (!item.calculation.unit) {
                       // Check for scaffolding rental (has "- prenájom" in subtitle)
-                      if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
-                        quantity = parseFloat(values['Rental duration'] || 0);
-                        unit = quantity > 1 ? 'days' : 'day';
-                      } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
-                        unit = 'km';
-                        const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
-                        const days = parseFloat(values.Duration || values.Trvanie || 0);
+                      if (item.subtitle && item.subtitle.includes('- prenájom') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
+                        unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
+                      } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) && (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
+                        unit = UNIT_TYPES.KM;
+                        const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
+                        const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
                         quantity = distance * (days > 0 ? days : 1);
-                      } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
-                        unit = 'h';
-                        quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
-                      } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
-                        unit = 'ks';
-                        quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
-                      } else if (values.Length && !values.Width && !values.Height) {
-                        unit = 'm';
-                        quantity = parseFloat(values.Length || 0);
-                      } else if (values.Circumference) {
-                        unit = 'm';
-                        quantity = parseFloat(values.Circumference || 0);
-                      } else if (values.Distance) {
-                        unit = 'km';
-                        quantity = parseFloat(values.Distance || 0);
+                      } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || (values[WORK_ITEM_NAMES.COUNT] && (item.name === WORK_ITEM_NAMES.CORE_DRILL || item.name === 'Rental' || item.name === WORK_ITEM_NAMES.TOOL_RENTAL))) {
+                        unit = UNIT_TYPES.HOUR;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || values[WORK_ITEM_NAMES.COUNT] || 0);
+                      } else if (values[WORK_ITEM_NAMES.COUNT] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) {
+                        unit = UNIT_TYPES.PIECE;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.COUNT] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK] || 0);
+                      } else if (values[WORK_ITEM_NAMES.LENGTH] && !values[WORK_ITEM_NAMES.WIDTH] && !values[WORK_ITEM_NAMES.HEIGHT]) {
+                        unit = UNIT_TYPES.METER;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.LENGTH] || 0);
+                      } else if (values[WORK_ITEM_NAMES.CIRCUMFERENCE]) {
+                        unit = UNIT_TYPES.METER;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.CIRCUMFERENCE] || 0);
+                      } else if (values[WORK_ITEM_NAMES.DISTANCE_EN]) {
+                        unit = UNIT_TYPES.KM;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || 0);
                       }
                     }
                     
@@ -71,17 +77,17 @@ const RoomPriceSummary = ({ room, workData }) => {
                     
                     // Special handling for scaffolding items
                     let workDescription;
-                    if ((item.subtitle && (item.subtitle.toLowerCase().includes('scaffolding') || 
-                        item.subtitle.toLowerCase().includes('lešenie'))) ||
-                        (item.name && item.name.toLowerCase().includes('lešenie'))) {
+                    if ((item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || 
+                        item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
+                        (item.name && item.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
                       if (item.subtitle.includes('- prenájom')) {
                         // For rental component, show days
-                        const duration = parseFloat(values['Rental duration'] || 0);
+                        const duration = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
                         workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
                       } else if (item.subtitle.includes('- montáž a demontáž')) {
                         // For assembly component, show area
-                        const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
-                        workDescription = `${t(item.subtitle)} - ${area.toFixed(1)}${t('m²')}`;
+                        const area = parseFloat(values[WORK_ITEM_NAMES.LENGTH] || 0) * parseFloat(values[WORK_ITEM_NAMES.HEIGHT] || 0);
+                        workDescription = `${t(item.subtitle)} - ${area.toFixed(1)}${t(UNIT_TYPES.METER_SQUARE)}`;
                       } else {
                         workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
                       }
@@ -106,7 +112,7 @@ const RoomPriceSummary = ({ room, workData }) => {
               {/* Add auxiliary work cost at bottom of work section */}
               {calculation.auxiliaryWorkCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <span className="text-gray-600 dark:text-gray-400">{t('Auxiliary and finishing work')} (65%)</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t(WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK)} (65%)</span>
                   <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryWorkCost)}</span>
                 </div>
               )}
@@ -125,7 +131,7 @@ const RoomPriceSummary = ({ room, workData }) => {
                   // Group materials by name and subtitle
                   calculation.items.forEach(item => {
                     // Handle sanitary installations separately (no material object, just cost)
-                    if (item.propertyId === 'sanitary_installation' && item.calculation?.materialCost > 0) {
+                    if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && item.calculation?.materialCost > 0) {
                       const sanitaryKey = `${item.name}-${item.subtitle || 'no-subtitle'}`;
 
                       if (!materialGroups[sanitaryKey]) {
@@ -133,7 +139,7 @@ const RoomPriceSummary = ({ room, workData }) => {
                           material: {
                             name: item.name,
                             subtitle: item.subtitle,
-                            unit: 'pc'
+                            unit: UNIT_TYPES.PIECE
                           },
                           totalQuantity: 0,
                           totalCost: 0,
@@ -142,7 +148,7 @@ const RoomPriceSummary = ({ room, workData }) => {
                         };
                       }
 
-                      const quantity = parseFloat(item.fields.Count || 0);
+                      const quantity = parseFloat(item.fields[WORK_ITEM_NAMES.COUNT] || 0);
                       const cost = item.calculation.materialCost;
 
                       materialGroups[sanitaryKey].totalQuantity += quantity;
@@ -206,7 +212,7 @@ const RoomPriceSummary = ({ room, workData }) => {
                   return Object.values(materialGroups).map((group, index) => {
                     const materialDescription = `${t(group.material.name)}${group.material.subtitle ? `, ${t(group.material.subtitle)}` : ''}`;
                     const unit = group.material.capacity 
-                      ? (group.material.unit.includes('pc') ? 'pc' : 'pkg')
+                      ? (group.material.unit.includes(UNIT_TYPES.PIECE) ? UNIT_TYPES.PIECE : UNIT_TYPES.PACKAGE)
                       : group.material.unit?.replace('€/', '');
                     
                     return (
@@ -225,7 +231,7 @@ const RoomPriceSummary = ({ room, workData }) => {
               {/* Add auxiliary material cost at bottom of material section */}
               {calculation.auxiliaryMaterialCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <span className="text-gray-600 dark:text-gray-400">{t('Auxiliary and connecting material')} (10%)</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t(MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL)} (10%)</span>
                   <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryMaterialCost)}</span>
                 </div>
               )}
@@ -242,43 +248,43 @@ const RoomPriceSummary = ({ room, workData }) => {
                   if (item.calculation?.workCost > 0) {
                     // Determine the correct unit based on work type
                     // First check if calculation already has a unit (e.g., for additional fields like Jolly Edging, Plinth)
-                    let unit = item.calculation.unit || 'm²';
+                    let unit = item.calculation.unit || UNIT_TYPES.METER_SQUARE;
                     let quantity = item.calculation.quantity;
                     const values = item.fields;
 
                     // Only derive unit from fields if not already set in calculation
                     if (!item.calculation.unit) {
                       // Check for scaffolding rental (has "- prenájom" in subtitle)
-                      if (item.subtitle && item.subtitle.includes('- prenájom') && values['Rental duration']) {
-                        quantity = parseFloat(values['Rental duration'] || 0);
-                        unit = quantity > 1 ? 'days' : 'day';
-                      } else if ((values.Distance || values.Vzdialenosť) && (item.name === 'Journey' || item.name === 'Commute' || item.name === 'Cesta')) {
-                        unit = 'km';
-                        const distance = parseFloat(values.Distance || values.Vzdialenosť || 0);
-                        const days = parseFloat(values.Duration || values.Trvanie || 0);
+                      if (item.subtitle && item.subtitle.includes('- prenájom') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
+                        unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
+                      } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) && (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
+                        unit = UNIT_TYPES.KM;
+                        const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
+                        const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
                         quantity = distance * (days > 0 ? days : 1);
-                      } else if (values.Duration || values.Trvanie || (values.Count && (item.name === 'Core Drill' || item.name === 'Rental' || item.name === 'Tool rental'))) {
-                        unit = 'h';
-                        quantity = parseFloat(values.Duration || values.Trvanie || values.Count || 0);
-                      } else if (values.Count || values['Number of outlets'] || values['Počet vývodov']) {
-                        unit = 'ks';
-                        quantity = parseFloat(values.Count || values['Number of outlets'] || values['Počet vývodov'] || 0);
-                      } else if (values.Length && !values.Width && !values.Height) {
-                        unit = 'm';
-                        quantity = parseFloat(values.Length || 0);
-                      } else if (values.Circumference) {
-                        unit = 'm';
-                        quantity = parseFloat(values.Circumference || 0);
-                      } else if (values.Distance) {
-                        unit = 'km';
-                        quantity = parseFloat(values.Distance || 0);
+                      } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || (values[WORK_ITEM_NAMES.COUNT] && (item.name === WORK_ITEM_NAMES.CORE_DRILL || item.name === 'Rental' || item.name === WORK_ITEM_NAMES.TOOL_RENTAL))) {
+                        unit = UNIT_TYPES.HOUR;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || values[WORK_ITEM_NAMES.COUNT] || 0);
+                      } else if (values[WORK_ITEM_NAMES.COUNT] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) {
+                        unit = UNIT_TYPES.PIECE;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.COUNT] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK] || 0);
+                      } else if (values[WORK_ITEM_NAMES.LENGTH] && !values[WORK_ITEM_NAMES.WIDTH] && !values[WORK_ITEM_NAMES.HEIGHT]) {
+                        unit = UNIT_TYPES.METER;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.LENGTH] || 0);
+                      } else if (values[WORK_ITEM_NAMES.CIRCUMFERENCE]) {
+                        unit = UNIT_TYPES.METER;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.CIRCUMFERENCE] || 0);
+                      } else if (values[WORK_ITEM_NAMES.DISTANCE_EN]) {
+                        unit = UNIT_TYPES.KM;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || 0);
                       }
                     }
                     
                     const workName = t(item.name);
                     // Format quantity: for days show as integer with space, otherwise use existing format
                     const translatedUnit = t(unit);
-                    const formattedQuantity = (unit === 'day' || unit === 'days')
+                    const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
                       ? `${Math.round(quantity)} ${translatedUnit}`
                       : `${quantity.toFixed(quantity < 10 ? 1 : 0)}${translatedUnit}`;
                     const workDescription = `${workName} - ${formattedQuantity}`;

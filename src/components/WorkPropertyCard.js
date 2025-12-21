@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
+import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 
 const WorkPropertyCard = ({ 
   property, 
@@ -120,21 +121,21 @@ const WorkPropertyCard = ({
     const isToggleType = field.type === 'toggle';
 
     // Skip doors and windows fields as they're rendered separately
-    if (field.name === 'Doors' || field.name === 'Windows') {
+    if (field.name === WORK_ITEM_NAMES.DOORS || field.name === WORK_ITEM_NAMES.WINDOWS) {
       return null;
     }
 
     // Skip Name field for custom work as it's now in the header
-    if (item.propertyId === 'custom_work' && field.name === 'Name') {
+    if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && field.name === WORK_ITEM_NAMES.NAME) {
       return null;
     }
 
     // For custom work, show selected unit for Quantity and Price fields
     let unitDisplay = field.unit;
-    if (item.propertyId === 'custom_work' && item.selectedUnit) {
-      if (field.name === 'Quantity') {
+    if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit) {
+      if (field.name === WORK_ITEM_NAMES.QUANTITY) {
         unitDisplay = item.selectedUnit;
-      } else if (field.name === 'Price') {
+      } else if (field.name === WORK_ITEM_NAMES.PRICE) {
         unitDisplay = `€/${item.selectedUnit}`;
       }
     }
@@ -189,7 +190,7 @@ const WorkPropertyCard = ({
   };
 
   // 1. Rentals
-  if (property.id === 'rentals') {
+  if (property.id === WORK_ITEM_PROPERTY_IDS.RENTALS) {
     return (
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm transition-all duration-300 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Always show header with plus button */}
@@ -347,8 +348,8 @@ const WorkPropertyCard = ({
             
             {/* Doors and Windows sections */}
             {property.fields && (() => {
-              const hasDoors = property.fields.some(f => f.name === 'Doors');
-              const hasWindows = property.fields.some(f => f.name === 'Windows');
+              const hasDoors = property.fields.some(f => f.name === WORK_ITEM_NAMES.DOORS);
+              const hasWindows = property.fields.some(f => f.name === WORK_ITEM_NAMES.WINDOWS);
               
               if (hasDoors && hasWindows) {
                 return (
@@ -449,7 +450,7 @@ const WorkPropertyCard = ({
 
   // 3. Special handling for properties with types (Simple/Double/Triple) - but NOT custom_work
   // custom_work is handled in the regular property card section below
-  if (property.types && property.id !== 'sanitary_installation' && property.id !== 'custom_work') {
+  if (property.types && property.id !== WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
     const existingItems = workData.filter(item => item.propertyId === property.id);
     
     return (
@@ -534,8 +535,8 @@ const WorkPropertyCard = ({
 
             {/* Doors and Windows sections */}
             {property.fields && (() => {
-              const hasDoors = property.fields.some(f => f.name === 'Doors');
-              const hasWindows = property.fields.some(f => f.name === 'Windows');
+              const hasDoors = property.fields.some(f => f.name === WORK_ITEM_NAMES.DOORS);
+              const hasWindows = property.fields.some(f => f.name === WORK_ITEM_NAMES.WINDOWS);
               
               if (hasDoors && hasWindows) {
                 return (
@@ -634,7 +635,7 @@ const WorkPropertyCard = ({
   }
 
   // 4. Special handling for sanitary installation
-  if (property.id === 'sanitary_installation') {
+  if (property.id === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) {
     return (
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Always show header with plus button */}
@@ -697,11 +698,11 @@ const WorkPropertyCard = ({
             {/* Count and Price fields */}
             <div className="space-y-3 lg:space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t('Count')}</span>
+                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(WORK_ITEM_NAMES.COUNT)}</span>
                 <div className="flex items-center gap-2 justify-end w-full">
                   <NumberInput
-                    value={item.fields['Count'] || 0}
-                    onChange={(value) => onUpdateWorkItem(item.id, 'Count', value)}
+                    value={item.fields[WORK_ITEM_NAMES.COUNT] || 0}
+                    onChange={(value) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.COUNT, value)}
                     className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                     min={0}
                   />
@@ -709,11 +710,11 @@ const WorkPropertyCard = ({
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t('Price')}</span>
+                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(WORK_ITEM_NAMES.PRICE)}</span>
                 <div className="flex items-center gap-2 justify-end w-full">
                   <NumberInput
-                    value={item.fields['Price'] || 0}
-                    onChange={(value) => onUpdateWorkItem(item.id, 'Price', value)}
+                    value={item.fields[WORK_ITEM_NAMES.PRICE] || 0}
+                    onChange={(value) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.PRICE, value)}
                     className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
                     min={0}
                   />
@@ -757,7 +758,7 @@ const WorkPropertyCard = ({
       {expandedItems[property.id] && existingItems.map(item => (
         <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
           <div className="flex items-center justify-between">
-            {property.id === 'custom_work' && item.selectedUnit ? (
+            {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
                   {item.selectedType === 'Work' ? t('Názov práce') : t('Názov materiálu')}:
@@ -765,13 +766,13 @@ const WorkPropertyCard = ({
                 <input
                   id={`custom-work-name-${item.id}`}
                   type="text"
-                  defaultValue={item.fields.Name || ''}
-                  onBlur={(e) => onUpdateWorkItem(item.id, 'Name', e.target.value, true)}
+                  defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
+                  onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
                   className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
                   placeholder={item.selectedType === 'Work' ? t('Názov práce') : t('Názov materiálu')}
                 />
               </div>
-            ) : property.id === 'custom_work' ? (
+            ) : property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ? (
               <span className="font-medium text-gray-900 dark:text-white text-lg">
                 {t(property.name)}
               </span>
@@ -789,7 +790,7 @@ const WorkPropertyCard = ({
           </div>
 
           {/* Property type selection - for custom_work, only show if unit not yet selected */}
-          {property.types && (property.id !== 'custom_work' || !item.selectedUnit) && (
+          {property.types && (property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || !item.selectedUnit) && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {property.types.map(type => (
                 <button
@@ -797,26 +798,6 @@ const WorkPropertyCard = ({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    // We don't have saveScrollPosition passed down, assume handled by parent update
-                    
-                    // We need a specific handler for this inline type selection for custom work
-                    // But in original code it was using setWorkData directly.
-                    // We will piggyback on onUpdateWorkItem or similar, or just reuse onTypeSelect?
-                    // No, onTypeSelect adds a NEW item. Here we update EXISTING item type.
-                    
-                    // We can reuse onUpdateWorkItem if we treat 'selectedType' as a field?
-                    // No, selectedType is top level.
-                    
-                    // Let's assume onUpdateWorkItem can handle top-level props if we change its signature or use a new prop.
-                    // For now, let's look at the original code: 
-                    // setWorkData(items => items.map(i => i.id === item.id ? { ...i, selectedType: type } : i));
-                    
-                    // I will add a new prop onUpdateItemProperty for generic updates
-                    // OR reuse onUpdateWorkItem with a special flag.
-                    // Let's assume onUpdateWorkItem handles (id, key, value, isText)
-                    // If key starts with 'PROPERTY:', we update property? No that's messy.
-                    
-                    // I'll add onUpdateItemState prop to the component signature above.
                     onUpdateItemState(item.id, { selectedType: type });
                   }}
                   className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex items-center justify-center gap-2 ${
@@ -834,7 +815,7 @@ const WorkPropertyCard = ({
           )}
 
           {/* Unit selector for custom work - only show after type is selected but before unit is selected */}
-          {property.id === 'custom_work' && property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
+          {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
             <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
               <span className="text-base font-medium text-gray-900 dark:text-white">{t('Vyberte jednotku')}</span>
               <div className="grid grid-cols-4 gap-2">
@@ -852,7 +833,7 @@ const WorkPropertyCard = ({
           )}
 
           {/* Property fields */}
-          {property.fields && (property.id !== 'custom_work' || item.selectedUnit) && (
+          {property.fields && (property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || item.selectedUnit) && (
             <div className="space-y-3 lg:space-y-2">
               {property.fields.map(field => (
                 <div key={field.name}>
@@ -864,8 +845,8 @@ const WorkPropertyCard = ({
 
           {/* Doors and Windows sections */}
           {property.fields && (() => {
-            const hasDoors = property.fields.some(f => f.name === 'Doors');
-            const hasWindows = property.fields.some(f => f.name === 'Windows');
+            const hasDoors = property.fields.some(f => f.name === WORK_ITEM_NAMES.DOORS);
+            const hasWindows = property.fields.some(f => f.name === WORK_ITEM_NAMES.WINDOWS);
             
             if (hasDoors && hasWindows) {
               return (

@@ -3,62 +3,64 @@
  * Maps between app's dynamic work item structure and database tables
  */
 
+import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
+
 // Map propertyId to database table name
 export const PROPERTY_TO_TABLE = {
   // Brick works
-  'brick_partitions': 'brick_partitions',
-  'brick_load_bearing': 'brick_load_bearing_walls',
+  [WORK_ITEM_PROPERTY_IDS.BRICK_PARTITIONS]: 'brick_partitions',
+  [WORK_ITEM_PROPERTY_IDS.BRICK_LOAD_BEARING]: 'brick_load_bearing_walls',
 
   // Plasterboarding
-  'plasterboarding_partition': 'plasterboarding_partitions',
-  'plasterboarding_offset': 'plasterboarding_offset_walls',
-  'plasterboarding_ceiling': 'plasterboarding_ceilings',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION]: 'plasterboarding_partitions',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET]: 'plasterboarding_offset_walls',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_CEILING]: 'plasterboarding_ceilings',
 
   // Netting
-  'netting_wall': 'netting_walls',
-  'netting_ceiling': 'netting_ceilings',
+  [WORK_ITEM_PROPERTY_IDS.NETTING_WALL]: 'netting_walls',
+  [WORK_ITEM_PROPERTY_IDS.NETTING_CEILING]: 'netting_ceilings',
 
   // Plastering
-  'plastering_wall': 'plastering_walls',
-  'plastering_ceiling': 'plastering_ceilings',
-  'facade_plastering': 'facade_plasterings',
-  'window_sash': 'plastering_of_window_sashes',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL]: 'plastering_walls',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING]: 'plastering_ceilings',
+  [WORK_ITEM_PROPERTY_IDS.FACADE_PLASTERING]: 'facade_plasterings',
+  [WORK_ITEM_PROPERTY_IDS.WINDOW_SASH]: 'plastering_of_window_sashes',
 
   // Painting
-  'painting_wall': 'painting_walls',
-  'painting_ceiling': 'painting_ceilings',
+  [WORK_ITEM_PROPERTY_IDS.PAINTING_WALL]: 'painting_walls',
+  [WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING]: 'painting_ceilings',
 
   // Floor works
-  'levelling': 'levellings',
-  'tile_ceramic': 'tile_ceramics',
-  'tiling_under_60': 'tile_ceramics',
-  'paving_ceramic': 'paving_ceramics',
-  'paving_under_60': 'paving_ceramics',
-  'floating_floor': 'laying_floating_floors',
-  'skirting_floor': 'skirting_of_floating_floors',
+  [WORK_ITEM_PROPERTY_IDS.LEVELLING]: 'levellings',
+  'tile_ceramic': 'tile_ceramics', // Legacy or unused?
+  [WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60]: 'tile_ceramics',
+  'paving_ceramic': 'paving_ceramics', // Legacy or unused?
+  [WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60]: 'paving_ceramics',
+  [WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR]: 'laying_floating_floors',
+  'skirting_floor': 'skirting_of_floating_floors', // Legacy or unused?
 
   // Installations
-  'wiring': 'wirings',
-  'plumbing': 'plumbings',
-  'sanitary_installation': 'installation_of_sanitaries',
-  'corner_bead': 'installation_of_corner_beads',
-  'door_jamb': 'installation_of_door_jambs',
-  'door_jamb_installation': 'installation_of_door_jambs',
-  'window_installation': 'window_installations',
+  [WORK_ITEM_PROPERTY_IDS.WIRING]: 'wirings',
+  [WORK_ITEM_PROPERTY_IDS.PLUMBING]: 'plumbings',
+  [WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION]: 'installation_of_sanitaries',
+  [WORK_ITEM_PROPERTY_IDS.CORNER_BEAD]: 'installation_of_corner_beads',
+  'door_jamb': 'installation_of_door_jambs', // Legacy or unused?
+  [WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION]: 'installation_of_door_jambs',
+  [WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION]: 'window_installations',
 
   // Others
-  'preparatory': 'demolitions',
-  'demolition': 'demolitions',
-  'commute': 'custom_works', // Map commute to custom_works for now as there is no specific table
-  'core_drill': 'core_drills',
-  'grouting': 'groutings',
-  'penetration_coating': 'penetration_coatings',
-  'siliconing': 'siliconings',
-  'tool_rental': 'tool_rentals',
-  'scaffolding': 'scaffoldings',
+  [WORK_ITEM_PROPERTY_IDS.PREPARATORY]: 'demolitions',
+  'demolition': 'demolitions', // Legacy?
+  [WORK_ITEM_PROPERTY_IDS.COMMUTE]: 'custom_works', // Map commute to custom_works for now as there is no specific table
+  'core_drill': 'core_drills', // rentals item
+  [WORK_ITEM_PROPERTY_IDS.GROUTING]: 'groutings',
+  [WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING]: 'penetration_coatings',
+  [WORK_ITEM_PROPERTY_IDS.SILICONING]: 'siliconings',
+  'tool_rental': 'tool_rentals', // rentals item
+  'scaffolding': 'scaffoldings', // rentals item
 
   // Custom
-  'custom_work': 'custom_works',
+  [WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK]: 'custom_works',
   'custom_material': 'custom_materials'
 };
 
@@ -71,6 +73,13 @@ export const PROPERTY_TO_TABLE = {
  */
 export function workItemToDatabase(workItem, roomId, contractorId) {
   const tableName = PROPERTY_TO_TABLE[workItem.propertyId];
+
+  // Fallback for rentals items that might not have propertyId set correctly in older data
+  // or if they are sub-items of 'rentals' property
+  if (!tableName && workItem.name) {
+     if (workItem.name === 'Scaffolding' || workItem.name === 'Lešenie') return null; // Scaffolding handled specially?
+     // Actually rentals items in workProperties have propertyId 'rentals' but individual items might be saved differently
+  }
 
   if (!tableName) {
     console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
@@ -88,11 +97,11 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     case 'brick_load_bearing_walls':
       return {
         ...baseRecord,
-        size1: workItem.fields?.Width || workItem.fields?.Length || 0,
-        size2: workItem.fields?.Height || 0,
-        netting: workItem.complementaryWorks?.Netting ? 1 : 0,
-        painting: workItem.complementaryWorks?.Painting ? 1 : 0,
-        plastering: workItem.complementaryWorks?.Plastering ? 1 : 0,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
+        netting: workItem.complementaryWorks?.['Netting'] ? 1 : 0, // Should be constant but complementaryWorks keys are stored as strings
+        painting: workItem.complementaryWorks?.['Painting'] ? 1 : 0,
+        plastering: workItem.complementaryWorks?.['Plastering'] ? 1 : 0,
         tiling: workItem.complementaryWorks?.['Tiling under 60cm'] ? 1 : 0,
         penetration_one: workItem.complementaryWorks?.['Penetration coating'] ? 1 : 0,
         penetration_two: 0,
@@ -106,8 +115,8 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       const typeMap = { 'Simple': 1, 'Double': 2, 'Triple': 3 };
       return {
         ...baseRecord,
-        size1: workItem.fields?.Width || workItem.fields?.Length || 0,
-        size2: workItem.fields?.Height || workItem.fields?.Length || 0,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         type: typeMap[workItem.selectedType] || 1
       };
 
@@ -121,8 +130,8 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     case 'penetration_coatings':
       return {
         ...baseRecord,
-        size1: workItem.fields?.Width || workItem.fields?.Length || 0,
-        size2: workItem.fields?.Height || workItem.fields?.Length || 0
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
       };
 
     case 'tile_ceramics':
@@ -133,55 +142,55 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     case 'groutings':
       return {
         ...baseRecord,
-        size1: workItem.fields?.Width || workItem.fields?.Length || 0,
-        size2: workItem.fields?.Height || workItem.fields?.Length || 0
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
       };
 
     case 'wirings':
     case 'plumbings':
       return {
         ...baseRecord,
-        count: workItem.fields?.['Number of outlets'] || 0
+        count: workItem.fields?.[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || 0
       };
 
     case 'installation_of_sanitaries':
       return {
         ...baseRecord,
         type: workItem.selectedType || workItem.subtitle || '',
-        count: workItem.fields?.Count || 0,
-        price_per_sanitary: workItem.fields?.Price || 0
+        count: workItem.fields?.[WORK_ITEM_NAMES.COUNT] || 0,
+        price_per_sanitary: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
       };
 
     case 'installation_of_door_jambs':
       return {
         ...baseRecord,
-        count: workItem.fields?.Count || workItem.fields?.Length || 0,
-        price_per_door_jamb: workItem.fields?.Price || 0
+        count: workItem.fields?.[WORK_ITEM_NAMES.COUNT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        price_per_door_jamb: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
       };
 
     case 'custom_works':
       return {
         ...baseRecord,
-        title: workItem.fields?.Name || workItem.name || '',
+        title: workItem.fields?.[WORK_ITEM_NAMES.NAME] || workItem.name || '',
         unit: workItem.selectedUnit || '',
-        number_of_units: workItem.fields?.Quantity || 0,
-        price_per_unit: workItem.fields?.Price || 0
+        number_of_units: workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || 0, // Quantity is not in constants yet, used literal in workProperties
+        price_per_unit: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
       };
 
     case 'custom_materials':
       return {
         ...baseRecord,
-        title: workItem.fields?.Name || workItem.name || '',
+        title: workItem.fields?.[WORK_ITEM_NAMES.NAME] || workItem.name || '',
         unit: workItem.selectedUnit || '',
-        number_of_units: workItem.fields?.Quantity || 0,
-        price_per_unit: workItem.fields?.Price || 0
+        number_of_units: workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || 0,
+        price_per_unit: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
       };
 
     default:
       // Generic mapping for simple tables with just count
       return {
         ...baseRecord,
-        count: workItem.fields?.Count || workItem.fields?.Length || workItem.fields?.Duration || 0
+        count: workItem.fields?.[WORK_ITEM_NAMES.COUNT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || workItem.fields?.[WORK_ITEM_NAMES.DURATION_EN] || 0
       };
   }
 }
@@ -218,13 +227,13 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         fields: {
-          Width: dbRecord.size1 || 0,
-          Height: dbRecord.size2 || 0
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          Netting: dbRecord.netting === 1,
-          Painting: dbRecord.painting === 1,
-          Plastering: dbRecord.plastering === 1,
+          'Netting': dbRecord.netting === 1,
+          'Painting': dbRecord.painting === 1,
+          'Plastering': dbRecord.plastering === 1,
           'Tiling under 60cm': dbRecord.tiling === 1
         }
       };
@@ -237,8 +246,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         fields: {
-          Width: dbRecord.size1 || 0,
-          Length: dbRecord.size2 || 0
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
         },
         selectedType: typeNames[dbRecord.type] || 'Simple'
       };
@@ -254,8 +263,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         fields: {
-          Width: dbRecord.size1 || 0,
-          Height: dbRecord.size2 || 0
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         }
       };
 
@@ -268,8 +277,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         fields: {
-          Width: dbRecord.size1 || 0,
-          Length: dbRecord.size2 || 0
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
         }
       };
 
@@ -278,7 +287,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         fields: {
-          'Number of outlets': dbRecord.count || 0
+          [WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN]: dbRecord.count || 0
         }
       };
 
@@ -288,8 +297,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
         selectedType: dbRecord.type,
         subtitle: dbRecord.type,
         fields: {
-          Count: dbRecord.count || 0,
-          Price: dbRecord.price_per_sanitary || 0
+          [WORK_ITEM_NAMES.COUNT]: dbRecord.count || 0,
+          [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_sanitary || 0
         }
       };
 
@@ -297,8 +306,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         fields: {
-          Count: dbRecord.count || 0,
-          Price: dbRecord.price_per_door_jamb || 0
+          [WORK_ITEM_NAMES.COUNT]: dbRecord.count || 0,
+          [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_door_jamb || 0
         }
       };
 
@@ -309,9 +318,9 @@ export function databaseToWorkItem(dbRecord, tableName) {
         name: dbRecord.title,
         selectedUnit: dbRecord.unit,
         fields: {
-          Name: dbRecord.title,
-          Quantity: dbRecord.number_of_units || 0,
-          Price: dbRecord.price_per_unit || 0
+          [WORK_ITEM_NAMES.NAME]: dbRecord.title,
+          'Quantity': dbRecord.number_of_units || 0,
+          [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_unit || 0
         }
       };
 
@@ -320,7 +329,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         fields: {
-          Count: dbRecord.count || 0
+          [WORK_ITEM_NAMES.COUNT]: dbRecord.count || 0
         }
       };
   }
