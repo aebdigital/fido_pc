@@ -370,7 +370,7 @@ export const AppDataProvider = ({ children }) => {
 
 
   const calculateProjectTotalPrice = (projectId, projectOverride = null) => {
-    const rooms = getProjectRooms(projectId);
+    const rooms = projectManager.getProjectRooms(projectId);
     let totalPrice = 0;
 
     // Use provided project or find it
@@ -379,7 +379,7 @@ export const AppDataProvider = ({ children }) => {
 
     if (!project) {
       // Find the project to get its price list snapshot
-      const projectResult = findProjectById(projectId);
+      const projectResult = projectManager.findProjectById(projectId);
       if (projectResult) {
         project = projectResult.project;
       }
@@ -402,7 +402,7 @@ export const AppDataProvider = ({ children }) => {
   };
 
   const calculateProjectTotalPriceWithBreakdown = (projectId, projectOverride = null) => {
-    const rooms = getProjectRooms(projectId);
+    const rooms = projectManager.getProjectRooms(projectId);
     let totalWorkPrice = 0;
     let totalMaterialPrice = 0;
     let totalOthersPrice = 0;
@@ -416,7 +416,7 @@ export const AppDataProvider = ({ children }) => {
     
     if (!project) {
       // Find the project to get its price list snapshot
-      const projectResult = findProjectById(projectId);
+      const projectResult = projectManager.findProjectById(projectId);
       if (projectResult) {
         project = projectResult.project;
       }
