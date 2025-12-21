@@ -44,6 +44,7 @@ export const PROPERTY_TO_TABLE = {
   'window_installation': 'window_installations',
 
   // Others
+  'preparatory': 'demolitions',
   'demolition': 'demolitions',
   'core_drill': 'core_drills',
   'grouting': 'groutings',

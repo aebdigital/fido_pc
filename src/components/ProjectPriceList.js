@@ -3,7 +3,7 @@ import { ArrowLeft, Hammer, Package, Menu, Info, RefreshCw, Wrench } from 'lucid
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 
-const ProjectPriceList = ({ projectId, onClose, onSave }) => {
+const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const { generalPriceList } = useAppData();
   const { t } = useLanguage();
   const [projectPriceData, setProjectPriceData] = useState(null);
@@ -13,8 +13,13 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
   useEffect(() => {
     if (!generalPriceList) return;
     
-    // In a real app, this would load project-specific overrides from backend
-    // For now, we'll initialize with general prices
+    // If we have saved project data, use it
+    if (initialData) {
+      setProjectPriceData(initialData);
+      return;
+    }
+    
+    // Otherwise initialize with general prices
     const initializeProjectPrices = () => {
       const projectPrices = JSON.parse(JSON.stringify(generalPriceList)); // Deep clone
       
@@ -31,7 +36,7 @@ const ProjectPriceList = ({ projectId, onClose, onSave }) => {
     };
 
     initializeProjectPrices();
-  }, [projectId, generalPriceList]);
+  }, [projectId, generalPriceList, initialData]);
 
   const handlePriceChange = (category, itemIndex, newPrice) => {
     // Allow empty string and partial numbers while typing

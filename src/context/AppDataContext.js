@@ -2572,15 +2572,27 @@ export const AppDataProvider = ({ children }) => {
 
   // General price list management functions
   const updateGeneralPriceList = (category, itemIndex, newPrice) => {
-    setAppData(prev => ({
-      ...prev,
-      generalPriceList: {
+    setAppData(prev => {
+      const newGeneralPriceList = {
         ...prev.generalPriceList,
         [category]: prev.generalPriceList[category].map((item, index) =>
           index === itemIndex ? { ...item, price: parseFloat(newPrice) } : item
         )
+      };
+
+      // Save to Supabase if we have a contractor
+      if (prev.activeContractorId) {
+        api.priceLists.upsert({
+          c_id: prev.activeContractorId,
+          data: newGeneralPriceList
+        }).catch(err => console.error('Failed to save price list:', err));
       }
-    }));
+
+      return {
+        ...prev,
+        generalPriceList: newGeneralPriceList
+      };
+    });
   };
 
   const resetGeneralPriceItem = (category, itemIndex) => {
@@ -2589,15 +2601,27 @@ export const AppDataProvider = ({ children }) => {
     const originalPrice = defaultData.generalPriceList[category][itemIndex]?.price;
     
     if (originalPrice !== undefined) {
-      setAppData(prev => ({
-        ...prev,
-        generalPriceList: {
+      setAppData(prev => {
+        const newGeneralPriceList = {
           ...prev.generalPriceList,
           [category]: prev.generalPriceList[category].map((item, index) =>
             index === itemIndex ? { ...item, price: originalPrice } : item
           )
+        };
+
+        // Save to Supabase if we have a contractor
+        if (prev.activeContractorId) {
+          api.priceLists.upsert({
+            c_id: prev.activeContractorId,
+            data: newGeneralPriceList
+          }).catch(err => console.error('Failed to save price list:', err));
         }
-      }));
+
+        return {
+          ...prev,
+          generalPriceList: newGeneralPriceList
+        };
+      });
     }
   };
 

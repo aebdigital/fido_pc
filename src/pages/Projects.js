@@ -698,8 +698,11 @@ const Projects = () => {
     setShowProjectPriceList(false);
   };
 
-  const handleSaveProjectPriceList = () => {
-    // In a real app, this would save to backend with project ID
+  const handleSaveProjectPriceList = (priceData) => {
+    if (currentProject) {
+      updateProject(activeCategory, currentProject.id, { priceListSnapshot: priceData });
+      setSelectedProject(prev => prev ? { ...prev, priceListSnapshot: priceData } : prev);
+    }
     setShowProjectPriceList(false);
   };
 
@@ -1964,6 +1967,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
     {showProjectPriceList && currentProject && (
       <ProjectPriceList
         projectId={currentProject.id}
+        initialData={currentProject.priceListSnapshot}
         onClose={handleCloseProjectPriceList}
         onSave={handleSaveProjectPriceList}
       />
