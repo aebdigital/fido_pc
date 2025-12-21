@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp, Save, X, Loader2 } from 'lucide-react';
+import { Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp, Save, X } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -178,19 +178,15 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
           <div className="flex items-center gap-3">
             <button
               onClick={handleSave}
-              disabled={!hasChanges || isSaving}
+              disabled={!hasChanges}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
-                hasChanges && !isSaving
+                hasChanges
                   ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }`}
             >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline">{isSaving ? t('Saving...') : t('Save')}</span>
+              <Save className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('Save')}</span>
             </button>
             <button
               onClick={onClose}

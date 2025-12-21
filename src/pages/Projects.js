@@ -210,9 +210,7 @@ const Projects = () => {
 
     // Load details asynchronously (optional here if ProjectDetailView also loads it, but good for pre-cache)
     // ProjectDetailView will handle displaying the specific details
-    setIsLoadingDetails(true);
     await loadProjectDetails(project.id);
-    setIsLoadingDetails(false);
   };
 
   const handleBackToProjects = () => {
