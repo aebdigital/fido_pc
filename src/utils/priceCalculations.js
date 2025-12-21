@@ -20,8 +20,8 @@ export const findPriceListItem = (workItem, priceList) => {
   // Create mapping from work item IDs to price list items
   const workIdMappings = {
     [WORK_ITEM_PROPERTY_IDS.PREPARATORY]: WORK_ITEM_NAMES.PREPARATORY_AND_DEMOLITION_WORKS,
-    [WORK_ITEM_PROPERTY_IDS.WIRING]: WORK_ITEM_NAMES.ELECTRICAL_INSTALLATION_WORK,
-    [WORK_ITEM_PROPERTY_IDS.PLUMBING]: WORK_ITEM_NAMES.PLUMBING_WORK,
+    [WORK_ITEM_PROPERTY_IDS.WIRING]: ['Wiring', 'Electrical installation work', 'Elektroinštalačné práce'],
+    [WORK_ITEM_PROPERTY_IDS.PLUMBING]: ['Plumbing', 'Plumbing work', 'Vodoinštalačné práce'],
     [WORK_ITEM_PROPERTY_IDS.BRICK_PARTITIONS]: WORK_ITEM_NAMES.BRICK_PARTITIONS,
     [WORK_ITEM_PROPERTY_IDS.BRICK_LOAD_BEARING]: WORK_ITEM_NAMES.BRICK_LOAD_BEARING_WALL,
     [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION]: WORK_ITEM_NAMES.PLASTERBOARDING,
@@ -68,7 +68,10 @@ export const findPriceListItem = (workItem, priceList) => {
     if (priceList[category]) {
       // Find exact or partial match
       const item = priceList[category].find(item => {
-        const nameMatch = item.name.toLowerCase().includes(targetName.toLowerCase());
+        // Handle array of target names (for backward compatibility or multiple valid names)
+        const nameMatch = Array.isArray(targetName) 
+          ? targetName.some(name => item.name.toLowerCase().includes(name.toLowerCase()))
+          : item.name.toLowerCase().includes(targetName.toLowerCase());
 
         // For items with subtypes (like plasterboarding), check subtitle too
         if (workItem.selectedType && item.subtitle) {

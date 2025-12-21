@@ -82,8 +82,8 @@ export const AppDataProvider = ({ children }) => {
       generalPriceList: {
         work: [
           { name: 'Preparatory and demolition works', price: 15, unit: '€/h' },
-          { name: 'Wiring', subtitle: 'outlet', price: 65, unit: '€/pc' },
-          { name: 'Plumbing', subtitle: 'outlet', price: 45, unit: '€/pc' },
+          { name: 'Elektroinštalačné práce', subtitle: 'outlet', price: 65, unit: '€/pc' },
+          { name: 'Vodoinštalačné práce', subtitle: 'outlet', price: 45, unit: '€/pc' },
           { name: 'Brick partitions', subtitle: '75 - 175mm', price: 18, unit: '€/m²' },
           { name: 'Brick load-bearing wall', subtitle: '200 - 450mm', price: 120, unit: '€/m²' },
           { name: 'Plasterboarding', subtitle: 'partition, simple', price: 50, unit: '€/m²' },

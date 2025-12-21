@@ -92,8 +92,8 @@ export const WORK_ITEM_NAMES = {
   
   // Localized work names
   PREPARATORY_AND_DEMOLITION_WORKS: 'Preparatory and demolition works',
-  ELECTRICAL_INSTALLATION_WORK: 'Electrical installation work',
-  PLUMBING_WORK: 'Plumbing work',
+  ELECTRICAL_INSTALLATION_WORK: 'Elektroinštalačné práce',
+  PLUMBING_WORK: 'Vodoinštalačné práce',
   BRICK_PARTITIONS: 'Brick partitions',
   BRICK_LOAD_BEARING_WALL: 'Brick load-bearing wall',
   PLASTERBOARDING: 'Plasterboarding',
