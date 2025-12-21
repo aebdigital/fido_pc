@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp, Save, X, Loader2 } from 'lucide-react';
+import { Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp, Save, X, Loader2 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -9,7 +9,6 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const { t } = useLanguage();
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false); // Add isSaving state
   const [expandedSections, setExpandedSections] = useState({
     work: true,
     material: true,

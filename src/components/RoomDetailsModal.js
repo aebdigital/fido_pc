@@ -9,7 +9,7 @@ import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 
 const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
   const { t } = useLanguage();
-  const { generalPriceList } = useAppData();
+  const { } = useAppData();
   const [workData, setWorkData] = useState(room.workItems || []);
   const [expandedItems, setExpandedItems] = useState({});
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);

@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Copy,
   Archive,
-  ChevronDown,
   Eye,
   Send,
   Edit3,
@@ -55,7 +54,6 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     loadProjectDetails,
     getProjectHistory,
     addProject,
-    findProjectById,
     assignProjectToClient
   } = useAppData();
 
@@ -70,7 +68,6 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [showProjectPriceList, setShowProjectPriceList] = useState(false);
   const [showCustomRoomModal, setShowCustomRoomModal] = useState(false);
   const [customRoomName, setCustomRoomName] = useState('');
-  const [isClosingModal, setIsClosingModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [showContractorSelector, setShowContractorSelector] = useState(false);
   const [isEditingProjectName, setIsEditingProjectName] = useState(false);
@@ -1025,7 +1022,7 @@ ${t('Notes')}: ${invoice.notes}` : ''}
 
       {selectedPhotoIndex !== null && projectPhotos.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90" onClick={() => setSelectedPhotoIndex(null)}>
-          <img src={projectPhotos[selectedPhotoIndex]?.url} className="max-h-[85vh] max-w-[90vw] object-contain" />
+          <img src={projectPhotos[selectedPhotoIndex]?.url} alt={projectPhotos[selectedPhotoIndex]?.name || "Project Photo"} className="max-h-[85vh] max-w-[90vw] object-contain" />
         </div>
       )}
     </div>

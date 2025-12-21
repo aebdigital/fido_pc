@@ -628,7 +628,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error updating room:', error);
       throw error;
     }
-  }, [setAppData, appData.activeContractorId]);
+  }, [setAppData, appData.activeContractorId, saveWorkItemsForRoom]);
 
   const deleteProjectRoom = useCallback(async (projectId, roomId) => {
     try {

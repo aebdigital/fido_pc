@@ -17,7 +17,6 @@ const Projects = () => {
   const { t } = useLanguage();
   const {
     projectCategories,
-    clients,
     contractors,
     activeContractorId,
     setActiveContractor,
@@ -25,8 +24,6 @@ const Projects = () => {
     addProject,
     archiveProject,
     archivedProjects,
-    unarchiveProject,
-    deleteArchivedProject,
     calculateProjectTotalPrice,
     formatPrice,
     loadProjectDetails
@@ -35,7 +32,6 @@ const Projects = () => {
   const [activeCategory, setActiveCategory] = useState('flats');
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentView, setCurrentView] = useState(window.innerWidth < 1024 ? 'categories' : 'projects'); // 'categories', 'projects', 'details'
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [viewSource, setViewSource] = useState('projects'); // 'projects' or 'archive'
   
 
