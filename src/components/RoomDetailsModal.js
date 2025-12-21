@@ -140,6 +140,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
       };
       setWorkData([...workData, newItem]);
       setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
+      setExpandedItems(prev => ({ ...prev, [newItem.id]: true }));
       return;
     }
 
@@ -161,6 +162,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose }) => {
     };
     setWorkData([...workData, newItem]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
+    setExpandedItems(prev => ({ ...prev, [newItem.id]: true }));
   };
 
   const handleSanitaryTypeSelect = (sanitaryType, e) => {

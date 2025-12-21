@@ -329,10 +329,10 @@ const WorkPropertyCard = ({
             )}
           </div>
           <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
-            {existingItem ? (
-              expandedItems[existingItem.id] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+            {existingItem && expandedItems[existingItem.id] ? (
+              <ChevronUp className="w-4 h-4" />
             ) : (
-              <Plus className="w-4 h-4" />
+              <ChevronDown className="w-4 h-4" />
             )}
           </div>
         </div>
