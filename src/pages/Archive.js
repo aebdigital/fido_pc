@@ -1,5 +1,4 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { 
   Archive as ArchiveIcon, 
   ArrowLeft,
@@ -8,10 +7,10 @@ import {
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import ProjectDetailView from '../components/ProjectDetailView';
 
 const Archive = ({ onBack }) => {
   const { t } = useLanguage();
-  const navigate = useNavigate();
   const { 
     archivedProjects,
     unarchiveProject,
@@ -20,27 +19,45 @@ const Archive = ({ onBack }) => {
     formatPrice
   } = useAppData();
 
+  const [selectedProject, setSelectedProject] = useState(null);
+
   // Show all archived projects regardless of contractor
   const allArchivedProjects = archivedProjects;
 
   const handleUnarchiveProject = (projectId, e) => {
     e.stopPropagation();
     unarchiveProject(projectId);
+    // If the unarchived project was selected, go back to list
+    if (selectedProject?.id === projectId) {
+      setSelectedProject(null);
+    }
   };
 
   const handleDeleteProject = (projectId, e) => {
     e.stopPropagation();
     deleteArchivedProject(projectId);
+    if (selectedProject?.id === projectId) {
+      setSelectedProject(null);
+    }
   };
 
   const handleProjectClick = (project) => {
-    navigate('/projects', { 
-      state: { 
-        selectedProjectId: project.id,
-        fromArchive: true 
-      } 
-    });
+    setSelectedProject(project);
   };
+
+  const handleBackFromDetail = () => {
+    setSelectedProject(null);
+  };
+
+  if (selectedProject) {
+    return (
+      <ProjectDetailView 
+        project={selectedProject} 
+        onBack={handleBackFromDetail}
+        viewSource="archive"
+      />
+    );
+  }
 
   return (
     <div className="pb-20 lg:pb-0">

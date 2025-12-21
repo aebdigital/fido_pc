@@ -121,6 +121,39 @@ const Settings = () => {
           <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Preferences')}</h2>
         </div>
         <div className="space-y-3 lg:space-y-4">
+          <div
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            onClick={handleArchiveClick}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Archive')}</div>
+              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('archived projects, archive duration')}</div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          </div>
+
+          <div
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            onClick={handlePriceOfferClick}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Supplier')}</div>
+              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('supplier information, validity of price offer')}</div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          </div>
+
+          <div
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            onClick={handlePriceListClick}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('General price list')}</div>
+              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('set default price list')}</div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+          </div>
+
           {/* Dark Mode Toggle */}
           <div
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
@@ -154,39 +187,6 @@ const Settings = () => {
               </span>
               <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
             </div>
-          </div>
-
-          <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-            onClick={handleArchiveClick}
-          >
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Archive')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('archived projects, archive duration')}</div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-          </div>
-
-          <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-            onClick={handlePriceOfferClick}
-          >
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Supplier')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('supplier information, validity of price offer')}</div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-          </div>
-
-          <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-            onClick={handlePriceListClick}
-          >
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('General price list')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('set default price list')}</div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
           {/* Sign Out - Mobile only */}
