@@ -95,6 +95,43 @@ export const findPriceListItem = (workItem, priceList) => {
           
           return nameMatch && subtitleMatch;
         }
+
+        // Special check for Plasterboarding to avoid incorrect matching of subtypes when selectedType is missing (e.g. ceiling)
+        if (nameMatch && targetName.toLowerCase() === WORK_ITEM_NAMES.PLASTERBOARDING.toLowerCase() && item.subtitle && workItem.subtitle) {
+           const workSubLower = workItem.subtitle.toLowerCase();
+           const itemSubLower = item.subtitle.toLowerCase();
+           
+           // If we are looking for ceiling (check both English and Slovak)
+           if (workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1])) {
+               // But the item is NOT ceiling (check both English and Slovak)
+               if (!itemSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) && !itemSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1])) {
+                   return false;
+               }
+               // If item IS ceiling, it's a match!
+               return true;
+           }
+           
+           // If we are NOT looking for ceiling, but the item IS ceiling, do not match
+           if (itemSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || itemSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1])) {
+              return false;
+           }
+        }
+
+        // Special check for Netting to ensure correct subtype matching (wall vs ceiling)
+        if (nameMatch && targetName.toLowerCase() === WORK_ITEM_NAMES.NETTING.toLowerCase() && item.subtitle && workItem.subtitle) {
+           const workSubLower = workItem.subtitle.toLowerCase();
+           const itemSubLower = item.subtitle.toLowerCase();
+           
+           // If we are looking for ceiling (check both English and Slovak)
+           if (workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1])) {
+               return itemSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || itemSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]);
+           }
+           
+           // If we are looking for wall (check both English and Slovak)
+           if (workSubLower.includes(WORK_ITEM_SUBTITLES.WALL[0]) || workSubLower.includes(WORK_ITEM_SUBTITLES.WALL[1])) {
+                return itemSubLower.includes(WORK_ITEM_SUBTITLES.WALL[0]) || itemSubLower.includes(WORK_ITEM_SUBTITLES.WALL[1]);
+           }
+        }
         
         // For sanitary installations, match subtitle (the actual type like "Concealed toilet")
         if (workItem.subtitle && item.subtitle && targetName.toLowerCase() === WORK_ITEM_NAMES.SANITARY_INSTALLATIONS.toLowerCase()) {
