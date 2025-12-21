@@ -386,13 +386,12 @@ export const AppDataProvider = ({ children }) => {
           transformedContractors.forEach(contractor => {
             const contractorProjectsList = transformedProjects.filter(p => p.c_id === contractor.id);
     
-            // Group projects by category
-            const categories = getDefaultCategories().map(cat => ({
-              ...cat,
-              projects: contractorProjectsList.filter(p => p.category === cat.id),
-              count: contractorProjectsList.filter(p => p.category === cat.id).length
-            }));
-    
+                      // Group projects by category
+                      const categories = getDefaultCategories().map(cat => ({
+                        ...cat,
+                        projects: contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived),
+                        count: contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived).length
+                      }));    
             contractorProjects[contractor.id] = {
               categories,
               archivedProjects: contractorProjectsList.filter(p => p.is_archived)
