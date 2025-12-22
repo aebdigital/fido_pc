@@ -427,7 +427,6 @@ export const translations = {
     "Fill by company ID": "Vyplniť podľa IČO",
     "Organization ID": "Identifikačné číslo organizácie",
     "Company ID": "IČO",
-    "Tax ID": "DIČ",
     "VAT ID": "IČ DPH",
     
     // ========== PRICING & VAT ==========
@@ -606,7 +605,6 @@ export const translations = {
     "Type of Sanitary": "Typ sanity",
     "Sanitary type": "Typ sanity",
     "Rental duration": "Dĺžka prenájmu",
-    "Wall no.": "Priečka č.",
     "Core drill no.": "Jadrová vrtačka č.",
     
     // ========== CAPACITY & OUTPUT ==========

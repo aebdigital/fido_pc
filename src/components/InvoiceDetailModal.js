@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Eye, Send, CheckCircle, FileText, User, Calendar, DollarSign, Edit3, Trash2 } from 'lucide-react';
+import { X, Eye, Send, FileText, User, Calendar, DollarSign, Edit3, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
@@ -62,11 +62,6 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
       console.error('Error deleting invoice:', error);
       alert(t('Failed to delete invoice'));
     }
-  };
-
-  const handleMarkAsSent = () => {
-    updateInvoice(invoice.id, { status: 'sent' });
-    onClose(true); // Pass true to indicate the invoice was updated
   };
 
   const handleMarkAsPaid = () => {
