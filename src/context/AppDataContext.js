@@ -362,7 +362,7 @@ export const AppDataProvider = ({ children }) => {
   
           const projectManager = useProjectManager(appData, setAppData);
         
-          const invoiceManager = useInvoiceManager(appData, setAppData, projectManager.addProjectHistoryEntry);  
+          const invoiceManager = useInvoiceManager(appData, setAppData, projectManager.addProjectHistoryEntry, projectManager.updateProject);  
     
   
     

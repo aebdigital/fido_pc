@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import api from '../services/supabaseApi';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
 
-export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry) => {
+export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, updateProject) => {
   const createInvoice = useCallback(async (projectId, categoryId, invoiceData, findProjectById) => {
     try {
       // We pass findProjectById as a dependency because useProjectManager owns it
@@ -46,12 +46,20 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry) =
         });
       }
 
+      if (updateProject) {
+        await updateProject(categoryId, projectId, {
+          hasInvoice: true,
+          invoiceId: transformedInvoice.id,
+          invoiceStatus: 'unsent'
+        });
+      }
+
       return transformedInvoice;
     } catch (error) {
       console.error('[SUPABASE] Error creating invoice:', error);
       throw error;
     }
-  }, [appData.activeContractorId, setAppData, addProjectHistoryEntry]);
+  }, [appData.activeContractorId, setAppData, addProjectHistoryEntry, updateProject]);
 
   const updateInvoice = useCallback(async (invoiceId, updates) => {
     try {
@@ -83,38 +91,47 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry) =
         return updatedState;
       });
 
-      if (invoice && addProjectHistoryEntry) {
-        const projectId = invoice.projectId;
-
-        if (updates.status) {
-          if (updates.status === 'sent') {
-            await addProjectHistoryEntry(projectId, {
-              type: 'invoice_sent',
-              invoiceNumber: invoice.invoiceNumber
-            });
-          } else if (updates.status === 'paid') {
-            await addProjectHistoryEntry(projectId, {
-              type: 'invoice_paid',
-              invoiceNumber: invoice.invoiceNumber
-            });
-          }
+      if (invoice) {
+        if (updateProject && updates.status) {
+          // Sync status with project
+          await updateProject(invoice.categoryId, invoice.projectId, {
+            invoiceStatus: updates.status
+          });
         }
 
-        const isEdit = updates.invoiceNumber || updates.issueDate || updates.paymentMethod || updates.notes || updates.dueDate || updates.paymentDays || updates.dispatchDate;
-        const hasNonStatusUpdates = Object.keys(updates).some(key => key !== 'status');
+        if (addProjectHistoryEntry) {
+          const projectId = invoice.projectId;
 
-        if (hasNonStatusUpdates && isEdit) {
-           await addProjectHistoryEntry(projectId, {
-            type: 'invoice_edited',
-            invoiceNumber: updates.invoiceNumber || invoice.invoiceNumber
-          });
+          if (updates.status) {
+            if (updates.status === 'sent') {
+              await addProjectHistoryEntry(projectId, {
+                type: 'invoice_sent',
+                invoiceNumber: invoice.invoiceNumber
+              });
+            } else if (updates.status === 'paid') {
+              await addProjectHistoryEntry(projectId, {
+                type: 'invoice_paid',
+                invoiceNumber: invoice.invoiceNumber
+              });
+            }
+          }
+
+          const isEdit = updates.invoiceNumber || updates.issueDate || updates.paymentMethod || updates.notes || updates.dueDate || updates.paymentDays || updates.dispatchDate;
+          const hasNonStatusUpdates = Object.keys(updates).some(key => key !== 'status');
+
+          if (hasNonStatusUpdates && isEdit) {
+             await addProjectHistoryEntry(projectId, {
+              type: 'invoice_edited',
+              invoiceNumber: updates.invoiceNumber || invoice.invoiceNumber
+            });
+          }
         }
       }
     } catch (error) {
       console.error('[SUPABASE] Error updating invoice:', error);
       throw error;
     }
-  }, [appData.invoices, setAppData, addProjectHistoryEntry]);
+  }, [appData.invoices, setAppData, addProjectHistoryEntry, updateProject]);
 
   const deleteInvoice = useCallback(async (invoiceId) => {
     try {
@@ -129,17 +146,27 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry) =
         return updatedState;
       });
 
-      if (invoice && addProjectHistoryEntry) {
-        await addProjectHistoryEntry(invoice.projectId, {
-          type: 'invoice_deleted',
-          invoiceNumber: invoice.invoiceNumber
-        });
+      if (invoice) {
+        if (updateProject) {
+          await updateProject(invoice.categoryId, invoice.projectId, {
+            hasInvoice: false,
+            invoiceId: null,
+            invoiceStatus: null // or '' or whatever represents no invoice
+          });
+        }
+
+        if (addProjectHistoryEntry) {
+          await addProjectHistoryEntry(invoice.projectId, {
+            type: 'invoice_deleted',
+            invoiceNumber: invoice.invoiceNumber
+          });
+        }
       }
     } catch (error) {
       console.error('[SUPABASE] Error deleting invoice:', error);
       throw error;
     }
-  }, [appData.invoices, setAppData, addProjectHistoryEntry]);
+  }, [appData.invoices, setAppData, addProjectHistoryEntry, updateProject]);
 
   const getInvoiceById = useCallback((invoiceId) => {
     return appData.invoices.find(inv => inv.id === invoiceId);
