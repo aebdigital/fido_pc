@@ -54,6 +54,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     getInvoicesForContractor,
     loadProjectDetails,
     getProjectHistory,
+    addProjectHistoryEntry,
     addProject,
     assignProjectToClient,
     priceOfferSettings
