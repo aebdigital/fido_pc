@@ -31,7 +31,7 @@ export const generateInvoicePDF = ({
   formatPrice,
   options = {}
 }) => {
-  const { isPriceOffer = false, projectNotes = '' } = options;
+  const { isPriceOffer = false, projectNotes = '', projectNumber = '', offerValidityPeriod = 30 } = options;
 
   // Internal helper for PDF currency formatting (7,00 €)
   const formatCurrency = (amount) => {
@@ -64,25 +64,17 @@ export const generateInvoicePDF = ({
     doc.setFont('Inter', 'bold');
     
     if (isPriceOffer) {
-      doc.text(sanitizeText('Cenová ponuka'), 20, 20);
+      // New format: CP {number} - {name}
+      const title = `CP ${projectNumber || ''} - ${invoice.projectName || ''}`;
+      doc.text(sanitizeText(title), 20, 20);
       
-      // Project name
-      if (invoice.projectName) {
-        doc.setFontSize(11);
-        doc.setFont('Inter', 'normal');
-        doc.text(sanitizeText(invoice.projectName), 20, 26);
-      }
-
-      // Project Notes (Poznámka k cenovej ponuke)
+      // Project Notes (Poznámka k cenovej ponuke) - WITHOUT LABEL
       if (projectNotes) {
         doc.setFontSize(9);
-        doc.setFont('Inter', 'bold');
-        doc.text(sanitizeText('Poznámka k cenovej ponuke:'), 20, 34);
-        
-        doc.setFontSize(9);
         doc.setFont('Inter', 'normal');
+        // Add some spacing below title
         const splitNotes = doc.splitTextToSize(sanitizeText(projectNotes), 100);
-        doc.text(splitNotes, 20, 39);
+        doc.text(splitNotes, 20, 30);
       }
     } else {
       doc.text(sanitizeText(`Faktura ${invoice.invoiceNumber}`), 20, 20);
@@ -91,14 +83,29 @@ export const generateInvoicePDF = ({
       doc.text(sanitizeText(`Cenova ponuka ${invoice.projectName || ''}`), 20, 24);
     }
 
-    // Date info - Only for Invoice
-    if (!isPriceOffer) {
-      const dateY = 10 + headerLogoSize + 8; // More space below logo
-      const rightBlockX = 190;
-      const labelX = rightBlockX - 50; // Start labels 50 units left of right edge
+    // Date info - Right side
+    const dateY = 10 + headerLogoSize + 8; // More space below logo
+    const rightBlockX = 190;
+    const labelX = rightBlockX - 50; // Start labels 50 units left of right edge
 
-      doc.setFontSize(8);
+    doc.setFontSize(8);
 
+    if (isPriceOffer) {
+      // Price Offer Dates
+      // 1. Dátum vystavenia (Issue Date - Today)
+      const today = new Date();
+      doc.text(sanitizeText('Dátum vystavenia:'), labelX, dateY, { align: 'left' });
+      doc.text(sanitizeText(formatDate(today.toISOString())), rightBlockX, dateY, { align: 'right' });
+
+      // 2. Platné do (Valid Until)
+      const validUntil = new Date(today);
+      validUntil.setDate(validUntil.getDate() + parseInt(offerValidityPeriod || 30));
+      
+      doc.text(sanitizeText('Platné do:'), labelX, dateY + 4, { align: 'left' });
+      doc.text(sanitizeText(formatDate(validUntil.toISOString())), rightBlockX, dateY + 4, { align: 'right' });
+
+    } else {
+      // Invoice Dates
       // Row 1 - Issue date
       doc.text(sanitizeText('Dátum vystavenia:'), labelX, dateY, { align: 'left' });
       doc.text(sanitizeText(formatDate(invoice.issueDate)), rightBlockX, dateY, { align: 'right' });
@@ -617,7 +624,9 @@ export const generatePriceOfferPDF = (params) => {
     ...params,
     options: {
       isPriceOffer: true,
-      projectNotes: params.projectNotes || ''
+      projectNotes: params.projectNotes || '',
+      projectNumber: params.projectNumber,
+      offerValidityPeriod: params.offerValidityPeriod
     }
   });
 };
