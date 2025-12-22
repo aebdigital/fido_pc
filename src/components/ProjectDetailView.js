@@ -147,8 +147,6 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     t('Work room'), t('Custom')
   ];
 
-
-
   const handleEditProjectName = () => {
     setIsEditingProjectName(true);
     setEditingProjectName(project.name);
@@ -302,6 +300,96 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const handleSaveDetailNotes = () => {
     updateProject(project.category, project.id, { detail_notes: projectDetailNotes });
     setIsEditingDetailNotes(false);
+  };
+
+  const handlePreviewPriceOffer = () => {
+    const priceOfferData = {
+      invoiceNumber: '',
+      projectName: project.name,
+      issueDate: new Date().toISOString(),
+      dueDate: new Date().toISOString(),
+      paymentMethod: 'transfer'
+    };
+
+    const contractor = getCurrentContractor();
+    const client = clients.find(c => c.id === project.clientId);
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+    const vatRate = getVATRate();
+    const totalWithoutVAT = projectBreakdown?.total || 0;
+    const vat = totalWithoutVAT * vatRate;
+    const totalWithVAT = totalWithoutVAT + vat;
+
+    const formatDate = (dateString) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('sk-SK');
+    };
+
+    try {
+      const { generatePriceOfferPDF } = require('../utils/pdfGenerator');
+      
+      generatePriceOfferPDF({
+        invoice: priceOfferData,
+        contractor,
+        client,
+        projectBreakdown,
+        vatRate,
+        totalWithoutVAT,
+        vat,
+        totalWithVAT,
+        formatDate,
+        formatPrice,
+        projectNotes: project.notes
+      });
+    } catch (error) {
+      console.error('Error generating Price Offer PDF:', error);
+      alert(t('Unable to generate PDF. Please try again.'));
+    }
+  };
+
+  const handleSendPriceOffer = async () => {
+    const contractor = getCurrentContractor();
+    const client = clients.find(c => c.id === project.clientId);
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+    const vatRate = getVATRate();
+    const totalWithoutVAT = projectBreakdown?.total || 0;
+    const vat = totalWithoutVAT * vatRate;
+    const totalWithVAT = totalWithoutVAT + vat;
+
+    const text = `
+${t('Cenová ponuka')}
+${project.name}
+
+${t('Contractor')}: ${contractor?.name || '-'}
+${t('Client')}: ${client?.name || '-'}
+
+${t('without VAT')}: ${formatPrice(totalWithoutVAT)}
+${t('VAT (23%)')}: ${formatPrice(vat)}
+${t('Total price')}: ${formatPrice(totalWithVAT)}
+${project.notes ? `
+${t('Notes_CP')}: ${project.notes}` : ''}
+    `.trim();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${t('Cenová ponuka')} - ${project.name}`,
+          text: text,
+        });
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing:', error);
+          alert(t('Unable to share. Please try again.'));
+        }
+      }
+    } else {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text)
+          .then(() => alert(t('Invoice details copied to clipboard')))
+          .catch(() => alert(t('Unable to share. Please try again.')));
+      } else {
+        alert(t('Sharing not supported on this device'));
+      }
+    }
   };
 
   const handlePreviewPDF = () => {
@@ -604,114 +692,6 @@ ${t('Notes')}: ${invoice.notes}` : ''}
               )}
             </div>
           </div>
-
-  const handlePreviewPriceOffer = () => {
-    // Generate Price Offer PDF
-    // Mock an invoice object for the PDF generator since it reuses the structure
-    // We don't need real invoice data like number/dates for Price Offer
-    const priceOfferData = {
-      invoiceNumber: '', // Not used in Price Offer mode
-      projectName: project.name,
-      issueDate: new Date().toISOString(), // Fallbacks
-      dueDate: new Date().toISOString(),
-      paymentMethod: 'transfer'
-    };
-
-    const contractor = getCurrentContractor();
-    const client = clients.find(c => c.id === project.clientId);
-    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
-    const vatRate = getVATRate();
-    const totalWithoutVAT = projectBreakdown?.total || 0;
-    const vat = totalWithoutVAT * vatRate;
-    const totalWithVAT = totalWithoutVAT + vat;
-
-    const formatDate = (dateString) => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('sk-SK');
-    };
-
-    try {
-      // Import dynamically or assume it's available via closure/import if defined in same file? 
-      // It is imported at top.
-      const { generatePriceOfferPDF } = require('../utils/pdfGenerator');
-      
-      generatePriceOfferPDF({
-        invoice: priceOfferData,
-        contractor,
-        client,
-        projectBreakdown,
-        vatRate,
-        totalWithoutVAT,
-        vat,
-        totalWithVAT,
-        formatDate,
-        formatPrice,
-        projectNotes: project.notes // Pass "Poznámky k CP"
-      });
-    } catch (error) {
-      console.error('Error generating Price Offer PDF:', error);
-      alert(t('Unable to generate PDF. Please try again.'));
-    }
-  };
-
-  const handleSendPriceOffer = async () => {
-    // Similar to handleSendInvoice but for Price Offer
-    const contractor = getCurrentContractor();
-    const client = clients.find(c => c.id === project.clientId);
-    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
-    const vatRate = getVATRate();
-    const totalWithoutVAT = projectBreakdown?.total || 0;
-    const vat = totalWithoutVAT * vatRate;
-    const totalWithVAT = totalWithoutVAT + vat;
-
-    const text = `
-${t('Cenová ponuka')}
-${project.name}
-
-${t('Contractor')}: ${contractor?.name || '-'}
-${t('Client')}: ${client?.name || '-'}
-
-${t('without VAT')}: ${formatPrice(totalWithoutVAT)}
-${t('VAT (23%)')}: ${formatPrice(vat)}
-${t('Total price')}: ${formatPrice(totalWithVAT)}
-${project.notes ? `
-${t('Notes_CP')}: ${project.notes}` : ''}
-    `.trim();
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${t('Cenová ponuka')} - ${project.name}`,
-          text: text,
-        });
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error sharing:', error);
-          alert(t('Unable to share. Please try again.'));
-        }
-      }
-    } else {
-      // Fallback
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(text)
-          .then(() => alert(t('Invoice details copied to clipboard'))) // Reuse translation or add new
-          .catch(() => alert(t('Unable to share. Please try again.')));
-      } else {
-        alert(t('Sharing not supported on this device'));
-      }
-    }
-  };
-
-  return (
-    <div className="flex-1 p-0 lg:p-6 overflow-y-auto min-w-0">
-      
-      {/* ... Project Header ... */}
-      
-      {/* ... Left Column ... */}
-          
-          {/* ... Client Section ... */}
-
-          {/* ... Project Rooms Section ... */}
 
           {/* Price Overview */}
           <div className="space-y-4">
