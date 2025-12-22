@@ -64,9 +64,13 @@ export const generateInvoicePDF = ({
     doc.setFont('Inter', 'bold');
     
     if (isPriceOffer) {
+      doc.text(sanitizeText('Cenová ponuka'), 20, 20);
+      
+      doc.setFontSize(11);
+      doc.setFont('Inter', 'normal');
       // New format: CP {number} - {name}
       const title = `CP ${projectNumber || ''} - ${invoice.projectName || ''}`;
-      doc.text(sanitizeText(title), 20, 20);
+      doc.text(sanitizeText(title), 20, 24);
       
       // Project Notes (Poznámka k cenovej ponuke) - WITHOUT LABEL
       if (projectNotes) {
@@ -74,7 +78,7 @@ export const generateInvoicePDF = ({
         doc.setFont('Inter', 'normal');
         // Add some spacing below title
         const splitNotes = doc.splitTextToSize(sanitizeText(projectNotes), 100);
-        doc.text(splitNotes, 20, 34);
+        doc.text(splitNotes, 20, 30);
       }
     } else {
       doc.text(sanitizeText(`Faktura ${invoice.invoiceNumber}`), 20, 20);
