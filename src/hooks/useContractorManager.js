@@ -25,6 +25,7 @@ export const useContractorManager = (appData, setAppData) => {
       setAppData(prev => ({
         ...prev,
         contractors: [...prev.contractors, newContractor],
+        activeContractorId: prev.activeContractorId || newContractor.id,
         contractorProjects: {
           ...prev.contractorProjects,
           [newContractor.id]: {

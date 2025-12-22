@@ -397,7 +397,7 @@ export const invoicesApi = {
         .select(`
           *,
           clients (*),
-          projects (*),
+          projects!invoices_project_id_fkey (*),
           contractors (*)
         `)
         .eq('user_id', userId)
@@ -424,7 +424,7 @@ export const invoicesApi = {
         .select(`
           *,
           clients (*),
-          projects (*),
+          projects!invoices_project_id_fkey (*),
           contractors (*)
         `)
         .eq('id', id)

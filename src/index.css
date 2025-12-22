@@ -191,3 +191,13 @@
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* Hide default number input arrows */
+.hide-number-arrows::-webkit-outer-spin-button,
+.hide-number-arrows::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.hide-number-arrows[type=number] {
+  -moz-appearance: textfield;
+}

@@ -101,17 +101,6 @@ const NumberInput = ({
 
   return (
     <>
-      <style jsx>{`
-        /* Hide default number input arrows */
-        .hide-number-arrows::-webkit-outer-spin-button,
-        .hide-number-arrows::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        .hide-number-arrows[type=number] {
-          -moz-appearance: textfield;
-        }
-      `}</style>
       <div className={`relative inline-flex overflow-hidden ${borderRadius} ${className}`}>
         <input
           ref={inputRef}
