@@ -4,7 +4,16 @@ export const translations = {
     "Notes_CP": "Quote Notes",
     "Notes_Project": "Project Notes",
     "Fotografie": "Photos",
-    "Pridať projekt": "Add Project"
+    "Pridať projekt": "Add Project",
+    "Business ID": "Business ID",
+    "Tax ID": "Tax ID",
+    "VAT Registration Number": "VAT Registration Number",
+    "Contact Person": "Contact Person",
+    "Dark Mode": "Dark Mode",
+    "Language": "Language",
+    "Type of client?": "Type of client?",
+    "Private entity": "Private entity",
+    "Customise prices in the entire app and export projects to PDF. Try Pro For Free!": "Customise prices in the entire app and export projects to PDF. Try Pro For Free!"
   },
   sk: {
     // ========== NAVIGATION & MAIN SECTIONS ==========
@@ -258,6 +267,9 @@ export const translations = {
     "Optional": "Voliteľné",
     "Location": "Umiestnenie",
     "Business Information": "Firemné údaje",
+    "Business ID": "IČO",
+    "Tax ID": "DIČ",
+    "VAT Registration Number": "IČ DPH",
     "Contact person": "Kontaktná osoba",
     
     // ========== PERSON & BUSINESS TYPES ==========
