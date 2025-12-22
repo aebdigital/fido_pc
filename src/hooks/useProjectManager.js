@@ -166,8 +166,6 @@ export const useProjectManager = (appData, setAppData) => {
       }
       if (projectData.notes !== undefined) mappedData.notes = projectData.notes;
 
-      console.log('[useProjectManager] updateProject - mappedData for Supabase:', mappedData);
-
       await api.projects.update(projectId, mappedData);
 
       setAppData(prev => {
