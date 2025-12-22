@@ -94,8 +94,8 @@ const Layout = ({ children }) => {
                 onClick={(e) => handleNavigation(item.path, e)}
                 className={`w-full flex items-center px-4 py-3 rounded-xl text-left transition-all duration-200 ${
                   location.pathname === item.path
-                    ? 'bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:shadow-sm'
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <item.icon className="w-5 h-5 mr-3" />
@@ -106,10 +106,10 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Account Section at bottom */}
-        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={signOut}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 group"
+            className="w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 group"
           >
             <div className="flex items-center min-w-0 flex-1">
               <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
@@ -126,7 +126,7 @@ const Layout = ({ children }) => {
                 </p>
               </div>
             </div>
-            <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors flex-shrink-0" />
+            <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-500 group-hover:translate-x-1 transition-all duration-200 flex-shrink-0" />
           </button>
         </div>
       </div>
@@ -160,15 +160,25 @@ const Layout = ({ children }) => {
                   key={item.path}
                   href={item.path}
                   onClick={(e) => handleNavigation(item.path, e)}
-                  className="flex flex-col items-center p-2 transition-all duration-200"
+                  className={`flex flex-col items-center p-2 m-1 rounded-2xl transition-all duration-200 ${
+                    isActive
+                      ? 'bg-gray-900 dark:bg-white'
+                      : ''
+                  }`}
                 >
                   <item.icon
-                    className="w-7 h-7 mb-1"
-                    style={{ color: isActive ? '#53a1fb' : '#9ca3af' }}
+                    className={`w-7 h-7 mb-1 ${
+                      isActive
+                        ? 'text-white dark:text-gray-900'
+                        : 'text-gray-400'
+                    }`}
                   />
                   <span
-                    className="text-xs font-medium"
-                    style={{ color: isActive ? '#53a1fb' : '#9ca3af' }}
+                    className={`text-xs font-medium ${
+                      isActive
+                        ? 'text-white dark:text-gray-900'
+                        : 'text-gray-400'
+                    }`}
                   >
                     {item.name}
                   </span>
