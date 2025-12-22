@@ -1,12 +1,19 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
-import { 
-  WORK_ITEM_NAMES, 
-  WORK_ITEM_PROPERTY_IDS, 
+import {
+  WORK_ITEM_NAMES,
+  WORK_ITEM_PROPERTY_IDS,
   UNIT_TYPES,
   MATERIAL_ITEM_NAMES
 } from '../config/constants';
+import { workProperties } from '../config/workProperties';
+
+// Helper to get work item name from propertyId
+const getWorkItemNameByPropertyId = (propertyId) => {
+  const property = workProperties.find(p => p.id === propertyId);
+  return property ? property.name : null;
+};
 
 const RoomPriceSummary = ({ room, workData, priceList }) => {
   const { t } = useLanguage();
@@ -73,8 +80,10 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     }
                     
                     // For work types with subtitles (plasterboarding, plastering, painting, netting), use the constructed name directly, otherwise translate
-                    const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ? 
-                      item.name : t(item.name);
+                    // Fall back to looking up name from propertyId if item.name is undefined
+                    const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                    const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ?
+                      itemName : t(itemName);
                     
                     // Special handling for scaffolding items
                     let workDescription;
@@ -313,7 +322,9 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                       }
                     }
                     
-                    const workName = t(item.name);
+                    // Fall back to looking up name from propertyId if item.name is undefined
+                    const itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                    const workName = t(itemNameOthers);
                     // Format quantity: for days show as integer with space, otherwise use existing format
                     const translatedUnit = t(unit);
                     const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)

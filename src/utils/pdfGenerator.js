@@ -66,7 +66,7 @@ export const generateInvoicePDF = ({
     
     if (isPriceOffer) {
       // New format: CP {number} - {name} as MAIN TITLE (same style as invoice)
-      const title = `CP ${projectNumber || ''} - ${invoice.projectName || ''}`;
+      const title = `${t('Price Offer Abbr')} ${projectNumber || ''} - ${invoice.projectName || ''}`;
       doc.text(sanitizeText(title), 20, 20);
 
       // Project Notes - same style as invoice subtitle (fontSize 11, 4px below title)
@@ -77,10 +77,10 @@ export const generateInvoicePDF = ({
         doc.text(splitNotes, 20, 24);
       }
     } else {
-      doc.text(sanitizeText(`Faktura ${invoice.invoiceNumber}`), 20, 20);
+      doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 20, 20);
       doc.setFontSize(11);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText(`Cenova ponuka ${invoice.projectName || ''}`), 20, 24);
+      doc.text(sanitizeText(`${t('Price offer')} ${invoice.projectName || ''}`), 20, 24);
     }
 
     // === CLIENT SECTION (Odberatel) - Left side under header ===
@@ -89,7 +89,7 @@ export const generateInvoicePDF = ({
     // Odberatel heading - 30% bigger (8 * 1.3 = ~10.4)
     doc.setFontSize(10);
     doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText('Odberatel'), 20, clientY);
+    doc.text(sanitizeText(t('Subscriber')), 20, clientY);
 
     doc.setFontSize(8);
     doc.setFont('Inter', 'normal');
@@ -152,16 +152,16 @@ export const generateInvoicePDF = ({
       const validUntil = new Date(today);
       validUntil.setDate(validUntil.getDate() + parseInt(offerValidityPeriod || 30));
       dateLines = [
-        { label: 'Dátum vystavenia:', value: formatDate(today.toISOString()) },
-        { label: 'Platné do:', value: formatDate(validUntil.toISOString()) }
+        { label: `${t('Issue Date')}:`, value: formatDate(today.toISOString()) },
+        { label: `${t('Valid until')}:`, value: formatDate(validUntil.toISOString()) }
       ];
     } else {
-      const paymentText = invoice.paymentMethod === 'cash' ? 'Hotovosť' : 'Prevodom';
+      const paymentText = invoice.paymentMethod === 'cash' ? t('Hotovosť') : t('Prevodom');
       dateLines = [
-        { label: 'Dátum vystavenia:', value: formatDate(invoice.issueDate) },
-        { label: 'Dátum splatnosti:', value: formatDate(invoice.dueDate) },
-        { label: 'Dátum dodania:', value: formatDate(invoice.dispatchDate || invoice.issueDate) },
-        { label: 'Forma úhrady:', value: paymentText }
+        { label: `${t('Issue Date')}:`, value: formatDate(invoice.issueDate) },
+        { label: `${t('Due Date')}:`, value: formatDate(invoice.dueDate) },
+        { label: `${t('Date of Dispatch')}:`, value: formatDate(invoice.dispatchDate || invoice.issueDate) },
+        { label: `${t('Payment Method')}:`, value: paymentText }
       ];
     }
 
@@ -201,7 +201,7 @@ export const generateInvoicePDF = ({
       doc.roundedRect(boxStartX, boxY, ibanBoxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(6);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText('Číslo účtu / IBAN'), boxStartX + 2, boxY + 3.5);
+      doc.text(sanitizeText(t('Bank Account / IBAN')), boxStartX + 2, boxY + 3.5);
       doc.setFontSize(7);
       doc.setFont('Inter', 'bold');
       // Truncate IBAN if too long to fit in wider box
@@ -213,7 +213,7 @@ export const generateInvoicePDF = ({
       doc.roundedRect(box2X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(6);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText('Variabilný symbol'), box2X + 2, boxY + 3.5);
+      doc.text(sanitizeText(t('Variable Symbol')), box2X + 2, boxY + 3.5);
       doc.setFontSize(7);
       doc.setFont('Inter', 'bold');
       doc.text(sanitizeText(invoice.invoiceNumber), box2X + 2, boxY + 7.5);
@@ -223,7 +223,7 @@ export const generateInvoicePDF = ({
       doc.roundedRect(box3X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(6);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText('Dátum splatnosti'), box3X + 2, boxY + 3.5);
+      doc.text(sanitizeText(t('Due Date')), box3X + 2, boxY + 3.5);
       doc.setFontSize(7);
       doc.setFont('Inter', 'bold');
       doc.text(sanitizeText(formatDate(invoice.dueDate)), box3X + 2, boxY + 7.5);
@@ -233,7 +233,7 @@ export const generateInvoicePDF = ({
       doc.roundedRect(box4X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(6);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText('Suma na úhradu'), box4X + 2, boxY + 3.5);
+      doc.text(sanitizeText(t('Amount Due')), box4X + 2, boxY + 3.5);
       doc.setFontSize(7);
       doc.setFont('Inter', 'bold');
       doc.text(sanitizeText(formatCurrency(totalWithVAT)), box4X + 2, boxY + 7.5);
@@ -252,7 +252,7 @@ export const generateInvoicePDF = ({
     // Add work items with category header
     if (projectBreakdown && projectBreakdown.items && projectBreakdown.items.length > 0) {
       tableData.push([
-        { content: sanitizeText('PRÁCA'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText(t('Work (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
       projectBreakdown.items.forEach(item => {
@@ -266,7 +266,7 @@ export const generateInvoicePDF = ({
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(2)} ${unit}`),
+          sanitizeText(`${quantity.toFixed(2)} ${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
@@ -278,7 +278,7 @@ export const generateInvoicePDF = ({
     // Add material items with category header
     if (projectBreakdown && projectBreakdown.materialItems && projectBreakdown.materialItems.length > 0) {
       tableData.push([
-        { content: sanitizeText('MATERIÁL'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText(t('Material (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
       projectBreakdown.materialItems.forEach(item => {
@@ -292,7 +292,7 @@ export const generateInvoicePDF = ({
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(2)} ${unit}`),
+          sanitizeText(`${quantity.toFixed(2)} ${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
@@ -304,7 +304,7 @@ export const generateInvoicePDF = ({
     // Add others items with category header
     if (projectBreakdown && projectBreakdown.othersItems && projectBreakdown.othersItems.length > 0) {
       tableData.push([
-        { content: sanitizeText('OSTATNÉ'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText(t('Others (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
       projectBreakdown.othersItems.forEach(item => {
@@ -318,7 +318,7 @@ export const generateInvoicePDF = ({
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(2)} ${unit}`),
+          sanitizeText(`${quantity.toFixed(2)} ${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
@@ -331,12 +331,12 @@ export const generateInvoicePDF = ({
     autoTable(doc, {
       startY: tableStartY,
       head: [[
-        sanitizeText('Popis'),
-        sanitizeText('Počet'),
-        sanitizeText('Cena za mj.'),
-        sanitizeText('DPH(%)'),
-        sanitizeText('DPH'),
-        sanitizeText('Cena')
+        sanitizeText(t('Description')),
+        sanitizeText(t('Quantity')),
+        sanitizeText(t('Price per Unit')),
+        sanitizeText(t('VAT (%)')),
+        sanitizeText(t('VAT')),
+        sanitizeText(t('Price'))
       ]],
       body: tableData,
       theme: 'plain',
@@ -385,27 +385,27 @@ export const generateInvoicePDF = ({
 
     doc.setFontSize(10);
     doc.setFont('Inter', 'normal');
-    doc.text(sanitizeText('bez DPH:'), totalsLabelX, totalY);
+    doc.text(sanitizeText(t('Without VAT:')), totalsLabelX, totalY);
     // Values are now normal font, not bold
     doc.text(sanitizeText(formatCurrency(totalWithoutVAT)), rightX, totalY, { align: 'right' });
 
     totalY += rowSpacing;
     // doc.setFont('Inter', 'normal'); // Already normal
-    doc.text(sanitizeText('DPH:'), totalsLabelX, totalY);
+    doc.text(sanitizeText(t('VAT:')), totalsLabelX, totalY);
     // Values are now normal font, not bold
     doc.text(sanitizeText(formatCurrency(vat)), rightX, totalY, { align: 'right' });
 
     totalY += rowSpacing;
     doc.setFontSize(11);
     doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText('Celková cena:'), totalsLabelX, totalY);
+    doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
     doc.text(sanitizeText(formatCurrency(totalWithVAT)), rightX, totalY, { align: 'right' });
 
     // === SIGNATURE SECTION ===
     const signatureY = totalY + 12; // Proportionally moved down
     doc.setFontSize(9);
     doc.setFont('Inter', 'normal');
-    doc.text(sanitizeText('Vystavila:'), rightX - 40, signatureY);
+    doc.text(sanitizeText(t('Issued by:')), rightX - 40, signatureY);
 
     if (contractor?.signature) {
       try {
@@ -546,7 +546,7 @@ export const generateInvoicePDF = ({
 
     // Build column 3 lines (Bank info)
     const col3Lines = [];
-    if (legalNotice) col3Lines.push({ text: `Spisová vložka: ${legalNotice}` });
+    if (legalNotice) col3Lines.push({ text: `${t('Legal File Ref')}: ${legalNotice}` });
     if (bankAccount) col3Lines.push({ text: `IBAN: ${bankAccount}` });
     if (swiftCode) col3Lines.push({ text: `SWIFT kód: ${swiftCode}` });
 
@@ -581,7 +581,7 @@ export const generateInvoicePDF = ({
 
     // App attribution - bottom center
     doc.setFontSize(6);
-    doc.text(sanitizeText('Vytvorené aplikáciou Fido Building Calcul.'), 105, 290, { align: 'center' });
+    doc.text(sanitizeText(t('Generated by Fido Building Calcul app.')), 105, 290, { align: 'center' });
 
     // Generate PDF blob and URL
     const pdfBlob = doc.output('blob');

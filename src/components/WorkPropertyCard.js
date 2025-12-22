@@ -1,18 +1,100 @@
 import React from 'react';
-import { 
-  Plus, 
-  Trash2, 
-  X, 
-  Hammer, 
-  Package, 
-  ChevronUp, 
-  ChevronDown, 
-  Check, 
-  Copy 
+import {
+  Plus,
+  Trash2,
+  X,
+  Hammer,
+  Package,
+  ChevronUp,
+  ChevronDown,
+  Check,
+  Copy
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
+
+// Helper to get the item label based on property type
+const getItemLabel = (property, item, index, t) => {
+  const itemNumber = index + 1;
+
+  // For brick partitions: "Priečka č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.BRICK_PARTITIONS) {
+    return `${t('Partition no.')} ${itemNumber}`;
+  }
+
+  // For brick load-bearing wall: "Stena č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.BRICK_LOAD_BEARING) {
+    return `${t('Wall no.')} ${itemNumber}`;
+  }
+
+  // For plasterboarding with types: "Jednoduchá č. 1", "Dvojitá č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION ||
+      property.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET) {
+    if (item.selectedType) {
+      return `${t(item.selectedType)} ${t('no.')} ${itemNumber}`;
+    }
+    return `${t('no.')} ${itemNumber}`;
+  }
+
+  // For netting wall: "Stena č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.NETTING_WALL) {
+    return `${t('Wall no.')} ${itemNumber}`;
+  }
+
+  // For netting ceiling: "Strop č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING) {
+    return `${t('Ceiling no.')} ${itemNumber}`;
+  }
+
+  // For plastering wall: "Stena č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL) {
+    return `${t('Wall no.')} ${itemNumber}`;
+  }
+
+  // For plastering ceiling: "Strop č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING) {
+    return `${t('Ceiling no.')} ${itemNumber}`;
+  }
+
+  // For facade plastering: "Stena č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.FACADE_PLASTERING) {
+    return `${t('Wall no.')} ${itemNumber}`;
+  }
+
+  // For penetration coating: "Náter č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING) {
+    return `${t('Coating no.')} ${itemNumber}`;
+  }
+
+  // For levelling: "Proces č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.LEVELLING) {
+    return `${t('Process no.')} ${itemNumber}`;
+  }
+
+  // For floating floor: "Pokládka č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR) {
+    return `${t('Laying no.')} ${itemNumber}`;
+  }
+
+  // For tiling under 60cm: "Pokládka č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60) {
+    return `${t('Laying no.')} ${itemNumber}`;
+  }
+
+  // For paving under 60cm: "Pokládka č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60) {
+    return `${t('Laying no.')} ${itemNumber}`;
+  }
+
+  // For window installation: "Okno č. 1"
+  if (property.id === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) {
+    return `${t('Window no.')} ${itemNumber}`;
+  }
+
+  // Default: use property name + no. X
+  return `${t(property.name)} ${t('no.')} ${itemNumber}`;
+};
 
 const WorkPropertyCard = ({ 
   property, 
@@ -241,11 +323,17 @@ const WorkPropertyCard = ({
         )}
         
         {/* Existing rental items */}
-        {expandedItems[property.id] && existingItems.map((item, index) => (
+        {expandedItems[property.id] && existingItems.map((item, index) => {
+          // Custom label for tool rental: "Náradie č. 1"
+          const rentalLabel = item.name === 'Tool rental'
+            ? `${t('Tool no.')} ${index + 1}`
+            : `${t(item.name)} ${t('no.')} ${index + 1}`;
+
+          return (
           <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in ${newlyAddedItems.has(item.id) ? '' : ''}`}>
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-900 dark:text-white text-lg">
-                {t(item.name)} {t('no.')} {index + 1}
+                {rentalLabel}
               </span>
               <button
                 onClick={(e) => onRemoveWorkItem(item.id, e)}
@@ -275,11 +363,12 @@ const WorkPropertyCard = ({
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
-  
+
   // 2. Single behavior items (e.g. Commute, Preparatory works)
   if (property.behavior === 'single') {
     const existingItem = workData.find(item => item.propertyId === property.id);
@@ -508,11 +597,11 @@ const WorkPropertyCard = ({
         )}
         
         {/* Existing type items */}
-        {expandedItems[property.id] && existingItems.map(item => (
+        {expandedItems[property.id] && existingItems.map((item, index) => (
           <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-900 dark:text-white text-lg">
-                {t(item.name)}
+                {getItemLabel(property, item, index, t)}
               </span>
               <button
                 onClick={(e) => onRemoveWorkItem(item.id, e)}
@@ -521,7 +610,7 @@ const WorkPropertyCard = ({
                 <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
               </button>
             </div>
-            
+
             {/* Fields */}
             {property.fields && (
               <div className="space-y-3 lg:space-y-2">
@@ -755,7 +844,7 @@ const WorkPropertyCard = ({
       </div>
 
       {/* Show existing work items for this property */}
-      {expandedItems[property.id] && existingItems.map(item => (
+      {expandedItems[property.id] && existingItems.map((item, index) => (
         <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
           <div className="flex items-center justify-between">
             {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
@@ -778,7 +867,7 @@ const WorkPropertyCard = ({
               </span>
             ) : (
               <span className="font-medium text-gray-900 dark:text-white text-lg">
-                {t(property.name)} {t('no.')} {existingItems.indexOf(item) + 1}
+                {getItemLabel(property, item, index, t)}
               </span>
             )}
             <button

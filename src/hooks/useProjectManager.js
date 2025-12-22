@@ -205,7 +205,6 @@ export const useProjectManager = (appData, setAppData) => {
       if (projectData.status !== undefined) mappedData.status = projectData.status;
       if (projectData.hasInvoice !== undefined) mappedData.has_invoice = projectData.hasInvoice;
       if (projectData.invoiceId !== undefined) mappedData.invoice_id = projectData.invoiceId;
-      if (projectData.invoiceStatus !== undefined) mappedData.invoice_status = projectData.invoiceStatus;
       if (projectData.isArchived !== undefined) mappedData.is_archived = projectData.isArchived;
       if (projectData.priceListSnapshot !== undefined) {
         mappedData.price_list_snapshot = typeof projectData.priceListSnapshot === 'string'
@@ -220,7 +219,9 @@ export const useProjectManager = (appData, setAppData) => {
       }
       if (projectData.notes !== undefined) mappedData.notes = projectData.notes;
 
-      await api.projects.update(projectId, mappedData);
+      if (Object.keys(mappedData).length > 0) {
+        await api.projects.update(projectId, mappedData);
+      }
 
       setAppData(prev => {
         // Handle project move if c_id changed

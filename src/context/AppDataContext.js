@@ -266,6 +266,13 @@ export const AppDataProvider = ({ children }) => {
               }
             }
 
+            // Find linked invoice to get status
+            // invoices array is raw from DB here, so it uses snake_case keys or camelCase depending on supabase client.
+            // checking useInvoiceManager createInvoice it sends project_id.
+            // checking supabaseApi.js usually returns data as is.
+            // Let's assume snake_case project_id based on DB schema.
+            const linkedInvoice = (invoices || []).find(inv => inv.project_id === project.id);
+
             return {
               ...project,
               priceListSnapshot,
@@ -275,7 +282,7 @@ export const AppDataProvider = ({ children }) => {
               clientId: project.client_id,
               hasInvoice: project.has_invoice,
               invoiceId: project.invoice_id,
-              invoiceStatus: project.invoice_status,
+              invoiceStatus: linkedInvoice ? linkedInvoice.status : null,
               isArchived: project.is_archived
             };
           });

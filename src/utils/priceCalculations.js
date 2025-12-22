@@ -360,8 +360,10 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
       
       // Handle specific ceiling/strop case for plasterboard
       if (!subtitleMatch && (materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PLASTERBOARD.toLowerCase() || materialName.toLowerCase() === MATERIAL_ITEM_NAMES.SADROKARTON.toLowerCase())) {
-        if ((workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0])) ||
-            (workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]))) {
+        // Check if work is ceiling type and material is ceiling type (in either language)
+        const isCeilingWork = workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]);
+        const isCeilingMaterial = materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]);
+        if (isCeilingWork && isCeilingMaterial) {
           subtitleMatch = true;
         }
       }
@@ -468,13 +470,26 @@ export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) =
     // If we are here, it means we checked subtitles.
   });
   
-  // 2. If not found, and we have a subtype, try finding by name only as fallback
+  // 2. Special case: If looking for plasterboard ceiling, also try Sádrokartón with strop
+  if (!material && workItemSubtype && materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PLASTERBOARD.toLowerCase()) {
+    const workSubLower = workItemSubtype.toLowerCase();
+    const isCeilingWork = workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]);
+    if (isCeilingWork) {
+      material = priceList.material.find(item => {
+        const isSadrokarton = item.name.toLowerCase() === MATERIAL_ITEM_NAMES.SADROKARTON.toLowerCase();
+        const isCeilingMaterial = item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_SUBTITLES.CEILING[0]) || item.subtitle.toLowerCase().includes(WORK_ITEM_SUBTITLES.CEILING[1]));
+        return isSadrokarton && isCeilingMaterial;
+      });
+    }
+  }
+
+  // 3. If not found, and we have a subtype, try finding by name only as fallback
   if (!material && workItemSubtype) {
-    material = priceList.material.find(item => 
+    material = priceList.material.find(item =>
       item.name.toLowerCase() === materialName.toLowerCase()
     );
   }
-  
+
   return material;
 };
 
@@ -655,6 +670,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   let tilingPavingAdhesiveAdded = false;
   let totalNettingArea = 0;
   let nettingAdhesiveAdded = false;
+  // Track non-large-format tiling/paving area for grouting calculation
+  let totalGroutingArea = 0;
 
   room.workItems.forEach(workItem => {
     const priceItem = findPriceListItem(workItem, activePriceList);
@@ -669,6 +686,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
                         priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SIETKOVANIE.toLowerCase()) ||
                         workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_WALL ||
                         workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING;
+      const isLargeFormat = isTilingOrPaving && workItem.fields[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD];
 
       if (isTilingOrPaving) {
         const values = workItem.fields;
@@ -679,6 +697,10 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           area = parseFloat(values.Width || 0) * parseFloat(values.Height || 0);
         }
         totalTilingPavingArea += area;
+        // Only add to grouting area if NOT large format
+        if (!isLargeFormat) {
+          totalGroutingArea += area;
+        }
       }
 
       if (isNetting) {
@@ -794,7 +816,9 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           }
 
           // Only add adhesive for the first tiling/paving or netting item
-          const skipTilingPavingAdhesive = isTilingOrPaving && tilingPavingAdhesiveAdded;
+          // Skip adhesive entirely if Large Format is enabled (no materials for large format)
+          const isLargeFormat = isTilingOrPaving && workItem.fields[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD];
+          const skipTilingPavingAdhesive = isTilingOrPaving && (tilingPavingAdhesiveAdded || isLargeFormat);
           const skipNettingAdhesive = isNetting && nettingAdhesiveAdded;
           const skipAdhesive = skipTilingPavingAdhesive || skipNettingAdhesive;
 
@@ -992,7 +1016,30 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
       }
     }
   });
-  
+
+  // Add grouting work for non-large-format tiling/paving
+  if (totalGroutingArea > 0) {
+    const groutingPriceItem = activePriceList.work.find(item =>
+      item.name === WORK_ITEM_NAMES.GROUTING
+    );
+    if (groutingPriceItem) {
+      const groutingCost = totalGroutingArea * groutingPriceItem.price;
+      workTotal += groutingCost;
+      items.push({
+        id: 'grouting_work',
+        name: WORK_ITEM_NAMES.GROUTING,
+        subtitle: groutingPriceItem.subtitle || '',
+        propertyId: WORK_ITEM_PROPERTY_IDS.GROUTING,
+        calculation: {
+          workCost: groutingCost,
+          materialCost: 0,
+          quantity: totalGroutingArea,
+          unit: UNIT_TYPES.METER_SQUARE
+        }
+      });
+    }
+  }
+
   // Calculate auxiliary costs based on price list values
   const auxiliaryWorkItem = activePriceList.work.find(item => item.name === WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK);
   const auxiliaryWorkRate = auxiliaryWorkItem ? auxiliaryWorkItem.price / 100 : 0.10; // Default to 10% if not found

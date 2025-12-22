@@ -97,29 +97,34 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   // Initialize data on mount or project change
   useEffect(() => {
     const initializeData = async () => {
-      if (!project) return;
+      if (!project?.id) return;
       
       setIsLoadingDetails(true);
       await loadProjectDetails(project.id);
       setIsLoadingDetails(false);
-
-      if (project.clientId) {
-        const assignedClient = clients.find(client => client.id === project.clientId);
-        if (assignedClient) {
-          setSelectedClientForProject(assignedClient);
-        } else {
-          setSelectedClientForProject(null);
-        }
-      } else {
-        setSelectedClientForProject(null);
-      }
-
-      setProjectDetailNotes(project.detail_notes || '');
-      setProjectPhotos(project.photos || []);
     };
 
     initializeData();
-  }, [project, clients, loadProjectDetails]);
+  }, [project.id, loadProjectDetails]);
+
+  // Sync local state with project data
+  useEffect(() => {
+    if (!project) return;
+
+    if (project.clientId) {
+      const assignedClient = clients.find(client => client.id === project.clientId);
+      if (assignedClient) {
+        setSelectedClientForProject(assignedClient);
+      } else {
+        setSelectedClientForProject(null);
+      }
+    } else {
+      setSelectedClientForProject(null);
+    }
+
+    setProjectDetailNotes(project.detail_notes || '');
+    setProjectPhotos(project.photos || []);
+  }, [project, clients]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -832,7 +837,6 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 const createdEvent = { type: 'Created', date: project.created_at };
                 
                 const allEvents = [...history, createdEvent]
-                  .filter(event => event.type !== 'invoice_paid')
                   .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort newest first
 
                 const formatHistoryEventType = (eventType) => {
