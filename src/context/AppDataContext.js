@@ -354,7 +354,7 @@ export const AppDataProvider = ({ children }) => {
         } finally {
           setLoading(false);
         }
-      }, [user, user?.id]); // Add 'user' to the dependency array
+      }, [user]); // Only 'user' is needed here, as 'user?.id' is implicitly covered by 'user'
     const [appData, setAppData] = useState(getDefaultData);
   
       // Instantiate Managers
