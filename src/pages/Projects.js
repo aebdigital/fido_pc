@@ -475,7 +475,7 @@ const Projects = () => {
                   >
                     <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{project.id}</span>
+                        <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">#{project.number || project.id}</span>
                         {project.invoiceStatus && (
                           <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
                             project.invoiceStatus === 'sent'

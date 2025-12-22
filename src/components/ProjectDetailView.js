@@ -443,7 +443,7 @@ ${t('Notes')}: ${invoice.notes}` : ''}
             )}
           </div>
           <div className="flex items-center gap-2 ml-11">
-            <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{project.id}</span>
+            <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">#{project.number || project.id}</span>
             {project.is_archived && (
               <span className="px-2 py-1 bg-amber-50 dark:bg-amber-900 text-amber-600 dark:text-amber-400 text-xs lg:text-sm font-medium rounded-full">
                 {t('Archived')}

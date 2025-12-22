@@ -62,6 +62,31 @@ export const useProjectManager = (appData, setAppData) => {
       // Create a deep copy of the current general price list as a snapshot for this project
       const priceListSnapshot = JSON.parse(JSON.stringify(generalPriceList));
 
+      // Calculate next project number logic
+      const currentYear = new Date().getFullYear();
+      const yearPrefix = parseInt(`${currentYear}000`);
+      const yearMax = parseInt(`${currentYear}999`);
+
+      // Gather all projects for the current contractor (active and archived)
+      const activeProjects = projectCategories?.flatMap(cat => cat.projects || []) || [];
+      const contractorArchivedProjects = (archivedProjects || []).filter(p => p.c_id === activeContractorId);
+      const allContractorProjects = [...activeProjects, ...contractorArchivedProjects];
+
+      // Find projects in the current year range
+      const currentYearProjects = allContractorProjects.filter(p => {
+        const num = parseInt(p.number || 0);
+        return num >= yearPrefix && num <= yearMax;
+      });
+
+      // Determine next number
+      let nextNumber;
+      if (currentYearProjects.length === 0) {
+        nextNumber = parseInt(`${currentYear}001`);
+      } else {
+        const maxNumber = Math.max(...currentYearProjects.map(p => parseInt(p.number || 0)));
+        nextNumber = maxNumber + 1;
+      }
+
       const newProject = await api.projects.create({
         name: projectData.name,
         category: categoryId,
@@ -70,7 +95,7 @@ export const useProjectManager = (appData, setAppData) => {
         contractor_id: activeContractorId,
         status: 0, // Database uses bigint: 0=not sent, 1=sent, 2=archived
         is_archived: false,
-        number: 0,
+        number: nextNumber,
         notes: null,
         price_list_id: null,
         price_list_snapshot: JSON.stringify(priceListSnapshot)
