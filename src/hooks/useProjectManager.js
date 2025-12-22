@@ -68,7 +68,13 @@ export const useProjectManager = (appData, setAppData) => {
       const yearMax = parseInt(`${currentYear}999`);
 
       // Gather all projects for the current contractor (active and archived)
-      const activeProjects = projectCategories?.flatMap(cat => cat.projects || []) || [];
+      let activeProjects = [];
+      if (activeContractorId && contractorProjects[activeContractorId]?.categories) {
+        activeProjects = contractorProjects[activeContractorId].categories.flatMap(cat => cat.projects || []);
+      } else {
+        activeProjects = projectCategories?.flatMap(cat => cat.projects || []) || [];
+      }
+      
       const contractorArchivedProjects = (archivedProjects || []).filter(p => p.c_id === activeContractorId);
       const allContractorProjects = [...activeProjects, ...contractorArchivedProjects];
 
