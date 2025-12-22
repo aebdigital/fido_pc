@@ -39,7 +39,7 @@ export const contractorsApi = {
       const userId = await getCurrentUserId()
       const { data, error } = await supabase
         .from('contractors')
-        .select('*')
+        .select('id, name, contact_person_name, email, phone, web, street, second_row_street, city, postal_code, country, business_id, tax_id, vat_registration_number, bank_account_number, swift_code, legal_notice, price_offer_settings, user_id, created_at, updated_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
@@ -396,9 +396,9 @@ export const invoicesApi = {
         .from('invoices')
         .select(`
           *,
-          clients (*),
-          projects!invoices_project_id_fkey (*),
-          contractors (*)
+          clients (id, name),
+          projects!invoices_project_id_fkey (id, name, category),
+          contractors (id, name)
         `)
         .eq('user_id', userId)
 

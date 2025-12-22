@@ -213,8 +213,6 @@ export const AppDataProvider = ({ children }) => {
         }
     
         try {
-          console.log('[SUPABASE] Loading data from Supabase...');
-    
           // Load all data from Supabase in parallel
           const [contractors, clients, projects, invoices, allPriceLists] = await Promise.all([
             api.contractors.getAll(),
@@ -356,7 +354,7 @@ export const AppDataProvider = ({ children }) => {
         } finally {
           setLoading(false);
         }
-      }, [user]);  
+      }, [user?.id]);  
     const [appData, setAppData] = useState(getDefaultData);
   
       // Instantiate Managers
@@ -388,12 +386,12 @@ export const AppDataProvider = ({ children }) => {
           }));
         };
     
-        if (user) {
+        if (user?.id) {
           loadData();
         } else {
           setLoading(false);
         }
-      }, [user, loadInitialData]);  
+      }, [user?.id, loadInitialData]);  
     
 
 
