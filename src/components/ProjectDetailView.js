@@ -430,7 +430,7 @@ ${t('Notes')}: ${invoice.notes}` : ''}
               />
             ) : (
               <>
-                <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white flex-1">{project.name}</h1>
+                <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white">{project.name}</h1>
                 {!project.is_archived && (
                   <button
                     onClick={handleEditProjectName}
@@ -478,7 +478,7 @@ ${t('Notes')}: ${invoice.notes}` : ''}
               />
             ) : (
               <>
-                <p className="text-gray-500 dark:text-gray-400 text-lg flex-1">
+                <p className="text-gray-500 dark:text-gray-400 text-lg">
                   {project.notes || t('Notes_CP')}
                 </p>
                 {!project.is_archived && (
