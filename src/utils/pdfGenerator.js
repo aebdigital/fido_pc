@@ -262,7 +262,7 @@ export const generateInvoicePDF = ({
         const unit = item.calculation?.unit || item.unit || '';
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = workCost * itemVatRate;
-        const displayName = item.subtitle ? `${item.name} - ${item.subtitle}` : item.name;
+        const displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
 
         tableData.push([
           sanitizeText(displayName || ''),
@@ -288,7 +288,7 @@ export const generateInvoicePDF = ({
         const unit = item.calculation?.unit || item.unit || '';
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = materialCost * itemVatRate;
-        const displayName = item.subtitle ? `${item.name} - ${item.subtitle}` : item.name;
+        const displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
 
         tableData.push([
           sanitizeText(displayName || ''),
@@ -314,7 +314,7 @@ export const generateInvoicePDF = ({
         const unit = item.calculation?.unit || item.unit || '';
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = othersCost * itemVatRate;
-        const displayName = item.subtitle ? `${item.name} - ${item.subtitle}` : item.name;
+        const displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
 
         tableData.push([
           sanitizeText(displayName || ''),
