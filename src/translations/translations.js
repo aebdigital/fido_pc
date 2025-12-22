@@ -1,6 +1,10 @@
 export const translations = {
   en: {
-    // English keys return themselves by default, so minimal content needed here
+    // English translations for keys that are not English-friendly or are Slovak by default
+    "Notes_CP": "Quote Notes",
+    "Notes_Project": "Project Notes",
+    "Fotografie": "Photos",
+    "Pridať projekt": "Add Project"
   },
   sk: {
     // ========== NAVIGATION & MAIN SECTIONS ==========
@@ -258,9 +262,12 @@ export const translations = {
     
     // ========== PERSON & BUSINESS TYPES ==========
     "Person type?": "Typ osoby?",
+    "Type of client?": "Typ klienta?",
     "Individual": "Fyzická osoba",
     "Legal entity": "Právnická osoba",
     "Private": "Súkromná",
+    "Business": "Firma",
+    "Private entity": "Súkromná osoba",
     "Fill by company ID": "Vyplniť podľa IČO",
     "Organization ID": "Identifikačné číslo organizácie",
     "Company ID": "IČO",
@@ -283,12 +290,27 @@ export const translations = {
     "set default price list": "nastaviť predvolený cenník",
     "Price offer": "Cenová ponuka",
     "Cenová ponuka": "Cenová ponuka",
+    "Price Offer Sent": "Cenová ponuka odoslaná",
+    "Price offer sent": "Cenová ponuka odoslaná",
     "Poznámka k cenovej ponuke": "Poznámka k cenovej ponuke",
     "Náhľad": "Náhľad",
     "Odoslať": "Odoslať",
     "Supplier": "Dodávateľ",
     "supplier, validity of price offer": "dodávateľ, platnosť cenovej ponuky",
     "supplier information, validity of price offer": "informácie o dodávateľovi, platnosť cenovej ponuky",
+    "Validity Period": "Platnosť ponuky",
+    "Offer validity period": "Doba platnosti ponuky",
+    "How long price offers remain valid": "Ako dlho sú cenové ponuky platné",
+    "Contractors": "Dodávatelia",
+    "Add contractor": "Pridať dodávateľa",
+    "No contractors yet": "Zatiaľ žiadni dodávatelia",
+    "Add your first contractor to start creating price offers": "Pridajte svojho prvého dodávateľa a začnite vytvárať cenové ponuky",
+    "Create first contractor": "Vytvoriť prvého dodávateľa",
+    "Edit contractor": "Upraviť dodávateľa",
+    "Delete contractor": "Vymazať dodávateľa",
+    "Are you sure you want to delete this contractor?": "Ste si istí, že chcete vymazať tohto dodávateľa?",
+    "Failed to save settings. Please try again.": "Nepodarilo sa uložiť nastavenia. Skúste to prosím znova.",
+    "Saving...": "Ukladám...",
     
     // ========== SETTINGS & PREFERENCES ==========
     "Access": "Prístup",
@@ -296,6 +318,8 @@ export const translations = {
     "Customization": "Prispôsobenie",
     "Preferences": "Predvoľby",
     "Appearance": "Vzhľad",
+    "Dark Mode": "Tmavý režim",
+    "Language": "Jazyk",
     "set application appearance": "nastavte vzhľad aplikácie",
     "archived projects, archiving period": "archivované projekty, doba archivovania",
     "archived projects, archive duration": "archivované projekty, doba archivácie",
@@ -303,6 +327,7 @@ export const translations = {
     // ========== USER ACCOUNT ==========
     "Pro User": "Pro používateľ",
     "Customize prices throughout the app and export projects to PDF": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF",
+    "Customise prices in the entire app and export projects to PDF. Try Pro For Free!": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF. Vyskúšajte Pro zadarmo!",
     "Customise prices in the entire app and export projects to PDF. Vyskúšajte Pro zadarmo!": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF. Vyskúšajte Pro zadarmo!",
     "Try Pro": "Vyskúšať Pro",
     "Restore Purchases": "Obnoviť nákupy",
@@ -339,6 +364,11 @@ export const translations = {
     "No work items": "Žiadne práce",
     "Add work items to see price summary": "Pridajte práce pre zobrazenie cenového súhrnu",
     "No other items added": "Žiadne ostatné položky neboli pridané",
+    "Contractor Required": "Potrebný dodávateľ",
+    "A contractor must be assigned to duplicate a project.": "Pre duplikovanie projektu musí byť priradený dodávateľ.",
+    "Failed to duplicate project.": "Nepodarilo sa duplikovať projekt.",
+    "Failed to reassign project": "Nepodarilo sa priradiť projekt",
+    "Loading project details...": "Načítavam detaily projektu...",
     
     // ========== INVOICES ==========
     "Any Time": "Kedykoľvek",
@@ -353,9 +383,12 @@ export const translations = {
     "Save Changes": "Uložiť zmeny",
     "Invoice Number": "Číslo faktúry",
     "Issue Date": "Dátum vystavenia",
+    "Date of Dispatch": "Dátum dodania",
     "Due Date": "Dátum dodania",
     "Payment Method": "Forma úhrady",
     "Payment Due": "Platné do",
+    "Payment Due (Days)": "Splatnosť (dni)",
+    "Maturity": "Splatnosť",
     "Cash": "Hotovosť",
     "Transfer": "Prevodom",
     "Preview Invoice": "Náhľad faktúry",
@@ -375,6 +408,16 @@ export const translations = {
     "unsent": "neodoslaný",
     "Select items and generate PDF": "vybrať položky a vegenerovať PDF",
     "Amount": "Suma",
+    "View Project": "Zobraziť projekt",
+    "Delete Invoice": "Vymazať faktúru",
+    "Are you sure you want to delete this invoice? This action cannot be undone.": "Ste si istí, že chcete vymazať túto faktúru? Táto akcia je nevratná.",
+    "Please fill in all required fields": "Prosím vyplňte všetky povinné polia",
+    "Failed to create invoice": "Nepodarilo sa vytvoriť faktúru",
+    "Failed to update invoice": "Nepodarilo sa upraviť faktúru",
+    "Failed to delete invoice": "Nepodarilo sa vymazať faktúru",
+    "Required Fields Missing": "Chýbajúce povinné polia",
+    "The following fields are required to generate an invoice:": "Pre vygenerovanie faktúry sú potrebné nasledujúce polia:",
+    "Fill Missing Fields": "Vyplniť chýbajúce polia",
     
     // ========== ADDITIONAL WORK DETAILS ==========
     "Additional work": "Doplnkové práce",
