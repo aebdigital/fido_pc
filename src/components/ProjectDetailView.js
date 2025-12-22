@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
-import { generateInvoicePDF } from '../utils/pdfGenerator';
+import { generateInvoicePDF, generatePriceOfferPDF } from '../utils/pdfGenerator';
 import { workProperties } from '../config/workProperties';
 import RoomDetailsModal from './RoomDetailsModal';
 import ProjectPriceList from './ProjectPriceList';
@@ -324,7 +324,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     };
 
     try {
-      const { generatePriceOfferPDF } = require('../utils/pdfGenerator');
+      // Import dynamically or assume it's available via closure/import if defined in same file? 
+      // It is imported at top.
       
       generatePriceOfferPDF({
         invoice: priceOfferData,
