@@ -385,6 +385,11 @@ ${project.notes ? `
 ${t('Notes_CP')}: ${project.notes}` : ''}
     `.trim();
 
+    // Track history
+    addProjectHistoryEntry(project.id, {
+      type: 'Price offer sent'
+    });
+
     if (navigator.share) {
       try {
         await navigator.share({

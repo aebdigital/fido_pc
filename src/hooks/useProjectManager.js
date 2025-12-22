@@ -92,6 +92,12 @@ export const useProjectManager = (appData, setAppData) => {
         nextNumber = maxNumber + 1;
       }
 
+      // Initial history entry
+      const initialHistory = [{
+        type: 'Project created',
+        date: new Date().toISOString()
+      }];
+
       const newProject = await api.projects.create({
         name: projectData.name,
         category: categoryId,
@@ -103,21 +109,30 @@ export const useProjectManager = (appData, setAppData) => {
         number: nextNumber,
         notes: null,
         price_list_id: null,
-        price_list_snapshot: JSON.stringify(priceListSnapshot)
+        price_list_snapshot: JSON.stringify(priceListSnapshot),
+        project_history: JSON.stringify(initialHistory)
       });
 
-      // Add the price list snapshot to the project object
+      // Add the price list snapshot and history to the project object
       const projectWithSnapshot = {
         ...newProject,
-        priceListSnapshot
+        priceListSnapshot,
+        projectHistory: initialHistory
       };
 
       setAppData(prev => {
         const currentActiveContractorId = prev.activeContractorId;
 
+        // Update projectHistory in state as well
+        const updatedProjectHistory = {
+          ...prev.projectHistory,
+          [newProject.id]: initialHistory
+        };
+
         if (!currentActiveContractorId) {
           return {
             ...prev,
+            projectHistory: updatedProjectHistory,
             projectCategories: prev.projectCategories.map(category => {
               if (category.id === categoryId) {
                 return {
@@ -477,21 +492,33 @@ export const useProjectManager = (appData, setAppData) => {
   }, [setAppData]);
 
   // Project history tracking
-  const addProjectHistoryEntry = useCallback((projectId, historyEntry) => {
+  const addProjectHistoryEntry = useCallback(async (projectId, historyEntry) => {
+    const newEntry = {
+      ...historyEntry,
+      date: new Date().toISOString()
+    };
+
+    const currentHistory = appData.projectHistory?.[projectId] || [];
+    const updatedHistory = [...currentHistory, newEntry];
+
+    // Update local state
     setAppData(prev => ({
       ...prev,
       projectHistory: {
         ...prev.projectHistory,
-        [projectId]: [
-          ...(prev.projectHistory[projectId] || []),
-          {
-            ...historyEntry,
-            date: new Date().toISOString()
-          }
-        ]
+        [projectId]: updatedHistory
       }
     }));
-  }, [setAppData]);
+
+    // Update in Supabase
+    try {
+      await api.projects.update(projectId, {
+        project_history: JSON.stringify(updatedHistory)
+      });
+    } catch (error) {
+      console.error('[SUPABASE] Error saving project history:', error);
+    }
+  }, [appData.projectHistory, setAppData]);
 
   const getProjectHistory = useCallback((projectId) => {
     if (!appData.projectHistory || !projectId) return [];

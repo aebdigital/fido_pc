@@ -254,10 +254,23 @@ export const AppDataProvider = ({ children }) => {
                 console.warn('Failed to parse photos for project:', project.id);
               }
             }
+            
+            let projectHistory = [];
+            if (project.project_history) {
+              try {
+                projectHistory = typeof project.project_history === 'string'
+                  ? JSON.parse(project.project_history)
+                  : project.project_history;
+              } catch (e) {
+                console.warn('Failed to parse project history for project:', project.id);
+              }
+            }
+
             return {
               ...project,
               priceListSnapshot,
               photos,
+              projectHistory,
               // Map snake_case to camelCase for frontend usage
               clientId: project.client_id,
               hasInvoice: project.has_invoice,
@@ -308,13 +321,21 @@ export const AppDataProvider = ({ children }) => {
     
           // Transform invoices from database format to app format
           const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
+          
+          // Build project history map
+          const projectHistoryMap = {};
+          transformedProjects.forEach(p => {
+            if (p.projectHistory && Array.isArray(p.projectHistory)) {
+              projectHistoryMap[p.id] = p.projectHistory;
+            }
+          });
     
           return {
             clients: transformedClients || [],
             projectCategories: getDefaultCategories(),
             archivedProjects: transformedProjects.filter(p => p.is_archived) || [],
             projectRoomsData: {}, // Initialize empty, will be populated on demand
-            projectHistory: {}, // Initialize empty, will be populated during session
+            projectHistory: projectHistoryMap, // Populate with loaded history
             contractors: transformedContractors || [],
             contractorProjects,
             invoices: transformedInvoices,
