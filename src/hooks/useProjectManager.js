@@ -15,14 +15,13 @@ const getDefaultCategories = () => [
 ];
 
 export const useProjectManager = (appData, setAppData) => {
-  const { 
-    activeContractorId, 
-    contractorProjects, 
-    projectCategories, 
-    projectRoomsData, 
+  const {
+    activeContractorId,
+    contractorProjects,
+    projectCategories,
+    projectRoomsData,
     generalPriceList,
-    archivedProjects,
-    projectHistory 
+    archivedProjects
   } = appData;
   
   // Helper function to find project by ID across all categories
@@ -180,7 +179,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error adding project:', error);
       throw error;
     }
-  }, [activeContractorId, generalPriceList, setAppData]);
+  }, [activeContractorId, generalPriceList, setAppData, archivedProjects, contractorProjects, projectCategories]);
 
   const updateProject = useCallback(async (categoryId, projectId, projectData) => {
     try {
@@ -457,7 +456,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error unarchiving project:', error);
       throw error;
     }
-  }, [appData.archivedProjects, appData.contractorProjects, appData.projectCategories, setAppData]);
+  }, [archivedProjects, setAppData]);
 
   const deleteArchivedProject = useCallback(async (projectId) => {
     try {
