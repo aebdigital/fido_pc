@@ -320,7 +320,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error updating project:', error);
       throw error;
     }
-  }, [setAppData, activeContractorId, contractorProjects, projectCategories]);
+  }, [setAppData]);
 
   const deleteProject = useCallback(async (categoryId, projectId) => {
     try {
@@ -366,7 +366,7 @@ export const useProjectManager = (appData, setAppData) => {
         is_archived: true,
         originalCategoryId: categoryId,
         archivedDate: new Date().toISOString(),
-        contractorId: appData.activeContractorId
+        contractorId: activeContractorId
       };
 
       setAppData(prev => {
@@ -416,11 +416,11 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error archiving project:', error);
       throw error;
     }
-  }, [activeContractorId, findProjectById, setAppData, archivedProjects]);
+  }, [activeContractorId, findProjectById, setAppData]);
 
   const unarchiveProject = useCallback(async (projectId) => {
     try {
-      const archivedProject = appData.archivedProjects.find(p => p.id === projectId);
+      const archivedProject = archivedProjects.find(p => p.id === projectId);
       if (!archivedProject) return;
 
       await api.projects.update(projectId, {
@@ -471,7 +471,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error unarchiving project:', error);
       throw error;
     }
-  }, [archivedProjects, setAppData, contractorProjects, projectCategories]);
+  }, [archivedProjects, setAppData]);
 
   const deleteArchivedProject = useCallback(async (projectId) => {
     try {
