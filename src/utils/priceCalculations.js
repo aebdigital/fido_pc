@@ -1014,6 +1014,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     baseMaterialTotal: materialTotal,
     auxiliaryWorkCost,
     auxiliaryMaterialCost,
+    auxiliaryWorkRate,     // Return the rate used
+    auxiliaryMaterialRate, // Return the rate used
     items,
     materialItems,
     othersItems

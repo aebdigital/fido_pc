@@ -113,7 +113,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
               {/* Add auxiliary work cost at bottom of work section */}
               {calculation.auxiliaryWorkCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <span className="text-gray-600 dark:text-gray-400">{t(WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK)} (65%)</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t(WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK)} ({(calculation.auxiliaryWorkRate * 100).toFixed(0)}%)</span>
                   <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryWorkCost)}</span>
                 </div>
               )}
@@ -263,7 +263,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
               {/* Add auxiliary material cost at bottom of material section */}
               {calculation.auxiliaryMaterialCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <span className="text-gray-600 dark:text-gray-400">{t(MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL)} (10%)</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t(MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL)} ({(calculation.auxiliaryMaterialRate * 100).toFixed(0)}%)</span>
                   <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryMaterialCost)}</span>
                 </div>
               )}
