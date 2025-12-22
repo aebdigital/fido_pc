@@ -605,6 +605,114 @@ ${t('Notes')}: ${invoice.notes}` : ''}
             </div>
           </div>
 
+  const handlePreviewPriceOffer = () => {
+    // Generate Price Offer PDF
+    // Mock an invoice object for the PDF generator since it reuses the structure
+    // We don't need real invoice data like number/dates for Price Offer
+    const priceOfferData = {
+      invoiceNumber: '', // Not used in Price Offer mode
+      projectName: project.name,
+      issueDate: new Date().toISOString(), // Fallbacks
+      dueDate: new Date().toISOString(),
+      paymentMethod: 'transfer'
+    };
+
+    const contractor = getCurrentContractor();
+    const client = clients.find(c => c.id === project.clientId);
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+    const vatRate = getVATRate();
+    const totalWithoutVAT = projectBreakdown?.total || 0;
+    const vat = totalWithoutVAT * vatRate;
+    const totalWithVAT = totalWithoutVAT + vat;
+
+    const formatDate = (dateString) => {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('sk-SK');
+    };
+
+    try {
+      // Import dynamically or assume it's available via closure/import if defined in same file? 
+      // It is imported at top.
+      const { generatePriceOfferPDF } = require('../utils/pdfGenerator');
+      
+      generatePriceOfferPDF({
+        invoice: priceOfferData,
+        contractor,
+        client,
+        projectBreakdown,
+        vatRate,
+        totalWithoutVAT,
+        vat,
+        totalWithVAT,
+        formatDate,
+        formatPrice,
+        projectNotes: project.notes // Pass "Poznámky k CP"
+      });
+    } catch (error) {
+      console.error('Error generating Price Offer PDF:', error);
+      alert(t('Unable to generate PDF. Please try again.'));
+    }
+  };
+
+  const handleSendPriceOffer = async () => {
+    // Similar to handleSendInvoice but for Price Offer
+    const contractor = getCurrentContractor();
+    const client = clients.find(c => c.id === project.clientId);
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+    const vatRate = getVATRate();
+    const totalWithoutVAT = projectBreakdown?.total || 0;
+    const vat = totalWithoutVAT * vatRate;
+    const totalWithVAT = totalWithoutVAT + vat;
+
+    const text = `
+${t('Cenová ponuka')}
+${project.name}
+
+${t('Contractor')}: ${contractor?.name || '-'}
+${t('Client')}: ${client?.name || '-'}
+
+${t('without VAT')}: ${formatPrice(totalWithoutVAT)}
+${t('VAT (23%)')}: ${formatPrice(vat)}
+${t('Total price')}: ${formatPrice(totalWithVAT)}
+${project.notes ? `
+${t('Notes_CP')}: ${project.notes}` : ''}
+    `.trim();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${t('Cenová ponuka')} - ${project.name}`,
+          text: text,
+        });
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing:', error);
+          alert(t('Unable to share. Please try again.'));
+        }
+      }
+    } else {
+      // Fallback
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text)
+          .then(() => alert(t('Invoice details copied to clipboard'))) // Reuse translation or add new
+          .catch(() => alert(t('Unable to share. Please try again.')));
+      } else {
+        alert(t('Sharing not supported on this device'));
+      }
+    }
+  };
+
+  return (
+    <div className="flex-1 p-0 lg:p-6 overflow-y-auto min-w-0">
+      
+      {/* ... Project Header ... */}
+      
+      {/* ... Left Column ... */}
+          
+          {/* ... Client Section ... */}
+
+          {/* ... Project Rooms Section ... */}
+
           {/* Price Overview */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -629,34 +737,54 @@ ${t('Notes')}: ${invoice.notes}` : ''}
               </div>
 
               {!project.is_archived && (
-                !getInvoiceForProject(project.id) ? (
+                <div className="flex gap-3 mt-6">
                   <button
-                    onClick={() => setShowInvoiceCreationModal(true)}
-                    className="w-full mt-6 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    onClick={handlePreviewPriceOffer}
+                    className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
+                    <Eye className="w-4 h-4" />
+                    <span className="text-sm sm:text-lg">{t('Náhľad')}</span>
                   </button>
-                ) : (
-                  <div className="flex gap-3 mt-6">
-                    <button
-                      onClick={handlePreviewPDF}
-                      className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span className="text-sm sm:text-lg">{t('Preview Invoice')}</span>
-                    </button>
-                    <button
-                      onClick={handleSendInvoice}
-                      className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                    >
-                      <Send className="w-4 h-4" />
-                      <span className="text-sm sm:text-lg">{t('Send Invoice')}</span>
-                    </button>
-                  </div>
-                )
+                  <button
+                    onClick={handleSendPriceOffer}
+                    className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span className="text-sm sm:text-lg">{t('Odoslať')}</span>
+                  </button>
+                </div>
               )}
             </div>
+
+            {/* Create/View Invoice Button - Moved outside and below */}
+            {!project.is_archived && (
+              !getInvoiceForProject(project.id) ? (
+                <button
+                  onClick={() => setShowInvoiceCreationModal(true)}
+                  className="w-full bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
+                </button>
+              ) : (
+                <div className="flex gap-3">
+                  <button
+                    onClick={handlePreviewPDF}
+                    className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span className="text-sm sm:text-lg">{t('Preview Invoice')}</span>
+                  </button>
+                  <button
+                    onClick={handleSendInvoice}
+                    className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span className="text-sm sm:text-lg">{t('Send Invoice')}</span>
+                  </button>
+                </div>
+              )
+            )}
           </div>
 
           {/* Invoices List (if exists) */}

@@ -28,8 +28,11 @@ export const generateInvoicePDF = ({
   vat,
   totalWithVAT,
   formatDate,
-  formatPrice
+  formatPrice,
+  options = {}
 }) => {
+  const { isPriceOffer = false, projectNotes = '' } = options;
+
   // Internal helper for PDF currency formatting (7,00 €)
   const formatCurrency = (amount) => {
     return (amount || 0).toFixed(2).replace('.', ',') + ' €';
@@ -56,41 +59,68 @@ export const generateInvoicePDF = ({
       }
     }
 
-    // Invoice number and project name - left side
+    // Invoice number / Price Offer title - left side
     doc.setFontSize(14);
     doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText(`Faktura ${invoice.invoiceNumber}`), 20, 20);
-    doc.setFontSize(11);
-    doc.setFont('Inter', 'normal');
-    // Reduced gap between title and project name
-    doc.text(sanitizeText(`Cenova ponuka ${invoice.projectName || ''}`), 20, 24);
+    
+    if (isPriceOffer) {
+      doc.text(sanitizeText('Cenová ponuka'), 20, 20);
+      
+      // Project name
+      if (invoice.projectName) {
+        doc.setFontSize(11);
+        doc.setFont('Inter', 'normal');
+        doc.text(sanitizeText(invoice.projectName), 20, 26);
+      }
 
-    // Date info - below the logo on right side (pushed further down)
-    const dateY = 10 + headerLogoSize + 8; // More space below logo
-    const rightBlockX = 190;
-    const labelX = rightBlockX - 50; // Start labels 50 units left of right edge
+      // Project Notes (Poznámka k cenovej ponuke)
+      if (projectNotes) {
+        doc.setFontSize(9);
+        doc.setFont('Inter', 'bold');
+        doc.text(sanitizeText('Poznámka k cenovej ponuke:'), 20, 34);
+        
+        doc.setFontSize(9);
+        doc.setFont('Inter', 'normal');
+        const splitNotes = doc.splitTextToSize(sanitizeText(projectNotes), 100);
+        doc.text(splitNotes, 20, 39);
+      }
+    } else {
+      doc.text(sanitizeText(`Faktura ${invoice.invoiceNumber}`), 20, 20);
+      doc.setFontSize(11);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText(`Cenova ponuka ${invoice.projectName || ''}`), 20, 24);
+    }
 
-    doc.setFontSize(8);
+    // Date info - Only for Invoice
+    if (!isPriceOffer) {
+      const dateY = 10 + headerLogoSize + 8; // More space below logo
+      const rightBlockX = 190;
+      const labelX = rightBlockX - 50; // Start labels 50 units left of right edge
 
-    // Row 1 - Issue date
-    doc.text(sanitizeText('Dátum vystavenia:'), labelX, dateY, { align: 'left' });
-    doc.text(sanitizeText(formatDate(invoice.issueDate)), rightBlockX, dateY, { align: 'right' });
+      doc.setFontSize(8);
 
-    // Row 2 - Payment due date
-    doc.text(sanitizeText('Dátum splatnosti:'), labelX, dateY + 4, { align: 'left' });
-    doc.text(sanitizeText(formatDate(invoice.dueDate)), rightBlockX, dateY + 4, { align: 'right' });
+      // Row 1 - Issue date
+      doc.text(sanitizeText('Dátum vystavenia:'), labelX, dateY, { align: 'left' });
+      doc.text(sanitizeText(formatDate(invoice.issueDate)), rightBlockX, dateY, { align: 'right' });
 
-    // Row 3 - Delivery/Dispatch date
-    doc.text(sanitizeText('Dátum dodania:'), labelX, dateY + 8, { align: 'left' });
-    doc.text(sanitizeText(formatDate(invoice.dispatchDate || invoice.issueDate)), rightBlockX, dateY + 8, { align: 'right' });
+      // Row 2 - Payment due date
+      doc.text(sanitizeText('Dátum splatnosti:'), labelX, dateY + 4, { align: 'left' });
+      doc.text(sanitizeText(formatDate(invoice.dueDate)), rightBlockX, dateY + 4, { align: 'right' });
 
-    // Row 4 - Payment method
-    const paymentText = invoice.paymentMethod === 'cash' ? 'Hotovosť' : 'Prevodom';
-    doc.text(sanitizeText('Forma úhrady:'), labelX, dateY + 12, { align: 'left' });
-    doc.text(sanitizeText(paymentText), rightBlockX, dateY + 12, { align: 'right' });
+      // Row 3 - Delivery/Dispatch date
+      doc.text(sanitizeText('Dátum dodania:'), labelX, dateY + 8, { align: 'left' });
+      doc.text(sanitizeText(formatDate(invoice.dispatchDate || invoice.issueDate)), rightBlockX, dateY + 8, { align: 'right' });
+
+      // Row 4 - Payment method
+      const paymentText = invoice.paymentMethod === 'cash' ? 'Hotovosť' : 'Prevodom';
+      doc.text(sanitizeText('Forma úhrady:'), labelX, dateY + 12, { align: 'left' });
+      doc.text(sanitizeText(paymentText), rightBlockX, dateY + 12, { align: 'right' });
+    }
 
     // === CLIENT SECTION (Odberatel) - Left side under header ===
-    let clientY = 35;
+    // Adjust start Y based on whether notes were shown
+    let clientY = isPriceOffer && projectNotes ? 55 : 35; // Push down if notes exist
+    
     doc.setFontSize(8);
     doc.setFont('Inter', 'bold');
     doc.text(sanitizeText('Odberatel'), 20, clientY);
@@ -166,64 +196,74 @@ export const generateInvoicePDF = ({
       clientY += 4;
     }
 
-    // === FOUR INFO BOXES - Below client section ===
-    const boxY = Math.max(clientY + 5, 75);
-    const ibanBoxWidth = 52; // Wider box for IBAN
-    const boxWidth = 36; // Smaller equal width for other 3 boxes
-    const boxHeight = 12; // Reduced height (less bottom padding)
-    const boxStartX = 20;
-    const gap = 3; // Gaps between boxes
-    const borderRadius = 4; // Bigger border radius
+    // === FOUR INFO BOXES - Only for Invoice ===
+    let tableStartY = clientY + 10;
+    let boxY = 0;
+    let boxHeight = 0;
 
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.3);
+    if (!isPriceOffer) {
+      boxY = Math.max(clientY + 5, 75);
+      const ibanBoxWidth = 52; // Wider box for IBAN
+      const boxWidth = 36; // Smaller equal width for other 3 boxes
+      boxHeight = 12; // Reduced height (less bottom padding)
+      const boxStartX = 20;
+      const gap = 3; // Gaps between boxes
+      const borderRadius = 4; // Bigger border radius
 
-    // Get bank account for first box
-    const contractorBankAccount = contractor?.bank_account_number || contractor?.bankAccount || '';
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.3);
 
-    // Box 1: Cislo uctu / IBAN (wider)
-    doc.roundedRect(boxStartX, boxY, ibanBoxWidth, boxHeight, borderRadius, borderRadius);
-    doc.setFontSize(6);
-    doc.setFont('Inter', 'normal');
-    doc.text(sanitizeText('Číslo účtu / IBAN'), boxStartX + 2, boxY + 4);
-    doc.setFontSize(7);
-    doc.setFont('Inter', 'bold');
-    // Truncate IBAN if too long to fit in wider box
-    const ibanDisplay = contractorBankAccount.length > 26 ? contractorBankAccount.substring(0, 26) + '...' : contractorBankAccount;
-    doc.text(sanitizeText(ibanDisplay || '-'), boxStartX + 2, boxY + 8);
+      // Get bank account for first box
+      const contractorBankAccount = contractor?.bank_account_number || contractor?.bankAccount || '';
 
-    // Box 2: Variabilny symbol
-    const box2X = boxStartX + ibanBoxWidth + gap;
-    doc.roundedRect(box2X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
-    doc.setFontSize(6);
-    doc.setFont('Inter', 'normal');
-    doc.text(sanitizeText('Variabilný symbol'), box2X + 2, boxY + 4);
-    doc.setFontSize(7);
-    doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText(invoice.invoiceNumber), box2X + 2, boxY + 8);
+      // Box 1: Cislo uctu / IBAN (wider)
+      doc.roundedRect(boxStartX, boxY, ibanBoxWidth, boxHeight, borderRadius, borderRadius);
+      doc.setFontSize(6);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText('Číslo účtu / IBAN'), boxStartX + 2, boxY + 4);
+      doc.setFontSize(7);
+      doc.setFont('Inter', 'bold');
+      // Truncate IBAN if too long to fit in wider box
+      const ibanDisplay = contractorBankAccount.length > 26 ? contractorBankAccount.substring(0, 26) + '...' : contractorBankAccount;
+      doc.text(sanitizeText(ibanDisplay || '-'), boxStartX + 2, boxY + 8);
 
-    // Box 3: Datum splatnosti
-    const box3X = box2X + boxWidth + gap;
-    doc.roundedRect(box3X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
-    doc.setFontSize(6);
-    doc.setFont('Inter', 'normal');
-    doc.text(sanitizeText('Dátum splatnosti'), box3X + 2, boxY + 4);
-    doc.setFontSize(7);
-    doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText(formatDate(invoice.dueDate)), box3X + 2, boxY + 8);
+      // Box 2: Variabilny symbol
+      const box2X = boxStartX + ibanBoxWidth + gap;
+      doc.roundedRect(box2X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+      doc.setFontSize(6);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText('Variabilný symbol'), box2X + 2, boxY + 4);
+      doc.setFontSize(7);
+      doc.setFont('Inter', 'bold');
+      doc.text(sanitizeText(invoice.invoiceNumber), box2X + 2, boxY + 8);
 
-    // Box 4: Suma na uhradu
-    const box4X = box3X + boxWidth + gap;
-    doc.roundedRect(box4X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
-    doc.setFontSize(6);
-    doc.setFont('Inter', 'normal');
-    doc.text(sanitizeText('Suma na úhradu'), box4X + 2, boxY + 4);
-    doc.setFontSize(7);
-    doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText(formatCurrency(totalWithVAT)), box4X + 2, boxY + 8);
+      // Box 3: Datum splatnosti
+      const box3X = box2X + boxWidth + gap;
+      doc.roundedRect(box3X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+      doc.setFontSize(6);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText('Dátum splatnosti'), box3X + 2, boxY + 4);
+      doc.setFontSize(7);
+      doc.setFont('Inter', 'bold');
+      doc.text(sanitizeText(formatDate(invoice.dueDate)), box3X + 2, boxY + 8);
+
+      // Box 4: Suma na uhradu
+      const box4X = box3X + boxWidth + gap;
+      doc.roundedRect(box4X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+      doc.setFontSize(6);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText('Suma na úhradu'), box4X + 2, boxY + 4);
+      doc.setFontSize(7);
+      doc.setFont('Inter', 'bold');
+      doc.text(sanitizeText(formatCurrency(totalWithVAT)), box4X + 2, boxY + 8);
+      
+      tableStartY = boxY + boxHeight + 5;
+    } else {
+      // For Price Offer, start table closer to client section
+      tableStartY = Math.max(clientY + 10, 60);
+    }
 
     // === ITEMS TABLE ===
-    const tableStartY = Math.max(clientY + 5, boxY + boxHeight + 5);
 
     // Build detailed breakdown from project
     const tableData = [];
@@ -570,4 +610,14 @@ export const generateInvoicePDF = ({
     console.error('Error generating PDF:', error);
     throw error;
   }
+};
+
+export const generatePriceOfferPDF = (params) => {
+  return generateInvoicePDF({
+    ...params,
+    options: {
+      isPriceOffer: true,
+      projectNotes: params.projectNotes || ''
+    }
+  });
 };
