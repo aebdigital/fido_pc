@@ -119,8 +119,20 @@ const PriceOfferSettings = ({ onBack }) => {
           </div>
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              {/* Left side - Save button */}
-              <div className="flex items-center gap-3 order-2 sm:order-1">
+              {/* Left side - Input */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={timeLimit}
+                  onChange={(e) => handleTimeLimitChange(parseInt(e.target.value) || 30)}
+                  min="1"
+                  max="365"
+                  className="w-20 p-2 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 text-center"
+                />
+                <span className="text-gray-600 dark:text-gray-400">{t('days')}</span>
+              </div>
+              {/* Right side - Save button */}
+              <div className="flex items-center gap-3">
                 <button
                   onClick={handleSaveSettings}
                   disabled={!hasChanges || isSaving}
@@ -141,18 +153,6 @@ const PriceOfferSettings = ({ onBack }) => {
                   <h3 className="font-medium text-gray-900 dark:text-white text-lg mb-1">{t('Offer validity period')}</h3>
                   <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('How long price offers remain valid')}</p>
                 </div>
-              </div>
-              {/* Right side - Input */}
-              <div className="flex items-center gap-3 order-1 sm:order-2">
-                <input
-                  type="number"
-                  value={timeLimit}
-                  onChange={(e) => handleTimeLimitChange(parseInt(e.target.value) || 30)}
-                  min="1"
-                  max="365"
-                  className="w-20 p-2 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 text-center"
-                />
-                <span className="text-gray-600 dark:text-gray-400">{t('days')}</span>
               </div>
             </div>
           </div>
@@ -187,7 +187,7 @@ const PriceOfferSettings = ({ onBack }) => {
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {contractors.map((contractor) => (
                 <div key={contractor.id} className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -204,42 +204,7 @@ const PriceOfferSettings = ({ onBack }) => {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                        {contractor.email && (
-                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <Mail className="w-4 h-4 flex-shrink-0" />
-                            <span className="truncate">{contractor.email}</span>
-                          </div>
-                        )}
-                        {contractor.phone && (
-                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <Phone className="w-4 h-4 flex-shrink-0" />
-                            <span>{contractor.phone}</span>
-                          </div>
-                        )}
-                        {contractor.website && (
-                          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <Globe className="w-4 h-4 flex-shrink-0" />
-                            <span className="truncate">{contractor.website}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {(contractor.street || contractor.city) && (
-                        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                          <p>
-                            {contractor.street && `${contractor.street}`}
-                            {contractor.additionalInfo && `, ${contractor.additionalInfo}`}
-                          </p>
-                          {contractor.city && (
-                            <p>
-                              {contractor.postalCode && `${contractor.postalCode} `}
-                              {contractor.city}
-                              {contractor.country && `, ${contractor.country}`}
-                            </p>
-                          )}
-                        </div>
-                      )}
+
                     </div>
                     
                     <div className="flex gap-2 self-end lg:self-auto">
