@@ -96,7 +96,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
         vat,
         totalWithVAT,
         formatDate,
-        formatPrice
+        formatPrice,
+        t // Pass the t function
       });
       setPdfUrl(result.blobUrl);
       setShowPDFPreview(true);

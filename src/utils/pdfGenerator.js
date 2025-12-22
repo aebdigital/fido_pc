@@ -29,6 +29,7 @@ export const generateInvoicePDF = ({
   totalWithVAT,
   formatDate,
   formatPrice,
+  t, // Add t function here
   options = {}
 }) => {
   const { isPriceOffer = false, projectNotes = '', projectNumber = '', offerValidityPeriod = 30 } = options;
@@ -594,9 +595,10 @@ export const generateInvoicePDF = ({
   }
 };
 
-export const generatePriceOfferPDF = (params) => {
+export const generatePriceOfferPDF = (params, t) => {
   return generateInvoicePDF({
     ...params,
+    t, // Pass t here
     options: {
       isPriceOffer: true,
       projectNotes: params.projectNotes || '',

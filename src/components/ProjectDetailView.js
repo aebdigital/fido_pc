@@ -346,7 +346,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         formatPrice,
         projectNotes: project.notes,
         offerValidityPeriod: priceOfferSettings?.timeLimit || 30
-      });
+      }, t); // Pass t as the second argument
       setPdfUrl(result.blobUrl);
       setShowPDFPreview(true);
     } catch (error) {

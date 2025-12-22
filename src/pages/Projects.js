@@ -320,7 +320,7 @@ const Projects = () => {
                    onClick={handleCreateContractorProfile}>
                 <div className="mb-3 sm:mb-0">
                   <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('Create new profile')}</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm lg:text-base">{t('Fill out information for price offers')}</p>
+
                 </div>
                 <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md self-end sm:self-auto">
                   <Plus className="w-5 h-5" />

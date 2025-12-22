@@ -696,35 +696,40 @@ const Clients = () => {
 
           {/* Clients List */}
           {filteredClients.length > 0 ? (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredClients.map(client => (
-                <div
-                  key={client.id}
-                  className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 transition-colors flex items-center justify-between shadow-sm hover:shadow-md"
-                >
-                  <button
-                    onClick={() => handleClientSelect(client)}
-                    className="flex-1 text-left hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  >
-                    <span className="font-medium text-gray-900 dark:text-white text-lg truncate">{client.name}</span>
-                  </button>
-                  <div className="flex items-center gap-2 ml-4">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClient(client.id);
-                      }}
-                      className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-                      title={t('Delete client')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleClientSelect(client)}
-                      className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
+                <div key={client.id} className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{client.name}</h3>
+                          {client.contactPerson && (
+                            <p className="text-gray-600 dark:text-gray-400">{client.contactPerson}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 self-end lg:self-auto">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleClientSelect(client); }}
+                        className="p-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
+                        title={t('Edit client')}
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClient(client.id); }}
+                        className="p-2 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-800 transition-colors border border-red-200 dark:border-red-700"
+                        title={t('Delete client')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
