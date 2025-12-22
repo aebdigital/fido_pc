@@ -134,127 +134,32 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                 <span className="font-semibold text-gray-900 dark:text-white">{t('Material')}</span>
                 <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.materialTotal)}</span>
               </div>
-              {calculation.items.some(item => item.calculation?.materialCost > 0) ? (
+              {calculation.materialItems && calculation.materialItems.length > 0 ? (
                 (() => {
                   const materialGroups = {};
                   
                   // Group materials by name and subtitle
-                  calculation.items.forEach(item => {
-                    // Handle sanitary installations separately (no material object, just cost)
-                    if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && item.calculation?.materialCost > 0) {
-                      const sanitaryKey = `${item.name}-${item.subtitle || 'no-subtitle'}`;
+                  calculation.materialItems.forEach(item => {
+                    const materialKey = `${item.name}-${item.subtitle || 'no-subtitle'}`;
 
-                      if (!materialGroups[sanitaryKey]) {
-                        materialGroups[sanitaryKey] = {
-                          material: {
-                            name: item.name,
-                            subtitle: item.subtitle,
-                            unit: UNIT_TYPES.PIECE
-                          },
-                          totalQuantity: 0,
-                          totalCost: 0,
-                          items: [],
-                          isSanitary: true
-                        };
-                      }
-
-                      const quantity = parseFloat(item.fields[WORK_ITEM_NAMES.COUNT] || 0);
-                      const cost = item.calculation.materialCost;
-
-                      materialGroups[sanitaryKey].totalQuantity += quantity;
-                      materialGroups[sanitaryKey].totalCost += cost;
-                      materialGroups[sanitaryKey].items.push(item);
-                    } else if ((item.propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION || item.propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) && item.calculation?.materialCost > 0) {
-                      // Handle Windows and Door Jambs
-                      const isWindow = item.propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION;
-                      const groupName = isWindow ? WORK_ITEM_NAMES.OKNA_DISPLAY_NAME : WORK_ITEM_NAMES.ZARUBNA_DISPLAY_NAME;
-                      const key = `${groupName}-custom`; // Simple key
-
-                      if (!materialGroups[key]) {
-                        materialGroups[key] = {
-                          material: {
-                            name: groupName,
-                            subtitle: '', 
-                            unit: UNIT_TYPES.PIECE
-                          },
-                          totalQuantity: 0,
-                          totalCost: 0,
-                          items: []
-                        };
-                      }
-
-                      // For windows, quantity is 1 per item (user enters price per piece).
-                      // For door jambs, quantity is defined in Count field.
-                      let quantity = 1;
-                      if (!isWindow) {
-                         quantity = parseFloat(item.fields[WORK_ITEM_NAMES.COUNT] || 0);
-                      }
-                      
-                      const cost = item.calculation.materialCost;
-
-                      materialGroups[key].totalQuantity += quantity;
-                      materialGroups[key].totalCost += cost;
-                      materialGroups[key].items.push(item);
-                    } else if (item.calculation?.materialCost > 0 && item.calculation?.material) {
-                      const material = item.calculation.material;
-                      const materialKey = `${material.name}-${material.subtitle || 'no-subtitle'}`;
-
-                      if (!materialGroups[materialKey]) {
-                        materialGroups[materialKey] = {
-                          material,
-                          totalQuantity: 0,
-                          totalCost: 0,
-                          items: []
-                        };
-                      }
-
-                      const quantity = material.capacity
-                        ? Math.ceil(item.calculation.quantity / material.capacity.value)
-                        : item.calculation.quantity;
-                      const cost = material.capacity
-                        ? quantity * material.price
-                        : item.calculation.quantity * material.price;
-
-                      materialGroups[materialKey].totalQuantity += quantity;
-                      materialGroups[materialKey].totalCost += cost;
-                      materialGroups[materialKey].items.push(item);
+                    if (!materialGroups[materialKey]) {
+                      materialGroups[materialKey] = {
+                        name: item.name,
+                        subtitle: item.subtitle,
+                        unit: item.calculation.unit,
+                        totalQuantity: 0,
+                        totalCost: 0
+                      };
                     }
-                    
-                    // Handle additional materials (like adhesive)
-                    if (item.calculation?.additionalMaterial) {
-                      const additionalMaterial = item.calculation.additionalMaterial;
-                      const additionalKey = `${additionalMaterial.name}-${additionalMaterial.subtitle || 'no-subtitle'}`;
 
-                      if (!materialGroups[additionalKey]) {
-                        materialGroups[additionalKey] = {
-                          material: additionalMaterial,
-                          totalQuantity: 0,
-                          totalCost: 0,
-                          items: []
-                        };
-                      }
-
-                      // Use additionalMaterialQuantity if available (for aggregated calculations like tiling/paving adhesive)
-                      const quantityToUse = item.calculation.additionalMaterialQuantity || item.calculation.quantity;
-                      const additionalQuantity = additionalMaterial.capacity
-                        ? Math.ceil(quantityToUse / additionalMaterial.capacity.value)
-                        : quantityToUse;
-                      const additionalCost = additionalMaterial.capacity
-                        ? additionalQuantity * additionalMaterial.price
-                        : quantityToUse * additionalMaterial.price;
-
-                      materialGroups[additionalKey].totalQuantity += additionalQuantity;
-                      materialGroups[additionalKey].totalCost += additionalCost;
-                      materialGroups[additionalKey].items.push(item);
-                    }
+                    materialGroups[materialKey].totalQuantity += item.calculation.quantity;
+                    materialGroups[materialKey].totalCost += item.calculation.materialCost;
                   });
                   
                   // Render grouped materials
                   return Object.values(materialGroups).map((group, index) => {
-                    const materialDescription = `${t(group.material.name)}${group.material.subtitle ? `, ${t(group.material.subtitle)}` : ''}`;
-                    const unit = group.material.capacity 
-                      ? (group.material.unit.includes(UNIT_TYPES.PIECE) ? UNIT_TYPES.PIECE : UNIT_TYPES.PACKAGE)
-                      : group.material.unit?.replace('€/', '');
+                    const materialDescription = `${t(group.name)}${group.subtitle ? `, ${t(group.subtitle)}` : ''}`;
+                    const unit = group.unit && group.unit.includes(UNIT_TYPES.PIECE) ? UNIT_TYPES.PIECE : (group.unit ? group.unit.replace('€/', '') : UNIT_TYPES.METER_SQUARE);
                     
                     return (
                       <div key={`material-group-${index}`} className="flex justify-between items-center text-sm">

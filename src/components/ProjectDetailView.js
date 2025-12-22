@@ -28,6 +28,7 @@ import ContractorProfileModal from './ContractorProfileModal';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import InvoiceDetailModal from './InvoiceDetailModal';
 import PDFPreviewModal from './PDFPreviewModal';
+import ClientForm from './ClientForm';
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t } = useLanguage();
@@ -38,6 +39,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     activeContractorId,
     setActiveContractor,
     addContractor,
+    addClient, // Add this
     updateProject,
     archiveProject,
     unarchiveProject,
@@ -73,6 +75,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [customRoomName, setCustomRoomName] = useState('');
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [showContractorSelector, setShowContractorSelector] = useState(false);
+  const [showCreateClientInModal, setShowCreateClientInModal] = useState(false);
   const [isEditingProjectName, setIsEditingProjectName] = useState(false);
   const [editingProjectName, setEditingProjectName] = useState('');
   const [isEditingProjectNotes, setIsEditingProjectNotes] = useState(false);
@@ -259,11 +262,24 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       await updateProject(project.category, project.id, { c_id: newContractorId });
       setActiveContractor(newContractorId);
       setShowContractorSelector(false);
-      // Project moved to another contractor list, so we go back
-      onBack();
+      // Removed onBack() to keep user in project detail view
     } catch (error) {
       console.error("Failed to reassign:", error);
       alert(t("Failed to reassign project"));
+    }
+  };
+
+  const handleCreateClientInModal = async (clientData) => {
+    try {
+      const newClient = await addClient(clientData);
+      
+      if (newClient) {
+        handleClientSelect(newClient);
+        setShowCreateClientInModal(false);
+      }
+    } catch (error) {
+      console.error('Error creating client:', error);
+      alert('Failed to create client.');
     }
   };
 
@@ -271,8 +287,10 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     try {
       const newContractor = await addContractor(contractorData);
       setShowContractorModal(false);
-      if (contractors.length === 0 && newContractor) {
-        setActiveContractor(newContractor.id);
+      
+      // If we created a contractor from the project detail, select it immediately
+      if (newContractor) {
+        handleAssignProjectContractor(newContractor.id);
       }
     } catch (error) {
       console.error('Error saving contractor:', error);
@@ -316,6 +334,15 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const handlePreviewPriceOffer = () => {
+    // Ensure we have a valid project breakdown
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+    
+    // Safety check: ensure breakdown is valid
+    if (!projectBreakdown) {
+      alert(t('Error calculating project price. Please try again.'));
+      return;
+    }
+
     const priceOfferData = {
       invoiceNumber: '',
       projectName: project.name,
@@ -323,10 +350,6 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       dueDate: new Date().toISOString(),
       paymentMethod: 'transfer'
     };
-
-    const contractor = getCurrentContractor();
-    const client = clients.find(c => c.id === project.clientId);
-    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
     const vatRate = getVATRate();
     const totalWithoutVAT = projectBreakdown?.total || 0;
     const vat = totalWithoutVAT * vatRate;
@@ -749,27 +772,46 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   </div>
 
                   {showContractorSelector && (
-                    <div className="absolute bottom-full left-0 mb-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl z-20 overflow-hidden animate-slide-in">
-                      <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
-                        <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-3 py-2">
-                          {t('Select Contractor')}
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in">
+                        <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
+                        
+                        <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
+                          {contractors.map(contractor => (
+                            <button
+                              key={contractor.id}
+                              onClick={() => handleAssignProjectContractor(contractor.id)}
+                              className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${ 
+                                (project.c_id || activeContractorId) === contractor.id
+                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                  : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                              }`}
+                            >
+                              <span className="font-medium truncate">{contractor.name}</span>
+                              {(project.c_id || activeContractorId) === contractor.id && (
+                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                              )}
+                            </button>
+                          ))}
                         </div>
-                        {contractors.map(contractor => (
-                          <button
-                            key={contractor.id}
-                            onClick={() => handleAssignProjectContractor(contractor.id)}
-                            className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${ 
-                              (project.c_id || activeContractorId) === contractor.id
-                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
-                            }`}
-                          >
-                            <span className="font-medium truncate">{contractor.name}</span>
-                            {(project.c_id || activeContractorId) === contractor.id && (
-                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            )}
-                          </button>
-                        ))}
+
+                        <button 
+                          onClick={() => {
+                            setShowContractorSelector(false);
+                            setShowContractorModal(true);
+                          }}
+                          className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          {t('Add contractor')}
+                        </button>
+
+                        <button 
+                          onClick={() => setShowContractorSelector(false)} 
+                          className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl"
+                        >
+                          {t('Cancel')}
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1018,17 +1060,43 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {showClientSelector && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold mb-4">{t('Select Client')}</h3>
-            <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
-              {clients.map(client => (
-                <button key={client.id} onClick={() => handleClientSelect(client)} className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left">
-                  <div className="font-medium">{client.name}</div>
-                  <div className="text-sm text-gray-500">{client.email}</div>
+          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full ${showCreateClientInModal ? 'max-w-7xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto transition-all`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
+              {showCreateClientInModal && (
+                <button onClick={() => setShowCreateClientInModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-5 h-5" />
                 </button>
-              ))}
+              )}
             </div>
-            <button onClick={() => setShowClientSelector(false)} className="w-full px-4 py-3 bg-gray-100 rounded-xl">{t('Cancel')}</button>
+            
+            {showCreateClientInModal ? (
+              <ClientForm 
+                onSave={handleCreateClientInModal} 
+                onCancel={() => setShowCreateClientInModal(false)} 
+              />
+            ) : (
+              <>
+                <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
+                  {clients.map(client => (
+                    <button key={client.id} onClick={() => handleClientSelect(client)} className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left">
+                      <div className="font-medium">{client.name}</div>
+                      <div className="text-sm text-gray-500">{client.email}</div>
+                    </button>
+                  ))}
+                </div>
+                
+                <button 
+                  onClick={() => setShowCreateClientInModal(true)}
+                  className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('Add client')}
+                </button>
+                
+                <button onClick={() => setShowClientSelector(false)} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl">{t('Cancel')}</button>
+              </>
+            )}
           </div>
         </div>
       )}

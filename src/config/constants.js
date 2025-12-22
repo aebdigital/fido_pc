@@ -27,7 +27,7 @@ export const MATERIAL_ITEM_NAMES = {
   PLASTER: 'Plaster',
   PRIMER: 'Primer',
   SELF_LEVELLING_COMPOUND: 'Self-levelling compound',
-  SKIRTING_BOARD: 'Skirting board',
+  SKIRTING_BOARD: 'Soklové lišty',
   SILICONE: 'Silicone',
   FLOATING_FLOOR: 'Floating floor',
   AUXILIARY_AND_FASTENING_MATERIAL: 'Auxiliary and fastening material'
@@ -106,6 +106,7 @@ export const WORK_ITEM_NAMES = {
   PAINTING: 'Painting',
   LEVELLING: 'Levelling',
   FLOATING_FLOOR: 'Floating floor',
+  SKIRTING: 'Lištovanie',
   TILING_UNDER_60CM: 'Tiling under 60cm',
   PAVING_UNDER_60CM: 'Paving under 60cm',
   GROUTING: 'Grouting',

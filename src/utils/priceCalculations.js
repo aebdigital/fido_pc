@@ -553,6 +553,9 @@ export const calculateWorkItemWithMaterials = (
   
   quantity = Math.max(0, quantity);
   
+  // Initialize materialQuantityToUse with base quantity
+  let materialQuantityToUse = quantity;
+
   // For sanitary installations, use the user-entered Price field as material cost
   let materialCost = 0;
   let material = null;
@@ -576,7 +579,12 @@ export const calculateWorkItemWithMaterials = (
       (workItem.selectedType ? `${workItem.subtitle}, ${workItem.selectedType}` : workItem.subtitle) :
       workItem.selectedType;
     material = findMatchingMaterial(priceItem.name, fullSubtype, priceList);
-    materialCost = material ? calculateMaterialCost(workItem, material, quantity) : 0;
+    
+    if (material && workItem.propertyId === WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR) {
+      materialQuantityToUse = Math.ceil(quantity * 1.1); // Add 10% and round up for floating floor material
+    }
+
+    materialCost = material ? calculateMaterialCost(workItem, material, materialQuantityToUse) : 0;
   }
   
   // For tiling and paving works, also add adhesive cost
@@ -631,7 +639,8 @@ export const calculateWorkItemWithMaterials = (
     material,
     additionalMaterial,
     additionalMaterialQuantity,
-    quantity
+    quantity,
+    materialQuantity: materialQuantityToUse // Return the specific material quantity used
   };
 };
 
@@ -672,6 +681,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   let nettingAdhesiveAdded = false;
   // Track non-large-format tiling/paving area for grouting calculation
   let totalGroutingArea = 0;
+  // Track floating floor perimeter for skirting calculation
+  let totalFloatingFloorPerimeter = 0;
 
   room.workItems.forEach(workItem => {
     const priceItem = findPriceListItem(workItem, activePriceList);
@@ -686,6 +697,10 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
                         priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SIETKOVANIE.toLowerCase()) ||
                         workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_WALL ||
                         workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING;
+      const isFloatingFloor = priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.FLOATING_FLOOR.toLowerCase()) ||
+                              priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.PLAVAJUCA_PODLAHA.toLowerCase()) ||
+                              workItem.propertyId === WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR;
+                              
       const isLargeFormat = isTilingOrPaving && workItem.fields[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD];
 
       if (isTilingOrPaving) {
@@ -712,6 +727,25 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           area = parseFloat(values.Width || 0) * parseFloat(values.Height || 0);
         }
         totalNettingArea += area;
+      }
+      
+      if (isFloatingFloor) {
+        const values = workItem.fields;
+        let perimeter = 0;
+        if (values.Width && values.Length) {
+          perimeter = (parseFloat(values.Width || 0) + parseFloat(values.Length || 0)) * 2;
+        } else if (values.Width && values.Height) {
+          perimeter = (parseFloat(values.Width || 0) + parseFloat(values.Height || 0)) * 2;
+        } else if (values.Circumference) {
+          perimeter = parseFloat(values.Circumference || 0);
+        }
+        
+        // Subtract door widths from perimeter if doors are defined?
+        // Usually skirting is not installed under doors. 
+        // Logic: perimeter - (doors * door_width)
+        // For simplicity, using simple perimeter for now as per instructions "2+2+5+5 thats 14".
+        
+        totalFloatingFloorPerimeter += perimeter;
       }
     }
   });
@@ -850,7 +884,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           if (calculation.material) {
             const materialUnit = calculation.material.unit || UNIT_TYPES.METER_SQUARE;
             const materialPrice = calculation.material.price || 0;
-            const materialQuantity = calculation.quantity || 0;
+            const materialQuantity = calculation.materialQuantity || calculation.quantity || 0;
             let materialCostForItem = 0;
 
             if (calculation.material.capacity) {
@@ -1035,6 +1069,72 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           materialCost: 0,
           quantity: totalGroutingArea,
           unit: UNIT_TYPES.METER_SQUARE
+        }
+      });
+    }
+  }
+  
+  // Add Skirting (Lištovanie) work and material for Floating Floor
+  if (totalFloatingFloorPerimeter > 0) {
+    // 1. Skirting Work (Lištovanie)
+    let skirtingWorkItem = activePriceList.work.find(item => 
+      item.name === WORK_ITEM_NAMES.SKIRTING // Matches 'Lištovanie'
+    );
+    
+    // Fallback for old projects/snapshots that still have 'Skirting'
+    if (!skirtingWorkItem) {
+      skirtingWorkItem = activePriceList.work.find(item => item.name === 'Skirting');
+    }
+    
+    if (skirtingWorkItem) {
+      const skirtingWorkCost = totalFloatingFloorPerimeter * skirtingWorkItem.price;
+      workTotal += skirtingWorkCost;
+      
+      items.push({
+        id: 'skirting_work',
+        name: WORK_ITEM_NAMES.SKIRTING, // Force 'Lištovanie' regardless of what was found
+        subtitle: skirtingWorkItem.subtitle || '',
+        propertyId: 'skirting_work_auto', // Virtual property ID
+        calculation: {
+          workCost: skirtingWorkCost,
+          materialCost: 0,
+          quantity: totalFloatingFloorPerimeter,
+          unit: UNIT_TYPES.METER
+        }
+      });
+    }
+    
+    // 2. Skirting Board Material (Soklové lišty)
+    let skirtingMaterialItem = activePriceList.material.find(item => 
+      item.name === MATERIAL_ITEM_NAMES.SKIRTING_BOARD // Matches 'Soklové lišty'
+    );
+    
+    // Fallback for old projects/snapshots that still have 'Skirting board'
+    if (!skirtingMaterialItem) {
+      skirtingMaterialItem = activePriceList.material.find(item => item.name === 'Skirting board');
+    }
+    
+    if (skirtingMaterialItem) {
+      let skirtingMaterialCost = 0;
+      // Handle capacity if defined (though usually skirting is per meter)
+      if (skirtingMaterialItem.capacity) {
+        const packagesNeeded = Math.ceil(totalFloatingFloorPerimeter / skirtingMaterialItem.capacity.value);
+        skirtingMaterialCost = packagesNeeded * skirtingMaterialItem.price;
+      } else {
+        skirtingMaterialCost = totalFloatingFloorPerimeter * skirtingMaterialItem.price;
+      }
+      
+      materialTotal += skirtingMaterialCost;
+      
+      materialItems.push({
+        id: 'skirting_material',
+        name: MATERIAL_ITEM_NAMES.SKIRTING_BOARD, // Force 'Soklové lišty' regardless of what was found
+        subtitle: skirtingMaterialItem.subtitle || '',
+        calculation: {
+          quantity: totalFloatingFloorPerimeter,
+          materialCost: skirtingMaterialCost,
+          pricePerUnit: skirtingMaterialItem.price,
+          unit: UNIT_TYPES.METER
         }
       });
     }

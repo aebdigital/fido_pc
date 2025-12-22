@@ -32,11 +32,19 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
       
       // Add isOverridden flag and originalPrice for each item
       Object.keys(projectPrices).forEach(category => {
-        projectPrices[category] = projectPrices[category].map(item => ({
-          ...item,
-          originalPrice: item.price,
-          isOverridden: false
-        }));
+        projectPrices[category] = projectPrices[category].map(item => {
+          // Normalize names for old projects to new localized constants
+          let normalizedName = item.name;
+          if (item.name === 'Skirting') normalizedName = 'Lištovanie'; // Update Skirting -> Lištovanie
+          if (item.name === 'Skirting board') normalizedName = 'Soklové lišty'; // Update Skirting board -> Soklové lišty
+          
+          return {
+            ...item,
+            name: normalizedName, // Use normalized name
+            originalPrice: item.price,
+            isOverridden: false
+          };
+        });
       });
       
       setProjectPriceData(projectPrices);
@@ -218,7 +226,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             </div>
             
             {expandedSections.work && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 animate-slide-in">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {projectPriceData.work.map((item, index) => (
                   <PriceCard key={index} item={item} category="work" itemIndex={index} />
                 ))}
@@ -240,7 +248,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             </div>
             
             {expandedSections.material && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 animate-slide-in">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {projectPriceData.material.map((item, index) => (
                   <PriceCard key={index} item={item} category="material" itemIndex={index} />
                 ))}
@@ -263,7 +271,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
               </div>
               
               {expandedSections.installations && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 animate-slide-in">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                   {projectPriceData.installations.map((item, index) => (
                     <PriceCard key={index} item={item} category="installations" itemIndex={index} />
                   ))}
@@ -286,7 +294,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             </div>
             
             {expandedSections.others && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4 animate-slide-in">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {projectPriceData.others.map((item, index) => (
                   <PriceCard key={index} item={item} category="others" itemIndex={index} />
                 ))}
