@@ -74,7 +74,7 @@ export const generateInvoicePDF = ({
         doc.setFont('Inter', 'normal');
         // Add some spacing below title
         const splitNotes = doc.splitTextToSize(sanitizeText(projectNotes), 100);
-        doc.text(splitNotes, 20, 30);
+        doc.text(splitNotes, 20, 34);
       }
     } else {
       doc.text(sanitizeText(`Faktura ${invoice.invoiceNumber}`), 20, 20);
