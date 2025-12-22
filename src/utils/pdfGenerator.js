@@ -213,7 +213,7 @@ export const generateInvoicePDF = ({
     let boxHeight = 0;
 
     if (!isPriceOffer) {
-      boxY = Math.max(clientY + 5, 75);
+      boxY = clientY + 5; // Reduced gap, removed min height constraint
       const ibanBoxWidth = 52; // Wider box for IBAN
       const boxWidth = 36; // Smaller equal width for other 3 boxes
       boxHeight = 12; // Reduced height (less bottom padding)
@@ -271,7 +271,7 @@ export const generateInvoicePDF = ({
       tableStartY = boxY + boxHeight + 5;
     } else {
       // For Price Offer, start table closer to client section
-      tableStartY = Math.max(clientY + 10, 60);
+      tableStartY = clientY + 5;
     }
 
     // === ITEMS TABLE ===
