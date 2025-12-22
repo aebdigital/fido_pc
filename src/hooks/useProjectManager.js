@@ -647,10 +647,10 @@ export const useProjectManager = (appData, setAppData) => {
     }
   }, [setAppData]);
 
-  const getProjectRooms = useCallback((projectId) => {
+  const getProjectRooms = (projectId) => {
     const rooms = (appData.projectRoomsData && appData.projectRoomsData[projectId]) || [];
     return rooms;
-  }, [appData.projectRoomsData]);
+  };
 
   return {
     findProjectById,
