@@ -993,8 +993,14 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     }
   });
   
-  const auxiliaryWorkCost = workTotal * 0.65;
-  const auxiliaryMaterialCost = materialTotal * 0.10;
+  // Calculate auxiliary costs based on price list values
+  const auxiliaryWorkItem = activePriceList.work.find(item => item.name === WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK);
+  const auxiliaryWorkRate = auxiliaryWorkItem ? auxiliaryWorkItem.price / 100 : 0.10; // Default to 10% if not found
+  const auxiliaryWorkCost = workTotal * auxiliaryWorkRate;
+
+  const auxiliaryMaterialItem = activePriceList.material.find(item => item.name === MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL);
+  const auxiliaryMaterialRate = auxiliaryMaterialItem ? auxiliaryMaterialItem.price / 100 : 0.10; // Default to 10% if not found
+  const auxiliaryMaterialCost = materialTotal * auxiliaryMaterialRate;
   
   const finalWorkTotal = workTotal + auxiliaryWorkCost;
   const finalMaterialTotal = materialTotal + auxiliaryMaterialCost;

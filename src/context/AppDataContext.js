@@ -115,7 +115,7 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Siliconing', price: 2, unit: '€/m' },
           { name: 'Window installation', price: 7, unit: '€/m' },
           { name: 'Installation of door jamb', price: 60, unit: '€/pc' },
-          { name: 'Auxiliary and finishing work', price: 65, unit: '%' }
+          { name: 'Auxiliary and finishing work', price: 10, unit: '%' }
         ],
         material: [
           { name: 'Partition masonry', subtitle: '75 - 175mm', price: 30, unit: '€/m²' },
