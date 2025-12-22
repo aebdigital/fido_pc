@@ -6,9 +6,6 @@ import {
   Plus,
   Clock,
   Building2,
-  Mail,
-  Phone,
-  Globe,
   Save,
   Loader2
 } from 'lucide-react';

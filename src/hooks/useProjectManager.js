@@ -194,7 +194,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error adding project:', error);
       throw error;
     }
-  }, [activeContractorId, generalPriceList, setAppData, archivedProjects, contractorProjects, projectCategories]);
+  }, [activeContractorId, generalPriceList, setAppData, appData, contractorProjects, projectCategories]);
 
   const updateProject = useCallback(async (categoryId, projectId, projectData) => {
     try {
