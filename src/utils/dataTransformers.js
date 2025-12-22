@@ -52,12 +52,11 @@ export const transformContractorFromDB = (dbContractor) => {
     taxId: dbContractor.tax_id,
     vatNumber: dbContractor.vat_registration_number,
     bankAccount: dbContractor.bank_account_number,
-    bankCode: dbContractor.swift_code,
+    bankCode: dbContractor.swift_code, // Using swift_code for bank code/SWIFT
     legalAppendix: dbContractor.legal_notice,
     logo: dbContractor.logo_url,
     signature: dbContractor.signature_url,
-    userId: dbContractor.user_id,
-    createdAt: dbContractor.created_at
+    price_offer_settings: dbContractor.price_offer_settings
   };
 };
 

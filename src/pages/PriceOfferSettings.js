@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  ArrowLeft, 
-  Edit3, 
-  Trash2, 
-  Plus, 
-  Clock, 
+import {
+  ArrowLeft,
+  Edit3,
+  Trash2,
+  Plus,
+  Clock,
   Building2,
   Mail,
   Phone,
-  Globe
+  Globe,
+  Save,
+  Loader2
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
@@ -28,6 +30,8 @@ const PriceOfferSettings = ({ onBack }) => {
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [editingContractor, setEditingContractor] = useState(null);
   const [timeLimit, setTimeLimit] = useState(priceOfferSettings.timeLimit || 30);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleCreateContractor = () => {
     setEditingContractor(null);
@@ -76,7 +80,20 @@ const PriceOfferSettings = ({ onBack }) => {
 
   const handleTimeLimitChange = (newTimeLimit) => {
     setTimeLimit(newTimeLimit);
-    updatePriceOfferSettings({ timeLimit: newTimeLimit });
+    setHasChanges(true);
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    try {
+      await updatePriceOfferSettings({ timeLimit: timeLimit });
+      setHasChanges(false);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert(t('Failed to save settings. Please try again.'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -102,11 +119,31 @@ const PriceOfferSettings = ({ onBack }) => {
           </div>
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-white text-lg mb-1">{t('Offer validity period')}</h3>
-                <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('How long price offers remain valid')}</p>
+              {/* Left side - Save button */}
+              <div className="flex items-center gap-3 order-2 sm:order-1">
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={!hasChanges || isSaving}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
+                    hasChanges && !isSaving
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 opacity-100 scale-100'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50 scale-95'
+                  }`}
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  <span>{isSaving ? t('Saving...') : t('Save')}</span>
+                </button>
+                <div>
+                  <h3 className="font-medium text-gray-900 dark:text-white text-lg mb-1">{t('Offer validity period')}</h3>
+                  <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('How long price offers remain valid')}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              {/* Right side - Input */}
+              <div className="flex items-center gap-3 order-1 sm:order-2">
                 <input
                   type="number"
                   value={timeLimit}

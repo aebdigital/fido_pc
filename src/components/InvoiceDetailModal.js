@@ -5,6 +5,7 @@ import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
 import InvoiceCreationModal from './InvoiceCreationModal';
+import PDFPreviewModal from './PDFPreviewModal';
 
 const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
   const { t } = useLanguage();
@@ -14,6 +15,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
   // Edit mode state - now opens a modal instead of inline editing
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null);
 
   if (!isOpen || !invoice) return null;
 
@@ -83,7 +86,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
 
   const handlePreview = () => {
     try {
-      generateInvoicePDF({
+      const result = generateInvoicePDF({
         invoice,
         contractor,
         client,
@@ -95,10 +98,19 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
         formatDate,
         formatPrice
       });
-      // Window opening is now handled inside generateInvoicePDF
+      setPdfUrl(result.blobUrl);
+      setShowPDFPreview(true);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert(t('Unable to generate PDF. Please try again.'));
+    }
+  };
+
+  const handleClosePDFPreview = () => {
+    setShowPDFPreview(false);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
     }
   };
 
@@ -409,6 +421,18 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         categoryId={invoice.categoryId}
         editMode={true}
         existingInvoice={invoice}
+      />
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewModal
+        isOpen={showPDFPreview}
+        onClose={handleClosePDFPreview}
+        pdfUrl={pdfUrl}
+        onSend={() => {
+          handleClosePDFPreview();
+          handleSend();
+        }}
+        title={`${t('Invoice')} ${invoice.invoiceNumber}`}
       />
     </div>
   );

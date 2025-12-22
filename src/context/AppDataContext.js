@@ -286,11 +286,25 @@ export const AppDataProvider = ({ children }) => {
     
           // Get active contractor (first one or null)
           const activeContractorId = transformedContractors.length > 0 ? transformedContractors[0].id : null;
+          const activeContractor = transformedContractors.find(c => c.id === activeContractorId);
     
           // Use price list from database or default
           // Find the price list that matches the active contractor
           const priceListData = (allPriceLists || []).find(pl => pl.c_id === activeContractorId);
           const generalPriceList = priceListData?.data || getDefaultData().generalPriceList;
+          
+          // Load price offer settings from active contractor
+          let priceOfferSettings = getDefaultData().priceOfferSettings;
+          if (activeContractor && activeContractor.price_offer_settings) {
+             try {
+                const settings = typeof activeContractor.price_offer_settings === 'string' 
+                  ? JSON.parse(activeContractor.price_offer_settings) 
+                  : activeContractor.price_offer_settings;
+                priceOfferSettings = { ...priceOfferSettings, ...settings };
+             } catch (e) {
+                console.warn('Failed to parse price offer settings', e);
+             }
+          }
     
           // Transform invoices from database format to app format
           const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
@@ -304,10 +318,7 @@ export const AppDataProvider = ({ children }) => {
             contractors: transformedContractors || [],
             contractorProjects,
             invoices: transformedInvoices,
-            priceOfferSettings: {
-              timeLimit: 30,
-              defaultValidityPeriod: 30
-            },
+            priceOfferSettings,
             activeContractorId,
             generalPriceList
           };

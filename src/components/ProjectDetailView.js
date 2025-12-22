@@ -6,6 +6,7 @@ import {
   Trash2,
   Plus,
   ChevronRight,
+  ChevronLeft,
   Copy,
   Archive,
   Eye,
@@ -19,13 +20,14 @@ import {
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
-import { generateInvoicePDF, generatePriceOfferPDF } from '../utils/pdfGenerator';
+import { generatePriceOfferPDF } from '../utils/pdfGenerator';
 import { workProperties } from '../config/workProperties';
 import RoomDetailsModal from './RoomDetailsModal';
 import ProjectPriceList from './ProjectPriceList';
 import ContractorProfileModal from './ContractorProfileModal';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import InvoiceDetailModal from './InvoiceDetailModal';
+import PDFPreviewModal from './PDFPreviewModal';
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t } = useLanguage();
@@ -53,7 +55,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     loadProjectDetails,
     getProjectHistory,
     addProject,
-    assignProjectToClient
+    assignProjectToClient,
+    priceOfferSettings
   } = useAppData();
 
   // Local state
@@ -80,6 +83,11 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
   const [projectDetailNotes, setProjectDetailNotes] = useState('');
   const [isEditingDetailNotes, setIsEditingDetailNotes] = useState(false);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [photoPage, setPhotoPage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxDirection, setLightboxDirection] = useState(0); // -1 for left, 1 for right, 0 for initial
   
   // Refs
   const photoInputRef = useRef(null);
@@ -324,10 +332,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     };
 
     try {
-      // Import dynamically or assume it's available via closure/import if defined in same file? 
-      // It is imported at top.
-      
-      generatePriceOfferPDF({
+      const result = generatePriceOfferPDF({
         invoice: priceOfferData,
         contractor,
         client,
@@ -338,11 +343,22 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         totalWithVAT,
         formatDate,
         formatPrice,
-        projectNotes: project.notes
+        projectNotes: project.notes,
+        offerValidityPeriod: priceOfferSettings?.timeLimit || 30
       });
+      setPdfUrl(result.blobUrl);
+      setShowPDFPreview(true);
     } catch (error) {
       console.error('Error generating Price Offer PDF:', error);
       alert(t('Unable to generate PDF. Please try again.'));
+    }
+  };
+
+  const handleClosePDFPreview = () => {
+    setShowPDFPreview(false);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
     }
   };
 
@@ -389,104 +405,6 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       } else {
         alert(t('Sharing not supported on this device'));
       }
-    }
-  };
-
-  const handlePreviewPDF = () => {
-    const invoice = getInvoiceForProject(project.id);
-    if (!invoice) return;
-
-    const contractor = getCurrentContractor();
-    const client = clients.find(c => c.id === project.clientId);
-    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
-    const vatRate = getVATRate();
-    const totalWithoutVAT = projectBreakdown?.total || 0;
-    const vat = totalWithoutVAT * vatRate;
-    const totalWithVAT = totalWithoutVAT + vat;
-
-    const formatDate = (dateString) => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('sk-SK');
-    };
-
-    try {
-      generateInvoicePDF({
-        invoice,
-        contractor,
-        client,
-        projectBreakdown,
-        vatRate,
-        totalWithoutVAT,
-        vat,
-        totalWithVAT,
-        formatDate,
-        formatPrice
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert(t('Unable to generate PDF. Please try again.'));
-    }
-  };
-
-  const handleSendInvoice = async () => {
-    const invoice = getInvoiceForProject(project.id);
-    if (!invoice) return;
-
-    const contractor = getCurrentContractor();
-    const client = clients.find(c => c.id === project.clientId);
-    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
-    const vatRate = getVATRate();
-    const totalWithoutVAT = projectBreakdown?.total || 0;
-    const vat = totalWithoutVAT * vatRate;
-    const totalWithVAT = totalWithoutVAT + vat;
-
-    const formatDate = (dateString) => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('sk-SK');
-    };
-
-    const invoiceText = `
-${t('Invoice')} ${invoice.invoiceNumber}
-${project.name}
-
-${t('Contractor')}: ${contractor?.name || '-'}
-${t('Client')}: ${client?.name || '-'}
-
-${t('Issue Date')}: ${formatDate(invoice.issueDate)}
-${t('Due Date')}: ${formatDate(invoice.dueDate)}
-${t('Payment Method')}: ${t(invoice.paymentMethod === 'cash' ? 'Cash' : 'Transfer')}
-
-${t('without VAT')}: ${formatPrice(totalWithoutVAT)}
-${t('VAT (23%)')}: ${formatPrice(vat)}
-${t('Total price')}: ${formatPrice(totalWithVAT)}
-${invoice.notes ? `
-${t('Notes')}: ${invoice.notes}` : ''}
-    `.trim();
-
-    const fallbackShare = (text) => {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(text)
-          .then(() => alert(t('Invoice details copied to clipboard')))
-          .catch(() => alert(t('Unable to share. Please try again.')));
-      } else {
-        alert(t('Sharing not supported on this device'));
-      }
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${t('Invoice')} ${invoice.invoiceNumber}`,
-          text: invoiceText,
-        });
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error sharing:', error);
-          fallbackShare(invoiceText);
-        }
-      }
-    } else {
-      fallbackShare(invoiceText);
     }
   };
 
@@ -746,24 +664,7 @@ ${t('Notes')}: ${invoice.notes}` : ''}
                   <Plus className="w-4 h-4" />
                   <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
                 </button>
-              ) : (
-                <div className="flex gap-3">
-                  <button
-                    onClick={handlePreviewPDF}
-                    className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Preview Invoice')}</span>
-                  </button>
-                  <button
-                    onClick={handleSendInvoice}
-                    className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Send Invoice')}</span>
-                  </button>
-                </div>
-              )
+              ) : null
             )}
           </div>
 
@@ -992,14 +893,23 @@ ${t('Notes')}: ${invoice.notes}` : ''}
             </div>
             {projectPhotos.length > 0 ? (
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm">
+                {/* Photo Grid - 3 columns, max 7 rows = 21 photos per page */}
                 <div className="grid grid-cols-3 gap-2">
-                  {projectPhotos.map((photo, index) => (
-                    <div key={photo.id} className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group" onClick={() => setSelectedPhotoIndex(index)}>
-                      <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                  {projectPhotos.slice(photoPage * 21, (photoPage + 1) * 21).map((photo, index) => (
+                    <div
+                      key={photo.id}
+                      className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
+                      onClick={() => {
+                        setSelectedPhotoIndex(photoPage * 21 + index);
+                        setLightboxOpen(true);
+                        setLightboxDirection(0);
+                      }}
+                    >
+                      <img src={photo.url} alt={photo.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                       {!project.is_archived && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
-                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"
+                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -1007,6 +917,37 @@ ${t('Notes')}: ${invoice.notes}` : ''}
                     </div>
                   ))}
                 </div>
+
+                {/* Pagination - only show if more than 21 photos */}
+                {projectPhotos.length > 21 && (
+                  <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={() => setPhotoPage(p => Math.max(0, p - 1))}
+                      disabled={photoPage === 0}
+                      className={`p-2 rounded-xl transition-all duration-200 ${
+                        photoPage === 0
+                          ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {photoPage + 1} / {Math.ceil(projectPhotos.length / 21)}
+                    </span>
+                    <button
+                      onClick={() => setPhotoPage(p => Math.min(Math.ceil(projectPhotos.length / 21) - 1, p + 1))}
+                      disabled={photoPage >= Math.ceil(projectPhotos.length / 21) - 1}
+                      className={`p-2 rounded-xl transition-all duration-200 ${
+                        photoPage >= Math.ceil(projectPhotos.length / 21) - 1
+                          ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="min-h-[120px] flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-2xl">
@@ -1129,11 +1070,100 @@ ${t('Notes')}: ${invoice.notes}` : ''}
         />
       )}
 
+      {/* Animated Lightbox */}
       {selectedPhotoIndex !== null && projectPhotos.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90" onClick={() => setSelectedPhotoIndex(null)}>
-          <img src={projectPhotos[selectedPhotoIndex]?.url} alt={projectPhotos[selectedPhotoIndex]?.name || "Project Photo"} className="max-h-[85vh] max-w-[90vw] object-contain" />
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
+            lightboxOpen
+              ? 'bg-black/80 backdrop-blur-md opacity-100'
+              : 'bg-black/0 backdrop-blur-none opacity-0'
+          }`}
+          onClick={() => {
+            setLightboxOpen(false);
+            setTimeout(() => setSelectedPhotoIndex(null), 300);
+          }}
+        >
+          {/* Close Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxOpen(false);
+              setTimeout(() => setSelectedPhotoIndex(null), 300);
+            }}
+            className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* Previous Arrow */}
+          {selectedPhotoIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxDirection(-1);
+                setSelectedPhotoIndex(prev => prev - 1);
+              }}
+              className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+          )}
+
+          {/* Next Arrow */}
+          {selectedPhotoIndex < projectPhotos.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxDirection(1);
+                setSelectedPhotoIndex(prev => prev + 1);
+              }}
+              className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
+          )}
+
+          {/* Image Container with Slide Animation */}
+          <div
+            className={`transition-all duration-300 ease-out ${
+              lightboxOpen
+                ? 'scale-100 opacity-100'
+                : 'scale-95 opacity-0'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              key={selectedPhotoIndex}
+              src={projectPhotos[selectedPhotoIndex]?.url}
+              alt={projectPhotos[selectedPhotoIndex]?.name || "Project Photo"}
+              className={`max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl ${
+                lightboxDirection === -1
+                  ? 'animate-slide-from-left'
+                  : lightboxDirection === 1
+                  ? 'animate-slide-from-right'
+                  : 'animate-fadeSlideIn'
+              }`}
+            />
+          </div>
+
+          {/* Photo Counter */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 rounded-full text-white text-sm font-medium">
+            {selectedPhotoIndex + 1} / {projectPhotos.length}
+          </div>
         </div>
       )}
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewModal
+        isOpen={showPDFPreview}
+        onClose={handleClosePDFPreview}
+        pdfUrl={pdfUrl}
+        onSend={() => {
+          handleClosePDFPreview();
+          handleSendPriceOffer();
+        }}
+        title={`${t('Cenová ponuka')} - ${project.name}`}
+      />
     </div>
   );
 };

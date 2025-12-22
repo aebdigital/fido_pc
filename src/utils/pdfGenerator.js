@@ -64,17 +64,16 @@ export const generateInvoicePDF = ({
     doc.setFont('Inter', 'bold');
     
     if (isPriceOffer) {
-      // New format: CP {number} - {name} as MAIN TITLE
+      // New format: CP {number} - {name} as MAIN TITLE (same style as invoice)
       const title = `CP ${projectNumber || ''} - ${invoice.projectName || ''}`;
       doc.text(sanitizeText(title), 20, 20);
-      
-      // Project Notes (Poznámka k cenovej ponuke) - WITHOUT LABEL
+
+      // Project Notes - same style as invoice subtitle (fontSize 11, 4px below title)
       if (projectNotes) {
-        doc.setFontSize(9);
+        doc.setFontSize(11);
         doc.setFont('Inter', 'normal');
-        // Add some spacing below title
         const splitNotes = doc.splitTextToSize(sanitizeText(projectNotes), 100);
-        doc.text(splitNotes, 20, 30);
+        doc.text(splitNotes, 20, 24);
       }
     } else {
       doc.text(sanitizeText(`Faktura ${invoice.invoiceNumber}`), 20, 20);
@@ -83,139 +82,113 @@ export const generateInvoicePDF = ({
       doc.text(sanitizeText(`Cenova ponuka ${invoice.projectName || ''}`), 20, 24);
     }
 
-    // Date info - Right side
-    const dateY = 10 + headerLogoSize + 8; // More space below logo
-    const rightBlockX = 190;
-    const labelX = rightBlockX - 50; // Start labels 50 units left of right edge
-
-    doc.setFontSize(8);
-
-    if (isPriceOffer) {
-      // Price Offer Dates
-      // 1. Dátum vystavenia (Issue Date - Today)
-      const today = new Date();
-      doc.text(sanitizeText('Dátum vystavenia:'), labelX, dateY, { align: 'left' });
-      doc.text(sanitizeText(formatDate(today.toISOString())), rightBlockX, dateY, { align: 'right' });
-
-      // 2. Platné do (Valid Until)
-      const validUntil = new Date(today);
-      validUntil.setDate(validUntil.getDate() + parseInt(offerValidityPeriod || 30));
-      
-      doc.text(sanitizeText('Platné do:'), labelX, dateY + 4, { align: 'left' });
-      doc.text(sanitizeText(formatDate(validUntil.toISOString())), rightBlockX, dateY + 4, { align: 'right' });
-
-    } else {
-      // Invoice Dates
-      // Row 1 - Issue date
-      doc.text(sanitizeText('Dátum vystavenia:'), labelX, dateY, { align: 'left' });
-      doc.text(sanitizeText(formatDate(invoice.issueDate)), rightBlockX, dateY, { align: 'right' });
-
-      // Row 2 - Payment due date
-      doc.text(sanitizeText('Dátum splatnosti:'), labelX, dateY + 4, { align: 'left' });
-      doc.text(sanitizeText(formatDate(invoice.dueDate)), rightBlockX, dateY + 4, { align: 'right' });
-
-      // Row 3 - Delivery/Dispatch date
-      doc.text(sanitizeText('Dátum dodania:'), labelX, dateY + 8, { align: 'left' });
-      doc.text(sanitizeText(formatDate(invoice.dispatchDate || invoice.issueDate)), rightBlockX, dateY + 8, { align: 'right' });
-
-      // Row 4 - Payment method
-      const paymentText = invoice.paymentMethod === 'cash' ? 'Hotovosť' : 'Prevodom';
-      doc.text(sanitizeText('Forma úhrady:'), labelX, dateY + 12, { align: 'left' });
-      doc.text(sanitizeText(paymentText), rightBlockX, dateY + 12, { align: 'right' });
-    }
-
     // === CLIENT SECTION (Odberatel) - Left side under header ===
-    // Adjust start Y based on whether notes were shown
-    let clientY = isPriceOffer && projectNotes ? 55 : 35; // Push down if notes exist
-    
-    doc.setFontSize(8);
+    let clientY = 35;
+
+    // Odberatel heading - 30% bigger (8 * 1.3 = ~10.4)
+    doc.setFontSize(10);
     doc.setFont('Inter', 'bold');
     doc.text(sanitizeText('Odberatel'), 20, clientY);
 
     doc.setFontSize(8);
     doc.setFont('Inter', 'normal');
-    clientY += 5;
-    
-    // Track vertical position for address (left) and business info (right)
+    clientY += 4; // Closer to content (was 5)
+
+    // First, calculate how many lines the address will have
     const contentStartY = clientY;
-    let addressY = contentStartY;
+    let addressLines = [];
 
     if (client) {
-      // --- LEFT COLUMN: Address ---
-      if (client.name) {
-        doc.text(sanitizeText(client.name), 20, addressY);
-        addressY += 4;
-      }
-      // Street
-      if (client.street) {
-        doc.text(sanitizeText(client.street), 20, addressY);
-        addressY += 4;
-      }
-      // Additional info (apartment, suite)
+      if (client.name) addressLines.push(client.name);
+      if (client.street) addressLines.push(client.street);
       const additionalInfo = client.additionalInfo || client.second_row_street;
-      if (additionalInfo) {
-        doc.text(sanitizeText(additionalInfo), 20, addressY);
-        addressY += 4;
-      }
-      // City and postal code
+      if (additionalInfo) addressLines.push(additionalInfo);
       const cityPostal = [client.postal_code || client.postalCode, client.city].filter(Boolean).join(' ');
-      if (cityPostal) {
-        doc.text(sanitizeText(cityPostal), 20, addressY);
-        addressY += 4;
-      }
-      // Country
-      if (client.country) {
-        doc.text(sanitizeText(client.country), 20, addressY);
-        addressY += 4;
-      }
-
-      // --- RIGHT COLUMN: Business IDs ---
-      // Positioned at x=70 (moved left from 80)
-      const businessX = 70; 
-      
-      const businessId = client.business_id || client.businessId;
-      const taxId = client.tax_id || client.taxId;
-      const vatId = client.vat_registration_number || client.vatId || client.vatNumber;
-
-      // Start business info slightly lower than address start
-      let businessY = contentStartY + 10;
-
-      if (businessId || taxId || vatId) {
-        if (businessId) {
-          doc.text(sanitizeText(`IČO: ${businessId}`), businessX, businessY);
-          businessY += 4;
-        }
-        if (taxId) {
-          doc.text(sanitizeText(`DIČ: ${taxId}`), businessX, businessY);
-          businessY += 4;
-        }
-        if (vatId) {
-          doc.text(sanitizeText(`IČ DPH: ${vatId}`), businessX, businessY);
-          businessY += 4;
-        }
-      }
-      
-      // Update global clientY to the bottom of the tallest column
-      clientY = Math.max(addressY, businessY);
-      
-    } else {
-      doc.text(sanitizeText('-'), 20, clientY);
-      clientY += 4;
+      if (cityPostal) addressLines.push(cityPostal);
+      if (client.country) addressLines.push(client.country);
     }
 
+    // Calculate the bottom Y position based on address content
+    const lineHeight = 4;
+    const addressBottomY = contentStartY + (addressLines.length * lineHeight);
+
+    // --- Draw LEFT COLUMN: Address (top-aligned) ---
+    let addressY = contentStartY;
+    addressLines.forEach(line => {
+      doc.text(sanitizeText(line), 20, addressY);
+      addressY += lineHeight;
+    });
+    if (addressLines.length === 0 && !client) {
+      doc.text(sanitizeText('-'), 20, contentStartY);
+    }
+
+    // --- Draw MIDDLE COLUMN: Business IDs (bottom-aligned) ---
+    const businessX = 70;
+    const businessId = client?.business_id || client?.businessId;
+    const taxId = client?.tax_id || client?.taxId;
+    const vatId = client?.vat_registration_number || client?.vatId || client?.vatNumber;
+
+    let businessLines = [];
+    if (businessId) businessLines.push(`IČO: ${businessId}`);
+    if (taxId) businessLines.push(`DIČ: ${taxId}`);
+    if (vatId) businessLines.push(`IČ DPH: ${vatId}`);
+
+    // Calculate start Y so bottom aligns with address bottom
+    const businessStartY = addressBottomY - (businessLines.length * lineHeight);
+    let businessY = businessStartY;
+    businessLines.forEach(line => {
+      doc.text(sanitizeText(line), businessX, businessY);
+      businessY += lineHeight;
+    });
+
+    // --- Draw RIGHT COLUMN: Dates (bottom-aligned) ---
+    const rightBlockX = 190;
+    const labelX = rightBlockX - 50;
+
+    let dateLines = [];
+    if (isPriceOffer) {
+      const today = new Date();
+      const validUntil = new Date(today);
+      validUntil.setDate(validUntil.getDate() + parseInt(offerValidityPeriod || 30));
+      dateLines = [
+        { label: 'Dátum vystavenia:', value: formatDate(today.toISOString()) },
+        { label: 'Platné do:', value: formatDate(validUntil.toISOString()) }
+      ];
+    } else {
+      const paymentText = invoice.paymentMethod === 'cash' ? 'Hotovosť' : 'Prevodom';
+      dateLines = [
+        { label: 'Dátum vystavenia:', value: formatDate(invoice.issueDate) },
+        { label: 'Dátum splatnosti:', value: formatDate(invoice.dueDate) },
+        { label: 'Dátum dodania:', value: formatDate(invoice.dispatchDate || invoice.issueDate) },
+        { label: 'Forma úhrady:', value: paymentText }
+      ];
+    }
+
+    // Calculate start Y so bottom aligns with address bottom
+    const datesStartY = addressBottomY - (dateLines.length * lineHeight);
+    let dateY = datesStartY;
+    dateLines.forEach(line => {
+      doc.text(sanitizeText(line.label), labelX, dateY, { align: 'left' });
+      doc.text(sanitizeText(line.value), rightBlockX, dateY, { align: 'right' });
+      dateY += lineHeight;
+    });
+
+    // Update clientY to the bottom of the section
+    clientY = addressBottomY;
+
     // === FOUR INFO BOXES - Only for Invoice ===
-    let tableStartY = clientY + 10;
+    let tableStartY = clientY + 4; // Closer to columns
     let boxY = 0;
     let boxHeight = 0;
 
     if (!isPriceOffer) {
-      boxY = clientY + 5; // Reduced gap, removed min height constraint
+      boxY = clientY + 3; // Closer to columns
       const ibanBoxWidth = 52; // Wider box for IBAN
       const boxWidth = 36; // Smaller equal width for other 3 boxes
-      boxHeight = 12; // Reduced height (less bottom padding)
+      boxHeight = 10; // Height for equal spacing
       const boxStartX = 20;
       const gap = 3; // Gaps between boxes
-      const borderRadius = 4; // Bigger border radius
+      const borderRadius = 2; // Smaller border radius
 
       doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(0.3);
@@ -227,47 +200,47 @@ export const generateInvoicePDF = ({
       doc.roundedRect(boxStartX, boxY, ibanBoxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(6);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText('Číslo účtu / IBAN'), boxStartX + 2, boxY + 4);
+      doc.text(sanitizeText('Číslo účtu / IBAN'), boxStartX + 2, boxY + 3.5);
       doc.setFontSize(7);
       doc.setFont('Inter', 'bold');
       // Truncate IBAN if too long to fit in wider box
       const ibanDisplay = contractorBankAccount.length > 26 ? contractorBankAccount.substring(0, 26) + '...' : contractorBankAccount;
-      doc.text(sanitizeText(ibanDisplay || '-'), boxStartX + 2, boxY + 8);
+      doc.text(sanitizeText(ibanDisplay || '-'), boxStartX + 2, boxY + 7.5);
 
       // Box 2: Variabilny symbol
       const box2X = boxStartX + ibanBoxWidth + gap;
       doc.roundedRect(box2X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(6);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText('Variabilný symbol'), box2X + 2, boxY + 4);
+      doc.text(sanitizeText('Variabilný symbol'), box2X + 2, boxY + 3.5);
       doc.setFontSize(7);
       doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(invoice.invoiceNumber), box2X + 2, boxY + 8);
+      doc.text(sanitizeText(invoice.invoiceNumber), box2X + 2, boxY + 7.5);
 
       // Box 3: Datum splatnosti
       const box3X = box2X + boxWidth + gap;
       doc.roundedRect(box3X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(6);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText('Dátum splatnosti'), box3X + 2, boxY + 4);
+      doc.text(sanitizeText('Dátum splatnosti'), box3X + 2, boxY + 3.5);
       doc.setFontSize(7);
       doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(formatDate(invoice.dueDate)), box3X + 2, boxY + 8);
+      doc.text(sanitizeText(formatDate(invoice.dueDate)), box3X + 2, boxY + 7.5);
 
       // Box 4: Suma na uhradu
       const box4X = box3X + boxWidth + gap;
       doc.roundedRect(box4X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(6);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText('Suma na úhradu'), box4X + 2, boxY + 4);
+      doc.text(sanitizeText('Suma na úhradu'), box4X + 2, boxY + 3.5);
       doc.setFontSize(7);
       doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(formatCurrency(totalWithVAT)), box4X + 2, boxY + 8);
-      
-      tableStartY = boxY + boxHeight + 5;
+      doc.text(sanitizeText(formatCurrency(totalWithVAT)), box4X + 2, boxY + 7.5);
+
+      tableStartY = boxY + boxHeight + 3; // Closer to boxes
     } else {
       // For Price Offer, start table closer to client section
-      tableStartY = clientY + 5;
+      tableStartY = clientY + 4; // Closer to columns
     }
 
     // === ITEMS TABLE ===
@@ -278,7 +251,7 @@ export const generateInvoicePDF = ({
     // Add work items with category header
     if (projectBreakdown && projectBreakdown.items && projectBreakdown.items.length > 0) {
       tableData.push([
-        { content: sanitizeText('PRACA'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText('PRÁCA'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
       projectBreakdown.items.forEach(item => {
@@ -304,7 +277,7 @@ export const generateInvoicePDF = ({
     // Add material items with category header
     if (projectBreakdown && projectBreakdown.materialItems && projectBreakdown.materialItems.length > 0) {
       tableData.push([
-        { content: sanitizeText('MATERIAL'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText('MATERIÁL'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
       projectBreakdown.materialItems.forEach(item => {
@@ -330,7 +303,7 @@ export const generateInvoicePDF = ({
     // Add others items with category header
     if (projectBreakdown && projectBreakdown.othersItems && projectBreakdown.othersItems.length > 0) {
       tableData.push([
-        { content: sanitizeText('OSTATNE'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText('OSTATNÉ'), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
       projectBreakdown.othersItems.forEach(item => {
@@ -353,7 +326,7 @@ export const generateInvoicePDF = ({
       });
     }
 
-    // Render the items table - full width, no outer border
+    // Render the items table - only 2 thick black lines (under header and at bottom)
     autoTable(doc, {
       startY: tableStartY,
       head: [[
@@ -366,45 +339,42 @@ export const generateInvoicePDF = ({
       ]],
       body: tableData,
       theme: 'plain',
-      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
-      styles: { fontSize: 8, cellPadding: 2, lineColor: [200, 200, 200], lineWidth: 0.1 },
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', cellPadding: 1, font: 'Inter' },
+      styles: { fontSize: 8, cellPadding: 1, lineColor: [255, 255, 255], lineWidth: 0, font: 'Inter' },
       tableWidth: 170,
       margin: { left: 20, right: 20 },
       tableLineColor: [255, 255, 255],
       tableLineWidth: 0,
       columnStyles: {
-        0: { cellWidth: 'auto' },
+        0: { cellWidth: 'auto', halign: 'left' },
         1: { cellWidth: 22, halign: 'center' },
         2: { cellWidth: 28, halign: 'right' },
         3: { cellWidth: 18, halign: 'center' },
         4: { cellWidth: 25, halign: 'right' },
         5: { cellWidth: 28, halign: 'right' }
       },
-      didDrawCell: (data) => {
-        // Draw horizontal lines between rows only (no outer border)
-        if (data.row.index >= 0 && data.section === 'body') {
-          doc.setDrawColor(200, 200, 200);
-          doc.setLineWidth(0.1);
-          doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-        }
-        // Draw line under header
+      didParseCell: (data) => {
+        // Force header alignment to match body columns
         if (data.section === 'head') {
-          doc.setDrawColor(0, 0, 0);
-          doc.setLineWidth(0.3);
-          doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+          const alignments = ['left', 'center', 'right', 'center', 'right', 'right'];
+          data.cell.styles.halign = alignments[data.column.index];
         }
-        
-        // Draw vertical lines between columns (not on outer edges)
-        if (data.column.index < data.table.columns.length - 1) {
-             doc.setDrawColor(200, 200, 200); // Same gray as horizontal
-             doc.setLineWidth(0.1);
-             // Line on the right side of the cell
-             doc.line(data.cell.x + data.cell.width, data.cell.y, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-        }
+      },
+      didDrawPage: (data) => {
+        // Draw black line under header (~1px)
+        const headerBottom = data.table.head[0].cells[0].y + data.table.head[0].cells[0].height;
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.35); // ~1px thick
+        doc.line(20, headerBottom, 190, headerBottom);
       }
     });
 
     const finalY = doc.lastAutoTable.finalY || tableStartY + 20;
+
+    // Draw black line at the bottom of table
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.35); // ~1px thick
+    doc.line(20, finalY, 190, finalY);
 
     // === TOTALS SECTION - Right aligned, with gap from table ===
     const rightX = 190;
@@ -454,6 +424,14 @@ export const generateInvoicePDF = ({
       doc.line(rightX - 40, signatureY + 18, rightX, signatureY + 18);
     }
 
+    // === INVOICE NOTES - Centered above footer ===
+    if (invoice.notes) {
+      doc.setFontSize(8);
+      doc.setFont('Inter', 'normal');
+      const notesText = doc.splitTextToSize(sanitizeText(invoice.notes), 150);
+      doc.text(notesText, 105, 242, { align: 'center' });
+    }
+
     // === FOOTER SECTION - Contractor info ===
 
     // Top row ABOVE divider: Name | Phone | Web | Email (equally spaced with icons)
@@ -496,11 +474,12 @@ export const generateInvoicePDF = ({
 
     doc.setFontSize(7);
 
-    // Column 1: Name with user icon
-    if (contractor?.name) {
+    // Column 1: Contact Person with user icon (not company name)
+    const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
+    if (contactPerson) {
       drawIcon('user', col1, topRowY, 3);
       doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(contractor.name), col1 + 5, topRowY);
+      doc.text(sanitizeText(contactPerson), col1 + 5, topRowY);
     }
 
     // Column 2: Phone with phone icon
@@ -536,83 +515,79 @@ export const generateInvoicePDF = ({
     doc.setFontSize(7);
     doc.setFont('Inter', 'normal');
 
-    // Column 1: Address
+    // Collect all column data first to calculate heights
     const contractorStreet = contractor?.street;
     const contractorAdditional = contractor?.second_row_street || contractor?.additionalInfo;
     const contractorCity = contractor?.city;
     const contractorPostal = contractor?.postal_code || contractor?.postalCode;
     const contractorCountry = contractor?.country;
-
-    let col1Y = colY;
-    if (contractor?.name) {
-      doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(contractor.name), col1X, col1Y);
-      doc.setFont('Inter', 'normal');
-      col1Y += 4;
-    }
-    if (contractorStreet) {
-      doc.text(sanitizeText(contractorStreet), col1X, col1Y);
-      col1Y += 3.5;
-    }
-    if (contractorAdditional) {
-      doc.text(sanitizeText(contractorAdditional), col1X, col1Y);
-      col1Y += 3.5;
-    }
-    const cityLine = [contractorPostal, contractorCity].filter(Boolean).join(' ');
-    if (cityLine) {
-      doc.text(sanitizeText(cityLine), col1X, col1Y);
-      col1Y += 3.5;
-    }
-    if (contractorCountry) {
-      doc.text(sanitizeText(contractorCountry), col1X, col1Y);
-    }
-
-    // Column 2: Business IDs (ICO, DIC, IC DPH)
     const contractorBusinessId = contractor?.business_id || contractor?.businessId;
     const contractorTaxId = contractor?.tax_id || contractor?.taxId;
     const contractorVatId = contractor?.vat_registration_number || contractor?.vatNumber;
-
-    let col2Y = colY;
-    if (contractorBusinessId) {
-      doc.text(sanitizeText(`ICO: ${contractorBusinessId}`), col2X, col2Y);
-      col2Y += 3.5;
-    }
-    if (contractorTaxId) {
-      doc.text(sanitizeText(`DIC: ${contractorTaxId}`), col2X, col2Y);
-      col2Y += 3.5;
-    }
-    if (contractorVatId) {
-      doc.text(sanitizeText(`IC DPH: ${contractorVatId}`), col2X, col2Y);
-    }
-
-    // Column 3: Bank info (Spisova vlozka, IBAN, SWIFT)
     const legalNotice = contractor?.legal_notice || contractor?.legalAppendix;
     const bankAccount = contractor?.bank_account_number || contractor?.bankAccount;
     const swiftCode = contractor?.swift_code || contractor?.bankCode;
 
-    let col3Y = colY;
-    if (legalNotice) {
-      doc.text(sanitizeText(`Spisova vlozka: ${legalNotice}`), col3X, col3Y);
-      col3Y += 3.5;
-    }
-    if (bankAccount) {
-      doc.text(sanitizeText(`IBAN: ${bankAccount}`), col3X, col3Y);
-      col3Y += 3.5;
-    }
-    if (swiftCode) {
-      doc.text(sanitizeText(`SWIFT kod: ${swiftCode}`), col3X, col3Y);
-    }
+    // Build column 1 lines (Address)
+    const col1Lines = [];
+    if (contractor?.name) col1Lines.push({ text: contractor.name, bold: true });
+    if (contractorStreet) col1Lines.push({ text: contractorStreet });
+    if (contractorAdditional) col1Lines.push({ text: contractorAdditional });
+    const cityLine = [contractorPostal, contractorCity].filter(Boolean).join(' ');
+    if (cityLine) col1Lines.push({ text: cityLine });
+    if (contractorCountry) col1Lines.push({ text: contractorCountry });
+
+    // Build column 2 lines (Business IDs)
+    const col2Lines = [];
+    if (contractorBusinessId) col2Lines.push({ text: `IČO: ${contractorBusinessId}` });
+    if (contractorTaxId) col2Lines.push({ text: `DIČ: ${contractorTaxId}` });
+    if (contractorVatId) col2Lines.push({ text: `IČ DPH: ${contractorVatId}` });
+
+    // Build column 3 lines (Bank info)
+    const col3Lines = [];
+    if (legalNotice) col3Lines.push({ text: `Spisová vložka: ${legalNotice}` });
+    if (bankAccount) col3Lines.push({ text: `IBAN: ${bankAccount}` });
+    if (swiftCode) col3Lines.push({ text: `SWIFT kód: ${swiftCode}` });
+
+    // Calculate max lines and bottom Y position
+    const footerLineHeight = 3.5;
+    const maxLines = Math.max(col1Lines.length, col2Lines.length, col3Lines.length);
+    const bottomY = colY + (maxLines * footerLineHeight);
+
+    // Draw column 1 (bottom-aligned)
+    const col1StartY = bottomY - (col1Lines.length * footerLineHeight);
+    col1Lines.forEach((line, i) => {
+      if (line.bold) {
+        doc.setFont('Inter', 'bold');
+      } else {
+        doc.setFont('Inter', 'normal');
+      }
+      doc.text(sanitizeText(line.text), col1X, col1StartY + (i * footerLineHeight));
+    });
+    doc.setFont('Inter', 'normal');
+
+    // Draw column 2 (bottom-aligned)
+    const col2StartY = bottomY - (col2Lines.length * footerLineHeight);
+    col2Lines.forEach((line, i) => {
+      doc.text(sanitizeText(line.text), col2X, col2StartY + (i * footerLineHeight));
+    });
+
+    // Draw column 3 (bottom-aligned)
+    const col3StartY = bottomY - (col3Lines.length * footerLineHeight);
+    col3Lines.forEach((line, i) => {
+      doc.text(sanitizeText(line.text), col3X, col3StartY + (i * footerLineHeight));
+    });
 
     // App attribution - bottom center
     doc.setFontSize(6);
-    doc.text(sanitizeText('Vytvorene aplikaciou Fido Building Calcul.'), 105, 290, { align: 'center' });
+    doc.text(sanitizeText('Vytvorené aplikáciou Fido Building Calcul.'), 105, 290, { align: 'center' });
 
-    // Open PDF in new tab
+    // Generate PDF blob and URL
     const pdfBlob = doc.output('blob');
     const blobUrl = URL.createObjectURL(pdfBlob);
-    window.open(blobUrl, '_blank');
 
-    return doc;
+    // Return both doc and blobUrl for flexible usage
+    return { doc, blobUrl, pdfBlob };
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;

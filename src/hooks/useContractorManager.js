@@ -80,12 +80,28 @@ export const useContractorManager = (appData, setAppData) => {
     }));
   }, [setAppData]);
 
-  const updatePriceOfferSettings = useCallback((settings) => {
-    setAppData(prev => ({
-      ...prev,
-      priceOfferSettings: { ...prev.priceOfferSettings, ...settings }
-    }));
-  }, [setAppData]);
+  const updatePriceOfferSettings = useCallback(async (newSettings) => {
+    try {
+      if (!appData.activeContractorId) return;
+
+      // Update in Supabase
+      await api.contractors.update(appData.activeContractorId, {
+        price_offer_settings: newSettings
+      });
+
+      // Update local state
+      setAppData(prev => ({
+        ...prev,
+        priceOfferSettings: {
+          ...prev.priceOfferSettings,
+          ...newSettings
+        }
+      }));
+    } catch (error) {
+      console.error('[SUPABASE] Error updating price offer settings:', error);
+      throw error;
+    }
+  }, [appData.activeContractorId, setAppData]);
 
   // Helper function to get project categories for a specific contractor
   const getProjectCategoriesForContractor = useCallback((contractorId) => {
