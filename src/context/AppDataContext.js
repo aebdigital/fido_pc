@@ -360,10 +360,9 @@ export const AppDataProvider = ({ children }) => {
   
       // Pass findProjectById to invoiceManager as it needs it
   
-      const projectManager = useProjectManager(appData, setAppData);
-  
-      const invoiceManager = useInvoiceManager(appData, setAppData);
-  
+          const projectManager = useProjectManager(appData, setAppData);
+        
+          const invoiceManager = useInvoiceManager(appData, setAppData, projectManager.addProjectHistoryEntry);  
     
   
     

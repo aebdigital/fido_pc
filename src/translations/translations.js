@@ -303,7 +303,7 @@ export const translations = {
     // ========== USER ACCOUNT ==========
     "Pro User": "Pro používateľ",
     "Customize prices throughout the app and export projects to PDF": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF",
-    "Customise prices in the entire app and export projects to PDF. Try Pro For Free!": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF. Vyskúšajte Pro zadarmo!",
+    "Customise prices in the entire app and export projects to PDF. Vyskúšajte Pro zadarmo!": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF. Vyskúšajte Pro zadarmo!",
     "Try Pro": "Vyskúšať Pro",
     "Restore Purchases": "Obnoviť nákupy",
     

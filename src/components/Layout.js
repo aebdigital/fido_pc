@@ -106,7 +106,7 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Account Section at bottom */}
-        <div className="border-t border-gray-200 dark:border-gray-700">
+        <div className="p-2.5 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={signOut}
             className="w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 group"

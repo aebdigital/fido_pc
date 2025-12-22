@@ -9,7 +9,7 @@ import PDFPreviewModal from './PDFPreviewModal';
 
 const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
   const { t } = useLanguage();
-  const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList } = useAppData();
+  const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry } = useAppData();
   const navigate = useNavigate();
 
   // Edit mode state - now opens a modal instead of inline editing
@@ -115,6 +115,19 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
   };
 
   const handleSend = async () => {
+    // Record history
+    if (invoice.status === 'unsent') {
+      // This will automatically add the history entry via useInvoiceManager
+      updateInvoice(invoice.id, { status: 'sent' });
+    } else {
+      // Manually add history entry for re-sends
+      addProjectHistoryEntry(invoice.projectId, {
+        type: 'invoice_sent',
+        invoiceNumber: invoice.invoiceNumber,
+        date: new Date().toISOString()
+      });
+    }
+
     // Generate invoice data to share
     const invoiceText = `
 ${t('Invoice')} ${invoice.invoiceNumber}

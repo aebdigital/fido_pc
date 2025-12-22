@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import api from '../services/supabaseApi';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
 
-export const useInvoiceManager = (appData, setAppData) => {
+export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry) => {
   const createInvoice = useCallback(async (projectId, categoryId, invoiceData, findProjectById) => {
     try {
       // We pass findProjectById as a dependency because useProjectManager owns it
@@ -36,31 +36,42 @@ export const useInvoiceManager = (appData, setAppData) => {
 
       setAppData(prev => ({
         ...prev,
-        invoices: [...prev.invoices, transformedInvoice],
-        projectHistory: {
-          ...prev.projectHistory,
-          [projectId]: [
-            ...(prev.projectHistory[projectId] || []),
-            {
-              type: 'invoice_created',
-              invoiceNumber: transformedInvoice.invoiceNumber,
-              date: new Date().toISOString()
-            }
-          ]
-        }
+        invoices: [...prev.invoices, transformedInvoice]
       }));
+
+      if (addProjectHistoryEntry) {
+        await addProjectHistoryEntry(projectId, {
+          type: 'invoice_created',
+          invoiceNumber: transformedInvoice.invoiceNumber
+        });
+      }
 
       return transformedInvoice;
     } catch (error) {
       console.error('[SUPABASE] Error creating invoice:', error);
       throw error;
     }
-  }, [appData.activeContractorId, setAppData]);
+  }, [appData.activeContractorId, setAppData, addProjectHistoryEntry]);
 
   const updateInvoice = useCallback(async (invoiceId, updates) => {
     try {
       const invoice = appData.invoices.find(inv => inv.id === invoiceId);
-      await api.invoices.update(invoiceId, updates);
+
+      // Map app camelCase fields to DB snake_case fields
+      const dbUpdates = {};
+      
+      if (updates.invoiceNumber !== undefined) dbUpdates.number = updates.invoiceNumber;
+      if (updates.issueDate !== undefined) dbUpdates.date_created = updates.issueDate;
+      if (updates.dispatchDate !== undefined) dbUpdates.date_of_dispatch = updates.dispatchDate;
+      if (updates.paymentMethod !== undefined) dbUpdates.payment_type = updates.paymentMethod;
+      if (updates.paymentDays !== undefined) dbUpdates.maturity_days = updates.paymentDays;
+      if (updates.notes !== undefined) dbUpdates.note = updates.notes;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      
+      // Only call API if there are mappable updates
+      if (Object.keys(dbUpdates).length > 0) {
+        await api.invoices.update(invoiceId, dbUpdates);
+      }
 
       setAppData(prev => {
         const updatedState = {
@@ -69,56 +80,41 @@ export const useInvoiceManager = (appData, setAppData) => {
             inv.id === invoiceId ? { ...inv, ...updates } : inv
           )
         };
+        return updatedState;
+      });
 
-        if (invoice) {
-          const projectId = invoice.projectId;
-          const newHistoryEntries = [];
+      if (invoice && addProjectHistoryEntry) {
+        const projectId = invoice.projectId;
 
-          if (updates.status) {
-            if (updates.status === 'sent') {
-              newHistoryEntries.push({
-                type: 'invoice_sent',
-                invoiceNumber: invoice.invoiceNumber,
-                date: new Date().toISOString()
-              });
-            } else if (updates.status === 'paid') {
-              newHistoryEntries.push({
-                type: 'invoice_paid',
-                invoiceNumber: invoice.invoiceNumber,
-                date: new Date().toISOString()
-              });
-            }
-          }
-
-          const isEdit = updates.invoiceNumber || updates.issueDate || updates.paymentMethod || updates.notes || updates.dueDate || updates.paymentDays || updates.dispatchDate;
-          const hasNonStatusUpdates = Object.keys(updates).some(key => key !== 'status');
-
-          if (hasNonStatusUpdates && isEdit) {
-             newHistoryEntries.push({
-              type: 'invoice_edited',
-              invoiceNumber: updates.invoiceNumber || invoice.invoiceNumber,
-              date: new Date().toISOString()
+        if (updates.status) {
+          if (updates.status === 'sent') {
+            await addProjectHistoryEntry(projectId, {
+              type: 'invoice_sent',
+              invoiceNumber: invoice.invoiceNumber
             });
-          }
-
-          if (newHistoryEntries.length > 0) {
-            updatedState.projectHistory = {
-              ...prev.projectHistory,
-              [projectId]: [
-                ...(prev.projectHistory[projectId] || []),
-                ...newHistoryEntries
-              ]
-            };
+          } else if (updates.status === 'paid') {
+            await addProjectHistoryEntry(projectId, {
+              type: 'invoice_paid',
+              invoiceNumber: invoice.invoiceNumber
+            });
           }
         }
 
-        return updatedState;
-      });
+        const isEdit = updates.invoiceNumber || updates.issueDate || updates.paymentMethod || updates.notes || updates.dueDate || updates.paymentDays || updates.dispatchDate;
+        const hasNonStatusUpdates = Object.keys(updates).some(key => key !== 'status');
+
+        if (hasNonStatusUpdates && isEdit) {
+           await addProjectHistoryEntry(projectId, {
+            type: 'invoice_edited',
+            invoiceNumber: updates.invoiceNumber || invoice.invoiceNumber
+          });
+        }
+      }
     } catch (error) {
       console.error('[SUPABASE] Error updating invoice:', error);
       throw error;
     }
-  }, [appData.invoices, setAppData]);
+  }, [appData.invoices, setAppData, addProjectHistoryEntry]);
 
   const deleteInvoice = useCallback(async (invoiceId) => {
     try {
@@ -130,28 +126,20 @@ export const useInvoiceManager = (appData, setAppData) => {
           ...prev,
           invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
         };
-
-        if (invoice) {
-          updatedState.projectHistory = {
-            ...prev.projectHistory,
-            [invoice.projectId]: [
-              ...(prev.projectHistory[invoice.projectId] || []),
-              {
-                type: 'invoice_deleted',
-                invoiceNumber: invoice.invoiceNumber,
-                date: new Date().toISOString()
-              }
-            ]
-          };
-        }
-
         return updatedState;
       });
+
+      if (invoice && addProjectHistoryEntry) {
+        await addProjectHistoryEntry(invoice.projectId, {
+          type: 'invoice_deleted',
+          invoiceNumber: invoice.invoiceNumber
+        });
+      }
     } catch (error) {
       console.error('[SUPABASE] Error deleting invoice:', error);
       throw error;
     }
-  }, [appData.invoices, setAppData]);
+  }, [appData.invoices, setAppData, addProjectHistoryEntry]);
 
   const getInvoiceById = useCallback((invoiceId) => {
     return appData.invoices.find(inv => inv.id === invoiceId);

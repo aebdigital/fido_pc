@@ -136,10 +136,15 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       }
     } else {
       // Create new invoice
-      const newInvoice = createInvoice(project.id, categoryId, invoiceData);
+      try {
+        const newInvoice = await createInvoice(project.id, categoryId, invoiceData);
 
-      if (newInvoice) {
-        onClose(newInvoice);
+        if (newInvoice) {
+          onClose(newInvoice);
+        }
+      } catch (error) {
+        console.error('Error creating invoice:', error);
+        alert(t('Failed to create invoice'));
       }
     }
   };

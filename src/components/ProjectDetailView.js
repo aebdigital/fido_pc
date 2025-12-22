@@ -827,26 +827,36 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
             </div>
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-gray-900 dark:bg-white rounded-full flex-shrink-0"></div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Created')}</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {project.created_at ? new Date(project.created_at).toLocaleString('sk-SK') : '-'}
-                  </span>
-                </div>
-              </div>
-              {getProjectHistory(project.id)?.slice().reverse().map((event, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full flex-shrink-0"></div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{event.type}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(event.date).toLocaleString('sk-SK')}
-                    </span>
+              {(() => {
+                const history = getProjectHistory(project.id) || [];
+                const createdEvent = { type: 'Created', date: project.created_at };
+                
+                const allEvents = [...history, createdEvent]
+                  .filter(event => event.type !== 'invoice_paid')
+                  .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort newest first
+
+                const formatHistoryEventType = (eventType) => {
+                  return eventType
+                    .replace(/_/g, ' ')
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                };
+
+                return allEvents.map((event, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {t(formatHistoryEventType(event.type))}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {event.date ? new Date(event.date).toLocaleString('sk-SK') : '-'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
         </div>
