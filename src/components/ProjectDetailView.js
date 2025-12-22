@@ -442,8 +442,8 @@ ${t('Notes')}: ${invoice.notes}` : ''}
               </>
             )}
           </div>
-          <div className="flex items-center gap-2 ml-11">
-            <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">#{project.number || project.id}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-base lg:text-lg text-gray-700 dark:text-gray-300">{project.number || project.id}</span>
             {project.is_archived && (
               <span className="px-2 py-1 bg-amber-50 dark:bg-amber-900 text-amber-600 dark:text-amber-400 text-xs lg:text-sm font-medium rounded-full">
                 {t('Archived')}
@@ -473,13 +473,13 @@ ${t('Notes')}: ${invoice.notes}` : ''}
                   if (e.key === 'Escape') setIsEditingProjectNotes(false);
                 }}
                 className="text-lg text-gray-500 dark:text-gray-400 bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
-                placeholder={t('Notes')}
+                placeholder={t('Notes_CP')}
                 autoFocus
               />
             ) : (
               <>
                 <p className="text-gray-500 dark:text-gray-400 text-lg flex-1">
-                  {project.notes || t('Notes')}
+                  {project.notes || t('Notes_CP')}
                 </p>
                 {!project.is_archived && (
                   <button
@@ -842,14 +842,14 @@ ${t('Notes')}: ${invoice.notes}` : ''}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <StickyNote className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Poznámky')}</h2>
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Notes_Project')}</h2>
             </div>
             {isEditingDetailNotes ? (
               <div className="space-y-3">
                 <textarea
                   value={projectDetailNotes}
                   onChange={(e) => setProjectDetailNotes(e.target.value)}
-                  placeholder={t('Add notes about this project...')}
+                  placeholder={t('Add project notes...')}
                   className="w-full h-40 p-3 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   autoFocus
                 />
@@ -863,7 +863,7 @@ ${t('Notes')}: ${invoice.notes}` : ''}
                 className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 overflow-auto"
                 onClick={() => !project.is_archived && setIsEditingDetailNotes(true)}
               >
-                {projectDetailNotes || <span className="text-gray-400 dark:text-gray-500">{t('Click to add notes...')}</span>}
+                {projectDetailNotes || <span className="text-gray-400 dark:text-gray-500">{t('Click to add project notes')}</span>}
               </div>
             )}
           </div>
