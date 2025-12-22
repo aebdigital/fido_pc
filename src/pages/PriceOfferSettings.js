@@ -116,7 +116,12 @@ const PriceOfferSettings = ({ onBack }) => {
           </div>
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              {/* Left side - Input */}
+              {/* Left side - Text */}
+              <div>
+                <h3 className="font-medium text-gray-900 dark:text-white text-lg mb-1">{t('Offer validity period')}</h3>
+                <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('How long price offers remain valid')}</p>
+              </div>
+              {/* Right side - Input and Save button */}
               <div className="flex items-center gap-3">
                 <input
                   type="number"
@@ -127,9 +132,6 @@ const PriceOfferSettings = ({ onBack }) => {
                   className="w-20 p-2 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 text-center"
                 />
                 <span className="text-gray-600 dark:text-gray-400">{t('days')}</span>
-              </div>
-              {/* Right side - Save button */}
-              <div className="flex items-center gap-3">
                 <button
                   onClick={handleSaveSettings}
                   disabled={!hasChanges || isSaving}
@@ -146,10 +148,6 @@ const PriceOfferSettings = ({ onBack }) => {
                   )}
                   <span>{isSaving ? t('Saving...') : t('Save')}</span>
                 </button>
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white text-lg mb-1">{t('Offer validity period')}</h3>
-                  <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('How long price offers remain valid')}</p>
-                </div>
               </div>
             </div>
           </div>
