@@ -266,16 +266,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             }`}>
               {t(invoice.status === 'paid' ? 'Paid' : invoice.status === 'sent' ? 'Invoice sent' : 'Invoice not sent')}
             </span>
-            {invoice.status !== 'sent' && invoice.status !== 'paid' && (
-              <button
-                onClick={handleMarkAsSent}
-                className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                <CheckCircle className="w-4 h-4" />
-                {t('Mark as Sent')}
-              </button>
-            )}
-            {invoice.status === 'sent' && (
+
+            {invoice.status !== 'paid' && (
               <button
                 onClick={handleMarkAsPaid}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
