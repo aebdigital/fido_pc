@@ -15,8 +15,7 @@ import {
   Image,
   X,
   StickyNote,
-  AlertTriangle,
-  ArchiveRestore
+  AlertTriangle
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -875,7 +874,7 @@ ${t('Notes')}: ${invoice.notes}` : ''}
                     }}
                     className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
-                    <ArchiveRestore className="w-4 h-4" />
+                    <Archive className="w-4 h-4" />
                     <span className="text-sm sm:text-lg">{t('Unarchive')}</span>
                   </button>
                   <button 
