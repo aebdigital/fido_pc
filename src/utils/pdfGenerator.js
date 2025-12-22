@@ -64,13 +64,9 @@ export const generateInvoicePDF = ({
     doc.setFont('Inter', 'bold');
     
     if (isPriceOffer) {
-      doc.text(sanitizeText('Cenová ponuka'), 20, 20);
-      
-      doc.setFontSize(11);
-      doc.setFont('Inter', 'normal');
-      // New format: CP {number} - {name}
+      // New format: CP {number} - {name} as MAIN TITLE
       const title = `CP ${projectNumber || ''} - ${invoice.projectName || ''}`;
-      doc.text(sanitizeText(title), 20, 24);
+      doc.text(sanitizeText(title), 20, 20);
       
       // Project Notes (Poznámka k cenovej ponuke) - WITHOUT LABEL
       if (projectNotes) {
