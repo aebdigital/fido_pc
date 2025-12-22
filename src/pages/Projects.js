@@ -79,6 +79,19 @@ const Projects = () => {
   }, [projectCategories, activeCategory]);
   const currentProject = selectedProject;
 
+  // Sync selectedProject with updated data from appData to ensure ProjectDetailView gets fresh data
+  useEffect(() => {
+    if (selectedProject && projectCategories) {
+      for (const category of projectCategories) {
+        const found = category.projects?.find(p => p.id === selectedProject.id);
+        if (found && found !== selectedProject) {
+          setSelectedProject(found);
+          break;
+        }
+      }
+    }
+  }, [projectCategories, selectedProject]);
+
   // Track which projects have been loaded to avoid re-fetching
   const loadedProjectsRef = useRef(new Set());
 
