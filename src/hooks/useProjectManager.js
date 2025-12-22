@@ -15,12 +15,21 @@ const getDefaultCategories = () => [
 ];
 
 export const useProjectManager = (appData, setAppData) => {
+  const { 
+    activeContractorId, 
+    contractorProjects, 
+    projectCategories, 
+    projectRoomsData, 
+    generalPriceList,
+    archivedProjects,
+    projectHistory 
+  } = appData;
   
   // Helper function to find project by ID across all categories
   const findProjectById = useCallback((projectId) => {
     // First, search in contractor-specific projects if we have an active contractor
-    if (appData.activeContractorId && appData.contractorProjects[appData.activeContractorId]?.categories) {
-      for (const category of appData.contractorProjects[appData.activeContractorId].categories) {
+    if (activeContractorId && contractorProjects[activeContractorId]?.categories) {
+      for (const category of contractorProjects[activeContractorId].categories) {
         if (!category.projects) continue;
         const project = category.projects.find(p => p.id === projectId);
         if (project) {
@@ -30,7 +39,7 @@ export const useProjectManager = (appData, setAppData) => {
     }
 
     // Fallback: search in global project categories
-    for (const category of (appData.projectCategories || [])) {
+    for (const category of (projectCategories || [])) {
       if (!category.projects) continue;
       const project = category.projects.find(p => p.id === projectId);
       if (project) {
@@ -39,26 +48,26 @@ export const useProjectManager = (appData, setAppData) => {
     }
 
     return null;
-  }, [appData.activeContractorId, appData.contractorProjects, appData.projectCategories]);
+  }, [activeContractorId, contractorProjects, projectCategories]);
 
   const addProject = useCallback(async (categoryId, projectData) => {
     try {
       // Check if contractor exists
-      if (!appData.activeContractorId) {
+      if (!activeContractorId) {
         const error = new Error('Please create a contractor profile first in Settings');
         error.userFriendly = true;
         throw error;
       }
 
       // Create a deep copy of the current general price list as a snapshot for this project
-      const priceListSnapshot = JSON.parse(JSON.stringify(appData.generalPriceList));
+      const priceListSnapshot = JSON.parse(JSON.stringify(generalPriceList));
 
       const newProject = await api.projects.create({
         name: projectData.name,
         category: categoryId,
-        c_id: appData.activeContractorId,
+        c_id: activeContractorId,
         client_id: projectData.clientId || null,
-        contractor_id: appData.activeContractorId,
+        contractor_id: activeContractorId,
         status: 0, // Database uses bigint: 0=not sent, 1=sent, 2=archived
         is_archived: false,
         number: 0,
@@ -74,9 +83,9 @@ export const useProjectManager = (appData, setAppData) => {
       };
 
       setAppData(prev => {
-        const activeContractorId = prev.activeContractorId;
+        const currentActiveContractorId = prev.activeContractorId;
 
-        if (!activeContractorId) {
+        if (!currentActiveContractorId) {
           return {
             ...prev,
             projectCategories: prev.projectCategories.map(category => {
@@ -92,12 +101,12 @@ export const useProjectManager = (appData, setAppData) => {
           };
         }
 
-        if (!prev.contractorProjects[activeContractorId]) {
+        if (!prev.contractorProjects[currentActiveContractorId]) {
           return {
             ...prev,
             contractorProjects: {
               ...prev.contractorProjects,
-              [activeContractorId]: {
+              [currentActiveContractorId]: {
                 categories: getDefaultCategories().map(category => {
                   if (category.id === categoryId) {
                     return {
@@ -118,9 +127,9 @@ export const useProjectManager = (appData, setAppData) => {
           ...prev,
           contractorProjects: {
             ...prev.contractorProjects,
-            [activeContractorId]: {
-              ...prev.contractorProjects[activeContractorId],
-              categories: prev.contractorProjects[activeContractorId].categories.map(category => {
+            [currentActiveContractorId]: {
+              ...prev.contractorProjects[currentActiveContractorId],
+              categories: prev.contractorProjects[currentActiveContractorId].categories.map(category => {
                 if (category.id === categoryId) {
                   return {
                     ...category,
@@ -140,7 +149,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error adding project:', error);
       throw error;
     }
-  }, [appData.activeContractorId, appData.generalPriceList, setAppData]);
+  }, [activeContractorId, generalPriceList, setAppData]);
 
   const updateProject = useCallback(async (categoryId, projectId, projectData) => {
     try {
@@ -647,10 +656,10 @@ export const useProjectManager = (appData, setAppData) => {
     }
   }, [setAppData]);
 
-  const getProjectRooms = (projectId) => {
-    const rooms = (appData.projectRoomsData && appData.projectRoomsData[projectId]) || [];
+  const getProjectRooms = useCallback((projectId) => {
+    const rooms = (projectRoomsData && projectRoomsData[projectId]) || [];
     return rooms;
-  };
+  }, [projectRoomsData]);
 
   return {
     findProjectById,
