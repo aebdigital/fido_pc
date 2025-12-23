@@ -301,13 +301,13 @@ const Projects = () => {
       {(currentView === 'categories' || currentView === 'projects') && (
         <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
         <button 
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 min-w-0 max-w-full"
           onClick={() => setShowContractorSelector(!showContractorSelector)}
         >
-          <span className="text-2xl lg:text-xl font-bold text-gray-900 dark:text-white">
+          <span className="text-4xl lg:text-xl font-bold text-gray-900 dark:text-white truncate block">
             {getCurrentContractor()?.name || t('Select contractor')}
           </span>
-          <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
         </button>
         
         {/* Contractor Dropdown */}
