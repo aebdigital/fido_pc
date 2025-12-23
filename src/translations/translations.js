@@ -728,7 +728,6 @@ export const translations = {
     "No notes": "Žiadne poznámky",
     "Contractor": "Dodávateľ",
     "Phone": "Telefón",
-    "Email": "Email",
     "Paint": "Maľovanie"
   }
 };
