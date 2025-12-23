@@ -160,23 +160,23 @@ const Layout = ({ children }) => {
                   key={item.path}
                   href={item.path}
                   onClick={(e) => handleNavigation(item.path, e)}
-                  className={`flex flex-col items-center p-2 m-1 rounded-2xl transition-all duration-200 ${
+                  className={`flex flex-col items-center px-1.5 py-0.5 m-0.5 rounded-2xl transition-all duration-200 ${
                     isActive
-                      ? 'bg-gray-900 dark:bg-white'
+                      ? '' // No background for active item
                       : ''
                   }`}
                 >
                   <item.icon
-                    className={`w-7 h-7 mb-1 ${
+                    className={`w-5 h-5 mb-0.5 ${ // Smaller icon size
                       isActive
-                        ? 'text-white dark:text-gray-900'
+                        ? 'text-blue-500 dark:text-blue-400' // Active icon color
                         : 'text-gray-400'
                     }`}
                   />
                   <span
                     className={`text-xs font-medium ${
                       isActive
-                        ? 'text-white dark:text-gray-900'
+                        ? 'text-blue-500 dark:text-blue-400' // Active text color
                         : 'text-gray-400'
                     }`}
                   >
