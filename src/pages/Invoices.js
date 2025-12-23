@@ -7,7 +7,7 @@ import ContractorProfileModal from '../components/ContractorProfileModal';
 
 const Invoices = () => {
   const { t } = useLanguage();
-  const { contractors, activeContractorId, setActiveContractorId, addContractor, updateContractor, getInvoicesForContractor, formatPrice, findProjectById, calculateProjectTotalPriceWithBreakdown, generalPriceList } = useAppData();
+  const { contractors, activeContractorId, setActiveContractor, addContractor, updateContractor, getInvoicesForContractor, formatPrice, findProjectById, calculateProjectTotalPriceWithBreakdown, generalPriceList } = useAppData();
   const [selectedStatus, setSelectedStatus] = useState(t('All'));
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
@@ -78,7 +78,7 @@ const Invoices = () => {
   };
 
   const handleContractorSelect = (contractor) => {
-    setActiveContractorId(contractor.id);
+    setActiveContractor(contractor.id);
     setShowContractorSelector(false);
   };
 
@@ -89,7 +89,7 @@ const Invoices = () => {
       } else {
         const newContractor = await addContractor(contractorData);
         if (newContractor) {
-          setActiveContractorId(newContractor.id);
+          setActiveContractor(newContractor.id);
         }
       }
       setShowContractorModal(false);
@@ -113,11 +113,16 @@ const Invoices = () => {
           className="flex items-center gap-2"
           onClick={() => setShowContractorSelector(!showContractorSelector)}
         >
-          <span className="text-4xl lg:text-xl font-bold text-gray-900 dark:text-white">
+          {/* Mobile: truncated name */}
+          <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
             {(() => {
               const name = getCurrentContractor()?.name || t('Select contractor');
               return name.length > 16 ? name.substring(0, 16) + '...' : name;
             })()}
+          </span>
+          {/* Desktop: full name */}
+          <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
+            {getCurrentContractor()?.name || t('Select contractor')}
           </span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
         </button>

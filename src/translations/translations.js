@@ -153,6 +153,9 @@ export const translations = {
     "Settings": "Nastavenia",
     "Contact": "Kontakt",
     "Archive": "Archív",
+    "Archived on": "Archivované",
+    "From": "Z",
+    "Unknown": "Neznáme",
     
     // ========== PROJECT CATEGORIES ==========
     "Flats": "Byty",

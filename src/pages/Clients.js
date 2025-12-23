@@ -130,30 +130,10 @@ const Clients = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <button 
               onClick={handleBackToList}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors self-start"
+              className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors self-start shadow-sm"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="text-lg">Back</span>
+              <ArrowLeft className="w-6 h-6" />
             </button>
-            
-            {/* Edit Toggle Button */}
-            <div className="flex items-center gap-3 self-end sm:self-auto">
-              {isEditing && (
-                <button
-                  onClick={handleEditSave}
-                  className="px-4 py-2 lg:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg"
-                >
-                  Save
-                </button>
-              )}
-              <button
-                onClick={handleEditToggle}
-                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md"
-                title={isEditing ? "Cancel editing" : "Edit client information"}
-              >
-                <Edit3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
           </div>
 
           {/* Client Avatar and Name */}
@@ -323,9 +303,6 @@ const Clients = () => {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t("Client's projects")}</h2>
-              <button className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
-                <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
-              </button>
             </div>
             
             <div className="space-y-3">
@@ -351,13 +328,25 @@ const Clients = () => {
             </div>
           </div>
 
-          {/* Edit Client Button */}
+          {/* Edit/Save Client Button */}
           <button 
-            onClick={handleEditToggle}
-            className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-3 lg:py-4 rounded-2xl font-medium border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md text-lg"
+            onClick={isEditing ? handleEditSave : handleEditToggle}
+            className={`w-full py-3 lg:py-4 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md text-lg ${
+              isEditing 
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100' 
+                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
           >
-            <Edit3 className="w-4 h-4 lg:w-5 lg:h-5" />
-            {t('Edit client')}
+            {isEditing ? (
+              <>
+                {t('Save')}
+              </>
+            ) : (
+              <>
+                <Edit3 className="w-4 h-4 lg:w-5 lg:h-5" />
+                {t('Edit client')}
+              </>
+            )}
           </button>
         </div>
       ) : showAddClient ? (
@@ -422,32 +411,28 @@ const Clients = () => {
                   className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${deleteMode ? '' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                   onClick={() => !deleteMode && handleClientSelect(client)}
                 >
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-                          <User className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                  <div className="flex items-center p-2 relative">
+                    <div className="flex-1 flex flex-col items-center text-center justify-center">
+                        <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3 shadow-inner">
+                          <User className="w-8 h-8 text-gray-600 dark:text-gray-400" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{client.name}</h3>
-                          {client.contactPerson && (
-                            <p className="text-gray-600 dark:text-gray-400">{client.contactPerson}</p>
-                          )}
-                        </div>
-                      </div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{client.name}</h3>
+                        {client.contactPerson && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{client.contactPerson}</p>
+                        )}
                     </div>
                     
-                    <div className="flex gap-2 self-end lg:self-auto items-center">
+                    <div className="absolute top-1/2 right-0 transform -translate-y-1/2">
                       {deleteMode ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteClient(client.id); }}
                           className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors shadow-sm"
                           title={t('Delete client')}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                        <ChevronRight className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                   </div>

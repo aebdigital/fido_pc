@@ -628,13 +628,40 @@ export const useProjectManager = (appData, setAppData) => {
   }, [appData.activeContractorId, setAppData]);
 
   const saveWorkItemsForRoom = useCallback(async (roomId, workItems) => {
-    const tablesToUpdate = new Set();
-    workItems.forEach(workItem => {
-      const tableName = getTableName(workItem.propertyId);
-      if (tableName) tablesToUpdate.add(tableName);
-    });
+    // Get all possible work item tables to ensure we delete removed items too
+    const allWorkItemTables = [
+      'brick_partitions',
+      'brick_load_bearing_walls',
+      'plasterboarding_partitions',
+      'plasterboarding_offset_walls',
+      'plasterboarding_ceilings',
+      'netting_walls',
+      'netting_ceilings',
+      'plastering_walls',
+      'plastering_ceilings',
+      'facade_plasterings',
+      'plastering_of_window_sashes',
+      'painting_walls',
+      'painting_ceilings',
+      'levellings',
+      'tile_ceramics',
+      'paving_ceramics',
+      'laying_floating_floors',
+      'wirings',
+      'plumbings',
+      'installation_of_sanitaries',
+      'installation_of_corner_beads',
+      'installation_of_door_jambs',
+      'window_installations',
+      'demolitions',
+      'groutings',
+      'penetration_coatings',
+      'siliconings',
+      'custom_works'
+    ];
 
-    const deletePromises = Array.from(tablesToUpdate).map(async (tableName) => {
+    // Delete existing items from ALL work item tables for this room
+    const deletePromises = allWorkItemTables.map(async (tableName) => {
       try {
         const existingItems = await api.workItems.getByRoom(roomId, tableName);
         if (existingItems && existingItems.length > 0) {
@@ -643,7 +670,7 @@ export const useProjectManager = (appData, setAppData) => {
           ));
         }
       } catch (error) {
-        console.debug(`No existing items in ${tableName}`);
+        // Table might not have any items for this room, which is fine
       }
     });
 

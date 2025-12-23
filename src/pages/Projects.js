@@ -300,15 +300,20 @@ const Projects = () => {
       {/* Contractor Profile Dropdown */}
       {(currentView === 'categories' || currentView === 'projects') && (
         <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
-        <button 
+        <button
           className="flex items-center gap-2"
           onClick={() => setShowContractorSelector(!showContractorSelector)}
         >
-          <span className="text-4xl lg:text-xl font-bold text-gray-900 dark:text-white">
+          {/* Mobile: truncated name */}
+          <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
             {(() => {
               const name = getCurrentContractor()?.name || t('Select contractor');
               return name.length > 16 ? name.substring(0, 16) + '...' : name;
             })()}
+          </span>
+          {/* Desktop: full name */}
+          <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
+            {getCurrentContractor()?.name || t('Select contractor')}
           </span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
         </button>

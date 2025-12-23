@@ -72,12 +72,6 @@ const Archive = ({ onBack }) => {
         <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Archive')}</h1>
       </div>
 
-      {/* Archive controls */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
-          {t('Archived Projects')}
-        </h2>
-      </div>
 
       {/* Archived projects list */}
       {allArchivedProjects.length === 0 ? (
