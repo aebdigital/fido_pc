@@ -21,7 +21,6 @@ import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';
 import cottagesImage from '../images/cottages.webp';
-import logo from '../logo.png'; // Import the logo
 import { Loader2 } from 'lucide-react'; // Import Loader2
 
 const AppDataContext = createContext();

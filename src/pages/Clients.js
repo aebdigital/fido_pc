@@ -32,7 +32,7 @@ const EditableField = React.memo(({ label, field, value, type = "text", isEditin
 });
 
 const Clients = () => {
-  const { t, isSlovak } = useLanguage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { clients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice, findProjectById, getProjectRooms } = useAppData();
   const [showAddClient, setShowAddClient] = useState(false);

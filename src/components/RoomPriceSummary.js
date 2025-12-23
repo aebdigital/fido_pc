@@ -3,7 +3,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import {
   WORK_ITEM_NAMES,
-  WORK_ITEM_PROPERTY_IDS,
   UNIT_TYPES,
   MATERIAL_ITEM_NAMES
 } from '../config/constants';

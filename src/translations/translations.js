@@ -718,26 +718,16 @@ export const translations = {
     "Upload signature image": "Nahrať obrázok podpisu",
     "Add signature": "Pridať podpis",
     "Contractor details": "Údaje o dodávateľovi",
-    "Name of company": "Názov spoločnosti",
     "Web page": "Webová stránka",
     "Link": "Odkaz", // Placeholder for web page
-    "Location": "Umiestnenie",
-    "Street": "Ulica",
-    "App #, Suite (optional)": "Byt č., apartmán (voliteľné)",
     "Mesto": "Mesto", // Placeholder for city
     "PSČ": "PSČ", // Placeholder for postal code
     "Krajina": "Krajina", // Placeholder for country
-    "Valid until": "Platné do",
-    "Saving...": "Ukladám...",
-    "Increase All Prices": "Zvýšiť všetky ceny",
-    "Percentage Increase": "Percentuálne zvýšenie",
-    "Apply": "Použiť",
     "Loading data": "Načítavam dáta",
     "Please wait while we load your projects": "Prosím počkajte, kým načítame vaše projekty",
     "No notes": "Žiadne poznámky",
     "Contractor": "Dodávateľ",
-    "Phone": "Telefón",
-    "Email": "Email"
+    "Phone": "Telefón"
   }
 };
 
