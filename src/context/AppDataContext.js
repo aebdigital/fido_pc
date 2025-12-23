@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/supabaseApi';
 import { useAuth } from './AuthContext';
+import { useLanguage } from './LanguageContext'; // Import useLanguage
 import { 
   transformClientFromDB, 
   transformContractorFromDB, 
@@ -20,6 +21,8 @@ import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';
 import cottagesImage from '../images/cottages.webp';
+import logo from '../logo.png'; // Import the logo
+import { Loader2 } from 'lucide-react'; // Import Loader2
 
 const AppDataContext = createContext();
 
@@ -33,6 +36,7 @@ export const useAppData = () => {
 
 export const AppDataProvider = ({ children }) => {
   const { user } = useAuth();
+  const { t } = useLanguage(); // Get t function
   const [loading, setLoading] = useState(true);
 
   // Default data structure
@@ -630,13 +634,14 @@ export const AppDataProvider = ({ children }) => {
   if (loading) {
     return (
       <AppDataContext.Provider value={contextValue}>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <Loader2 className="w-8 h-8 text-gray-900 dark:text-white animate-spin mb-4" />
           <div className="text-center">
             <div className="text-xl font-medium text-gray-900 dark:text-white mb-2">
-              Loading data...
+              {t('Loading data')}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Please wait while we load your projects
+              {t('Please wait while we load your projects')}
             </div>
           </div>
         </div>

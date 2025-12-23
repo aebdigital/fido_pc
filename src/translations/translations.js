@@ -705,7 +705,39 @@ export const translations = {
     "By signing up, you agree to our terms of service": "Registráciou súhlasíte s našimi podmienkami služby",
     "Forgot your password?": "Zabudli ste heslo?",
     "Construction Cost Calculator": "Kalkulačka stavebných nákladov",
-    "Project Created": "Vytvorené"
+    "Project Created": "Vytvorené",
+    // NEW CONTRACTOR TRANSLATIONS
+    "Create contractor": "Vytvoriť dodávateľa",
+    "Upload logo": "Nahrať logo",
+    "Business information": "Obchodné informácie",
+    "Bank account number": "Číslo bankového účtu",
+    "Bank Code": "Kód banky",
+    "Legal appendix": "Právna poznámka",
+    "Note": "Poznámka", // Placeholder for legal appendix
+    "Signature": "Podpis",
+    "Upload signature image": "Nahrať obrázok podpisu",
+    "Add signature": "Pridať podpis",
+    "Contractor details": "Údaje o dodávateľovi",
+    "Name of company": "Názov spoločnosti",
+    "Web page": "Webová stránka",
+    "Link": "Odkaz", // Placeholder for web page
+    "Location": "Umiestnenie",
+    "Street": "Ulica",
+    "App #, Suite (optional)": "Byt č., apartmán (voliteľné)",
+    "Mesto": "Mesto", // Placeholder for city
+    "PSČ": "PSČ", // Placeholder for postal code
+    "Krajina": "Krajina", // Placeholder for country
+    "Valid until": "Platné do",
+    "Saving...": "Ukladám...",
+    "Increase All Prices": "Zvýšiť všetky ceny",
+    "Percentage Increase": "Percentuálne zvýšenie",
+    "Apply": "Použiť",
+    "Loading data": "Načítavam dáta",
+    "Please wait while we load your projects": "Prosím počkajte, kým načítame vaše projekty",
+    "No notes": "Žiadne poznámky",
+    "Contractor": "Dodávateľ",
+    "Phone": "Telefón",
+    "Email": "Email"
   }
 };
 

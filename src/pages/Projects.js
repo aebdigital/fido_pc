@@ -497,7 +497,7 @@ const Projects = () => {
                         onClick={() => handleArchiveProject(project.id)}
                         className="bg-amber-500 hover:bg-amber-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 self-end sm:self-auto mt-3 sm:mt-0"
                       >
-                        <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-amber-100" />
+                        <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                       </button>
                     ) : (
                       <div className="flex items-center justify-between sm:justify-end sm:gap-4 mt-3 sm:mt-0">

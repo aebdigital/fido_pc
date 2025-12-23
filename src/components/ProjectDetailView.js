@@ -250,7 +250,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         createdDate: new Date().toISOString()
       };
       await addProject(project.category, duplicatedProject);
-      onBack(); // Go back to list after duplicating
+      // Removed onBack() to stay on the current project detail page
+      alert(t('Project duplicated successfully.'));
     } catch (error) {
       console.error('Error duplicating:', error);
       alert('Failed to duplicate project.');
@@ -577,7 +578,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <Trash2 className="w-4 h-4" />
                   </button>
                   <button 
-                    className="p-2 lg:p-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    className="p-2 lg:p-3 text-gray-900 dark:text-white hover:text-gray-900 dark:hover:text-white"
                     onClick={() => setShowNewRoomModal(true)}
                   >
                     <Plus className="w-4 h-4" />
@@ -616,7 +617,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                           }}
                           className="bg-red-500 hover:bg-red-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 self-end sm:self-auto mt-3 sm:mt-0"
                         >
-                          <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-red-100" />
+                          <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                         </button>
                       ) : (
                         <div className="flex items-center justify-between sm:justify-end sm:gap-2 mt-3 sm:mt-0">
