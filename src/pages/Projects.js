@@ -304,8 +304,11 @@ const Projects = () => {
           className="flex items-center gap-2"
           onClick={() => setShowContractorSelector(!showContractorSelector)}
         >
-          <span className="text-4xl lg:text-xl font-bold text-gray-900 dark:text-white truncate block max-w-[calc(100%-50px)]">
-            {getCurrentContractor()?.name || t('Select contractor')}
+          <span className="text-4xl lg:text-xl font-bold text-gray-900 dark:text-white">
+            {(() => {
+              const name = getCurrentContractor()?.name || t('Select contractor');
+              return name.length > 12 ? name.substring(0, 12) + '...' : name;
+            })()}
           </span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
         </button>
