@@ -687,7 +687,7 @@ export const translations = {
     "Add Contractor": "Pridať dodávateľa",
     "No contractors available": "Žiadni dodávatelia k dispozícii",
     "No contractor selected": "Nevybraný žiaden dodávateľ",
-    "Create new profile": "Vytvoriť nový profil",
+    "New profile": "Nový profil",
     "Fill out information for price offers": "Vyplňte informácie pre cenové ponuky",
     "Project contractor": "Dodávateľ projektu",
     "assign contractor to project": "priradiť dodávateľa k projektu",
