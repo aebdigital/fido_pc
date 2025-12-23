@@ -93,6 +93,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxDirection, setLightboxDirection] = useState(0); // -1 for left, 1 for right, 0 for initial
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
+  const [photoDeleteMode, setPhotoDeleteMode] = useState(false);
 
   // Refs
   const photoInputRef = useRef(null);
@@ -987,20 +988,30 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
           {/* Photos */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fotografie')}</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fotografie')}</h2>
+              </div>
+              {!project.is_archived && projectPhotos.length > 0 && (
+                <button
+                  className="p-3 rounded-2xl flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  onClick={() => setPhotoDeleteMode(!photoDeleteMode)}
+                >
+                  <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                </button>
+              )}
             </div>
             <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
             {projectPhotos.length > 0 ? (
               <div
                 className={`relative bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm transition-all duration-200 ${
                   isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
-                } ${!project.is_archived ? 'cursor-pointer' : ''}`}
-                onClick={!project.is_archived ? () => photoInputRef.current?.click() : undefined}
-                onDrop={!project.is_archived ? handlePhotoDrop : undefined}
-                onDragOver={!project.is_archived ? handlePhotoDragOver : undefined}
-                onDragLeave={!project.is_archived ? handlePhotoDragLeave : undefined}
+                } ${!project.is_archived && !photoDeleteMode ? 'cursor-pointer' : ''}`}
+                onClick={!project.is_archived && !photoDeleteMode ? () => photoInputRef.current?.click() : undefined}
+                onDrop={!project.is_archived && !photoDeleteMode ? handlePhotoDrop : undefined}
+                onDragOver={!project.is_archived && !photoDeleteMode ? handlePhotoDragOver : undefined}
+                onDragLeave={!project.is_archived && !photoDeleteMode ? handlePhotoDragLeave : undefined}
               >
                 {/* Photo Grid - 3 columns, max 7 rows = 21 photos per page */}
                 <div className="grid grid-cols-3 gap-2">
@@ -1010,13 +1021,22 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedPhotoIndex(photoPage * 21 + index);
-                        setLightboxOpen(true);
-                        setLightboxDirection(0);
+                        if (photoDeleteMode) {
+                          handleDeletePhoto(photo.id);
+                        } else {
+                          setSelectedPhotoIndex(photoPage * 21 + index);
+                          setLightboxOpen(true);
+                          setLightboxDirection(0);
+                        }
                       }}
                     >
                       <img src={photo.url} alt={photo.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                      {!project.is_archived && (
+                      {photoDeleteMode && (
+                        <div className="absolute inset-0 bg-red-500/40 flex items-center justify-center">
+                          <Trash2 className="w-8 h-8 text-white" />
+                        </div>
+                      )}
+                      {!project.is_archived && !photoDeleteMode && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
                           className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
