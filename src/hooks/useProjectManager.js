@@ -205,6 +205,7 @@ export const useProjectManager = (appData, setAppData) => {
       if (projectData.status !== undefined) mappedData.status = projectData.status;
       if (projectData.hasInvoice !== undefined) mappedData.has_invoice = projectData.hasInvoice;
       if (projectData.invoiceId !== undefined) mappedData.invoice_id = projectData.invoiceId;
+      if (projectData.invoiceStatus !== undefined) mappedData.invoice_status = projectData.invoiceStatus;
       if (projectData.isArchived !== undefined) mappedData.is_archived = projectData.isArchived;
       if (projectData.priceListSnapshot !== undefined) {
         mappedData.price_list_snapshot = typeof projectData.priceListSnapshot === 'string'

@@ -337,12 +337,16 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const handlePreviewPriceOffer = () => {
     // Ensure we have a valid project breakdown
     const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
-    
+
     // Safety check: ensure breakdown is valid
     if (!projectBreakdown) {
       alert(t('Error calculating project price. Please try again.'));
       return;
     }
+
+    // Get contractor and client for the PDF
+    const contractor = getCurrentContractor();
+    const client = clients.find(c => c.id === project.clientId);
 
     const priceOfferData = {
       invoiceNumber: '',
