@@ -40,6 +40,7 @@ const Clients = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [deleteMode, setDeleteMode] = useState(false);
 
   const handleDeleteClient = (clientId) => {
     if (window.confirm(t('Are you sure you want to delete this client?'))) {
@@ -396,6 +397,12 @@ const Clients = () => {
               </div>
               <div className="flex gap-2 justify-end">
                 <button 
+                  onClick={() => setDeleteMode(!deleteMode)}
+                  className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                >
+                  <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                </button>
+                <button 
                   onClick={handleCreateClient}
                   className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
                 >
@@ -409,7 +416,11 @@ const Clients = () => {
           {filteredClients.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredClients.map(client => (
-                <div key={client.id} className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div 
+                  key={client.id} 
+                  className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${deleteMode ? '' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                  onClick={() => !deleteMode && handleClientSelect(client)}
+                >
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-3 mb-3">
@@ -425,21 +436,18 @@ const Clients = () => {
                       </div>
                     </div>
                     
-                    <div className="flex gap-2 self-end lg:self-auto">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleClientSelect(client); }}
-                        className="p-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
-                        title={t('Edit client')}
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteClient(client.id); }}
-                        className="p-2 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-800 transition-colors border border-red-200 dark:border-red-700"
-                        title={t('Delete client')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="flex gap-2 self-end lg:self-auto items-center">
+                      {deleteMode ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteClient(client.id); }}
+                          className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors shadow-sm"
+                          title={t('Delete client')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                      )}
                     </div>
                   </div>
                 </div>
