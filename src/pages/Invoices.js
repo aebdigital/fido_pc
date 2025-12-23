@@ -113,7 +113,7 @@ const Invoices = () => {
           className="flex items-center gap-2"
           onClick={() => setShowContractorSelector(!showContractorSelector)}
         >
-          <span className="text-lg lg:text-xl font-medium text-gray-900 dark:text-white">
+          <span className="text-2xl lg:text-xl font-bold text-gray-900 dark:text-white">
             {getCurrentContractor()?.name || t('Select contractor')}
           </span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
