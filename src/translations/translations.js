@@ -662,7 +662,7 @@ export const translations = {
     "Tutorial": "Tutoriál",
     "Terms of Use": "Podmienky používania",
     "Privacy Policy": "Zásady ochrany osobných údajov",
-    "Fido Building Calculator": "Fido Building Calculator",
+    "Fido Building Calcul": "Fido Building Calcul",
     "All rights reserved": "Všetky práva vyhradené",
     "Notes": "Poznámky",
     "Notes_CP": "Poznámky k CP",
