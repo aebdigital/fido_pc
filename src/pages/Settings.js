@@ -87,7 +87,7 @@ const Settings = () => {
 
   return (
     <div className="pb-20 lg:pb-0">
-      <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-8">{t('Settings')}</h1>
+      <h1 className="block text-4xl font-bold text-gray-900 dark:text-white mb-8">{t('Settings')}</h1>
 
       {/* Access Section */}
       <div className="mb-6 lg:mb-8">

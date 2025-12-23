@@ -382,7 +382,7 @@ const Clients = () => {
         <div>
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6 lg:mb-8 gap-4">
-            <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white">{t('Clients')}</h1>
+            <h1 className="block text-4xl font-bold text-gray-900 dark:text-white">{t('Clients')}</h1>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 lg:gap-4">
               <div className="relative flex-1 sm:w-72 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
