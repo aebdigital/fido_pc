@@ -41,78 +41,125 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                 <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.workTotal)}</span>
               </div>
               {calculation.items.length > 0 ? (
-                calculation.items.map(item => {
-                  if (item.calculation?.workCost > 0) {
-                    // Determine the correct unit based on work type
-                    // First check if calculation already has a unit (e.g., for additional fields like Jolly Edging, Plinth)
-                    let unit = item.calculation.unit || UNIT_TYPES.METER_SQUARE;
-                    let quantity = item.calculation.quantity;
-                    const values = item.fields;
+                (() => {
+                  const workGroups = {};
+                  const nonGroupedItems = [];
 
-                    // Only derive unit from fields if not already set in calculation
-                    if (!item.calculation.unit) {
-                      // Check for scaffolding rental (has "- prenájom" in subtitle)
-                      if (item.subtitle && item.subtitle.includes('- prenájom') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
-                        quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
-                        unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
-                      } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) && (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
-                        unit = UNIT_TYPES.KM;
-                        const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
-                        const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
-                        quantity = distance * (days > 0 ? days : 1);
-                      } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || (values[WORK_ITEM_NAMES.COUNT] && (item.name === WORK_ITEM_NAMES.CORE_DRILL || item.name === 'Rental' || item.name === WORK_ITEM_NAMES.TOOL_RENTAL))) {
-                        unit = UNIT_TYPES.HOUR;
-                        quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || values[WORK_ITEM_NAMES.COUNT] || 0);
-                      } else if (values[WORK_ITEM_NAMES.COUNT] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) {
-                        unit = UNIT_TYPES.PIECE;
-                        quantity = parseFloat(values[WORK_ITEM_NAMES.COUNT] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK] || 0);
-                      } else if (values[WORK_ITEM_NAMES.LENGTH] && !values[WORK_ITEM_NAMES.WIDTH] && !values[WORK_ITEM_NAMES.HEIGHT]) {
-                        unit = UNIT_TYPES.METER;
-                        quantity = parseFloat(values[WORK_ITEM_NAMES.LENGTH] || 0);
-                      } else if (values[WORK_ITEM_NAMES.CIRCUMFERENCE]) {
-                        unit = UNIT_TYPES.METER;
-                        quantity = parseFloat(values[WORK_ITEM_NAMES.CIRCUMFERENCE] || 0);
-                      } else if (values[WORK_ITEM_NAMES.DISTANCE_EN]) {
-                        unit = UNIT_TYPES.KM;
-                        quantity = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || 0);
+                  // Items that should be grouped by name + subtitle
+                  const groupablePropertyIds = [
+                    'painting_wall', 'painting_ceiling',
+                    'penetration_coating'
+                  ];
+
+                  calculation.items.forEach(item => {
+                    if (item.calculation?.workCost > 0) {
+                      // Check if this item should be grouped
+                      const shouldGroup = groupablePropertyIds.includes(item.propertyId);
+
+                      // Determine the correct unit based on work type
+                      let unit = item.calculation.unit || UNIT_TYPES.METER_SQUARE;
+                      let quantity = item.calculation.quantity;
+                      const values = item.fields;
+
+                      // Only derive unit from fields if not already set in calculation
+                      if (!item.calculation.unit) {
+                        if (item.subtitle && item.subtitle.includes('- prenájom') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
+                          quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
+                          unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
+                        } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) && (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
+                          unit = UNIT_TYPES.KM;
+                          const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
+                          const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
+                          quantity = distance * (days > 0 ? days : 1);
+                        } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || (values[WORK_ITEM_NAMES.COUNT] && (item.name === WORK_ITEM_NAMES.CORE_DRILL || item.name === 'Rental' || item.name === WORK_ITEM_NAMES.TOOL_RENTAL))) {
+                          unit = UNIT_TYPES.HOUR;
+                          quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || values[WORK_ITEM_NAMES.COUNT] || 0);
+                        } else if (values[WORK_ITEM_NAMES.COUNT] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) {
+                          unit = UNIT_TYPES.PIECE;
+                          quantity = parseFloat(values[WORK_ITEM_NAMES.COUNT] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK] || 0);
+                        } else if (values[WORK_ITEM_NAMES.LENGTH] && !values[WORK_ITEM_NAMES.WIDTH] && !values[WORK_ITEM_NAMES.HEIGHT]) {
+                          unit = UNIT_TYPES.METER;
+                          quantity = parseFloat(values[WORK_ITEM_NAMES.LENGTH] || 0);
+                        } else if (values[WORK_ITEM_NAMES.CIRCUMFERENCE]) {
+                          unit = UNIT_TYPES.METER;
+                          quantity = parseFloat(values[WORK_ITEM_NAMES.CIRCUMFERENCE] || 0);
+                        } else if (values[WORK_ITEM_NAMES.DISTANCE_EN]) {
+                          unit = UNIT_TYPES.KM;
+                          quantity = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || 0);
+                        }
                       }
-                    }
-                    
-                    // For work types with subtitles (plasterboarding, plastering, painting, netting), use the constructed name directly, otherwise translate
-                    // Fall back to looking up name from propertyId if item.name is undefined
-                    const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
-                    const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ?
-                      itemName : t(itemName);
-                    
-                    // Special handling for scaffolding items
-                    let workDescription;
-                    if ((item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || 
-                        item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
-                        (item.name && item.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
-                      if (item.subtitle.includes('- prenájom')) {
-                        // For rental component, show days
-                        const duration = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
-                        workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
-                      } else if (item.subtitle.includes('- montáž a demontáž')) {
-                        // For assembly component, show area
-                        const area = parseFloat(values[WORK_ITEM_NAMES.LENGTH] || 0) * parseFloat(values[WORK_ITEM_NAMES.HEIGHT] || 0);
-                        workDescription = `${t(item.subtitle)} - ${area.toFixed(1)}${t(UNIT_TYPES.METER_SQUARE)}`;
+
+                      if (shouldGroup) {
+                        // Group by propertyId (which includes wall/ceiling distinction)
+                        const groupKey = item.propertyId;
+
+                        if (!workGroups[groupKey]) {
+                          const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                          const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ?
+                            itemName : t(itemName);
+
+                          workGroups[groupKey] = {
+                            name: workName,
+                            unit: unit,
+                            totalQuantity: 0,
+                            totalCost: 0
+                          };
+                        }
+
+                        workGroups[groupKey].totalQuantity += quantity;
+                        workGroups[groupKey].totalCost += item.calculation.workCost;
                       } else {
-                        workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                        // Non-grouped items - render as before
+                        const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                        const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ?
+                          itemName : t(itemName);
+
+                        let workDescription;
+                        if ((item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
+                            item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
+                            (item.name && item.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
+                          if (item.subtitle.includes('- prenájom')) {
+                            const duration = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
+                            workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
+                          } else if (item.subtitle.includes('- montáž a demontáž')) {
+                            const area = parseFloat(values[WORK_ITEM_NAMES.LENGTH] || 0) * parseFloat(values[WORK_ITEM_NAMES.HEIGHT] || 0);
+                            workDescription = `${t(item.subtitle)} - ${area.toFixed(1)}${t(UNIT_TYPES.METER_SQUARE)}`;
+                          } else {
+                            workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                          }
+                        } else {
+                          workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                        }
+
+                        nonGroupedItems.push({
+                          id: item.id,
+                          description: workDescription,
+                          cost: item.calculation.workCost
+                        });
                       }
-                    } else {
-                      workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
                     }
-                    
-                    return (
-                      <div key={`${item.id}-work`} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
-                        <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.workCost)}</span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })
+                  });
+
+                  // Render grouped items first, then non-grouped items
+                  return (
+                    <>
+                      {Object.entries(workGroups).map(([key, group]) => (
+                        <div key={`work-group-${key}`} className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {group.name} - {group.totalQuantity.toFixed(group.totalQuantity < 10 ? 1 : 0)}{t(group.unit)}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-400">{formatPrice(group.totalCost)}</span>
+                        </div>
+                      ))}
+                      {nonGroupedItems.map(item => (
+                        <div key={`${item.id}-work`} className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">{item.description}</span>
+                          <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.cost)}</span>
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()
               ) : (
                 <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
                   {t('No work items added')}

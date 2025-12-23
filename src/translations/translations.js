@@ -728,8 +728,8 @@ export const translations = {
     "No notes": "Žiadne poznámky",
     "Contractor": "Dodávateľ",
     "Phone": "Telefón",
-    "Drop photos here": "Presuňte fotky sem",
-    "Click or drag photos here": "Kliknite alebo presuňte fotky sem"
+    "Email": "Email",
+    "Paint": "Maľovanie"
   }
 };
 

@@ -504,7 +504,7 @@ export const calculateMaterialCost = (workItem, material, workQuantity) => {
   }
   
   // Direct calculation for materials priced per unit area/length
-  return workQuantity * material.price;
+  return workQuantity * (material.price || 0);
 };
 
 // Comprehensive calculation for a work item including materials and adhesive
