@@ -131,16 +131,11 @@ const Layout = ({ children }) => {
         </div>
       </div>
 
-      {/* Mobile Header - Visible only on Mobile */}
-      <div className={`lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 h-16 flex items-center justify-center fixed top-0 left-0 right-0 z-40 transition-transform duration-300 ${
-        isNavVisible ? 'translate-y-0' : '-translate-y-full'
-      }`}>
-        <img src={logo} alt="Fido Logo" className="h-10 w-auto" />
-      </div>
+
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:ml-0">
-        <div className="flex-1 overflow-y-auto pt-16 lg:pt-0 pb-24 lg:pb-0 bg-white dark:bg-gray-900">
+        <div className="flex-1 overflow-y-auto lg:pt-0 pb-24 lg:pb-0 bg-white dark:bg-gray-900">
           <div className="pl-4 pr-4 pt-4 pb-4 lg:p-6">
             {children}
           </div>
