@@ -116,7 +116,7 @@ const Invoices = () => {
           <span className="text-4xl lg:text-xl font-bold text-gray-900 dark:text-white">
             {(() => {
               const name = getCurrentContractor()?.name || t('Select contractor');
-              return name.length > 12 ? name.substring(0, 12) + '...' : name;
+              return name.length > 16 ? name.substring(0, 16) + '...' : name;
             })()}
           </span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
