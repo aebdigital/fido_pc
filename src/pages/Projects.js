@@ -442,10 +442,10 @@ const Projects = () => {
                   <div className="flex gap-2 flex-shrink-0">
                     <button 
                       onClick={toggleProjectDeleteMode}
-                      className={`p-2 lg:p-3 transition-colors ${
-                        projectDeleteMode 
-                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg shadow-sm hover:shadow-md' 
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      className={`p-2 lg:p-3 rounded-full transition-colors ${
+                        projectDeleteMode
+                          ? 'bg-gray-600 text-white hover:bg-gray-700'
+                          : 'bg-gray-500 text-white hover:bg-gray-600'
                       }`}
                     >
                       <Archive className="w-4 h-4" />
