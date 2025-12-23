@@ -382,23 +382,13 @@ const Clients = () => {
         /* Clients List View */
         <div>
           {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6 lg:mb-8 gap-4">
-            <h1 className="block text-4xl font-bold text-gray-900 dark:text-white">{t('Clients')}</h1>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 lg:gap-4">
-              <div className="relative flex-1 sm:w-72 sm:flex-none">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                <input 
-                  type="text" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={t('Search')} 
-                  className="w-full pl-10 pr-4 py-2 lg:py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
+          <div className="mb-6 lg:mb-8 space-y-4"> {/* Changed to space-y-4 always */}
+            <div className="flex justify-between items-center gap-4"> {/* Flex for H1 and buttons */}
+              <h1 className="block text-4xl font-bold text-gray-900 dark:text-white">{t('Clients')}</h1>
+              <div className="flex gap-2 flex-shrink-0"> {/* Buttons container */}
                 <button 
                   onClick={() => setDeleteMode(!deleteMode)}
-                  className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                  className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md bg-red-500 text-white hover:bg-red-600"
                 >
                   <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
                 </button>
@@ -409,6 +399,17 @@ const Clients = () => {
                   <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
                 </button>
               </div>
+            </div>
+            {/* Search Bar - now below H1 on all screen sizes */}
+            <div className="relative flex-1 sm:w-72 sm:flex-none lg:w-96"> {/* Removed lg:hidden, added lg:w-96 */}
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <input 
+                type="text" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t('Search')} 
+                className="w-full pl-10 pr-4 py-2 lg:py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
+              />
             </div>
           </div>
 
