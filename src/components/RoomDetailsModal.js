@@ -608,17 +608,24 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       const hasHeightField = parentProperty?.fields?.some(f => f.name === WORK_ITEM_NAMES.HEIGHT);
       const hasLengthField = parentProperty?.fields?.some(f => f.name === WORK_ITEM_NAMES.LENGTH);
 
+      // Check if parent is a partition or offset wall (these are walls even though they don't have HEIGHT field)
+      const isPartitionOrOffsetWall = parentProperty?.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION ||
+                                       parentProperty?.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET;
+
+      // Wall type: has HEIGHT field OR is a partition/offset wall
+      const isWallType = hasHeightField || isPartitionOrOffsetWall;
+
       if (workName === WORK_ITEM_NAMES.PLASTERING) {
         complementaryProperty = workProperties.find(p =>
-          hasHeightField ? p.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING
+          isWallType ? p.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING
         );
       } else if (workName === WORK_ITEM_NAMES.PAINTING) {
         complementaryProperty = workProperties.find(p =>
-          hasHeightField ? p.id === WORK_ITEM_PROPERTY_IDS.PAINTING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING
+          isWallType ? p.id === WORK_ITEM_PROPERTY_IDS.PAINTING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING
         );
       } else if (workName === WORK_ITEM_NAMES.NETTING) {
         complementaryProperty = workProperties.find(p =>
-          hasHeightField ? p.id === WORK_ITEM_PROPERTY_IDS.NETTING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING
+          isWallType ? p.id === WORK_ITEM_PROPERTY_IDS.NETTING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING
         );
       } else if (workName === WORK_ITEM_NAMES.PENETRATION_COATING) {
         complementaryProperty = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING);
