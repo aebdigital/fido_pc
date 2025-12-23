@@ -442,13 +442,13 @@ const Projects = () => {
                   <div className="flex gap-2 flex-shrink-0">
                     <button
                       onClick={toggleProjectDeleteMode}
-                      className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors ${
+                      className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${
                         projectDeleteMode
                           ? 'bg-gray-600 text-white hover:bg-gray-700'
                           : 'bg-gray-500 text-white hover:bg-gray-600'
                       }`}
                     >
-                      <Archive className="w-4 h-4" />
+                      <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
                     </button>
                     <button 
                       onClick={() => setShowNewProjectModal(true)}
