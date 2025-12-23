@@ -576,13 +576,13 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               {!project.is_archived && (
                 <div className="flex gap-2">
                   <button
-                    className={`p-2 lg:p-3 rounded-full transition-colors ${deleteMode ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500 text-white hover:bg-red-600'}`}
+                    className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
                     onClick={() => setDeleteMode(!deleteMode)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                   <button
-                    className="p-2 lg:p-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                    className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                     onClick={() => setShowNewRoomModal(true)}
                   >
                     <Plus className="w-4 h-4" />

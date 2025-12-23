@@ -440,9 +440,9 @@ const Projects = () => {
                     </h2>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
-                    <button 
+                    <button
                       onClick={toggleProjectDeleteMode}
-                      className={`p-2 lg:p-3 rounded-full transition-colors ${
+                      className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors ${
                         projectDeleteMode
                           ? 'bg-gray-600 text-white hover:bg-gray-700'
                           : 'bg-gray-500 text-white hover:bg-gray-600'
