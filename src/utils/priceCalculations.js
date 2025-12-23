@@ -888,7 +888,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
             let materialCostForItem = 0;
 
             if (calculation.material.capacity) {
-              const packagesNeeded = Math.ceil(materialQuantity / calculation.material.capacity);
+              const capacityValue = calculation.material.capacity.value || calculation.material.capacity;
+              const packagesNeeded = Math.ceil(materialQuantity / capacityValue);
               materialCostForItem = packagesNeeded * materialPrice;
             } else {
               materialCostForItem = materialQuantity * materialPrice;
@@ -951,7 +952,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
             let adhesiveCost = 0;
 
             if (calculation.additionalMaterial.capacity) {
-              const packagesNeeded = Math.ceil(adhesiveQuantity / calculation.additionalMaterial.capacity);
+              const capacityValue = calculation.additionalMaterial.capacity.value || calculation.additionalMaterial.capacity;
+              const packagesNeeded = Math.ceil(adhesiveQuantity / capacityValue);
               adhesiveCost = packagesNeeded * adhesivePrice;
             } else {
               adhesiveCost = adhesiveQuantity * adhesivePrice;
