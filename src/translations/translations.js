@@ -727,7 +727,9 @@ export const translations = {
     "Please wait while we load your projects": "Prosím počkajte, kým načítame vaše projekty",
     "No notes": "Žiadne poznámky",
     "Contractor": "Dodávateľ",
-    "Phone": "Telefón"
+    "Phone": "Telefón",
+    "Drop photos here": "Presuňte fotky sem",
+    "Click or drag photos here": "Kliknite alebo presuňte fotky sem"
   }
 };
 

@@ -92,7 +92,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [photoPage, setPhotoPage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxDirection, setLightboxDirection] = useState(0); // -1 for left, 1 for right, 0 for initial
-  
+  const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
+
   // Refs
   const photoInputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -321,6 +322,46 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     const updatedPhotos = [...projectPhotos, ...newPhotos];
     setProjectPhotos(updatedPhotos);
     updateProject(project.category, project.id, { photos: updatedPhotos });
+  };
+
+  const handlePhotoDrop = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingPhoto(false);
+
+    const files = Array.from(event.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+    if (!files.length) return;
+
+    const newPhotos = [];
+    for (const file of files) {
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+      newPhotos.push({
+        id: Date.now() + Math.random(),
+        url: base64,
+        name: file.name,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    const updatedPhotos = [...projectPhotos, ...newPhotos];
+    setProjectPhotos(updatedPhotos);
+    updateProject(project.category, project.id, { photos: updatedPhotos });
+  };
+
+  const handlePhotoDragOver = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingPhoto(true);
+  };
+
+  const handlePhotoDragLeave = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingPhoto(false);
   };
 
   const handleDeletePhoto = (photoId) => {
@@ -946,27 +987,29 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
           {/* Photos */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fotografie')}</h2>
-              </div>
-              {!project.is_archived && (
-                <button onClick={() => photoInputRef.current?.click()} className="p-2 text-gray-600 hover:text-gray-900">
-                  <Plus className="w-5 h-5" />
-                </button>
-              )}
-              <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+            <div className="flex items-center gap-2">
+              <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fotografie')}</h2>
             </div>
+            <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
             {projectPhotos.length > 0 ? (
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm">
+              <div
+                className={`relative bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm transition-all duration-200 ${
+                  isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
+                } ${!project.is_archived ? 'cursor-pointer' : ''}`}
+                onClick={!project.is_archived ? () => photoInputRef.current?.click() : undefined}
+                onDrop={!project.is_archived ? handlePhotoDrop : undefined}
+                onDragOver={!project.is_archived ? handlePhotoDragOver : undefined}
+                onDragLeave={!project.is_archived ? handlePhotoDragLeave : undefined}
+              >
                 {/* Photo Grid - 3 columns, max 7 rows = 21 photos per page */}
                 <div className="grid grid-cols-3 gap-2">
                   {projectPhotos.slice(photoPage * 21, (photoPage + 1) * 21).map((photo, index) => (
                     <div
                       key={photo.id}
                       className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setSelectedPhotoIndex(photoPage * 21 + index);
                         setLightboxOpen(true);
                         setLightboxDirection(0);
@@ -989,7 +1032,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 {projectPhotos.length > 21 && (
                   <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <button
-                      onClick={() => setPhotoPage(p => Math.max(0, p - 1))}
+                      onClick={(e) => { e.stopPropagation(); setPhotoPage(p => Math.max(0, p - 1)); }}
                       disabled={photoPage === 0}
                       className={`p-2 rounded-xl transition-all duration-200 ${
                         photoPage === 0
@@ -1003,7 +1046,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       {photoPage + 1} / {Math.ceil(projectPhotos.length / 21)}
                     </span>
                     <button
-                      onClick={() => setPhotoPage(p => Math.min(Math.ceil(projectPhotos.length / 21) - 1, p + 1))}
+                      onClick={(e) => { e.stopPropagation(); setPhotoPage(p => Math.min(Math.ceil(projectPhotos.length / 21) - 1, p + 1)); }}
                       disabled={photoPage >= Math.ceil(projectPhotos.length / 21) - 1}
                       className={`p-2 rounded-xl transition-all duration-200 ${
                         photoPage >= Math.ceil(projectPhotos.length / 21) - 1
@@ -1015,11 +1058,28 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     </button>
                   </div>
                 )}
+
+                {/* Drag overlay hint */}
+                {isDraggingPhoto && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-2xl pointer-events-none">
+                    <span className="text-blue-600 dark:text-blue-400 font-medium">{t('Drop photos here')}</span>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="min-h-[120px] flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-2xl">
+              <div
+                className={`min-h-[120px] flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-2xl transition-all duration-200 ${
+                  isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
+                } ${!project.is_archived ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}`}
+                onClick={!project.is_archived ? () => photoInputRef.current?.click() : undefined}
+                onDrop={!project.is_archived ? handlePhotoDrop : undefined}
+                onDragOver={!project.is_archived ? handlePhotoDragOver : undefined}
+                onDragLeave={!project.is_archived ? handlePhotoDragLeave : undefined}
+              >
                 <Image className="w-8 h-8 mb-2 text-gray-400" />
-                <span className="text-sm text-gray-500">{t('Click to add photos')}</span>
+                <span className="text-sm text-gray-500">
+                  {isDraggingPhoto ? t('Drop photos here') : t('Click or drag photos here')}
+                </span>
               </div>
             )}
           </div>
