@@ -103,7 +103,7 @@ const PriceOfferSettings = ({ onBack }) => {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Supplier')}</h1>
+        <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Supplier')}</h1>
       </div>
 
       <div>

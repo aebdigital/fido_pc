@@ -104,66 +104,57 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 shadow-sm hover:shadow-md transition-shadow`}>
+      <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           {category === 'installations' && item.subtitle ? (
-            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.subtitle)}</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-sm lg:text-lg truncate">{t(item.subtitle)}</h3>
           ) : (
             <>
-              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.name)}</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-sm lg:text-lg truncate">{t(item.name)}</h3>
               {item.subtitle && (
-                <p className="text-sm lg:text-base text-black dark:text-white mt-1">{t(item.subtitle)}</p>
+                <p className="text-xs lg:text-base text-black dark:text-white mt-0.5 lg:mt-1 truncate">{t(item.subtitle)}</p>
               )}
             </>
           )}
           {item.isOverridden && (
-            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate">
               {t('Original')}: {item.originalPrice} {t(item.unit)}
             </p>
           )}
+          {/* Capacity info - now below the title on left side */}
+          {item.capacity && (
+            <div className="mt-1 text-xs text-gray-600 dark:text-gray-300 truncate">
+              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
+                ? t('capacity per 25kg package')
+                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
+              }: {item.capacity.value} {item.capacity.unit}
+            </div>
+          )}
         </div>
-        <div className="flex items-center justify-between sm:justify-end gap-2 sm:ml-4">
+        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
           <NumberInput
             value={item.price}
             onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
             className={item.isOverridden
-              ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100' 
-              : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
+              ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
+              : 'bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-white'
             }
             min={0}
+            size="small"
           />
-          <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
+          <div className="text-xs text-black dark:text-white flex-shrink-0 whitespace-nowrap">{t(item.unit)}</div>
           {item.isOverridden && (
             <button
               onClick={() => handleResetToOriginal(category, itemIndex)}
-              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center ml-1"
+              className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center flex-shrink-0"
               title={t('Reset to original price')}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3 h-3" />
             </button>
           )}
         </div>
       </div>
-      
-      {item.capacity && (
-        <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-            <span className="text-sm lg:text-base text-black dark:text-white">
-              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
-                ? t('capacity per 25kg package')
-                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
-              }
-            </span>
-            <div className="flex items-center gap-2 justify-end sm:justify-start">
-              <div className="bg-white dark:bg-gray-900 rounded-xl px-2 lg:px-3 py-1 font-semibold text-gray-900 dark:text-white shadow-sm text-lg">
-                {item.capacity.value}
-              </div>
-              <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -178,8 +169,8 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] max-h-[90vh] flex flex-col animate-slide-in">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 animate-fade-in">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[85vh] lg:h-[90vh] max-h-[calc(100vh-2rem)] flex flex-col animate-slide-in">
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-2xl">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h2>

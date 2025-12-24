@@ -7,7 +7,7 @@ import { generateInvoicePDF } from '../utils/pdfGenerator';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import PDFPreviewModal from './PDFPreviewModal';
 
-const InvoiceDetailModal = ({ isOpen, onClose, invoice }) => {
+const InvoiceDetailModal = ({ isOpen, onClose, invoice, hideViewProject = false }) => {
   const { t } = useLanguage();
   const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry } = useAppData();
   const navigate = useNavigate();
@@ -368,12 +368,14 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Project')}</h3>
-              <button
-                onClick={handleViewProject}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {t('View Project')}
-              </button>
+              {!hideViewProject && (
+                <button
+                  onClick={handleViewProject}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {t('View Project')}
+                </button>
+              )}
             </div>
             <p className="text-lg font-medium text-gray-900 dark:text-white mb-4">{project?.name}</p>
             <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3">

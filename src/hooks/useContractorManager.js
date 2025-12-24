@@ -122,13 +122,45 @@ export const useContractorManager = (appData, setAppData) => {
     if (!contractorId) {
       return appData.archivedProjects || [];
     }
-    
+
     if (!appData.contractorProjects || !appData.contractorProjects[contractorId]) {
       return [];
     }
-    
+
     return appData.contractorProjects[contractorId].archivedProjects || [];
   }, [appData.archivedProjects, appData.contractorProjects]);
+
+  // Helper function to get orphan projects (projects without a contractor)
+  const getOrphanProjectCategories = useCallback(() => {
+    const contractorIds = new Set((appData.contractors || []).map(c => c.id));
+    const orphanCategories = getDefaultCategories();
+
+    // Go through all contractor projects and find projects with c_id that doesn't match any contractor
+    if (appData.contractorProjects) {
+      Object.entries(appData.contractorProjects).forEach(([contractorId, data]) => {
+        // If contractor doesn't exist anymore, these are orphan projects
+        if (!contractorIds.has(contractorId)) {
+          if (data.categories) {
+            data.categories.forEach(category => {
+              const orphanCategory = orphanCategories.find(c => c.id === category.id);
+              if (orphanCategory && category.projects) {
+                orphanCategory.projects = [...orphanCategory.projects, ...category.projects];
+                orphanCategory.count = orphanCategory.projects.length;
+              }
+            });
+          }
+        }
+      });
+    }
+
+    return orphanCategories;
+  }, [appData.contractors, appData.contractorProjects]);
+
+  // Check if there are any orphan projects
+  const hasOrphanProjects = useCallback(() => {
+    const categories = getOrphanProjectCategories();
+    return categories.some(cat => cat.projects.length > 0);
+  }, [getOrphanProjectCategories]);
 
   return {
     addContractor,
@@ -137,6 +169,8 @@ export const useContractorManager = (appData, setAppData) => {
     setActiveContractor,
     updatePriceOfferSettings,
     getProjectCategoriesForContractor,
-    getArchivedProjectsForContractor
+    getArchivedProjectsForContractor,
+    getOrphanProjectCategories,
+    hasOrphanProjects
   };
 };

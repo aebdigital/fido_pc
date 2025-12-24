@@ -26,8 +26,13 @@ const Projects = () => {
     archivedProjects,
     calculateProjectTotalPrice,
     formatPrice,
-    loadProjectDetails
+    loadProjectDetails,
+    getOrphanProjectCategories,
+    hasOrphanProjects
   } = useAppData();
+
+  // Special state for viewing orphan projects (projects without contractor)
+  const [viewingOrphanProjects, setViewingOrphanProjects] = useState(false);
   
   const [activeCategory, setActiveCategory] = useState('flats');
   const [selectedProject, setSelectedProject] = useState(null);
@@ -75,8 +80,20 @@ const Projects = () => {
 
 
   const activeProjects = useMemo(() => {
+    if (viewingOrphanProjects) {
+      const orphanCategories = getOrphanProjectCategories();
+      return orphanCategories.find(cat => cat.id === activeCategory)?.projects || [];
+    }
     return projectCategories.find(cat => cat.id === activeCategory)?.projects || [];
-  }, [projectCategories, activeCategory]);
+  }, [projectCategories, activeCategory, viewingOrphanProjects, getOrphanProjectCategories]);
+
+  // Get actual categories to display (normal or orphan)
+  const displayCategories = useMemo(() => {
+    if (viewingOrphanProjects) {
+      return getOrphanProjectCategories();
+    }
+    return projectCategories;
+  }, [projectCategories, viewingOrphanProjects, getOrphanProjectCategories]);
   const currentProject = selectedProject;
 
   // Sync selectedProject with updated data from appData to ensure ProjectDetailView gets fresh data
@@ -282,7 +299,13 @@ const Projects = () => {
   };
 
   const handleContractorSelect = (contractorId) => {
+    setViewingOrphanProjects(false);
     setActiveContractor(contractorId);
+    setShowContractorSelector(false);
+  };
+
+  const handleViewOrphanProjects = () => {
+    setViewingOrphanProjects(true);
     setShowContractorSelector(false);
   };
 
@@ -307,13 +330,13 @@ const Projects = () => {
           {/* Mobile: truncated name */}
           <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
             {(() => {
-              const name = getCurrentContractor()?.name || t('Select contractor');
+              const name = viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'));
               return name.length > 16 ? name.substring(0, 16) + '...' : name;
             })()}
           </span>
           {/* Desktop: full name */}
           <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
-            {getCurrentContractor()?.name || t('Select contractor')}
+            {viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'))}
           </span>
           <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
         </button>
@@ -342,11 +365,11 @@ const Projects = () => {
                     {t('Select contractor')}
                   </div>
                   {contractors.map(contractor => (
-                    <div 
+                    <div
                       key={contractor.id}
                       className={`p-3 rounded-xl cursor-pointer transition-colors ${
-                        activeContractorId === contractor.id 
-                          ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600' 
+                        activeContractorId === contractor.id && !viewingOrphanProjects
+                          ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
                           : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
                       }`}
                       onClick={() => handleContractorSelect(contractor.id)}
@@ -363,6 +386,27 @@ const Projects = () => {
                   ))}
                 </div>
               )}
+
+              {/* Orphan Projects Option - only show if there are orphan projects */}
+              {hasOrphanProjects() && (
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <div
+                    className={`p-3 rounded-xl cursor-pointer transition-colors ${
+                      viewingOrphanProjects
+                        ? 'bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-600'
+                        : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                    onClick={handleViewOrphanProjects}
+                  >
+                    <div className="font-medium text-amber-700 dark:text-amber-400">
+                      {t('Projects without contractor')}
+                    </div>
+                    <div className="text-sm text-amber-600 dark:text-amber-500">
+                      {t('Projects with deleted contractor')}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -373,7 +417,7 @@ const Projects = () => {
         {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar - Hidden when viewing project details */}
         <div className={`lg:w-80 flex lg:flex-col w-screen lg:w-80 ${currentView === 'details' ? 'hidden' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{maxWidth: '100vw'}}>
           <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-6 py-4 space-x-2 lg:space-x-0 lg:space-y-3 scrollbar-hide" style={{width: '100%'}}>
-            {projectCategories.map(category => (
+            {displayCategories.map(category => (
               <button
                 key={category.id}
                 onClick={() => handleCategorySelect(category.id)}
@@ -406,7 +450,7 @@ const Projects = () => {
           {currentView === 'categories' && (
             <div className="pt-2 pb-4 lg:hidden min-w-0 w-full">
               <div className="space-y-4">
-                {projectCategories.map(category => (
+                {displayCategories.map(category => (
                   <button
                     key={category.id}
                     onClick={() => handleCategorySelect(category.id)}
@@ -444,27 +488,31 @@ const Projects = () => {
                       </svg>
                     </button>
                     <h2 className="text-lg sm:text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
-                      {t(projectCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
+                      {t(displayCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
                     </h2>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={toggleProjectDeleteMode}
-                      className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${
-                        projectDeleteMode
-                          ? 'bg-gray-600 text-white hover:bg-gray-700'
-                          : 'bg-gray-500 text-white hover:bg-gray-600'
-                      }`}
-                    >
-                      <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
-                    </button>
-                    <button 
-                      onClick={() => setShowNewProjectModal(true)}
-                      className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">{t('Pridať projekt')}</span>
-                    </button>
+                    {!viewingOrphanProjects && (
+                      <>
+                        <button
+                          onClick={toggleProjectDeleteMode}
+                          className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${
+                            projectDeleteMode
+                              ? 'bg-gray-600 text-white hover:bg-gray-700'
+                              : 'bg-gray-500 text-white hover:bg-gray-600'
+                          }`}
+                        >
+                          <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
+                        </button>
+                        <button
+                          onClick={() => setShowNewProjectModal(true)}
+                          className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="hidden sm:inline">{t('Pridať projekt')}</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -474,44 +522,49 @@ const Projects = () => {
                 {activeProjects.map(project => (
                   <div
                     key={project.id}
-                    className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm min-w-0 w-full ${
-                      projectDeleteMode 
-                        ? 'justify-between' 
+                    className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${
+                      projectDeleteMode && !viewingOrphanProjects
+                        ? 'justify-between'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
                     }`}
-                    onClick={projectDeleteMode ? undefined : () => handleProjectSelect(project)}
+                    onClick={(projectDeleteMode && !viewingOrphanProjects) ? undefined : () => handleProjectSelect(project)}
                   >
                     <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{project.number || project.id}</span>
-                        {project.invoiceStatus && (
-                          <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
-                            project.invoiceStatus === 'sent'
-                              ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                              : project.invoiceStatus === 'paid'
-                              ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                              : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                          }`}>
-                            {t(project.invoiceStatus === 'sent' ? 'sent' : project.invoiceStatus === 'paid' ? 'Paid' : 'unsent')}
-                          </span>
-                        )}
+                        {/* Project Status Badge */}
+                        <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
+                          project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid'
+                            ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                            : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent'
+                            ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                            : project.invoiceStatus === 'neuhradeny'
+                            ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                            : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                        }`}>
+                          {t(project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid' ? 'vyfakturovany'
+                            : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent' ? 'odoslany'
+                            : project.invoiceStatus === 'neuhradeny' ? 'neuhradeny'
+                            : 'neodoslany')}
+                        </span>
                       </div>
-                      <h3 className="text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base">{project.notes || t('Notes')}</p>
+                      <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
+                      {/* Notes - only visible on desktop */}
+                      <p className="hidden lg:block text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1">{project.notes || t('Notes')}</p>
                     </div>
-                    
-                    {projectDeleteMode ? (
+
+                    {projectDeleteMode && !viewingOrphanProjects ? (
                       <button
                         onClick={() => handleArchiveProject(project.id)}
-                        className="bg-amber-500 hover:bg-amber-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 self-end sm:self-auto mt-3 sm:mt-0"
+                        className="bg-amber-500 hover:bg-amber-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
                       >
                         <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                       </button>
                     ) : (
-                      <div className="flex items-center justify-between sm:justify-end sm:gap-4 mt-3 sm:mt-0">
-                        <div className="text-left sm:text-right">
+                      <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
+                        <div className="text-right">
                           <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
-                          <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                          <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                       </div>

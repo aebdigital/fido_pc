@@ -195,60 +195,49 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className="flex justify-between items-start gap-2">
+    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 shadow-sm hover:shadow-md transition-shadow`}>
+      <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           {/* For installations category, show only subtitle as the main heading */}
           {category === 'installations' && item.subtitle ? (
-            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.subtitle)}</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-sm lg:text-lg truncate">{t(item.subtitle)}</h3>
           ) : (
             <>
-              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-sm lg:text-lg truncate">{t(item.name)}</h3>
               {item.subtitle && (
-                <p className="text-xs lg:text-base text-black dark:text-white mt-0.5 lg:mt-1">{t(item.subtitle)}</p>
+                <p className="text-xs lg:text-base text-black dark:text-white mt-0.5 lg:mt-1 truncate">{t(item.subtitle)}</p>
               )}
             </>
           )}
           {isItemModified(category, itemIndex) && (
-            <p className="text-xs lg:text-sm text-blue-600 dark:text-blue-400 mt-1">
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate">
               {t('Original')}: {originalPrices[category][itemIndex].price} {t(item.unit)}
             </p>
           )}
+          {/* Capacity info - now below the title on left side */}
+          {item.capacity && (
+            <div className="mt-1 text-xs text-gray-600 dark:text-gray-300 truncate">
+              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
+                ? t('capacity per 25kg package')
+                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
+              }: {item.capacity.value} {item.capacity.unit}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
           <NumberInput
             value={item.price}
             onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
             className={isItemModified(category, itemIndex)
               ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
-              : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
+              : 'bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-white'
             }
             min={0}
             size="small"
           />
-          <div className="text-xs lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
+          <div className="text-xs text-black dark:text-white flex-shrink-0 whitespace-nowrap">{t(item.unit)}</div>
         </div>
       </div>
-      
-      {item.capacity && (
-        <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-            <span className="text-sm lg:text-base text-black dark:text-white">
-              {/* Special handling for Adhesive, Plaster, and Facade Plaster */}
-              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
-                ? t('capacity per 25kg package')
-                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
-              }
-            </span>
-            <div className="flex items-center gap-2 justify-end sm:justify-start">
-              <div className="bg-white dark:bg-gray-900 rounded-xl px-2 lg:px-3 py-1 font-semibold text-gray-900 dark:text-white shadow-sm text-lg">
-                {item.capacity.value}
-              </div>
-              <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -271,7 +260,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
+          <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
         </div>
 
         {/* Controls */}

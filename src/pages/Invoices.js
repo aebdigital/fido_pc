@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { ChevronDown, ChevronRight, Plus, Hash, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import InvoiceDetailModal from '../components/InvoiceDetailModal';
@@ -13,6 +13,7 @@ const Invoices = () => {
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [showContractorSelector, setShowContractorSelector] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -103,9 +104,77 @@ const Invoices = () => {
     }
   };
 
+  // Calculate statistics for all invoices
+  const calculateStats = () => {
+    const allInvoices = activeContractorId ? getInvoicesForContractor(activeContractorId) : [];
+    const currentYear = new Date().getFullYear();
+    const today = new Date();
+
+    // Get VAT rate
+    const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
+    const vatRate = vatItem ? vatItem.price / 100 : 0.23;
+
+    let totalAmount = 0;
+    let paidAmount = 0;
+    let unpaidAmount = 0;
+    let overdueAmount = 0;
+    let totalCount = 0;
+    let paidCount = 0;
+    let unpaidCount = 0;
+    let overdueCount = 0;
+
+    allInvoices.forEach(invoice => {
+      const project = findProjectById(invoice.projectId, invoice.categoryId);
+      if (!project) return;
+
+      const breakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
+      if (!breakdown) return;
+
+      const totalWithoutVAT = breakdown.total || 0;
+      const totalWithVAT = totalWithoutVAT * (1 + vatRate);
+
+      totalAmount += totalWithVAT;
+      totalCount++;
+
+      if (invoice.status === 'paid') {
+        paidAmount += totalWithVAT;
+        paidCount++;
+      } else {
+        unpaidAmount += totalWithVAT;
+        unpaidCount++;
+
+        // Check if overdue
+        const dueDate = new Date(invoice.dueDate);
+        if (dueDate < today) {
+          overdueAmount += totalWithVAT;
+          overdueCount++;
+        }
+      }
+    });
+
+    return {
+      year: currentYear,
+      total: { amount: totalAmount, count: totalCount },
+      paid: { amount: paidAmount, count: paidCount },
+      unpaid: { amount: unpaidAmount, count: unpaidCount },
+      overdue: { amount: overdueAmount, count: overdueCount }
+    };
+  };
+
+  const stats = useMemo(() => calculateStats(), [activeContractorId, generalPriceList]);
+
   return (
     <div className="pb-20 lg:pb-0">
-      <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Invoices')}</h1>
+      {/* Header with Stats Button */}
+      <div className="flex items-center justify-between mb-4 lg:mb-6">
+        <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white">{t('Invoices')}</h1>
+        <button
+          onClick={() => setShowStatsModal(true)}
+          className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md lg:absolute lg:right-6 lg:top-6"
+        >
+          <Hash className="w-5 h-5 lg:w-6 lg:h-6" />
+        </button>
+      </div>
 
       {/* Contractor Profile Dropdown */}
       <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
@@ -263,13 +332,106 @@ const Invoices = () => {
       {/* Invoice Detail Modal */}
       <InvoiceDetailModal
         isOpen={showInvoiceDetail}
-        onClose={(updated) => {
+        onClose={() => {
           setShowInvoiceDetail(false);
           setSelectedInvoice(null);
-          // If invoice was updated, the list will automatically refresh
         }}
         invoice={selectedInvoice}
       />
+
+      {/* Statistics Modal */}
+      {showStatsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-t-3xl lg:rounded-2xl w-full lg:max-w-md max-h-[85vh] overflow-y-auto animate-slide-in-bottom lg:animate-slide-in">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="w-8"></div>
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Statistics')}</h2>
+              <button
+                onClick={() => setShowStatsModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 lg:p-6">
+              {/* Year Label */}
+              <div className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{stats.year}</div>
+
+              {/* Total Card */}
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 mb-6">
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+                    {formatPrice(stats.total.amount)}
+                  </span>
+                  <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
+                    {t('total, including VAT')}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-gray-600 pb-3">
+                  {stats.total.count} {t('invoices')}
+                </div>
+
+                {/* Paid Section */}
+                <div className="mt-4">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Paid')}</div>
+                  <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                        {formatPrice(stats.paid.amount)}
+                      </span>
+                      <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                        {t('total, including VAT')}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {stats.paid.count} {t('invoices total')}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Unpaid Section */}
+                <div className="mt-4">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Unpaid')}</div>
+                  <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                        {formatPrice(stats.unpaid.amount)}
+                      </span>
+                      <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                        {t('total, including VAT')}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {stats.unpaid.count} {t('invoices total')}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Overdue Section */}
+                <div className="mt-4">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Overdue')}</div>
+                  <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                        {formatPrice(stats.overdue.amount)}
+                      </span>
+                      <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                        {t('total, including VAT')}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {stats.overdue.count} {t('invoices total')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .scrollbar-hide {

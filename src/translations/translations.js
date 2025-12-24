@@ -390,6 +390,7 @@ export const translations = {
     // ========== CLIENT MANAGEMENT ==========
     "Add client": "Pridať klienta",
     "New client": "Nový klient",
+    "New Client": "Nový klient",
     "Edit client": "Upraviť klienta",
     "No client": "Žiaden klient",
     "Select client": "Vybrať klienta",
@@ -474,7 +475,7 @@ export const translations = {
     "Access": "Prístup",
     "Restricted Access": "Omedzený prístup",
     "Customization": "Prispôsobenie",
-    "Preferences": "Predvoľby",
+    "Preferences": "Prispôsobenie",
     "Appearance": "Vzhľad",
     "Dark Mode": "Tmavý režim",
     "Language": "Jazyk",
@@ -694,6 +695,8 @@ export const translations = {
     "Fill out information for price offers": "Vyplňte informácie pre cenové ponuky",
     "Project contractor": "Dodávateľ projektu",
     "assign contractor to project": "priradiť dodávateľa k projektu",
+    "Projects without contractor": "Projekty bez dodávateľa",
+    "Projects with deleted contractor": "Projekty s odstráneným dodávateľom",
 
     // ========== AUTHENTICATION ==========
     "Sign In": "Prihlásiť sa",
@@ -731,7 +734,26 @@ export const translations = {
     "No notes": "Žiadne poznámky",
     "Contractor": "Dodávateľ",
     "Phone": "Telefón",
-    "Paint": "Maľovanie"
+    "Paint": "Maľovanie",
+
+    // ========== STATISTICS ==========
+    "Statistics": "Štatistiky",
+    "total, including VAT": "celkovo, vrátane DPH",
+    "invoices total": "faktúry celkovo",
+    "invoices": "faktúry",
+    "Overdue": "Po splatnosti",
+    "Paid": "Uhradené",
+    "Unpaid": "Neuhradené",
+
+    // ========== PROJECT STATUS ==========
+    "Not sent": "Neodoslaný",
+    "Sent": "Odoslaný",
+    "Not paid": "Neuhradený",
+    "Invoiced": "Vyfakturovaný",
+    "neodoslany": "Neodoslaný",
+    "odoslany": "Odoslaný",
+    "neuhradeny": "Neuhradený",
+    "vyfakturovany": "Vyfakturovaný"
   }
 };
 

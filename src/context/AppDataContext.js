@@ -568,6 +568,8 @@ export const AppDataProvider = ({ children }) => {
     // Helper functions
     getProjectCategoriesForContractor: contractorManager.getProjectCategoriesForContractor,
     getArchivedProjectsForContractor: contractorManager.getArchivedProjectsForContractor,
+    getOrphanProjectCategories: contractorManager.getOrphanProjectCategories,
+    hasOrphanProjects: contractorManager.hasOrphanProjects,
 
     // Client functions
     addClient: clientManager.addClient,

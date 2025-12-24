@@ -1,27 +1,67 @@
-import React, { useState } from 'react';
-import { User, Building2, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Building2, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import RpoAutocomplete from './RpoAutocomplete';
 
-const ClientForm = ({ onSave, onCancel }) => {
+const ClientForm = ({ onSave, onCancel, initialData = null }) => {
   const { t, isSlovak } = useLanguage();
-  const [clientType, setClientType] = useState('private');
+  const isEditing = !!initialData;
+  const [clientType, setClientType] = useState(initialData?.type || 'private');
   const [showRpoSearch, setShowRpoSearch] = useState(false);
-  
+
   const [clientForm, setClientForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    street: '',
-    additionalInfo: '',
-    city: '',
-    postalCode: '',
-    country: '',
-    businessId: '',
-    taxId: '',
-    vatId: '',
-    contactPerson: ''
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    street: initialData?.street || '',
+    additionalInfo: initialData?.additionalInfo || '',
+    city: initialData?.city || '',
+    postalCode: initialData?.postalCode || '',
+    country: initialData?.country || '',
+    businessId: initialData?.businessId || '',
+    taxId: initialData?.taxId || '',
+    vatId: initialData?.vatId || '',
+    contactPerson: initialData?.contactPerson || ''
   });
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setClientForm({
+        name: initialData.name || '',
+        email: initialData.email || '',
+        phone: initialData.phone || '',
+        street: initialData.street || '',
+        additionalInfo: initialData.additionalInfo || '',
+        city: initialData.city || '',
+        postalCode: initialData.postalCode || '',
+        country: initialData.country || '',
+        businessId: initialData.businessId || '',
+        taxId: initialData.taxId || '',
+        vatId: initialData.vatId || '',
+        contactPerson: initialData.contactPerson || ''
+      });
+      setClientType(initialData.type || 'private');
+    } else {
+      // Reset to empty form when creating new client
+      setClientForm({
+        name: '',
+        email: '',
+        phone: '',
+        street: '',
+        additionalInfo: '',
+        city: '',
+        postalCode: '',
+        country: '',
+        businessId: '',
+        taxId: '',
+        vatId: '',
+        contactPerson: ''
+      });
+      setClientType('private');
+    }
+    setShowRpoSearch(false);
+  }, [initialData]);
 
   const handleInputChange = (field, value) => {
     setClientForm(prev => ({
@@ -109,11 +149,11 @@ const ClientForm = ({ onSave, onCancel }) => {
               {showRpoSearch ? (
                 <div className="relative">
                   <RpoAutocomplete onSelect={handleRpoSelect} t={t} />
-                  <button 
+                  <button
                     onClick={() => setShowRpoSearch(false)}
-                    className="absolute right-[-40px] top-2 text-gray-500 hover:text-gray-700"
+                    className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               ) : (
@@ -265,17 +305,17 @@ const ClientForm = ({ onSave, onCancel }) => {
           )}
           
           <div className="mt-6 lg:mt-8 col-span-full flex gap-3">
-            <button 
+            <button
               onClick={onCancel}
               className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm text-lg"
             >
               {t('Cancel')}
             </button>
-            <button 
+            <button
               onClick={handleSubmit}
               className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg"
             >
-              {t('Add client')}
+              {isEditing ? t('Save') : t('Add client')}
             </button>
           </div>
         </div>

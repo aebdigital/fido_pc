@@ -536,17 +536,21 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 {t('Archived')}
               </span>
             )}
-            {project.invoiceStatus && (
-              <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${ 
-                project.invoiceStatus === 'sent'
-                  ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                  : project.invoiceStatus === 'paid'
-                  ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                  : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-              }`}>
-                {t(project.invoiceStatus === 'sent' ? 'sent' : project.invoiceStatus === 'paid' ? 'Paid' : 'unsent')}
-              </span>
-            )}
+            {/* Project Status Badge */}
+            <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
+              project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid'
+                ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent'
+                ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                : project.invoiceStatus === 'neuhradeny'
+                ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+            }`}>
+              {t(project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid' ? 'vyfakturovany'
+                : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent' ? 'odoslany'
+                : project.invoiceStatus === 'neuhradeny' ? 'neuhradeny'
+                : 'neodoslany')}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             {isEditingProjectNotes ? (
@@ -633,9 +637,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               )}
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
+            <div className="space-y-3">
               {isLoadingDetails ? (
-                <div className="text-center py-12 col-span-2 lg:col-span-1">
+                <div className="text-center py-12">
                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
                    <p className="text-gray-500 dark:text-gray-400 font-medium">{t('Loading project details...')}</p>
                 </div>
@@ -644,15 +648,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   {getProjectRooms(project.id).map(room => (
                     <div
                       key={room.id}
-                      className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 lg:p-4 flex flex-col lg:flex-row lg:items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
+                      className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
                       onClick={deleteMode ? undefined : () => {
                         setSelectedRoom(room);
                         setShowRoomDetailsModal(true);
                       }}
                     >
-                      <div className={`transition-all duration-300 flex-1 ${deleteMode ? 'lg:mr-4' : ''}`}>
-                        <div className="font-medium text-gray-900 dark:text-white text-base lg:text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
-                        <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{room.workItems?.length || 0} {t('works')}</div>
+                      <div className={`transition-all duration-300 flex-1 min-w-0 ${deleteMode ? 'mr-4' : ''}`}>
+                        <div className="font-medium text-gray-900 dark:text-white text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
+                        <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems?.length || 0} {t('works')}</div>
                       </div>
 
                       {deleteMode ? (
@@ -661,29 +665,29 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                             e.stopPropagation();
                             handleDeleteRoom(room.id);
                           }}
-                          className="bg-red-500 hover:bg-red-600 rounded-2xl p-2 lg:p-3 transition-all duration-300 animate-in slide-in-from-right-5 self-end lg:self-auto mt-2 lg:mt-0"
+                          className="bg-red-500 hover:bg-red-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0"
                         >
                           <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                         </button>
                       ) : (
-                        <div className="flex items-center justify-between lg:justify-end lg:gap-2 mt-2 lg:mt-0">
-                          <div className="text-left lg:text-right">
-                            <div className="text-xs text-gray-500 dark:text-gray-400 hidden lg:block">{t('VAT not included')}</div>
-                            <div className="font-semibold text-gray-900 dark:text-white text-sm lg:text-lg">
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('VAT not included')}</div>
+                            <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg whitespace-nowrap">
                               {formatPrice((() => {
                                 const calc = calculateRoomPriceWithMaterials(room, project.priceListSnapshot);
                                 return calc.workTotal + calc.materialTotal + calc.othersTotal;
                               })())}
                             </div>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 hidden lg:block" />
+                          <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                         </div>
                       )}
                     </div>
                   ))}
-                  
+
                   {getProjectRooms(project.id).length === 0 && (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400 col-span-2 lg:col-span-1">
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                       <p>{t('No rooms added yet. Click the + button to add a room.')}</p>
                     </div>
                   )}
@@ -1111,9 +1115,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
             <h3 className="text-xl font-semibold mb-4">{t('New room')}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-6">
               {roomTypes.map((type) => (
-                <button key={type} onClick={() => handleAddRoom(type)} className="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl hover:bg-gray-200">
+                <button key={type} onClick={() => handleAddRoom(type)} className="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                   {t(type)}
                 </button>
               ))}
@@ -1240,6 +1244,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           isOpen={showInvoiceDetailModal}
           onClose={() => setShowInvoiceDetailModal(false)}
           invoice={getInvoiceForProject(project.id)}
+          hideViewProject={true}
         />
       )}
 
