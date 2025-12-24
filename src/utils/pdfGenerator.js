@@ -372,14 +372,16 @@ export const generateInvoicePDF = ({
         const quantity = item.calculation?.quantity || 0;
         const materialCost = item.calculation?.materialCost || 0;
         const pricePerUnit = quantity > 0 ? materialCost / quantity : 0;
-        const unit = item.calculation?.unit || item.unit || '';
+        let unit = item.calculation?.unit || item.unit || '';
+        // Strip €/ prefix from unit if present (e.g. "€/m²" -> "m²")
+        if (unit.startsWith('€/')) unit = unit.substring(2);
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = materialCost * itemVatRate;
         const displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(2)} ${t(unit)}`),
+          sanitizeText(`${quantity.toFixed(2)}${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
@@ -398,14 +400,16 @@ export const generateInvoicePDF = ({
         const quantity = item.calculation?.quantity || 0;
         const othersCost = item.calculation?.workCost || 0;
         const pricePerUnit = quantity > 0 ? othersCost / quantity : 0;
-        const unit = item.calculation?.unit || item.unit || '';
+        let unit = item.calculation?.unit || item.unit || '';
+        // Strip €/ prefix from unit if present (e.g. "€/h" -> "h")
+        if (unit.startsWith('€/')) unit = unit.substring(2);
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = othersCost * itemVatRate;
         const displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(2)} ${t(unit)}`),
+          sanitizeText(`${quantity.toFixed(2)}${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),

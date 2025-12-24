@@ -11,7 +11,7 @@ import ProjectDetailView from '../components/ProjectDetailView';
 
 const Archive = ({ onBack }) => {
   const { t } = useLanguage();
-  const { 
+  const {
     archivedProjects,
     unarchiveProject,
     deleteArchivedProject,
@@ -20,24 +20,36 @@ const Archive = ({ onBack }) => {
   } = useAppData();
 
   const [selectedProject, setSelectedProject] = useState(null);
+  const [deletingProjectId, setDeletingProjectId] = useState(null);
+  const [unarchivingProjectId, setUnarchivingProjectId] = useState(null);
 
   // Show all archived projects regardless of contractor
   const allArchivedProjects = archivedProjects;
 
-  const handleUnarchiveProject = (projectId, e) => {
+  const handleUnarchiveProject = async (projectId, e) => {
     e.stopPropagation();
-    unarchiveProject(projectId);
-    // If the unarchived project was selected, go back to list
-    if (selectedProject?.id === projectId) {
-      setSelectedProject(null);
+    setUnarchivingProjectId(projectId);
+    try {
+      await unarchiveProject(projectId);
+      // If the unarchived project was selected, go back to list
+      if (selectedProject?.id === projectId) {
+        setSelectedProject(null);
+      }
+    } finally {
+      setUnarchivingProjectId(null);
     }
   };
 
-  const handleDeleteProject = (projectId, e) => {
+  const handleDeleteProject = async (projectId, e) => {
     e.stopPropagation();
-    deleteArchivedProject(projectId);
-    if (selectedProject?.id === projectId) {
-      setSelectedProject(null);
+    setDeletingProjectId(projectId);
+    try {
+      await deleteArchivedProject(projectId);
+      if (selectedProject?.id === projectId) {
+        setSelectedProject(null);
+      }
+    } finally {
+      setDeletingProjectId(null);
     }
   };
 
@@ -107,17 +119,27 @@ const Archive = ({ onBack }) => {
                 <div className="flex gap-2">
                   <button
                     onClick={(e) => handleUnarchiveProject(project.id, e)}
-                    className="bg-blue-500 hover:bg-blue-600 rounded-2xl p-3 transition-all duration-300"
+                    disabled={unarchivingProjectId === project.id || deletingProjectId === project.id}
+                    className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-3 transition-all duration-300"
                     title={t('Unarchive')}
                   >
-                    <ArchiveRestore className="w-4 h-4 lg:w-5 lg:h-5 text-blue-100" />
+                    {unarchivingProjectId === project.id ? (
+                      <div className="w-4 h-4 lg:w-5 lg:h-5 border-2 border-blue-100 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ArchiveRestore className="w-4 h-4 lg:w-5 lg:h-5 text-blue-100" />
+                    )}
                   </button>
                   <button
                     onClick={(e) => handleDeleteProject(project.id, e)}
-                    className="bg-red-500 hover:bg-red-600 rounded-2xl p-3 transition-all duration-300"
+                    disabled={deletingProjectId === project.id || unarchivingProjectId === project.id}
+                    className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-3 transition-all duration-300"
                     title={t('Delete Forever')}
                   >
-                    <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-red-100" />
+                    {deletingProjectId === project.id ? (
+                      <div className="w-4 h-4 lg:w-5 lg:h-5 border-2 border-red-100 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-red-100" />
+                    )}
                   </button>
                 </div>
               </div>

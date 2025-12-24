@@ -572,9 +572,9 @@ const Projects = () => {
                     {projectDeleteMode && !viewingOrphanProjects ? (
                       <button
                         onClick={() => handleArchiveProject(project.id)}
-                        className="bg-amber-500 hover:bg-amber-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
+                        className="bg-amber-100 hover:bg-amber-200 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
                       >
-                        <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
+                        <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
                       </button>
                     ) : (
                       <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
