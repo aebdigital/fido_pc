@@ -374,7 +374,7 @@ export const translations = {
     "Add room to this project": "Pridať miestnosť do tohto projektu",
     "New room": "Nová miestnosť",
     "Project management": "Správa projektu",
-    "Project price list": "Cenník projektu",
+    "Project Price List": "Cenník projektu",
     "Back to project list": "Späť na zoznam projektov",
     "Back to Project List": "Späť na zoznam projektov",
     "Associate project with a client": "Asociovať projekt s klientom",
