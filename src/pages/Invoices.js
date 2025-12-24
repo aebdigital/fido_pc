@@ -187,7 +187,7 @@ const Invoices = () => {
   }, [activeContractorId, generalPriceList, getInvoicesForContractor, findProjectById, calculateProjectTotalPriceWithBreakdown]);
 
   return (
-    <div className="pb-20 lg:pb-0 overflow-x-hidden">
+    <div className="pb-20 lg:pb-0">
       {/* Header - Desktop Only Title and Stats */}
       <div className="hidden lg:flex items-center justify-between mb-6">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Invoices')}</h1>
@@ -282,8 +282,8 @@ const Invoices = () => {
         </button>
       </div>
 
-      <div className="mb-6 lg:mb-8 -mx-4 px-4 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-4 pb-2 w-max">
+      <div className="mb-6 lg:mb-8 w-[calc(100vw-2rem)] lg:w-auto -ml-4 lg:ml-0 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-4 pb-2 px-4 lg:px-0">
           {/* Year dropdown */}
           <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button

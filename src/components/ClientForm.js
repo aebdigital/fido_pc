@@ -141,7 +141,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
       {/* Form Fields */}
       <div className="flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           
           {/* RPO Search Button / Component */}
           {clientType === 'business' && isSlovak && (

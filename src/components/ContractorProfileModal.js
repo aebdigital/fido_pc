@@ -132,26 +132,20 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
   };
 
   return (
-    <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-      <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl h-[85vh] lg:h-[90vh] max-h-[calc(100vh-2rem)] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}>
+    <div
+      className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      onClick={handleClose}
+    >
+      <div
+        className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl h-[85vh] lg:h-[90vh] max-h-[calc(100vh-2rem)] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors text-lg"
-          >
-            {t('Cancel')}
-          </button>
+        <div className="flex items-center justify-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
             {editingContractor ? t('Edit contractor') : t('Create contractor')}
           </h2>
-          <button
-            onClick={handleSave}
-            className="text-blue-600 hover:text-blue-700 transition-colors text-lg font-medium"
-          >
-            {t('Save')}
-          </button>
         </div>
 
         {/* Content */}
@@ -458,7 +452,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           {/* Signature */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Signature')}</h3>
-            <div 
+            <div
               className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mb-4 overflow-hidden relative cursor-pointer group border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
               onClick={() => signatureInputRef.current?.click()}
             >
@@ -476,22 +470,22 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
                 </div>
               )}
             </div>
-            <input 
-              type="file" 
+            <input
+              type="file"
               ref={signatureInputRef}
               onChange={(e) => handleImageUpload(e, 'signature')}
-              className="hidden" 
+              className="hidden"
               accept="image/*"
             />
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => signatureInputRef.current?.click()}
                 className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-lg"
               >
                 {formData.signature ? t('Change signature') : t('Add signature')}
               </button>
               {formData.signature && (
-                <button 
+                <button
                   onClick={() => removeImage('signature')}
                   className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                 >
@@ -499,6 +493,22 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-6 lg:mt-8">
+            <button
+              onClick={handleClose}
+              className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm text-lg"
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg"
+            >
+              {editingContractor ? t('Save') : t('Add contractor')}
+            </button>
           </div>
 
         </div>

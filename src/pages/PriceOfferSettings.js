@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   Trash2,
   Plus,
   Clock,
   Building2,
-  Save,
   Loader2,
   ChevronRight
 } from 'lucide-react';
@@ -15,21 +14,21 @@ import ContractorProfileModal from '../components/ContractorProfileModal';
 
 const PriceOfferSettings = ({ onBack }) => {
   const { t } = useLanguage();
-  const { 
-    contractors, 
-    priceOfferSettings, 
-    addContractor, 
-    updateContractor, 
+  const {
+    contractors,
+    priceOfferSettings,
+    addContractor,
+    updateContractor,
     deleteContractor,
-    updatePriceOfferSettings 
+    updatePriceOfferSettings
   } = useAppData();
 
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [editingContractor, setEditingContractor] = useState(null);
   const [timeLimit, setTimeLimit] = useState(priceOfferSettings.timeLimit || 30);
-  const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
+  const debounceRef = useRef(null);
 
   const handleCreateContractor = () => {
     setEditingContractor(null);
@@ -76,22 +75,34 @@ const PriceOfferSettings = ({ onBack }) => {
     }
   };
 
-  const handleTimeLimitChange = (newTimeLimit) => {
-    setTimeLimit(newTimeLimit);
-    setHasChanges(true);
-  };
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    try {
-      await updatePriceOfferSettings({ timeLimit: timeLimit });
-      setHasChanges(false);
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      alert(t('Failed to save settings. Please try again.'));
-    } finally {
-      setIsSaving(false);
+  const handleTimeLimitChange = (newTimeLimit) => {
+    const value = parseInt(newTimeLimit) || 30;
+    setTimeLimit(value);
+
+    // Debounced autosave
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
+
+    setIsSaving(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        await updatePriceOfferSettings({ timeLimit: value });
+      } catch (error) {
+        console.error('Error saving settings:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 500);
   };
 
   return (
@@ -139,33 +150,20 @@ const PriceOfferSettings = ({ onBack }) => {
                 <h3 className="font-medium text-gray-900 dark:text-white text-lg mb-1">{t('Offer validity period')}</h3>
                 <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('How long price offers remain valid')}</p>
               </div>
-              {/* Right side - Input and Save button */}
+              {/* Right side - Input with autosave */}
               <div className="flex items-center gap-3">
                 <input
                   type="number"
                   value={timeLimit}
-                  onChange={(e) => handleTimeLimitChange(parseInt(e.target.value) || 30)}
+                  onChange={(e) => handleTimeLimitChange(e.target.value)}
                   min="1"
                   max="365"
                   className="w-20 p-2 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 text-center"
                 />
                 <span className="text-gray-600 dark:text-gray-400">{t('days')}</span>
-                <button
-                  onClick={handleSaveSettings}
-                  disabled={!hasChanges || isSaving}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
-                    hasChanges && !isSaving
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 opacity-100 scale-100'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50 scale-95'
-                  }`}
-                >
-                  {isSaving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  <span>{isSaving ? t('Saving...') : t('Save')}</span>
-                </button>
+                {isSaving && (
+                  <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                )}
               </div>
             </div>
           </div>

@@ -126,16 +126,36 @@ export const generateInvoicePDF = ({
 
     // === HEADER SECTION ===
 
-    // Logo - Top Right
-    const headerLogoSize = 25;
-    const logoX = 190 - headerLogoSize;
+    // Logo - Top Right (preserve aspect ratio)
+    const maxLogoSize = 25;
     if (contractor?.logo) {
       try {
         let format = 'JPEG';
         if (typeof contractor.logo === 'string' && contractor.logo.startsWith('data:image/')) {
           if (contractor.logo.includes('png')) format = 'PNG';
         }
-        doc.addImage(contractor.logo, format, logoX, 10, headerLogoSize, headerLogoSize);
+
+        // Use jsPDF's getImageProperties to get dimensions and preserve aspect ratio
+        const imgProps = doc.getImageProperties(contractor.logo);
+        let logoWidth = maxLogoSize;
+        let logoHeight = maxLogoSize;
+
+        if (imgProps.width && imgProps.height) {
+          const aspectRatio = imgProps.width / imgProps.height;
+          if (aspectRatio > 1) {
+            // Wider than tall
+            logoWidth = maxLogoSize;
+            logoHeight = maxLogoSize / aspectRatio;
+          } else {
+            // Taller than wide or square
+            logoHeight = maxLogoSize;
+            logoWidth = maxLogoSize * aspectRatio;
+          }
+        }
+
+        const logoX = 190 - logoWidth;
+        const logoY = 10 + (maxLogoSize - logoHeight) / 2; // Center vertically in the space
+        doc.addImage(contractor.logo, format, logoX, logoY, logoWidth, logoHeight);
       } catch (e) {
         console.warn('Failed to add logo to PDF:', e);
       }
