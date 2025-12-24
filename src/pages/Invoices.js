@@ -187,7 +187,7 @@ const Invoices = () => {
   }, [activeContractorId, generalPriceList, getInvoicesForContractor, findProjectById, calculateProjectTotalPriceWithBreakdown]);
 
   return (
-    <div className="pb-20 lg:pb-0">
+    <div className="pb-20 lg:pb-0 overflow-x-hidden">
       {/* Header - Desktop Only Title and Stats */}
       <div className="hidden lg:flex items-center justify-between mb-6">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Invoices')}</h1>
