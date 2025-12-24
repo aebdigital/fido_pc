@@ -2,6 +2,93 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { InterRegular } from './fonts/InterRegular';
 import { InterBold } from './fonts/InterBold';
+import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/constants';
+
+// Helper to determine work item unit based on propertyId and fields
+// Returns just the unit (like 'm²', 'ks', 'h') without €/ prefix
+const getWorkItemUnit = (item) => {
+  // If already has unit in calculation, extract just the unit part
+  if (item.calculation?.unit) {
+    const unit = item.calculation.unit;
+    // Remove €/ prefix if present
+    if (unit.startsWith('€/')) return unit.substring(2);
+    return unit;
+  }
+  if (item.unit) {
+    if (item.unit.startsWith('€/')) return item.unit.substring(2);
+    return item.unit;
+  }
+
+  const propertyId = item.propertyId;
+  const fields = item.fields || {};
+
+  // Check based on propertyId
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.PREPARATORY) return 'h';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WIRING) return 'pc';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) return 'pc';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE) return 'km';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.CORNER_BEAD) return 'm';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_SASH) return 'm';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.SILICONING) return 'm';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) return 'pc';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) return 'm';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) return 'pc';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+    return item.selectedUnit || UNIT_TYPES.METER_SQUARE;
+  }
+
+  // Check based on fields to determine unit
+  if (fields[WORK_ITEM_NAMES.DURATION_EN] || fields[WORK_ITEM_NAMES.DURATION_SK]) return 'h';
+  if (fields[WORK_ITEM_NAMES.COUNT] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) return 'pc';
+  if (fields[WORK_ITEM_NAMES.LENGTH] && !fields[WORK_ITEM_NAMES.WIDTH] && !fields[WORK_ITEM_NAMES.HEIGHT]) return 'm';
+  if (fields[WORK_ITEM_NAMES.CIRCUMFERENCE]) return 'm';
+
+  // Default to m² for area-based work
+  return 'm²';
+};
+
+// Helper to strip €/ prefix from material units
+const stripEuroPrefix = (unit) => {
+  if (!unit) return '';
+  if (unit.startsWith('€/')) return unit.substring(2);
+  return unit;
+};
+
+// Helper to get work item name from propertyId
+const getWorkItemNameByPropertyId = (propertyId) => {
+  const propertyIdToName = {
+    [WORK_ITEM_PROPERTY_IDS.PREPARATORY]: 'Preparatory and demolition works',
+    [WORK_ITEM_PROPERTY_IDS.WIRING]: 'Electrical installation work',
+    [WORK_ITEM_PROPERTY_IDS.PLUMBING]: 'Plumbing work',
+    [WORK_ITEM_PROPERTY_IDS.BRICK_PARTITIONS]: 'Brick partitions',
+    [WORK_ITEM_PROPERTY_IDS.BRICK_LOAD_BEARING]: 'Brick load-bearing wall',
+    [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION]: 'Plasterboarding',
+    [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET]: 'Plasterboarding',
+    [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_CEILING]: 'Plasterboarding',
+    [WORK_ITEM_PROPERTY_IDS.NETTING_WALL]: 'Netting',
+    [WORK_ITEM_PROPERTY_IDS.NETTING_CEILING]: 'Netting',
+    [WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL]: 'Plastering',
+    [WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING]: 'Plastering',
+    [WORK_ITEM_PROPERTY_IDS.FACADE_PLASTERING]: 'Facade Plastering',
+    [WORK_ITEM_PROPERTY_IDS.CORNER_BEAD]: 'Installation of corner bead',
+    [WORK_ITEM_PROPERTY_IDS.WINDOW_SASH]: 'Plastering of window sash',
+    [WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING]: 'Penetration coating',
+    [WORK_ITEM_PROPERTY_IDS.PAINTING_WALL]: 'Painting',
+    [WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING]: 'Painting',
+    [WORK_ITEM_PROPERTY_IDS.LEVELLING]: 'Levelling',
+    [WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR]: 'Floating floor',
+    [WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60]: 'Tiling under 60cm',
+    [WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60]: 'Paving under 60cm',
+    [WORK_ITEM_PROPERTY_IDS.GROUTING]: 'Grouting',
+    [WORK_ITEM_PROPERTY_IDS.SILICONING]: 'Siliconing',
+    [WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION]: 'Sanitary installations',
+    [WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION]: 'Window installation',
+    [WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION]: 'Installation of door jamb',
+    [WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK]: 'Custom work and material',
+    [WORK_ITEM_PROPERTY_IDS.COMMUTE]: 'Commute'
+  };
+  return propertyIdToName[propertyId] || null;
+};
 
 // Register Inter font with jsPDF
 const registerInterFont = (doc) => {
@@ -110,8 +197,11 @@ export const generateInvoicePDF = ({
     }
 
     // Calculate the bottom Y position based on address content
+    // Use minimum height of 5 lines (20px) to ensure consistent layout even with empty client
     const lineHeight = 4;
-    const addressBottomY = contentStartY + (addressLines.length * lineHeight);
+    const minLines = 5;
+    const actualLines = Math.max(addressLines.length, minLines);
+    const addressBottomY = contentStartY + (actualLines * lineHeight);
 
     // --- Draw LEFT COLUMN: Address (top-aligned) ---
     let addressY = contentStartY;
@@ -259,14 +349,17 @@ export const generateInvoicePDF = ({
         const quantity = item.calculation?.quantity || 0;
         const workCost = item.calculation?.workCost || 0;
         const pricePerUnit = quantity > 0 ? workCost / quantity : 0;
-        const unit = item.calculation?.unit || item.unit || '';
+        const unit = getWorkItemUnit(item);
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = workCost * itemVatRate;
-        const displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
+
+        // Get the work item name - try multiple sources
+        const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId) || '';
+        const displayName = item.subtitle ? `${t(itemName)} - ${t(item.subtitle)}` : t(itemName);
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(2)} ${t(unit)}`),
+          sanitizeText(`${quantity.toFixed(1)}${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),

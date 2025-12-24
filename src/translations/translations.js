@@ -732,6 +732,7 @@ export const translations = {
     // NEW CONTRACTOR TRANSLATIONS
     "Create contractor": "Vytvoriť dodávateľa",
     "Upload logo": "Nahrať logo",
+    "Change logo": "Zmeniť logo",
     "Business information": "Obchodné informácie",
     "Bank account number": "Číslo bankového účtu",
     "Bank Code": "Kód banky",

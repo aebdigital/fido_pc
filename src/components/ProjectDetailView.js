@@ -21,6 +21,7 @@ import {
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { generatePriceOfferPDF } from '../utils/pdfGenerator';
+import { compressImage } from '../utils/imageCompression';
 import { workProperties } from '../config/workProperties';
 import RoomDetailsModal from './RoomDetailsModal';
 import ProjectPriceList from './ProjectPriceList';
@@ -308,14 +309,15 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
     const newPhotos = [];
     for (const file of files) {
-      const reader = new FileReader();
-      const base64 = await new Promise((resolve) => {
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
+      // Compress image before storing (max 1200px, 70% quality)
+      const compressedBase64 = await compressImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.7
       });
       newPhotos.push({
         id: Date.now() + Math.random(),
-        url: base64,
+        url: compressedBase64,
         name: file.name,
         createdAt: new Date().toISOString()
       });
@@ -336,14 +338,15 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
     const newPhotos = [];
     for (const file of files) {
-      const reader = new FileReader();
-      const base64 = await new Promise((resolve) => {
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
+      // Compress image before storing (max 1200px, 70% quality)
+      const compressedBase64 = await compressImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.7
       });
       newPhotos.push({
         id: Date.now() + Math.random(),
-        url: base64,
+        url: compressedBase64,
         name: file.name,
         createdAt: new Date().toISOString()
       });
@@ -409,6 +412,12 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     };
 
     try {
+      // Clean up any existing PDF URL before generating new one
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+        setPdfUrl(null);
+      }
+
       const result = generatePriceOfferPDF({
         invoice: priceOfferData,
         contractor,
@@ -421,6 +430,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         formatDate,
         formatPrice,
         projectNotes: project.notes,
+        projectNumber: project.number,
         offerValidityPeriod: priceOfferSettings?.timeLimit || 30
       }, t); // Pass t as the second argument
       setPdfUrl(result.blobUrl);
@@ -533,7 +543,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           <div className="flex items-center gap-2">
             <span className="text-base lg:text-lg text-gray-700 dark:text-gray-300">{project.number || project.id}</span>
             {project.is_archived && (
-              <span className="px-2 py-1 bg-amber-50 dark:bg-amber-900 text-amber-600 dark:text-amber-400 text-xs lg:text-sm font-medium rounded-full">
+              <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs lg:text-sm font-medium rounded-full">
                 {t('Archived')}
               </span>
             )}
@@ -874,14 +884,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="flex gap-3">
               {project.is_archived ? (
                 <>
-                  <button 
+                  <button
                     onClick={() => {
                       unarchiveProject(project.id);
                       onBack();
                     }}
                     className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
-                    <Archive className="w-4 h-4" />
+                    <Archive className="w-4 h-4 text-yellow-500" />
                     <span className="text-sm sm:text-lg">{t('Unarchive')}</span>
                   </button>
                   <button 
@@ -904,14 +914,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <Copy className="w-4 h-4" /> 
                     <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       archiveProject(project.category, project.id);
                       onBack();
                     }}
-                    className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
-                    <Archive className="w-4 h-4" /> 
+                    <Archive className="w-4 h-4 text-yellow-500" />
                     <span className="text-sm sm:text-lg">{t('Archive')}</span>
                   </button>
                 </>
@@ -1142,7 +1152,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {showClientSelector && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl' : 'max-w-md'} h-[85vh] lg:h-auto lg:max-h-[90vh] overflow-y-auto transition-all`}>
+          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
               {showCreateClientInModal && (

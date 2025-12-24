@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Building2, Upload, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { compressImage } from '../utils/imageCompression';
 
 const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) => {
   const { t } = useLanguage();
@@ -46,17 +47,32 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
     }));
   };
 
-  const handleImageUpload = (e, field) => {
+  const handleImageUpload = async (e, field) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      try {
+        // Compress image before storing (max 800px for logo/signature, 80% quality)
+        const compressedBase64 = await compressImage(file, {
+          maxWidth: 800,
+          maxHeight: 800,
+          quality: 0.8
+        });
         setFormData(prev => ({
           ...prev,
-          [field]: reader.result
+          [field]: compressedBase64
         }));
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Failed to compress image:', error);
+        // Fallback to original if compression fails
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData(prev => ({
+            ...prev,
+            [field]: reader.result
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 

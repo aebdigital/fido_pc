@@ -96,8 +96,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                         if (!workGroups[groupKey]) {
                           const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
-                          const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ?
-                            itemName : t(itemName);
+                          // Always translate the name
+                          const workName = t(itemName);
 
                           workGroups[groupKey] = {
                             name: workName,
@@ -112,8 +112,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                       } else {
                         // Non-grouped items - render as before
                         const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
-                        const workName = item.propertyId && (item.propertyId.startsWith('plasterboarding_') || item.propertyId.startsWith('plastering_') || item.propertyId.startsWith('painting_') || item.propertyId.startsWith('netting_')) ?
-                          itemName : t(itemName);
+                        // Always translate the name
+                        const workName = t(itemName);
 
                         let workDescription;
                         if ((item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
@@ -275,10 +275,17 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     }
                     
                     // Fall back to looking up name from propertyId if item.name is undefined
-                    // For custom work items, use the user-entered name from fields
+                    // For custom work items, use the user-entered name and selected unit
                     let itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
-                    if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.fields?.[WORK_ITEM_NAMES.NAME]) {
-                      itemNameOthers = item.fields[WORK_ITEM_NAMES.NAME];
+                    if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+                      if (item.fields?.[WORK_ITEM_NAMES.NAME]) {
+                        itemNameOthers = item.fields[WORK_ITEM_NAMES.NAME];
+                      }
+                      // Use the user-selected unit for custom work
+                      if (item.selectedUnit) {
+                        unit = item.selectedUnit;
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.QUANTITY] || values.Quantity || 0);
+                      }
                     }
                     const workName = t(itemNameOthers);
                     // Format quantity: for days show as integer with space, otherwise use existing format

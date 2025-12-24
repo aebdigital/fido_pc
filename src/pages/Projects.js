@@ -512,7 +512,7 @@ const Projects = () => {
                           onClick={toggleProjectDeleteMode}
                           className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${
                             projectDeleteMode
-                              ? 'bg-gray-600 text-white hover:bg-gray-700'
+                              ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
                               : 'bg-gray-500 text-white hover:bg-gray-600'
                           }`}
                         >

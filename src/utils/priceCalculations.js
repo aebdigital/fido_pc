@@ -27,7 +27,16 @@ export const hasWorkItemInput = (workItem) => {
     const value = values[key];
     if (value === undefined || value === null) return false;
     if (typeof value === 'number') return value > 0;
-    if (typeof value === 'string') return value.trim().length > 0;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      // Check if it's a non-empty string that isn't just "0" or empty
+      if (trimmed.length === 0) return false;
+      // If the string represents a number, check if it's > 0
+      const numValue = parseFloat(trimmed);
+      if (!isNaN(numValue)) return numValue > 0;
+      // For non-numeric strings (like names), check if non-empty
+      return trimmed.length > 0;
+    }
     if (typeof value === 'boolean') return value === true;
     return false;
   });
@@ -541,10 +550,16 @@ export const calculateWorkItemWithMaterials = (
   // Calculate work quantity for material calculation
   let quantity = 0;
   const values = workItem.fields;
-  
+
   // Handle sanitary installations - quantity is the count, not area
   if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) {
     quantity = parseFloat(values.Count || 0);
+  } else if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PREPARATORY) {
+    // Preparatory work uses Duration (hours)
+    quantity = parseFloat(values.Duration || values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
+  } else if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
+    // Wiring and Plumbing use Number of outlets (pieces)
+    quantity = parseFloat(values.Count || values['Number of outlets'] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK] || 0);
   } else if (values.Width && values.Height) {
     quantity = parseFloat(values.Width || 0) * parseFloat(values.Height || 0);
   } else if (values.Width && values.Length) {
@@ -553,8 +568,14 @@ export const calculateWorkItemWithMaterials = (
     quantity = parseFloat(values.Length || 0);
   } else if (values.Circumference) {
     quantity = parseFloat(values.Circumference || 0);
+  } else if (values.Count || values['Number of outlets'] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) {
+    // Fallback for count-based items (wiring, plumbing, etc.)
+    quantity = parseFloat(values.Count || values['Number of outlets'] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || values[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK] || 0);
+  } else if (values.Duration || values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK]) {
+    // Fallback for duration-based items (preparatory, etc.)
+    quantity = parseFloat(values.Duration || values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
   }
-  
+
   // Subtract door/window areas from material quantity too
   if (workItem.doorWindowItems) {
     if (workItem.doorWindowItems.doors) {

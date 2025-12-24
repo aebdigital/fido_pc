@@ -26,13 +26,29 @@ const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
     return containerWidth / viewport.width;
   }, []);
 
+  // Reset all state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setPdfDoc(null);
+      setCurrentPage(1);
+      setTotalPages(0);
+      setScale(1);
+      setBaseScale(1);
+      setError(null);
+      setIsLoading(true);
+    }
+  }, [isOpen]);
+
   // Load PDF document
   useEffect(() => {
     if (!isOpen || !pdfUrl) return;
 
+    // Reset state before loading new PDF
+    setPdfDoc(null);
     setIsLoading(true);
     setError(null);
     setCurrentPage(1);
+    setTotalPages(0);
 
     const loadPdf = async () => {
       try {

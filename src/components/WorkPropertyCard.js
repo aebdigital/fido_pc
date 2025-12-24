@@ -419,13 +419,23 @@ const WorkPropertyCard = ({
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
-          <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
-            {existingItem && expandedItems[existingItem.id] ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
+          {existingItem && expandedItems[existingItem.id] ? (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemoveWorkItem(existingItem.id, e);
+              }}
+              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              title={t('Delete')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
               <ChevronDown className="w-4 h-4" />
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Show fields only when item exists AND is expanded */}
@@ -483,16 +493,16 @@ const WorkPropertyCard = ({
               <div className="space-y-3 lg:space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
-                  {/* Reuse toggleExpanded since we are inside the item scope */}
+                  {/* Use separate key for complementary works expansion */}
                   <button
-                    onClick={(e) => onToggleExpanded(existingItem.id, e)}
+                    onClick={(e) => onToggleExpanded(`${existingItem.id}_complementary`, e)}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   >
-                    {expandedItems[existingItem.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
+                    {expandedItems[`${existingItem.id}_complementary`] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
                   </button>
                 </div>
 
-                {expandedItems[existingItem.id] && (
+                {expandedItems[`${existingItem.id}_complementary`] && (
                   <div className="space-y-3 lg:space-y-2 ">
                     <div className="flex justify-end">
                       <button
@@ -514,18 +524,22 @@ const WorkPropertyCard = ({
                       return (
                         <div key={uniqueKey} className="flex items-center justify-between gap-3">
                           <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                          <button
-                            onClick={(e) => onToggleComplementaryWork(existingItem.id, uniqueKey, e)}
-                            className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                              instanceCount > 0
-                                ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
-                                : 'border-gray-300 dark:border-gray-600'
-                            }`}
-                          >
-                            {instanceCount > 0 ? (
-                              <span className="text-xs font-bold text-white dark:text-gray-900">{instanceCount}</span>
-                            ) : null}
-                          </button>
+                          {instanceCount > 0 ? (
+                            <button
+                              onClick={(e) => onToggleComplementaryWork(existingItem.id, uniqueKey, e)}
+                              className="w-7 h-7 lg:w-6 lg:h-6 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors flex-shrink-0"
+                              title={t('Delete')}
+                            >
+                              <Trash2 className="w-3 h-3 text-white" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => onToggleComplementaryWork(existingItem.id, uniqueKey, e)}
+                              className="w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors flex-shrink-0 hover:border-gray-400 dark:hover:border-gray-500"
+                            >
+                              <Plus className="w-3 h-3 text-gray-400" />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -671,14 +685,14 @@ const WorkPropertyCard = ({
                 <div className="flex items-center justify-between">
                   <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
                   <button
-                    onClick={(e) => onToggleExpanded(item.id, e)}
+                    onClick={(e) => onToggleExpanded(`${item.id}_complementary`, e)}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   >
-                    {expandedItems[item.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
+                    {expandedItems[`${item.id}_complementary`] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
                   </button>
                 </div>
 
-                {expandedItems[item.id] && (
+                {expandedItems[`${item.id}_complementary`] && (
                   <div className="space-y-3 lg:space-y-2 ">
                     <div className="flex justify-end">
                       <button
@@ -700,18 +714,22 @@ const WorkPropertyCard = ({
                       return (
                         <div key={uniqueKey} className="flex items-center justify-between gap-3">
                           <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                          <button
-                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                            className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                              instanceCount > 0
-                                ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
-                                : 'border-gray-300 dark:border-gray-600'
-                            }`}
-                          >
-                            {instanceCount > 0 ? (
-                              <span className="text-xs font-bold text-white dark:text-gray-900">{instanceCount}</span>
-                            ) : null}
-                          </button>
+                          {instanceCount > 0 ? (
+                            <button
+                              onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                              className="w-7 h-7 lg:w-6 lg:h-6 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors flex-shrink-0"
+                              title={t('Delete')}
+                            >
+                              <Trash2 className="w-3 h-3 text-white" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                              className="w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors flex-shrink-0 hover:border-gray-400 dark:hover:border-gray-500"
+                            >
+                              <Plus className="w-3 h-3 text-gray-400" />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -981,14 +999,14 @@ const WorkPropertyCard = ({
               <div className="flex items-center justify-between">
                 <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
                 <button
-                  onClick={(e) => onToggleExpanded(item.id, e)}
+                  onClick={(e) => onToggleExpanded(`${item.id}_complementary`, e)}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
-                  {expandedItems[item.id] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
+                  {expandedItems[`${item.id}_complementary`] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
                 </button>
               </div>
 
-              {expandedItems[item.id] && (
+              {expandedItems[`${item.id}_complementary`] && (
                 <div className="space-y-3 lg:space-y-2 ">
                   <div className="flex justify-end">
                     <button
@@ -1010,18 +1028,22 @@ const WorkPropertyCard = ({
                     return (
                       <div key={uniqueKey} className="flex items-center justify-between gap-3">
                         <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                        <button
-                          onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                          className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                            instanceCount > 0
-                              ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
-                              : 'border-gray-300 dark:border-gray-600'
-                          }`}
-                        >
-                          {instanceCount > 0 ? (
-                            <span className="text-xs font-bold text-white dark:text-gray-900">{instanceCount}</span>
-                          ) : null}
-                        </button>
+                        {instanceCount > 0 ? (
+                          <button
+                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                            className="w-7 h-7 lg:w-6 lg:h-6 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors flex-shrink-0"
+                            title={t('Delete')}
+                          >
+                            <Trash2 className="w-3 h-3 text-white" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                            className="w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors flex-shrink-0 hover:border-gray-400 dark:hover:border-gray-500"
+                          >
+                            <Plus className="w-3 h-3 text-gray-400" />
+                          </button>
+                        )}
                       </div>
                     );
                   })}

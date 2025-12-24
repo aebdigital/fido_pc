@@ -15,13 +15,18 @@ const Invoices = () => {
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [showContractorSelector, setShowContractorSelector] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showYearDropdown, setShowYearDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  const yearDropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowContractorSelector(false);
+      }
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target)) {
+        setShowYearDropdown(false);
       }
     };
 
@@ -278,37 +283,55 @@ const Invoices = () => {
       </div>
 
       <div className="mb-6 lg:mb-8 min-w-0 w-full">
-        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 min-w-0">
-          {/* Year filters */}
-          {yearFilters.map(year => (
+        <div className="flex gap-4 pb-2 min-w-0">
+          {/* Year dropdown */}
+          <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button
-              key={year}
-              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 ${
-                selectedYear === year
-                  ? 'text-gray-900 dark:text-white'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-              onClick={() => setSelectedYear(year)}
+              onClick={() => setShowYearDropdown(!showYearDropdown)}
+              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white"
             >
-              {year}
+              {selectedYear}
+              <ChevronDown className={`w-4 h-4 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
             </button>
-          ))}
+            {showYearDropdown && (
+              <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 py-1 min-w-[120px]">
+                {yearFilters.map(year => (
+                  <button
+                    key={year}
+                    onClick={() => {
+                      setSelectedYear(year);
+                      setShowYearDropdown(false);
+                    }}
+                    className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                      selectedYear === year
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {/* Separator */}
           <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 self-center flex-shrink-0" />
-          {/* Status filters */}
-          {statusFilters.map(filter => (
-            <button
-              key={filter}
-              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 ${
-                selectedStatus === filter
-                  ? 'text-gray-900 dark:text-white'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-              onClick={() => setSelectedStatus(filter)}
-            >
-              {filter}
-            </button>
-          ))}
+          {/* Status filters - scrollable */}
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide min-w-0">
+            {statusFilters.map(filter => (
+              <button
+                key={filter}
+                className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 ${
+                  selectedStatus === filter
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+                onClick={() => setSelectedStatus(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
