@@ -1,8 +1,7 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
-import { X, Hammer, Menu, Save, Loader2 } from 'lucide-react';
+import { X, Hammer, Menu, Loader2, Check } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
-import UnsavedChangesModal from './UnsavedChangesModal';
 import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
@@ -16,16 +15,19 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
   const [showingRentalsSelector, setShowingRentalsSelector] = useState(false);
   const [showingTypeSelector, setShowingTypeSelector] = useState(null);
   const [newlyAddedItems, setNewlyAddedItems] = useState(new Set());
-  const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
 
-  // Store initial data for comparison
-  const initialWorkDataRef = useRef(JSON.stringify(room.workItems || []));
+  // Store initial data for comparison and tracking saves
+  const lastSavedData = useRef(JSON.stringify(room.workItems || []));
+  const onSaveRef = useRef(onSave);
+  const isUnmounting = useRef(false);
 
-  // Check if there are unsaved changes
-  const hasUnsavedChanges = JSON.stringify(workData) !== initialWorkDataRef.current;
+  // Update ref when prop changes
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
 
   // Save scroll position before any state change
   const saveScrollPosition = () => {
@@ -56,49 +58,43 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     }
   }, [newlyAddedItems]);
 
+  // Autosave Logic
+  useEffect(() => {
+    if (isUnmounting.current) return;
+
+    const currentDataString = JSON.stringify(workData);
+    if (currentDataString !== lastSavedData.current) {
+      setSaveStatus('modified');
+      
+      const timer = setTimeout(() => {
+        if (isUnmounting.current) return;
+        
+        setSaveStatus('saving');
+        onSaveRef.current(workData);
+        lastSavedData.current = currentDataString;
+        
+        // Short delay to show "Saving" state before switching to "Saved"
+        setTimeout(() => {
+          if (!isUnmounting.current) setSaveStatus('saved');
+        }, 800);
+      }, 1000); // 1 second debounce
+
+      return () => clearTimeout(timer);
+    }
+  }, [workData]);
+
+  const handleClose = () => {
+    // If pending changes, save immediately before closing
+    if (saveStatus === 'modified') {
+       onSaveRef.current(workData);
+    }
+    isUnmounting.current = true;
+    onClose();
+  };
 
   // Separate "Others" category properties
   const othersIds = [WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK, WORK_ITEM_PROPERTY_IDS.COMMUTE, WORK_ITEM_PROPERTY_IDS.RENTALS];
 
-  // Manual save function
-  const handleSave = async () => {
-    console.log('[RoomDetailsModal] handleSave - room:', room, 'roomId:', room?.id);
-    setIsSaving(true);
-    onSave(workData);
-    // Simulate brief delay for visual feedback
-    await new Promise(resolve => setTimeout(resolve, 500));
-    // Update the initial data ref after saving
-    initialWorkDataRef.current = JSON.stringify(workData);
-    setIsSaving(false);
-  };
-
-  // Handle close - check for unsaved changes
-  const handleClose = () => {
-    if (hasUnsavedChanges) {
-      setShowUnsavedChangesModal(true);
-    } else {
-      onClose();
-    }
-  };
-
-  // Save and close
-  const handleSaveAndClose = () => {
-    console.log('[RoomDetailsModal] handleSaveAndClose - room:', room, 'roomId:', room?.id);
-    onSave(workData);
-    setShowUnsavedChangesModal(false);
-    onClose();
-  };
-
-  // Discard and close
-  const handleDiscardAndClose = () => {
-    setShowUnsavedChangesModal(false);
-    onClose();
-  };
-
-  // Cancel closing
-  const handleCancelClose = () => {
-    setShowUnsavedChangesModal(false);
-  };
   const mainProperties = workProperties.filter(prop => !othersIds.includes(prop.id) && !prop.hidden);
   const othersProperties = workProperties.filter(prop => othersIds.includes(prop.id) && !prop.hidden);
 
@@ -260,8 +256,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     if (!rentalItem) return;
 
     let specificPropertyId = WORK_ITEM_PROPERTY_IDS.RENTALS;
-    // Map rental types to property IDs if needed, or keep generic 'rentals' and rely on name
-    // For now we keep it simple as propertyId isn't strictly enforced for sub-items
     
     const newItem = {
       id: Date.now(),
@@ -573,11 +567,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       item.linkedToParent === itemId && item.linkedWorkKey === workKey
     ).length;
 
-    console.log('[COMPLEMENTARY] Toggle clicked:', { itemId, workKey, workName, currentCount });
-
     // If count >= 2, remove all and reset to 0
     if (currentCount >= 2) {
-      console.log('[COMPLEMENTARY] Removing all instances');
       setWorkData(items =>
         items.filter(item =>
           !(item.linkedToParent === itemId && item.linkedWorkKey === workKey)
@@ -634,11 +625,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       }
 
       if (!complementaryProperty) {
-        console.warn('[COMPLEMENTARY] Could not find property for:', workName);
         return;
       }
-
-      console.log('[COMPLEMENTARY] Found property:', complementaryProperty);
 
       // Create new complementary work item with copied dimensions
       const newItem = {
@@ -684,8 +672,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
         }
       }
 
-      console.log('[COMPLEMENTARY] Creating new item:', newItem);
-
       // Update state: increment count and add new item
       const newCount = currentCount + 1;
       setWorkData(items => [
@@ -702,7 +688,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
         ),
         newItem
       ]);
-      // Don't add to newlyAddedItems - keep complementary works collapsed
     }
   };
 
@@ -795,22 +780,26 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
           <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t(room.name) !== room.name ? t(room.name) : room.name}</h2>
             <div className="flex items-center gap-3">
-              <button
-                onClick={handleSave}
-                disabled={!hasUnsavedChanges || isSaving}
+              <div
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
-                  hasUnsavedChanges && !isSaving
-                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                  saveStatus === 'saved'
+                    ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                    : saveStatus === 'saving'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
                 }`}
               >
-                {isSaving ? (
+                {saveStatus === 'saving' ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
+                ) : saveStatus === 'saved' ? (
+                  <Check className="w-4 h-4" />
                 ) : (
-                  <Save className="w-4 h-4" />
+                  <Loader2 className="w-4 h-4" />
                 )}
-                <span className="hidden sm:inline">{isSaving ? t('Saving...') : t('Save')}</span>
-              </button>
+                <span className="hidden sm:inline">
+                  {saveStatus === 'saved' ? t('Saved') : saveStatus === 'saving' ? t('Saving...') : t('Saving...')}
+                </span>
+              </div>
               <button
                 onClick={handleClose}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -922,14 +911,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
           </div>
         </div>
       </div>
-
-      {/* Unsaved Changes Modal */}
-      <UnsavedChangesModal
-        isOpen={showUnsavedChangesModal}
-        onSaveAndProceed={handleSaveAndClose}
-        onDiscardAndProceed={handleDiscardAndClose}
-        onCancel={handleCancelClose}
-      />
     </>
   );
 };
