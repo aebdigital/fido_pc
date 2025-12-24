@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Hammer, Package, Info, Menu, Loader2, Check, TrendingUp, Wrench } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -34,7 +34,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         lastSavedData.current = JSON.stringify(clonedPriceList);
       }
     }
-  }, [generalPriceList]);
+  }, [generalPriceList, localPriceList]);
 
   // Autosave Logic
   useEffect(() => {

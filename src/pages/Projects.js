@@ -146,7 +146,7 @@ const Projects = () => {
       // Clear the state to prevent re-triggering
       window.history.replaceState({}, document.title);
     }
-  }, [location.state?.reset, location.state?.timestamp]);
+  }, [location.state?.reset, location.state?.timestamp, location.state?.selectedProjectId]);
 
   // Handle navigation from clients page and invoices and archive
   useEffect(() => {
