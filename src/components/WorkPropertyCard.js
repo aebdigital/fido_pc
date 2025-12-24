@@ -5,7 +5,6 @@ import {
   X,
   Hammer,
   Package,
-  ChevronUp,
   ChevronDown,
   Check,
   Copy

@@ -47,12 +47,6 @@ const getWorkItemUnit = (item) => {
   return 'm²';
 };
 
-// Helper to strip €/ prefix from material units
-const stripEuroPrefix = (unit) => {
-  if (!unit) return '';
-  if (unit.startsWith('€/')) return unit.substring(2);
-  return unit;
-};
 
 // Helper to get work item name from propertyId
 const getWorkItemNameByPropertyId = (propertyId) => {
