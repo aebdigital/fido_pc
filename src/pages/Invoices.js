@@ -282,8 +282,8 @@ const Invoices = () => {
         </button>
       </div>
 
-      <div className="mb-6 lg:mb-8 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-4 pb-2 min-w-max">
+      <div className="mb-6 lg:mb-8 -mx-4 px-4 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-4 pb-2 w-max">
           {/* Year dropdown */}
           <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button
