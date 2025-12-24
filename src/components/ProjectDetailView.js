@@ -94,6 +94,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [lightboxDirection, setLightboxDirection] = useState(0); // -1 for left, 1 for right, 0 for initial
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
   const [photoDeleteMode, setPhotoDeleteMode] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
 
   // Refs
   const photoInputRef = useRef(null);
@@ -1040,15 +1041,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                           <Trash2 className="w-8 h-8 text-white" />
                         </div>
                       )}
-                      {!project.is_archived && !photoDeleteMode && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
-                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
+                                          </div>
                   ))}
                 </div>
 
@@ -1166,24 +1159,40 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               />
             ) : (
               <>
+                {/* Search bar */}
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    value={clientSearchQuery}
+                    onChange={(e) => setClientSearchQuery(e.target.value)}
+                    placeholder={t('Search')}
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
                 <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
-                  {clients.map(client => (
+                  {clients
+                    .filter(client =>
+                      !clientSearchQuery ||
+                      client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                      client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                    )
+                    .map(client => (
                     <button key={client.id} onClick={() => handleClientSelect(client)} className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left">
                       <div className="font-medium">{client.name}</div>
                       <div className="text-sm text-gray-500">{client.email}</div>
                     </button>
                   ))}
                 </div>
-                
-                <button 
+
+                <button
                   onClick={() => setShowCreateClientInModal(true)}
                   className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   {t('Add client')}
                 </button>
-                
-                <button onClick={() => setShowClientSelector(false)} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl">{t('Cancel')}</button>
+
+                <button onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl">{t('Cancel')}</button>
               </>
             )}
           </div>

@@ -3,6 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import {
   WORK_ITEM_NAMES,
+  WORK_ITEM_PROPERTY_IDS,
   UNIT_TYPES,
   MATERIAL_ITEM_NAMES
 } from '../config/constants';
@@ -274,7 +275,11 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     }
                     
                     // Fall back to looking up name from propertyId if item.name is undefined
-                    const itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                    // For custom work items, use the user-entered name from fields
+                    let itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                    if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.fields?.[WORK_ITEM_NAMES.NAME]) {
+                      itemNameOthers = item.fields[WORK_ITEM_NAMES.NAME];
+                    }
                     const workName = t(itemNameOthers);
                     // Format quantity: for days show as integer with space, otherwise use existing format
                     const translatedUnit = t(unit);

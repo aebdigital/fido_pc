@@ -381,6 +381,7 @@ export const translations = {
     "New room": "Nová miestnosť",
     "Project management": "Správa projektu",
     "Project Price List": "Cenník projektu",
+    "Project price list": "Cenník projektu",
     "Back to project list": "Späť na zoznam projektov",
     "Back to Project List": "Späť na zoznam projektov",
     "Associate project with a client": "Asociovať projekt s klientom",
@@ -442,6 +443,7 @@ export const translations = {
     // ========== PRICING & VAT ==========
     "Total price offer": "Celková cenová ponuka",
     "Total price": "Celková cena",
+    "Total Price": "Celková cena",
     "without VAT": "bez DPH",
     "with VAT": "s DPH",
     "VAT": "DPH",
@@ -596,6 +598,7 @@ export const translations = {
     "Amount": "Suma",
     "View Project": "Zobraziť projekt",
     "Delete Invoice": "Vymazať faktúru",
+    "Delete": "Vymazať",
     "Are you sure you want to delete this invoice? This action cannot be undone.": "Ste si istí, že chcete vymazať túto faktúru? Táto akcia je nevratná.",
     "Please fill in all required fields": "Prosím vyplňte všetky povinné polia",
     "Failed to create invoice": "Nepodarilo sa vytvoriť faktúru",
@@ -604,6 +607,11 @@ export const translations = {
     "Required Fields Missing": "Chýbajúce povinné polia",
     "The following fields are required to generate an invoice:": "Pre vygenerovanie faktúry sú potrebné nasledujúce polia:",
     "Fill Missing Fields": "Vyplniť chýbajúce polia",
+    "Fill in missing fields": "Vyplniť chýbajúce polia",
+    "Incomplete Information": "Neúplné informácie",
+    "Some required fields are missing for the invoice:": "Niektoré povinné polia chýbajú pre faktúru:",
+    "Generate anyway": "Vygenerovať aj tak",
+    "Banking and legal": "Bankové a právne údaje",
     "In case of non-payment of the invoice, a reminder will be looked...": "V prípade neuhradenia faktúry bude zaslaná upomienka...",
 
     // ========== ADDITIONAL WORK DETAILS ==========

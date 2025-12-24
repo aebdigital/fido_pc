@@ -28,7 +28,8 @@ const Projects = () => {
     formatPrice,
     loadProjectDetails,
     getOrphanProjectCategories,
-    hasOrphanProjects
+    hasOrphanProjects,
+    clients
   } = useAppData();
 
   // Special state for viewing orphan projects (projects without contractor)
@@ -562,8 +563,10 @@ const Projects = () => {
                         </span>
                       </div>
                       <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
-                      {/* Notes - only visible on desktop */}
-                      <p className="hidden lg:block text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1">{project.notes || t('Notes')}</p>
+                      {/* Client name - only visible on desktop */}
+                      <p className="hidden lg:block text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1">
+                        {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
+                      </p>
                     </div>
 
                     {projectDeleteMode && !viewingOrphanProjects ? (

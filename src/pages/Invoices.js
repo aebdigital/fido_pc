@@ -9,6 +9,7 @@ const Invoices = () => {
   const { t } = useLanguage();
   const { contractors, activeContractorId, setActiveContractor, addContractor, updateContractor, getInvoicesForContractor, formatPrice, findProjectById, calculateProjectTotalPriceWithBreakdown, generalPriceList } = useAppData();
   const [selectedStatus, setSelectedStatus] = useState(t('All'));
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
@@ -36,8 +37,17 @@ const Invoices = () => {
     if (!activeContractorId) return [];
     const invoices = getInvoicesForContractor(activeContractorId);
 
-    // Filter by status
+    // Filter by year
     let filtered = invoices;
+    if (selectedYear !== t('Any Time')) {
+      const year = parseInt(selectedYear);
+      filtered = filtered.filter(inv => {
+        const invoiceYear = new Date(inv.issueDate).getFullYear();
+        return invoiceYear === year;
+      });
+    }
+
+    // Filter by status
     if (selectedStatus === t('Paid')) {
       filtered = filtered.filter(inv => inv.status === 'paid');
     } else if (selectedStatus === t('Unpaid')) {
@@ -53,6 +63,16 @@ const Invoices = () => {
     // Sort by invoice number (descending - newest first)
     return filtered.sort((a, b) => parseInt(b.invoiceNumber || 0) - parseInt(a.invoiceNumber || 0));
   };
+
+  // Generate year options (current year and previous 4 years + "Any Time")
+  const currentYear = new Date().getFullYear();
+  const yearFilters = [
+    currentYear.toString(),
+    (currentYear - 1).toString(),
+    (currentYear - 2).toString(),
+    (currentYear - 3).toString(),
+    t('Any Time')
+  ];
 
   const statusFilters = [t('All'), t('Paid'), t('Unpaid'), t('Overdue')];
   const invoices = getInvoices();
@@ -259,6 +279,23 @@ const Invoices = () => {
 
       <div className="mb-6 lg:mb-8 min-w-0 w-full">
         <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 min-w-0">
+          {/* Year filters */}
+          {yearFilters.map(year => (
+            <button
+              key={year}
+              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 ${
+                selectedYear === year
+                  ? 'text-gray-900 dark:text-white'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+              onClick={() => setSelectedYear(year)}
+            >
+              {year}
+            </button>
+          ))}
+          {/* Separator */}
+          <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 self-center flex-shrink-0" />
+          {/* Status filters */}
           {statusFilters.map(filter => (
             <button
               key={filter}
