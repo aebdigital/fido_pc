@@ -25,6 +25,11 @@ const Layout = ({ children }) => {
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
+  // Scroll to top when navigating to a new page
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.state?.timestamp]);
+
   // Scroll detection for mobile navigation auto-hide
   useEffect(() => {
     const handleScroll = () => {
@@ -57,21 +62,23 @@ const Layout = ({ children }) => {
   const handleNavigation = (path, e) => {
     e.preventDefault();
     if (attemptNavigation(path)) {
-      navigate(path);
+      // Always pass reset state to force sub-page closing/resetting
+      // Add timestamp to ensure state update even if path is same
+      navigate(path, { state: { reset: true, timestamp: Date.now() } });
     }
   };
 
   const onSaveAndProceedWrapper = () => {
     const path = handleSaveAndProceed();
     if (path) {
-      navigate(path);
+      navigate(path, { state: { reset: true, timestamp: Date.now() } });
     }
   };
 
   const onDiscardAndProceedWrapper = () => {
     const path = handleDiscardAndProceed();
     if (path) {
-      navigate(path);
+      navigate(path, { state: { reset: true, timestamp: Date.now() } });
     }
   };
 

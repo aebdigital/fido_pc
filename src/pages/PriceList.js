@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Hammer, Package, Info, Menu, Save, TrendingUp, Wrench } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ArrowLeft, Hammer, Package, Info, Menu, Loader2, Check, TrendingUp, Wrench } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useNavigationBlocker } from '../context/NavigationBlockerContext';
 import NumberInput from '../components/NumberInput';
 
 const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   const { t } = useLanguage();
   const { generalPriceList, updateGeneralPriceList } = useAppData();
-  const { blockNavigation, unblockNavigation } = useNavigationBlocker();
   const [localPriceList, setLocalPriceList] = useState(null);
   const [originalPrices, setOriginalPrices] = useState({});
-  const [hasChanges, setHasChanges] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [percentageIncrease, setPercentageIncrease] = useState('');
   const [showPercentageModal, setShowPercentageModal] = useState(false);
+
+  const lastSavedData = useRef(null);
+  const isUnmounting = useRef(false);
 
   // Initialize local state with data from context
   useEffect(() => {
@@ -23,115 +24,77 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       Object.keys(generalPriceList).forEach(category => {
         clonedPriceList[category] = generalPriceList[category].map(item => ({ ...item }));
       });
-      setLocalPriceList(clonedPriceList);
-      setOriginalPrices(clonedPriceList);
-      setHasChanges(false);
-      if (onHasChangesChange) {
-        onHasChangesChange(false);
-      }
-    }
-  }, [generalPriceList, onHasChangesChange]);
-
-  // Define handleSave with useCallback to avoid dependency issues
-  const handleSave = useCallback(() => {
-    if (!localPriceList) return;
-    
-    // Update the context with all the local changes
-    Object.keys(localPriceList).forEach(category => {
-      localPriceList[category].forEach((item, index) => {
-        if (originalPrices[category] && originalPrices[category][index]) {
-          if (item.price !== originalPrices[category][index].price) {
-            updateGeneralPriceList(category, index, item.price);
-          }
-        }
-      });
-    });
-    
-    // Update original prices to current prices
-    setOriginalPrices({ ...localPriceList });
-    setHasChanges(false);
-    if (onHasChangesChange) {
-      onHasChangesChange(false);
-    }
-    
-    // Unblock navigation after saving
-    unblockNavigation('priceList');
-  }, [localPriceList, originalPrices, updateGeneralPriceList, onHasChangesChange, unblockNavigation]);
-
-  // Expose save function to parent
-  useEffect(() => {
-    if (onSaveRef) {
-      onSaveRef.current = {
-        save: handleSave,
-        discardChanges: () => {
-          setLocalPriceList({ ...originalPrices });
-          setHasChanges(false);
-          if (onHasChangesChange) {
-            onHasChangesChange(false);
-          }
-        }
-      };
-    }
-  }, [handleSave, originalPrices, onHasChangesChange, onSaveRef]);
-
-  // Cleanup navigation blocking on unmount
-  useEffect(() => {
-    return () => {
-      unblockNavigation('priceList');
-    };
-  }, [unblockNavigation]);
-
-  // Check if there are any changes between local and original
-  const checkForChanges = (newLocalPrices) => {
-    if (!originalPrices || !newLocalPrices) return false;
-    
-    for (const category in newLocalPrices) {
-      if (!originalPrices[category]) continue;
       
-      for (let i = 0; i < newLocalPrices[category].length; i++) {
-        if (!originalPrices[category][i]) continue;
-        
-        if (newLocalPrices[category][i].price !== originalPrices[category][i].price) {
-          return true;
-        }
+      // Only set if not already set or if explicitly needed (e.g. initial load)
+      // For autosave, we want to keep local state if user is typing, but if context updates from elsewhere?
+      // Since this is a page, it mounts once.
+      if (!localPriceList) {
+        setLocalPriceList(clonedPriceList);
+        setOriginalPrices(clonedPriceList);
+        lastSavedData.current = JSON.stringify(clonedPriceList);
       }
     }
-    return false;
-  };
+  }, [generalPriceList]);
+
+  // Autosave Logic
+  useEffect(() => {
+    if (!localPriceList || isUnmounting.current) return;
+
+    const currentDataString = JSON.stringify(localPriceList);
+    // Only save if data has changed from last save AND lastSavedData is initialized
+    if (lastSavedData.current && currentDataString !== lastSavedData.current) {
+      setSaveStatus('modified');
+      
+      const timer = setTimeout(() => {
+        if (isUnmounting.current) return;
+        
+        setSaveStatus('saving');
+        
+        // Perform save
+        Object.keys(localPriceList).forEach(category => {
+          localPriceList[category].forEach((item, index) => {
+            if (originalPrices[category] && originalPrices[category][index]) {
+              if (item.price !== originalPrices[category][index].price) {
+                updateGeneralPriceList(category, index, item.price);
+              }
+            }
+          });
+        });
+        
+        setOriginalPrices(JSON.parse(currentDataString));
+        lastSavedData.current = currentDataString;
+        
+        setTimeout(() => {
+          if (!isUnmounting.current) setSaveStatus('saved');
+        }, 800);
+      }, 1000); 
+
+      return () => clearTimeout(timer);
+    }
+  }, [localPriceList, originalPrices, updateGeneralPriceList]);
 
   const handlePriceChange = (category, itemIndex, newPrice) => {
-    // NumberInput component already handles validation and returns a numeric value
     const processedPrice = newPrice || 0;
-    
-    const updatedPrices = {
-      ...localPriceList,
-      [category]: localPriceList[category].map((item, index) =>
+
+    setLocalPriceList(prev => ({
+      ...prev,
+      [category]: prev[category].map((item, index) =>
         index === itemIndex ? { ...item, price: processedPrice } : item
       )
-    };
-    
-    setLocalPriceList(updatedPrices);
-    const newHasChanges = checkForChanges(updatedPrices);
-    setHasChanges(newHasChanges);
-    if (onHasChangesChange) {
-      onHasChangesChange(newHasChanges);
-    }
-    
-    // Block/unblock navigation based on changes
-    if (newHasChanges) {
-      blockNavigation('priceList', {
-        onSave: handleSave,
-        onDiscard: () => {
-          setLocalPriceList({ ...originalPrices });
-          setHasChanges(false);
-          if (onHasChangesChange) {
-            onHasChangesChange(false);
-          }
-        }
-      });
-    } else {
-      unblockNavigation('priceList');
-    }
+    }));
+  };
+
+  const handleCapacityChange = (category, itemIndex, newCapacity) => {
+    const processedCapacity = newCapacity || 0;
+
+    setLocalPriceList(prev => ({
+      ...prev,
+      [category]: prev[category].map((item, index) =>
+        index === itemIndex
+          ? { ...item, capacity: { ...item.capacity, value: processedCapacity } }
+          : item
+      )
+    }));
   };
 
   const handlePercentageIncrease = () => {
@@ -140,41 +103,17 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
     const multiplier = 1 + (percentage / 100);
     
-    const updatedPrices = { ...localPriceList };
-    
-    // Apply percentage increase to all categories, but skip VAT
-    Object.keys(updatedPrices).forEach(category => {
-      updatedPrices[category] = updatedPrices[category].map(item => ({
-        ...item,
-        // Skip VAT items when applying percentage increase
-        price: item.name === 'VAT' ? item.price : Math.round(item.price * multiplier * 100) / 100 // Round to 2 decimal places
-      }));
+    setLocalPriceList(prev => {
+      const updatedPrices = { ...prev };
+      Object.keys(updatedPrices).forEach(category => {
+        updatedPrices[category] = updatedPrices[category].map(item => ({
+          ...item,
+          price: item.name === 'VAT' ? item.price : Math.round(item.price * multiplier * 100) / 100
+        }));
+      });
+      return updatedPrices;
     });
     
-    setLocalPriceList(updatedPrices);
-    const newHasChanges = checkForChanges(updatedPrices);
-    setHasChanges(newHasChanges);
-    if (onHasChangesChange) {
-      onHasChangesChange(newHasChanges);
-    }
-    
-    // Block/unblock navigation based on changes
-    if (newHasChanges) {
-      blockNavigation('priceList', {
-        onSave: handleSave,
-        onDiscard: () => {
-          setLocalPriceList({ ...originalPrices });
-          setHasChanges(false);
-          if (onHasChangesChange) {
-            onHasChangesChange(false);
-          }
-        }
-      });
-    } else {
-      unblockNavigation('priceList');
-    }
-    
-    // Close modal and reset input
     setShowPercentageModal(false);
     setPercentageIncrease('');
   };
@@ -185,9 +124,21 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   };
 
   const handleBack = () => {
+    // If pending changes, save immediately
+    if (saveStatus === 'modified' && localPriceList) {
+        Object.keys(localPriceList).forEach(category => {
+          localPriceList[category].forEach((item, index) => {
+            if (originalPrices[category] && originalPrices[category][index]) {
+              if (item.price !== originalPrices[category][index].price) {
+                updateGeneralPriceList(category, index, item.price);
+              }
+            }
+          });
+        });
+    }
+    isUnmounting.current = true;
     onBack();
   };
-
 
   const isItemModified = (category, itemIndex) => {
     if (!originalPrices[category] || !originalPrices[category][itemIndex] || !localPriceList) return false;
@@ -195,49 +146,61 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className="flex items-start gap-2">
+    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
+      <div className="flex justify-between items-start gap-2">
         <div className="flex-1 min-w-0">
-          {/* For installations category, show only subtitle as the main heading */}
           {category === 'installations' && item.subtitle ? (
-            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-sm lg:text-lg truncate">{t(item.subtitle)}</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.subtitle)}</h3>
           ) : (
             <>
-              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-sm lg:text-lg truncate">{t(item.name)}</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
               {item.subtitle && (
-                <p className="text-xs lg:text-base text-black dark:text-white mt-0.5 lg:mt-1 truncate">{t(item.subtitle)}</p>
+                <p className="text-sm lg:text-base text-black dark:text-white mt-1">{t(item.subtitle)}</p>
               )}
             </>
           )}
           {isItemModified(category, itemIndex) && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate">
+            <p className="text-xs lg:text-sm text-blue-600 dark:text-blue-400 mt-1">
               {t('Original')}: {originalPrices[category][itemIndex].price} {t(item.unit)}
             </p>
           )}
-          {/* Capacity info - now below the title on left side */}
-          {item.capacity && (
-            <div className="mt-1 text-xs text-gray-600 dark:text-gray-300 truncate">
-              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
-                ? t('capacity per 25kg package')
-                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
-              }: {item.capacity.value} {item.capacity.unit}
-            </div>
-          )}
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <NumberInput
             value={item.price}
             onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
             className={isItemModified(category, itemIndex)
               ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
-              : 'bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-white'
+              : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
             }
             min={0}
-            size="small"
           />
-          <div className="text-xs text-black dark:text-white flex-shrink-0 whitespace-nowrap">{t(item.unit)}</div>
+          <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
         </div>
       </div>
+
+      {item.capacity && (
+        <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">
+              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
+                ? t('capacity per 25kg package')
+                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
+              }
+            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <NumberInput
+                value={item.capacity.value}
+                onChange={(newValue) => handleCapacityChange(category, itemIndex, newValue)}
+                className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                min={0}
+                step={0.1}
+              />
+              <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -253,14 +216,37 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     <>
       <div className="pb-20 lg:pb-0">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6 lg:mb-8">
-          <button 
-            onClick={handleBack}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+        <div className="flex items-center justify-between mb-6 lg:mb-8">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={handleBack}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
+          </div>
+          
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
+              saveStatus === 'saved'
+                ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                : saveStatus === 'saving'
+                ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
+            }`}
           >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
+            {saveStatus === 'saving' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saveStatus === 'saved' ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Loader2 className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline">
+              {saveStatus === 'saved' ? t('Saved') : saveStatus === 'saving' ? t('Saving...') : t('Saving...')}
+            </span>
+          </div>
         </div>
 
         {/* Controls */}
@@ -332,19 +318,6 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             </div>
           </div>
         </div>
-
-        {/* Floating Save Button */}
-        {hasChanges && (
-          <div className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50">
-            <button
-              onClick={handleSave}
-              className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center shadow-lg hover:bg-gray-800 dark:hover:bg-gray-100 hover:shadow-xl transition-all"
-              title={t('Save changes')}
-            >
-              <Save className="w-5 h-5 lg:w-6 lg:h-6" />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Percentage Increase Modal */}

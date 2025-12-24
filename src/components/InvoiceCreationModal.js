@@ -6,7 +6,7 @@ import UncompletedFieldsModal from './UncompletedFieldsModal';
 
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null }) => {
   const { t } = useLanguage();
-  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, generalPriceList } = useAppData();
+  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, generalPriceList, invoices } = useAppData();
 
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [issueDate, setIssueDate] = useState('');
@@ -38,18 +38,31 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         }
         setNotes(existingInvoice.notes || '');
       } else {
-        // Create mode - generate new invoice number
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        
-        // Ensure project number suffix is numeric
-        const numericProjectId = String(project.id).replace(/\D/g, '');
-        const projectNumber = numericProjectId.length > 0 ? numericProjectId.slice(-3).padStart(3, '0') : '001';
-        
-        setInvoiceNumber(`${year}${month}${projectNumber}`);
+        // Create mode - generate new invoice number using same pattern as projects (2025001, 2025002, etc.)
+        const currentYear = new Date().getFullYear();
+        const yearPrefix = parseInt(`${currentYear}000`);
+        const yearMax = parseInt(`${currentYear}999`);
+
+        // Filter invoices for the current contractor and current year
+        const contractorInvoices = (invoices || []).filter(inv => inv.contractorId === activeContractorId);
+        const currentYearInvoices = contractorInvoices.filter(inv => {
+          const num = parseInt(inv.invoiceNumber || 0);
+          return num >= yearPrefix && num <= yearMax;
+        });
+
+        // Determine next number
+        let nextNumber;
+        if (currentYearInvoices.length === 0) {
+          nextNumber = parseInt(`${currentYear}001`);
+        } else {
+          const maxNumber = Math.max(...currentYearInvoices.map(inv => parseInt(inv.invoiceNumber || 0)));
+          nextNumber = maxNumber + 1;
+        }
+
+        setInvoiceNumber(String(nextNumber));
 
         // Set default dates
+        const today = new Date();
         const issueDateStr = today.toISOString().split('T')[0];
         setIssueDate(issueDateStr);
         setDispatchDate(issueDateStr);
@@ -58,7 +71,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setNotes('');
       }
     }
-  }, [isOpen, project, editMode, existingInvoice]);
+  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId]);
 
   const checkRequiredFields = () => {
     const missing = [];
@@ -183,7 +196,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[85vh] lg:max-h-[90vh] overflow-y-auto">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl h-[85vh] lg:h-auto lg:max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">

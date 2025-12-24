@@ -145,6 +145,12 @@ export const translations = {
     "outlet": "outlet"
   },
   sk: {
+    // ========== PDF ABBREVIATIONS ==========
+    "Price Offer Abbr": "CP",
+    "Business ID Abbr": "IČO",
+    "Tax ID Abbr": "DIČ",
+    "VAT ID Abbr": "IČ DPH",
+
     // ========== NAVIGATION & MAIN SECTIONS ==========
     "Projects": "Projekty",
     "Invoice": "Faktúra",
@@ -456,7 +462,7 @@ export const translations = {
     "Odoslať": "Odoslať",
     "Supplier": "Dodávateľ",
     "supplier, validity of price offer": "dodávateľ, platnosť cenovej ponuky",
-    "supplier information, validity of price offer": "informácie o dodávateľovi, platnosť cenovej ponuky",
+    "supplier information, validity of price offer": "dodávateľ, platnosť cenovej ponuky",
     "Validity Period": "Platnosť ponuky",
     "Offer validity period": "Doba platnosti ponuky",
     "How long price offers remain valid": "Ako dlho sú cenové ponuky platné",
@@ -470,6 +476,9 @@ export const translations = {
     "Are you sure you want to delete this contractor?": "Ste si istí, že chcete vymazať tohto dodávateľa?",
     "Failed to save settings. Please try again.": "Nepodarilo sa uložiť nastavenia. Skúste to prosím znova.",
     "Saving...": "Ukladám...",
+    "Saved": "Uložené",
+    "Click or drag photos here": "Kliknite alebo pretiahnite fotografie sem",
+    "Drop photos here": "Sem pretiahnite fotografie",
     
     // ========== SETTINGS & PREFERENCES ==========
     "Access": "Prístup",

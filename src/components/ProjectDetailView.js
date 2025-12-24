@@ -1149,7 +1149,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {showClientSelector && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl' : 'max-w-md'} max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all`}>
+          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl' : 'max-w-md'} h-[85vh] lg:h-auto lg:max-h-[90vh] overflow-y-auto transition-all`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
               {showCreateClientInModal && (

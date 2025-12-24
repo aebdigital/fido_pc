@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft,
-  Edit3,
   Trash2,
   Plus,
   Clock,
   Building2,
   Save,
-  Loader2
+  Loader2,
+  ChevronRight
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
@@ -29,6 +29,7 @@ const PriceOfferSettings = ({ onBack }) => {
   const [timeLimit, setTimeLimit] = useState(priceOfferSettings.timeLimit || 30);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteMode, setDeleteMode] = useState(false);
 
   const handleCreateContractor = () => {
     setEditingContractor(null);
@@ -96,14 +97,31 @@ const PriceOfferSettings = ({ onBack }) => {
   return (
     <div className="pb-20 lg:pb-0">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 lg:mb-8">
-        <button 
-          onClick={onBack}
-          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Supplier')}</h1>
+      <div className="flex items-center justify-between mb-6 lg:mb-8">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onBack}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Supplier')}</h1>
+        </div>
+        
+        <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={() => setDeleteMode(!deleteMode)}
+            className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-gray-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}`}
+          >
+            <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+          </button>
+          <button
+            onClick={handleCreateContractor}
+            className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+          >
+            <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
+          </button>
+        </div>
       </div>
 
       <div>
@@ -155,18 +173,9 @@ const PriceOfferSettings = ({ onBack }) => {
 
         {/* Contractors List */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 lg:mb-6">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Contractors')}</h2>
-            </div>
-            <button
-              onClick={handleCreateContractor}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md self-start sm:self-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{t('Add contractor')}</span>
-            </button>
+          <div className="flex items-center gap-2 mb-4 lg:mb-6">
+            <Building2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Contractors')}</h2>
           </div>
 
           {contractors.length === 0 ? (
@@ -184,39 +193,38 @@ const PriceOfferSettings = ({ onBack }) => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {contractors.map((contractor) => (
-                <div key={contractor.id} className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div 
+                  key={contractor.id} 
+                  className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${deleteMode ? '' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                  onClick={() => !deleteMode && handleEditContractor(contractor)}
+                >
+                  <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
                           <Building2 className="w-6 h-6 text-gray-600 dark:text-gray-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{contractor.name}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 truncate">{contractor.name}</h3>
                           {contractor.contactPerson && (
-                            <p className="text-gray-600 dark:text-gray-400">{contractor.contactPerson}</p>
+                            <p className="text-gray-600 dark:text-gray-400 truncate">{contractor.contactPerson}</p>
                           )}
                         </div>
                       </div>
-                      
-
                     </div>
                     
-                    <div className="flex gap-2 self-end lg:self-auto">
-                      <button
-                        onClick={() => handleEditContractor(contractor)}
-                        className="p-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
-                        title={t('Edit contractor')}
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteContractor(contractor.id)}
-                        className="p-2 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-800 transition-colors border border-red-200 dark:border-red-700"
-                        title={t('Delete contractor')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="flex-shrink-0 ml-2">
+                      {deleteMode ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteContractor(contractor.id); }}
+                          className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors shadow-sm"
+                          title={t('Delete contractor')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                      )}
                     </div>
                   </div>
                 </div>

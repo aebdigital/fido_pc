@@ -135,6 +135,19 @@ const Projects = () => {
     }
   }, [activeProjects, loadProjectDetails]);
 
+  // Handle navigation reset when clicking on Projects in navigation
+  useEffect(() => {
+    if (location.state?.reset && !location.state?.selectedProjectId) {
+      // Reset to default view when clicking Projects nav item
+      setSelectedProject(null);
+      setCurrentView(window.innerWidth < 1024 ? 'categories' : 'projects');
+      setViewSource('projects');
+      setViewingOrphanProjects(false);
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state?.reset, location.state?.timestamp]);
+
   // Handle navigation from clients page and invoices and archive
   useEffect(() => {
     if (location.state?.selectedProjectId) {

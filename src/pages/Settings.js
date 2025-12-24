@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Wrench,
   Settings as SettingsIcon,
@@ -18,12 +19,25 @@ import { useDarkMode } from '../context/DarkModeContext';
 import { useAuth } from '../context/AuthContext';
 
 const Settings = () => {
+  const location = useLocation();
   const { t, language, toggleLanguage } = useLanguage();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { signOut } = useAuth();
   const [showPriceList, setShowPriceList] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [showPriceOffer, setShowPriceOffer] = useState(false);
+
+  // Handle navigation reset when clicking on Settings in navigation
+  useEffect(() => {
+    if (location.state?.reset) {
+      // Reset to default view when clicking Settings nav item
+      setShowPriceList(false);
+      setShowArchive(false);
+      setShowPriceOffer(false);
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state?.reset, location.state?.timestamp]);
 
   const handlePriceListClick = () => {
     setShowPriceList(true);

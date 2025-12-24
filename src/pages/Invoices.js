@@ -50,7 +50,8 @@ const Invoices = () => {
       });
     }
 
-    return filtered.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
+    // Sort by invoice number (descending - newest first)
+    return filtered.sort((a, b) => parseInt(b.invoiceNumber || 0) - parseInt(a.invoiceNumber || 0));
   };
 
   const statusFilters = [t('All'), t('Paid'), t('Unpaid'), t('Overdue')];
@@ -162,14 +163,14 @@ const Invoices = () => {
 
   return (
     <div className="pb-20 lg:pb-0">
-      {/* Header with Stats Button */}
-      <div className="flex items-center justify-between mb-4 lg:mb-6">
-        <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white">{t('Invoices')}</h1>
+      {/* Header - Desktop Only Title and Stats */}
+      <div className="hidden lg:flex items-center justify-between mb-6">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Invoices')}</h1>
         <button
           onClick={() => setShowStatsModal(true)}
-          className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md lg:absolute lg:right-6 lg:top-6"
+          className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md absolute right-6 top-6"
         >
-          <Hash className="w-5 h-5 lg:w-6 lg:h-6" />
+          <Hash className="w-6 h-6" />
         </button>
       </div>
 
@@ -244,6 +245,16 @@ const Invoices = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Mobile Stats Button - Below Contractor */}
+      <div className="lg:hidden flex justify-end mb-4">
+        <button
+          onClick={() => setShowStatsModal(true)}
+          className="w-10 h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+        >
+          <Hash className="w-5 h-5" />
+        </button>
       </div>
 
       <div className="mb-6 lg:mb-8 min-w-0 w-full">

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp, Save, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp, Loader2, Check, X } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -8,7 +8,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const { generalPriceList } = useAppData();
   const { t } = useLanguage();
   const [projectPriceData, setProjectPriceData] = useState(null);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [expandedSections, setExpandedSections] = useState({
     work: true,
     material: true,
@@ -16,45 +16,83 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
     others: true
   });
 
+  const lastSavedData = useRef(null);
+  const onSaveRef = useRef(onSave);
+  const isUnmounting = useRef(false);
+
+  // Update ref when prop changes
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
+
   // Initialize project price data from general settings or load existing project overrides
   useEffect(() => {
     if (!generalPriceList) return;
     
     // If we have saved project data, use it
+    let initialPrices;
     if (initialData) {
-      setProjectPriceData(initialData);
-      return;
-    }
-    
-    // Otherwise initialize with general prices
-    const initializeProjectPrices = () => {
-      const projectPrices = JSON.parse(JSON.stringify(generalPriceList)); // Deep clone
+      initialPrices = initialData;
+    } else {
+      // Otherwise initialize with general prices
+      initialPrices = JSON.parse(JSON.stringify(generalPriceList)); // Deep clone
       
       // Add isOverridden flag and originalPrice for each item
-      Object.keys(projectPrices).forEach(category => {
-        projectPrices[category] = projectPrices[category].map(item => {
+      Object.keys(initialPrices).forEach(category => {
+        initialPrices[category] = initialPrices[category].map(item => {
           // Normalize names for old projects to new localized constants
           let normalizedName = item.name;
-          if (item.name === 'Skirting') normalizedName = 'Lištovanie'; // Update Skirting -> Lištovanie
-          if (item.name === 'Skirting board') normalizedName = 'Soklové lišty'; // Update Skirting board -> Soklové lišty
+          if (item.name === 'Skirting') normalizedName = 'Lištovanie'; 
+          if (item.name === 'Skirting board') normalizedName = 'Soklové lišty';
           
           return {
             ...item,
-            name: normalizedName, // Use normalized name
+            name: normalizedName,
             originalPrice: item.price,
             isOverridden: false
           };
         });
       });
-      
-      setProjectPriceData(projectPrices);
-    };
-
-    initializeProjectPrices();
+    }
+    
+    setProjectPriceData(initialPrices);
+    lastSavedData.current = JSON.stringify(initialPrices);
   }, [projectId, generalPriceList, initialData]);
 
+  // Autosave Logic
+  useEffect(() => {
+    if (!projectPriceData || isUnmounting.current) return;
+
+    const currentDataString = JSON.stringify(projectPriceData);
+    // Only save if data has changed from last save AND lastSavedData is initialized
+    if (lastSavedData.current && currentDataString !== lastSavedData.current) {
+      setSaveStatus('modified');
+      
+      const timer = setTimeout(() => {
+        if (isUnmounting.current) return;
+        
+        setSaveStatus('saving');
+        onSaveRef.current(projectPriceData);
+        lastSavedData.current = currentDataString;
+        
+        setTimeout(() => {
+          if (!isUnmounting.current) setSaveStatus('saved');
+        }, 800);
+      }, 1000); 
+
+      return () => clearTimeout(timer);
+    }
+  }, [projectPriceData]);
+
+  const handleClose = () => {
+    if (saveStatus === 'modified') {
+       onSaveRef.current(projectPriceData);
+    }
+    isUnmounting.current = true;
+    onClose();
+  };
+
   const handlePriceChange = (category, itemIndex, newPrice) => {
-    // NumberInput component handles validation and returns numeric value
     const processedPrice = newPrice || 0;
     
     setProjectPriceData(prev => {
@@ -70,30 +108,37 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
       
       return updated;
     });
-    
-    setHasChanges(true);
   };
 
   const handleResetToOriginal = (category, itemIndex) => {
     setProjectPriceData(prev => {
       const updated = JSON.parse(JSON.stringify(prev));
       const item = updated[category][itemIndex];
-      
+
       updated[category][itemIndex] = {
         ...item,
         price: item.originalPrice,
         isOverridden: false
       };
-      
+
       return updated;
     });
-    
-    setHasChanges(true);
   };
 
-  const handleSave = () => {
-    onSave(projectPriceData);
-    setHasChanges(false);
+  const handleCapacityChange = (category, itemIndex, newCapacity) => {
+    const processedCapacity = newCapacity || 0;
+
+    setProjectPriceData(prev => {
+      const updated = JSON.parse(JSON.stringify(prev));
+      const item = updated[category][itemIndex];
+
+      updated[category][itemIndex] = {
+        ...item,
+        capacity: { ...item.capacity, value: processedCapacity }
+      };
+
+      return updated;
+    });
   };
 
   const toggleSection = (section) => {
@@ -104,46 +149,36 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className="flex items-start gap-2">
+    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
+      <div className="flex justify-between items-start gap-2">
         <div className="flex-1 min-w-0">
           {category === 'installations' && item.subtitle ? (
-            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-sm lg:text-lg truncate">{t(item.subtitle)}</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.subtitle)}</h3>
           ) : (
             <>
-              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-sm lg:text-lg truncate">{t(item.name)}</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
               {item.subtitle && (
-                <p className="text-xs lg:text-base text-black dark:text-white mt-0.5 lg:mt-1 truncate">{t(item.subtitle)}</p>
+                <p className="text-sm lg:text-base text-black dark:text-white mt-1">{t(item.subtitle)}</p>
               )}
             </>
           )}
           {item.isOverridden && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate">
+            <p className="text-xs lg:text-sm text-blue-600 dark:text-blue-400 mt-1">
               {t('Original')}: {item.originalPrice} {t(item.unit)}
             </p>
           )}
-          {/* Capacity info - now below the title on left side */}
-          {item.capacity && (
-            <div className="mt-1 text-xs text-gray-600 dark:text-gray-300 truncate">
-              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
-                ? t('capacity per 25kg package')
-                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
-              }: {item.capacity.value} {item.capacity.unit}
-            </div>
-          )}
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <NumberInput
             value={item.price}
             onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
             className={item.isOverridden
               ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
-              : 'bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-white'
+              : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
             }
             min={0}
-            size="small"
           />
-          <div className="text-xs text-black dark:text-white flex-shrink-0 whitespace-nowrap">{t(item.unit)}</div>
+          <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
           {item.isOverridden && (
             <button
               onClick={() => handleResetToOriginal(category, itemIndex)}
@@ -155,6 +190,29 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
           )}
         </div>
       </div>
+
+      {item.capacity && (
+        <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">
+              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
+                ? t('capacity per 25kg package')
+                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
+              }
+            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <NumberInput
+                value={item.capacity.value}
+                onChange={(newValue) => handleCapacityChange(category, itemIndex, newValue)}
+                className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                min={0}
+                step={0.1}
+              />
+              <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -175,20 +233,28 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-2xl">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h2>
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleSave}
-              disabled={!hasChanges}
+            <div
               className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
-                hasChanges
-                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                saveStatus === 'saved'
+                  ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                  : saveStatus === 'saving'
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                  : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
               }`}
             >
-              <Save className="w-4 h-4" />
-              <span className="hidden sm:inline">{t('Save')}</span>
-            </button>
+              {saveStatus === 'saving' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : saveStatus === 'saved' ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Loader2 className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">
+                {saveStatus === 'saved' ? t('Saved') : saveStatus === 'saving' ? t('Saving...') : t('Saving...')}
+              </span>
+            </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X className="w-5 h-5 lg:w-6 lg:h-6" />
