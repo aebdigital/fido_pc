@@ -512,12 +512,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   if (e.key === 'Enter') handleSaveProjectName();
                   if (e.key === 'Escape') setIsEditingProjectName(false);
                 }}
-                className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
+                className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
                 autoFocus
               />
             ) : (
               <>
-                <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 dark:text-white">{project.name}</h1>
+                <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{project.name}</h1>
                 {!project.is_archived && (
                   <button
                     onClick={handleEditProjectName}
@@ -633,57 +633,57 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
               {isLoadingDetails ? (
-                <div className="text-center py-12">
+                <div className="text-center py-12 col-span-2 lg:col-span-1">
                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
                    <p className="text-gray-500 dark:text-gray-400 font-medium">{t('Loading project details...')}</p>
                 </div>
               ) : (
                 <>
                   {getProjectRooms(project.id).map(room => (
-                    <div 
+                    <div
                       key={room.id}
-                      className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
+                      className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 lg:p-4 flex flex-col lg:flex-row lg:items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
                       onClick={deleteMode ? undefined : () => {
                         setSelectedRoom(room);
                         setShowRoomDetailsModal(true);
                       }}
                     >
-                      <div className={`transition-all duration-300 flex-1 ${deleteMode ? 'mr-4' : ''}`}> 
-                        <div className="font-medium text-gray-900 dark:text-white text-lg">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
-                        <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems?.length || 0} {t('works')}</div>
+                      <div className={`transition-all duration-300 flex-1 ${deleteMode ? 'lg:mr-4' : ''}`}>
+                        <div className="font-medium text-gray-900 dark:text-white text-base lg:text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
+                        <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{room.workItems?.length || 0} {t('works')}</div>
                       </div>
-                      
+
                       {deleteMode ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteRoom(room.id);
                           }}
-                          className="bg-red-500 hover:bg-red-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 self-end sm:self-auto mt-3 sm:mt-0"
+                          className="bg-red-500 hover:bg-red-600 rounded-2xl p-2 lg:p-3 transition-all duration-300 animate-in slide-in-from-right-5 self-end lg:self-auto mt-2 lg:mt-0"
                         >
                           <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                         </button>
                       ) : (
-                        <div className="flex items-center justify-between sm:justify-end sm:gap-2 mt-3 sm:mt-0">
-                          <div className="text-left sm:text-right">
-                            <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
-                            <div className="font-semibold text-gray-900 dark:text-white text-lg">
+                        <div className="flex items-center justify-between lg:justify-end lg:gap-2 mt-2 lg:mt-0">
+                          <div className="text-left lg:text-right">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 hidden lg:block">{t('VAT not included')}</div>
+                            <div className="font-semibold text-gray-900 dark:text-white text-sm lg:text-lg">
                               {formatPrice((() => {
                                 const calc = calculateRoomPriceWithMaterials(room, project.priceListSnapshot);
                                 return calc.workTotal + calc.materialTotal + calc.othersTotal;
                               })())}
                             </div>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 hidden lg:block" />
                         </div>
                       )}
                     </div>
                   ))}
                   
                   {getProjectRooms(project.id).length === 0 && (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400 col-span-2 lg:col-span-1">
                       <p>{t('No rooms added yet. Click the + button to add a room.')}</p>
                     </div>
                   )}
@@ -1144,8 +1144,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       )}
 
       {showClientSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full ${showCreateClientInModal ? 'max-w-7xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto transition-all`}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
+          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl' : 'max-w-md'} max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
               {showCreateClientInModal && (

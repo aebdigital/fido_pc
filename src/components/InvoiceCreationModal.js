@@ -182,8 +182,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[85vh] lg:max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -242,31 +242,31 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                             />
                           </div>
               
-                          {/* Issue Date */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              {t('Issue Date')}
-                            </label>
-                            <input
-                              type="date"
-                              value={issueDate}
-                              onChange={(e) => setIssueDate(e.target.value)}
-                              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
-                            />
+                          {/* Dates - side by side on mobile */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {t('Issue Date')}
+                              </label>
+                              <input
+                                type="date"
+                                value={issueDate}
+                                onChange={(e) => setIssueDate(e.target.value)}
+                                className="w-full px-3 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {t('Date of Dispatch')}
+                              </label>
+                              <input
+                                type="date"
+                                value={dispatchDate}
+                                onChange={(e) => setDispatchDate(e.target.value)}
+                                className="w-full px-3 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white text-sm"
+                              />
+                            </div>
                           </div>
-              
-                                      {/* Date of Dispatch */}
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                          {t('Date of Dispatch')}
-                                        </label>
-                                        <input
-                                          type="date"
-                                          value={dispatchDate}
-                                          onChange={(e) => setDispatchDate(e.target.value)}
-                                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
-                                        />
-                                      </div>
                           
                                       {/* Payment Method */}
                                       <div>

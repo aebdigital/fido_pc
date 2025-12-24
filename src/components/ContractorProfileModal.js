@@ -117,7 +117,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
   return (
     <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}>
-      <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl h-[95vh] lg:h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}>
+      <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl h-[85vh] lg:h-[90vh] max-h-[calc(100vh-2rem)] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}>
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">

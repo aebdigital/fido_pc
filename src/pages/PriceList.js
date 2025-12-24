@@ -196,36 +196,37 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
   const PriceCard = ({ item, category, itemIndex }) => (
     <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+      <div className="flex justify-between items-start gap-2">
         <div className="flex-1 min-w-0">
           {/* For installations category, show only subtitle as the main heading */}
           {category === 'installations' && item.subtitle ? (
-            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.subtitle)}</h3>
+            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.subtitle)}</h3>
           ) : (
             <>
-              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-lg">{t(item.name)}</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
               {item.subtitle && (
-                <p className="text-sm lg:text-base text-black dark:text-white mt-1">{t(item.subtitle)}</p>
+                <p className="text-xs lg:text-base text-black dark:text-white mt-0.5 lg:mt-1">{t(item.subtitle)}</p>
               )}
             </>
           )}
           {isItemModified(category, itemIndex) && (
-            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+            <p className="text-xs lg:text-sm text-blue-600 dark:text-blue-400 mt-1">
               {t('Original')}: {originalPrices[category][itemIndex].price} {t(item.unit)}
             </p>
           )}
         </div>
-        <div className="flex items-center justify-between sm:justify-end gap-2 sm:ml-4">
+        <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0">
           <NumberInput
             value={item.price}
             onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
             className={isItemModified(category, itemIndex)
-              ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100' 
+              ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
               : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
             }
             min={0}
+            size="small"
           />
-          <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
+          <div className="text-xs lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
         </div>
       </div>
       

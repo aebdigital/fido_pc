@@ -13,6 +13,26 @@ export const formatPrice = (price) => {
   return `€${price.toFixed(2).replace('.', ',')}`;
 };
 
+// Helper to check if a work item has meaningful input (non-zero values)
+export const hasWorkItemInput = (workItem) => {
+  if (!workItem || !workItem.fields) return false;
+
+  const values = workItem.fields;
+  const fieldKeys = Object.keys(values);
+
+  if (fieldKeys.length === 0) return false;
+
+  // Check if any field has a meaningful value
+  return fieldKeys.some(key => {
+    const value = values[key];
+    if (value === undefined || value === null) return false;
+    if (typeof value === 'number') return value > 0;
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (typeof value === 'boolean') return value === true;
+    return false;
+  });
+};
+
 // Find matching price list item for a work item
 export const findPriceListItem = (workItem, priceList) => {
   if (!workItem || !workItem.propertyId || !priceList) return null;
@@ -685,6 +705,9 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   let totalFloatingFloorPerimeter = 0;
 
   room.workItems.forEach(workItem => {
+    // Skip items with no meaningful input (all fields are 0 or empty)
+    if (!hasWorkItemInput(workItem)) return;
+
     const priceItem = findPriceListItem(workItem, activePriceList);
     if (priceItem && workItem.fields) {
       const isTilingOrPaving = (priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.TILING.toLowerCase()) ||
@@ -751,6 +774,9 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   });
 
   room.workItems.forEach(workItem => {
+    // Skip items with no meaningful input (all fields are 0 or empty)
+    if (!hasWorkItemInput(workItem)) return;
+
     const priceItem = findPriceListItem(workItem, activePriceList);
 
     if (priceItem && workItem.fields) {

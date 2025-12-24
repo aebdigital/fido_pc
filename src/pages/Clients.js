@@ -15,14 +15,14 @@ const EditableField = React.memo(({ label, field, value, type = "text", isEditin
           type={type}
           value={editForm[field] || ''}
           onChange={(e) => onInputChange(field, e.target.value)}
-          className="w-full mt-1 px-3 py-2 lg:py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent text-lg"
+          className="w-full bg-transparent border-b border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:border-gray-500 focus:outline-none text-lg font-medium py-0"
           placeholder={t(`Enter ${label.toLowerCase()}`)}
           autoComplete="off"
         />
       </div>
     );
   }
-  
+
   return (
     <div>
       <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400 block">{label}</span>

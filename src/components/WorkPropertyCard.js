@@ -375,9 +375,11 @@ const WorkPropertyCard = ({
 
     const hasInput = (item) => {
       if (!item) return false;
-      // Check fields
-      if (item.fields) {
+      // Check fields - must have at least one field with a meaningful value
+      if (item.fields && Object.keys(item.fields).length > 0) {
         const hasFieldInput = Object.entries(item.fields).some(([key, value]) => {
+          // Skip undefined/null values
+          if (value === undefined || value === null) return false;
           if (typeof value === 'number') return value > 0;
           if (typeof value === 'string') return value.trim().length > 0;
           if (typeof value === 'boolean') return value === true;
