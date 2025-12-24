@@ -282,13 +282,13 @@ const Invoices = () => {
         </button>
       </div>
 
-      <div className="mb-6 lg:mb-8 min-w-0 w-full">
-        <div className="flex gap-4 pb-2 min-w-0">
+      <div className="mb-6 lg:mb-8 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-4 pb-2 min-w-max">
           {/* Year dropdown */}
           <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button
               onClick={() => setShowYearDropdown(!showYearDropdown)}
-              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white"
+              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap"
             >
               {selectedYear}
               <ChevronDown className={`w-4 h-4 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
@@ -316,22 +316,20 @@ const Invoices = () => {
           </div>
           {/* Separator */}
           <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 self-center flex-shrink-0" />
-          {/* Status filters - scrollable */}
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide min-w-0">
-            {statusFilters.map(filter => (
-              <button
-                key={filter}
-                className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 ${
-                  selectedStatus === filter
-                    ? 'text-gray-900 dark:text-white'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-                onClick={() => setSelectedStatus(filter)}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
+          {/* Status filters */}
+          {statusFilters.map(filter => (
+            <button
+              key={filter}
+              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap ${
+                selectedStatus === filter
+                  ? 'text-gray-900 dark:text-white'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+              onClick={() => setSelectedStatus(filter)}
+            >
+              {filter}
+            </button>
+          ))}
         </div>
       </div>
 
