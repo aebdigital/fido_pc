@@ -741,9 +741,6 @@ export const translations = {
     "total, including VAT": "celkovo, vrátane DPH",
     "invoices total": "faktúry celkovo",
     "invoices": "faktúry",
-    "Overdue": "Po splatnosti",
-    "Paid": "Uhradené",
-    "Unpaid": "Neuhradené",
 
     // ========== PROJECT STATUS ==========
     "Not sent": "Neodoslaný",

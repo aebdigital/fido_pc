@@ -104,8 +104,7 @@ const Invoices = () => {
     }
   };
 
-  // Calculate statistics for all invoices
-  const calculateStats = () => {
+  const stats = useMemo(() => {
     const allInvoices = activeContractorId ? getInvoicesForContractor(activeContractorId) : [];
     const currentYear = new Date().getFullYear();
     const today = new Date();
@@ -159,9 +158,7 @@ const Invoices = () => {
       unpaid: { amount: unpaidAmount, count: unpaidCount },
       overdue: { amount: overdueAmount, count: overdueCount }
     };
-  };
-
-  const stats = useMemo(() => calculateStats(), [activeContractorId, generalPriceList]);
+  }, [activeContractorId, generalPriceList, getInvoicesForContractor, findProjectById, calculateProjectTotalPriceWithBreakdown]);
 
   return (
     <div className="pb-20 lg:pb-0">
