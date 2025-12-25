@@ -418,7 +418,19 @@ export const generateInvoicePDF = ({
         if (unit.startsWith('€/')) unit = unit.substring(2);
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = materialCost * itemVatRate;
-        const displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
+        // Handle ceramic subtitle translation with correct gender based on propertyId
+        let translatedSubtitle = '';
+        if (item.subtitle) {
+          if (item.subtitle.toLowerCase().includes('ceramic')) {
+            // Use masculine for tiling (Obklad), feminine for paving (Dlažba)
+            const isTiling = item.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60;
+            const genderKey = isTiling ? 'ceramic masculine' : 'ceramic feminine';
+            translatedSubtitle = t(genderKey);
+          } else {
+            translatedSubtitle = t(item.subtitle);
+          }
+        }
+        const displayName = translatedSubtitle ? `${t(item.name)} - ${translatedSubtitle}` : t(item.name);
 
         tableData.push([
           sanitizeText(displayName || ''),

@@ -213,7 +213,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
               {calculation.materialItems && calculation.materialItems.length > 0 ? (
                 (() => {
                   const materialGroups = {};
-                  
+
                   // Group materials by name and subtitle
                   calculation.materialItems.forEach(item => {
                     const materialKey = `${item.name}-${item.subtitle || 'no-subtitle'}`;
@@ -222,6 +222,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                       materialGroups[materialKey] = {
                         name: item.name,
                         subtitle: item.subtitle,
+                        propertyId: item.propertyId,
                         unit: item.calculation.unit,
                         totalQuantity: 0,
                         totalCost: 0
@@ -231,12 +232,25 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     materialGroups[materialKey].totalQuantity += item.calculation.quantity;
                     materialGroups[materialKey].totalCost += item.calculation.materialCost;
                   });
-                  
+
                   // Render grouped materials
                   return Object.values(materialGroups).map((group, index) => {
-                    const materialDescription = `${t(group.name)}${group.subtitle ? `, ${t(group.subtitle)}` : ''}`;
+                    // Handle ceramic subtitle translation with correct gender based on propertyId
+                    let translatedSubtitle = '';
+                    if (group.subtitle) {
+                      // Check if subtitle contains 'ceramic' and apply correct gender
+                      if (group.subtitle.toLowerCase().includes('ceramic')) {
+                        // Use masculine for tiling (Obklad), feminine for paving (Dlažba)
+                        const isTiling = group.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60;
+                        const genderKey = isTiling ? 'ceramic masculine' : 'ceramic feminine';
+                        translatedSubtitle = t(genderKey);
+                      } else {
+                        translatedSubtitle = t(group.subtitle);
+                      }
+                    }
+                    const materialDescription = `${t(group.name)}${translatedSubtitle ? `, ${translatedSubtitle}` : ''}`;
                     const unit = group.unit && group.unit.includes(UNIT_TYPES.PIECE) ? UNIT_TYPES.PIECE : (group.unit ? group.unit.replace('€/', '') : UNIT_TYPES.METER_SQUARE);
-                    
+
                     return (
                       <div key={`material-group-${index}`} className="flex justify-between items-center text-sm">
                         <span className="text-gray-600 dark:text-gray-400">{materialDescription} - {group.totalQuantity.toFixed(0)}{t(unit)}</span>

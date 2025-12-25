@@ -717,6 +717,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
               id: `${workItem.id}_material`,
               name: calculation.material.name,
               subtitle: calculation.material.subtitle || '',
+              propertyId: workItem.propertyId,
               calculation: {
                 quantity: materialQuantity,
                 materialCost: materialCostForItem,
