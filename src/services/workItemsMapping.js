@@ -171,11 +171,21 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       };
 
     case 'custom_works':
+      // Handle both custom work items and commute items
+      // Commute items have Distance field, custom work items have Quantity field
+      const isCommute = workItem.propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE ||
+                        workItem.name === 'Cesta' || workItem.name === 'Commute';
+      const quantity = isCommute
+        ? (workItem.fields?.[WORK_ITEM_NAMES.DISTANCE_EN] || workItem.fields?.[WORK_ITEM_NAMES.DISTANCE_SK] || 0)
+        : (workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || workItem.fields?.['Quantity'] || 0);
+      const unit = isCommute ? 'km' : (workItem.selectedUnit || '');
+      const title = isCommute ? 'Cesta' : (workItem.fields?.[WORK_ITEM_NAMES.NAME] || workItem.name || '');
+
       return {
         ...baseRecord,
-        title: workItem.fields?.[WORK_ITEM_NAMES.NAME] || workItem.name || '',
-        unit: workItem.selectedUnit || '',
-        number_of_units: workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || 0, // Quantity is not in constants yet, used literal in workProperties
+        title: title,
+        unit: unit,
+        number_of_units: quantity,
         price_per_unit: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
       };
 
@@ -322,6 +332,36 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'custom_works':
+      // Detect if this is a commute item (saved with unit 'km' or title 'Cesta'/'Commute')
+      const isCommuteItem = dbRecord.unit === 'km' ||
+                            dbRecord.title === 'Cesta' ||
+                            dbRecord.title === 'Commute';
+
+      if (isCommuteItem) {
+        return {
+          ...baseItem,
+          propertyId: WORK_ITEM_PROPERTY_IDS.COMMUTE,
+          name: 'Cesta',
+          fields: {
+            [WORK_ITEM_NAMES.DISTANCE_EN]: dbRecord.number_of_units || 0,
+            [WORK_ITEM_NAMES.DISTANCE_SK]: dbRecord.number_of_units || 0,
+            [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_unit || 0
+          }
+        };
+      }
+
+      // Regular custom work item
+      return {
+        ...baseItem,
+        name: dbRecord.title,
+        selectedUnit: dbRecord.unit,
+        fields: {
+          [WORK_ITEM_NAMES.NAME]: dbRecord.title,
+          [WORK_ITEM_NAMES.QUANTITY]: dbRecord.number_of_units || 0,
+          [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_unit || 0
+        }
+      };
+
     case 'custom_materials':
       return {
         ...baseItem,
@@ -329,7 +369,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
         selectedUnit: dbRecord.unit,
         fields: {
           [WORK_ITEM_NAMES.NAME]: dbRecord.title,
-          'Quantity': dbRecord.number_of_units || 0,
+          [WORK_ITEM_NAMES.QUANTITY]: dbRecord.number_of_units || 0,
           [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_unit || 0
         }
       };
