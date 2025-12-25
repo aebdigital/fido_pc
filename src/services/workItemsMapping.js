@@ -58,6 +58,7 @@ export const PROPERTY_TO_TABLE = {
   [WORK_ITEM_PROPERTY_IDS.SILICONING]: 'siliconings',
   'tool_rental': 'tool_rentals', // rentals item
   'scaffolding': 'scaffoldings', // rentals item
+  [WORK_ITEM_PROPERTY_IDS.RENTALS]: 'scaffoldings', // Main rentals property maps to scaffoldings
 
   // Custom
   [WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK]: 'custom_works',
@@ -72,13 +73,14 @@ export const PROPERTY_TO_TABLE = {
  * @returns {Object} Database record
  */
 export function workItemToDatabase(workItem, roomId, contractorId) {
-  const tableName = PROPERTY_TO_TABLE[workItem.propertyId];
+  let tableName = PROPERTY_TO_TABLE[workItem.propertyId];
 
   // Fallback for rentals items that might not have propertyId set correctly in older data
   // or if they are sub-items of 'rentals' property
   if (!tableName && workItem.name) {
-     if (workItem.name === 'Scaffolding' || workItem.name === 'Lešenie') return null; // Scaffolding handled specially?
-     // Actually rentals items in workProperties have propertyId 'rentals' but individual items might be saved differently
+     if (workItem.name === 'Scaffolding' || workItem.name === 'Lešenie') {
+       tableName = 'scaffoldings';
+     }
   }
 
   if (!tableName) {
@@ -184,6 +186,14 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         unit: workItem.selectedUnit || '',
         number_of_units: workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || 0,
         price_per_unit: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
+      };
+
+    case 'scaffoldings':
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
+        number_of_days: workItem.fields?.[WORK_ITEM_NAMES.RENTAL_DURATION] || 0
       };
 
     default:
@@ -321,6 +331,18 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.NAME]: dbRecord.title,
           'Quantity': dbRecord.number_of_units || 0,
           [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_unit || 0
+        }
+      };
+
+    case 'scaffoldings':
+      return {
+        ...baseItem,
+        name: 'Lešenie',
+        subtitle: 'Lešenie',
+        fields: {
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0,
+          [WORK_ITEM_NAMES.RENTAL_DURATION]: dbRecord.number_of_days || 0
         }
       };
 
