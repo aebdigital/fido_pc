@@ -309,17 +309,30 @@ export const calculateWorkItemPrice = (workItem, priceItem) => {
 // Find matching material from price list
 export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) => {
   if (!priceList || !priceList.material) return null;
-  
+
   // Extract base work name by removing type suffixes
   const typeSuffixes = WORK_TYPE_SUFFIXES;
   let baseWorkName = workItemName;
   let extractedType = null;
-  
+
   for (const suffix of typeSuffixes) {
     if (workItemName.endsWith(suffix)) {
       baseWorkName = workItemName.substring(0, workItemName.length - suffix.length);
       extractedType = suffix.trim().toLowerCase();
       break;
+    }
+  }
+
+  // Also try to extract type from subtype if not found in name (for DB-loaded items)
+  // workItemSubtype might be "partition, Simple" or "priečka, Jednoduchá"
+  if (!extractedType && workItemSubtype) {
+    const subtypeLower = workItemSubtype.toLowerCase();
+    if (subtypeLower.includes('simple') || subtypeLower.includes('jednoduch')) {
+      extractedType = 'simple';
+    } else if (subtypeLower.includes('double') || subtypeLower.includes('dvojit') || subtypeLower.includes('zdvojen')) {
+      extractedType = 'double';
+    } else if (subtypeLower.includes('triple') || subtypeLower.includes('trojit')) {
+      extractedType = 'triple';
     }
   }
   
