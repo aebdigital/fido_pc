@@ -820,12 +820,15 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           quantity: area
         };
         
+        // Use the scaffolding name constant for the subtitle
+        const scaffoldingName = WORK_ITEM_NAMES.SCAFFOLDING_SK;
+
         othersItems.push({
           ...workItem,
-          subtitle: workItem.subtitle + ' - montáž a demontáž',
+          subtitle: scaffoldingName + ' - montáž a demontáž',
           calculation: assemblyCalculation
         });
-        
+
         // Daily rental cost (€10/day per m²)
         const rentalCost = area * 10 * duration;
         const rentalCalculation = {
@@ -833,11 +836,11 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           materialCost: 0,
           quantity: area * duration
         };
-        
+
         othersItems.push({
           ...workItem,
           id: workItem.id + '_rental',
-          subtitle: workItem.subtitle + ' - prenájom',
+          subtitle: scaffoldingName + ' - prenájom',
           fields: {
             ...workItem.fields,
             [WORK_ITEM_NAMES.RENTAL_DURATION]: duration

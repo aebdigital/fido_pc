@@ -417,12 +417,42 @@ export const generateInvoicePDF = ({
       ]);
 
       projectBreakdown.othersItems.forEach(item => {
-        const quantity = item.calculation?.quantity || 0;
+        let quantity = item.calculation?.quantity || 0;
         const othersCost = item.calculation?.workCost || 0;
-        const pricePerUnit = quantity > 0 ? othersCost / quantity : 0;
         let unit = item.calculation?.unit || item.unit || '';
         // Strip €/ prefix from unit if present (e.g. "€/h" -> "h")
         if (unit.startsWith('€/')) unit = unit.substring(2);
+
+        const values = item.fields || {};
+
+        // Determine unit and quantity based on item type (same logic as RoomPriceSummary)
+        if (!item.calculation?.unit) {
+          // Check for scaffolding rental
+          if (item.subtitle && item.subtitle.includes('- prenájom') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
+            quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
+            unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
+          } else if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('assembly and disassembly'))) {
+            // Scaffolding assembly - use m²
+            unit = UNIT_TYPES.METER_SQUARE;
+          } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) &&
+                     (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
+            unit = UNIT_TYPES.KM;
+            const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
+            const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
+            quantity = distance * (days > 0 ? days : 1);
+          } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK]) {
+            unit = UNIT_TYPES.HOUR;
+            quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
+          } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit) {
+            unit = item.selectedUnit;
+            quantity = parseFloat(values[WORK_ITEM_NAMES.QUANTITY] || values.Quantity || 0);
+          } else if (!unit) {
+            // Default to m² for area-based items
+            unit = UNIT_TYPES.METER_SQUARE;
+          }
+        }
+
+        const pricePerUnit = quantity > 0 ? othersCost / quantity : 0;
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = othersCost * itemVatRate;
 
@@ -432,13 +462,22 @@ export const generateInvoicePDF = ({
         if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('prenájom') ||
             item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
           displayName = t(item.subtitle);
+        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.fields?.[WORK_ITEM_NAMES.NAME]) {
+          // For custom work, use the user-entered name
+          displayName = item.fields[WORK_ITEM_NAMES.NAME];
         } else {
           displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
         }
 
+        // Format quantity with unit
+        const translatedUnit = t(unit);
+        const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
+          ? `${Math.round(quantity)} ${translatedUnit}`
+          : `${quantity.toFixed(2)}${translatedUnit}`;
+
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(2)}${t(unit)}`),
+          sanitizeText(formattedQuantity),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
