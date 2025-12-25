@@ -58,6 +58,20 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     }
   }, [newlyAddedItems]);
 
+  // Sync workData when room.workItems changes (e.g., after loading from database)
+  useEffect(() => {
+    // Only sync if room.workItems has items and our local state doesn't match
+    // Check by comparing the IDs in both arrays
+    const roomItemIds = (room.workItems || []).map(i => i.id).sort().join(',');
+    const workDataIds = workData.map(i => i.id).sort().join(',');
+
+    if (roomItemIds !== workDataIds && room.workItems && room.workItems.length > 0) {
+      // Room data was updated externally (e.g., loaded from database)
+      setWorkData(room.workItems);
+      lastSavedData.current = JSON.stringify(room.workItems);
+    }
+  }, [room.workItems]);
+
   // Autosave Logic
   useEffect(() => {
     if (isUnmounting.current) return;

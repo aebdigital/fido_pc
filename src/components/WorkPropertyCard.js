@@ -514,7 +514,7 @@ const WorkPropertyCard = ({
                     </div>
                     {property.complementaryWorks.map((work, index) => {
                       const uniqueKey = `${work}_${index}`;
-                      // Count how many instances exist
+                      // Count how many instances of this complementary work exist for this parent
                       const instanceCount = workData.filter(item =>
                         item.linkedToParent === existingItem.id &&
                         item.linkedWorkKey === uniqueKey
@@ -523,22 +523,16 @@ const WorkPropertyCard = ({
                       return (
                         <div key={uniqueKey} className="flex items-center justify-between gap-3">
                           <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                          {instanceCount > 0 ? (
-                            <button
-                              onClick={(e) => onToggleComplementaryWork(existingItem.id, uniqueKey, e)}
-                              className="w-7 h-7 lg:w-6 lg:h-6 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors flex-shrink-0"
-                              title={t('Delete')}
-                            >
-                              <Trash2 className="w-3 h-3 text-white" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={(e) => onToggleComplementaryWork(existingItem.id, uniqueKey, e)}
-                              className="w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors flex-shrink-0 hover:border-gray-400 dark:hover:border-gray-500"
-                            >
-                              <Plus className="w-3 h-3 text-gray-400" />
-                            </button>
-                          )}
+                          <button
+                            onClick={(e) => onToggleComplementaryWork(existingItem.id, uniqueKey, e)}
+                            className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                              instanceCount > 0
+                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-medium hover:bg-gray-700 dark:hover:bg-gray-200'
+                                : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                            }`}
+                          >
+                            {instanceCount > 0 ? instanceCount : <Plus className="w-3 h-3 text-gray-400" />}
+                          </button>
                         </div>
                       );
                     })}
@@ -713,22 +707,16 @@ const WorkPropertyCard = ({
                       return (
                         <div key={uniqueKey} className="flex items-center justify-between gap-3">
                           <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                          {instanceCount > 0 ? (
-                            <button
-                              onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                              className="w-7 h-7 lg:w-6 lg:h-6 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors flex-shrink-0"
-                              title={t('Delete')}
-                            >
-                              <Trash2 className="w-3 h-3 text-white" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                              className="w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors flex-shrink-0 hover:border-gray-400 dark:hover:border-gray-500"
-                            >
-                              <Plus className="w-3 h-3 text-gray-400" />
-                            </button>
-                          )}
+                          <button
+                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                            className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                              instanceCount > 0
+                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-medium hover:bg-gray-700 dark:hover:bg-gray-200'
+                                : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                            }`}
+                          >
+                            {instanceCount > 0 ? instanceCount : <Plus className="w-3 h-3 text-gray-400" />}
+                          </button>
                         </div>
                       );
                     })}
@@ -1027,22 +1015,16 @@ const WorkPropertyCard = ({
                     return (
                       <div key={uniqueKey} className="flex items-center justify-between gap-3">
                         <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                        {instanceCount > 0 ? (
-                          <button
-                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                            className="w-7 h-7 lg:w-6 lg:h-6 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors flex-shrink-0"
-                            title={t('Delete')}
-                          >
-                            <Trash2 className="w-3 h-3 text-white" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                            className="w-7 h-7 lg:w-6 lg:h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors flex-shrink-0 hover:border-gray-400 dark:hover:border-gray-500"
-                          >
-                            <Plus className="w-3 h-3 text-gray-400" />
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                          className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+                            instanceCount > 0
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-medium hover:bg-gray-700 dark:hover:bg-gray-200'
+                              : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                          }`}
+                        >
+                          {instanceCount > 0 ? instanceCount : <Plus className="w-3 h-3 text-gray-400" />}
+                        </button>
                       </div>
                     );
                   })}

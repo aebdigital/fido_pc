@@ -46,10 +46,14 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                   const workGroups = {};
                   const nonGroupedItems = [];
 
-                  // Items that should be grouped by name + subtitle
+                  // Items that should be grouped by propertyId (same work types combined)
                   const groupablePropertyIds = [
                     'painting_wall', 'painting_ceiling',
-                    'penetration_coating'
+                    'penetration_coating',
+                    'netting_wall', 'netting_ceiling',
+                    'plastering_wall', 'plastering_ceiling',
+                    'tiling_under_60', 'paving_under_60',
+                    'grouting'
                   ];
 
                   calculation.items.forEach(item => {

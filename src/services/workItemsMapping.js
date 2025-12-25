@@ -33,12 +33,9 @@ export const PROPERTY_TO_TABLE = {
 
   // Floor works
   [WORK_ITEM_PROPERTY_IDS.LEVELLING]: 'levellings',
-  'tile_ceramic': 'tile_ceramics', // Legacy or unused?
   [WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60]: 'tile_ceramics',
-  'paving_ceramic': 'paving_ceramics', // Legacy or unused?
   [WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60]: 'paving_ceramics',
   [WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR]: 'laying_floating_floors',
-  'skirting_floor': 'skirting_of_floating_floors', // Legacy or unused?
 
   // Installations
   [WORK_ITEM_PROPERTY_IDS.WIRING]: 'wirings',
@@ -91,7 +88,10 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
 
   const baseRecord = {
     room_id: roomId,
-    c_id: contractorId
+    c_id: contractorId,
+    // Include linked fields for complementary works (will be null for non-linked items)
+    linked_to_parent: workItem.linkedToParent || null,
+    linked_work_key: workItem.linkedWorkKey || null
   };
 
   // Map based on table type
@@ -282,7 +282,10 @@ export function databaseToWorkItem(dbRecord, tableName) {
     subtitle,
     fields: {},
     complementaryWorks: {},
-    doorWindowItems: { doors: [], windows: [] }
+    doorWindowItems: { doors: [], windows: [] },
+    // Include linked fields for complementary works
+    linkedToParent: dbRecord.linked_to_parent || null,
+    linkedWorkKey: dbRecord.linked_work_key || null
   };
 
   // Map based on table type

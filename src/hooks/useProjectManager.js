@@ -546,6 +546,7 @@ export const useProjectManager = (appData, setAppData) => {
           allWorkItems.push(workItem);
         }
       });
+
       return allWorkItems;
     } catch (error) {
       console.error('[SUPABASE] Error loading work items via RPC:', error);
@@ -679,7 +680,14 @@ export const useProjectManager = (appData, setAppData) => {
 
     await Promise.all(deletePromises);
 
-    const insertPromises = workItems.map(async (workItem) => {
+    // Separate parent items (no linkedToParent) from linked/complementary items
+    const parentItems = workItems.filter(item => !item.linkedToParent);
+    const linkedItems = workItems.filter(item => item.linkedToParent);
+
+    // First pass: Save parent items and build ID mapping
+    const idMapping = {}; // old app ID -> new database UUID
+
+    await Promise.all(parentItems.map(async (workItem) => {
       const tableName = getTableName(workItem.propertyId);
       if (!tableName) {
         console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
@@ -688,15 +696,42 @@ export const useProjectManager = (appData, setAppData) => {
       const dbRecord = workItemToDatabase(workItem, roomId, appData.activeContractorId);
       if (dbRecord) {
         try {
-          await api.workItems.create(tableName, dbRecord);
+          const result = await api.workItems.create(tableName, dbRecord);
+          // Store mapping from old ID to new database UUID
+          if (result && result.id) {
+            idMapping[workItem.id] = result.id;
+          }
         } catch (error) {
           console.error(`Error saving work item to ${tableName}:`, error);
           throw error;
         }
       }
-    });
+    }));
 
-    await Promise.all(insertPromises);
+    // Second pass: Save linked items with updated linkedToParent
+    await Promise.all(linkedItems.map(async (workItem) => {
+      const tableName = getTableName(workItem.propertyId);
+      if (!tableName) {
+        console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
+        return;
+      }
+
+      // Update linkedToParent to use the new database UUID
+      const updatedWorkItem = {
+        ...workItem,
+        linkedToParent: idMapping[workItem.linkedToParent] || workItem.linkedToParent
+      };
+
+      const dbRecord = workItemToDatabase(updatedWorkItem, roomId, appData.activeContractorId);
+      if (dbRecord) {
+        try {
+          await api.workItems.create(tableName, dbRecord);
+        } catch (error) {
+          console.error(`Error saving linked work item to ${tableName}:`, error);
+          throw error;
+        }
+      }
+    }));
   }, [appData.activeContractorId]);
 
   const updateProjectRoom = useCallback(async (projectId, roomId, roomData) => {
