@@ -373,6 +373,9 @@ export const generateInvoicePDF = ({
         // For plasterboarding items, build full translated name with subtitle and type
         if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && item.selectedType) {
           displayName = `${t(itemName)} ${t(item.subtitle)}, ${t(item.selectedType)}`;
+        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && item.selectedType) {
+          // For sanitary installation, show the type name (e.g., "Rohový ventil") instead of generic name
+          displayName = t(item.selectedType);
         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
           // For electrical and plumbing work, show just the name without subtitle
           displayName = t(itemName);

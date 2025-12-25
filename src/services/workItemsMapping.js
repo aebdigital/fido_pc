@@ -146,14 +146,26 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       };
 
     case 'tile_ceramics':
-      // Tiling uses WIDTH x HEIGHT (wall tiling)
+      // Tiling uses WIDTH x HEIGHT (wall tiling) + additional fields
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
-        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
+        large_format: workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT] || false,
+        jolly_edging: workItem.fields?.[WORK_ITEM_NAMES.JOLLY_EDGING] || workItem.fields?.[WORK_ITEM_NAMES.JOLLY_EDGING_FIELD] || 0
       };
 
     case 'paving_ceramics':
+      // Paving uses WIDTH x LENGTH + additional fields
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        large_format: workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT] || false,
+        plinth_cutting: workItem.fields?.[WORK_ITEM_NAMES.PLINTH_CUTTING_AND_GRINDING_FIELD] || workItem.fields?.['Plinth_cutting and grinding'] || 0,
+        plinth_bonding: workItem.fields?.[WORK_ITEM_NAMES.PLINTH_BONDING_FIELD] || workItem.fields?.['Plinth_bonding'] || 0
+      };
+
     case 'laying_floating_floors':
     case 'levellings':
     case 'groutings':
@@ -204,8 +216,8 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     case 'installation_of_door_jambs':
       return {
         ...baseRecord,
-        count: workItem.fields?.[WORK_ITEM_NAMES.COUNT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        price_per_door_jamb: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
+        count: workItem.fields?.[WORK_ITEM_NAMES.COUNT] || workItem.fields?.['Počet'] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        price_per_door_jamb: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || workItem.fields?.['Cena'] || 0
       };
 
     case 'custom_works':
@@ -363,16 +375,30 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'tile_ceramics':
-      // Tiling uses WIDTH x HEIGHT (wall tiling)
+      // Tiling uses WIDTH x HEIGHT (wall tiling) + additional fields
       return {
         ...baseItem,
         fields: {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
-          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
+          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0,
+          [WORK_ITEM_NAMES.LARGE_FORMAT]: dbRecord.large_format || false,
+          [WORK_ITEM_NAMES.JOLLY_EDGING]: dbRecord.jolly_edging || 0
         }
       };
 
     case 'paving_ceramics':
+      // Paving uses WIDTH x LENGTH + additional fields
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0,
+          [WORK_ITEM_NAMES.LARGE_FORMAT]: dbRecord.large_format || false,
+          [WORK_ITEM_NAMES.PLINTH_CUTTING_AND_GRINDING_FIELD]: dbRecord.plinth_cutting || 0,
+          [WORK_ITEM_NAMES.PLINTH_BONDING_FIELD]: dbRecord.plinth_bonding || 0
+        }
+      };
+
     case 'laying_floating_floors':
     case 'levellings':
     case 'groutings':
