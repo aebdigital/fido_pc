@@ -661,7 +661,10 @@ export const useProjectManager = (appData, setAppData) => {
       'penetration_coatings',
       'siliconings',
       'custom_works',
-      'scaffoldings'
+      'custom_materials',
+      'scaffoldings',
+      'core_drills',
+      'tool_rentals'
     ];
 
     // Delete existing items from ALL work item tables for this room

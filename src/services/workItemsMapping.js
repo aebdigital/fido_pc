@@ -49,14 +49,16 @@ export const PROPERTY_TO_TABLE = {
   // Others
   [WORK_ITEM_PROPERTY_IDS.PREPARATORY]: 'demolitions',
   'demolition': 'demolitions', // Legacy?
-  [WORK_ITEM_PROPERTY_IDS.COMMUTE]: 'custom_works', // Map commute to custom_works for now as there is no specific table
-  'core_drill': 'core_drills', // rentals item
+  [WORK_ITEM_PROPERTY_IDS.COMMUTE]: 'custom_works', // Map commute to custom_works
   [WORK_ITEM_PROPERTY_IDS.GROUTING]: 'groutings',
   [WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING]: 'penetration_coatings',
   [WORK_ITEM_PROPERTY_IDS.SILICONING]: 'siliconings',
-  'tool_rental': 'tool_rentals', // rentals item
-  'scaffolding': 'scaffoldings', // rentals item
-  [WORK_ITEM_PROPERTY_IDS.RENTALS]: 'scaffoldings', // Main rentals property maps to scaffoldings
+
+  // Rentals - each item type maps to its own table
+  'core_drill': 'core_drills',
+  'tool_rental': 'tool_rentals',
+  'scaffolding': 'scaffoldings',
+  [WORK_ITEM_PROPERTY_IDS.RENTALS]: 'scaffoldings', // Default for rentals property
 
   // Custom
   [WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK]: 'custom_works',
@@ -222,7 +224,7 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
 
     case 'custom_works':
       // Handle both custom work items and commute items
-      // Commute items have Distance field, custom work items have Quantity field
+      // Commute items have Distance and Duration fields, custom work items have Quantity field
       const isCommute = workItem.propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE ||
                         workItem.name === 'Cesta' || workItem.name === 'Commute';
       const quantity = isCommute
@@ -230,13 +232,17 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         : (workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || workItem.fields?.['Quantity'] || 0);
       const unit = isCommute ? 'km' : (workItem.selectedUnit || '');
       const title = isCommute ? 'Cesta' : (workItem.fields?.[WORK_ITEM_NAMES.NAME] || workItem.name || '');
+      const numberOfDays = isCommute
+        ? (workItem.fields?.[WORK_ITEM_NAMES.DURATION_EN] || workItem.fields?.[WORK_ITEM_NAMES.DURATION_SK] || 0)
+        : 0;
 
       return {
         ...baseRecord,
         title: title,
         unit: unit,
         number_of_units: quantity,
-        price_per_unit: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
+        price_per_unit: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0,
+        number_of_days: numberOfDays
       };
 
     case 'custom_materials':
@@ -254,6 +260,13 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         size1: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
         number_of_days: workItem.fields?.[WORK_ITEM_NAMES.RENTAL_DURATION] || 0
+      };
+
+    case 'core_drills':
+    case 'tool_rentals':
+      return {
+        ...baseRecord,
+        count: workItem.fields?.[WORK_ITEM_NAMES.COUNT] || 0
       };
 
     default:
@@ -473,6 +486,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
           fields: {
             [WORK_ITEM_NAMES.DISTANCE_EN]: dbRecord.number_of_units || 0,
             [WORK_ITEM_NAMES.DISTANCE_SK]: dbRecord.number_of_units || 0,
+            [WORK_ITEM_NAMES.DURATION_EN]: dbRecord.number_of_days || 0,
+            [WORK_ITEM_NAMES.DURATION_SK]: dbRecord.number_of_days || 0,
             [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_unit || 0
           }
         };
@@ -511,6 +526,26 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0,
           [WORK_ITEM_NAMES.RENTAL_DURATION]: dbRecord.number_of_days || 0
+        }
+      };
+
+    case 'core_drills':
+      return {
+        ...baseItem,
+        propertyId: 'core_drill',
+        name: WORK_ITEM_NAMES.CORE_DRILL,
+        fields: {
+          [WORK_ITEM_NAMES.COUNT]: dbRecord.count || 0
+        }
+      };
+
+    case 'tool_rentals':
+      return {
+        ...baseItem,
+        propertyId: 'tool_rental',
+        name: WORK_ITEM_NAMES.TOOL_RENTAL,
+        fields: {
+          [WORK_ITEM_NAMES.COUNT]: dbRecord.count || 0
         }
       };
 

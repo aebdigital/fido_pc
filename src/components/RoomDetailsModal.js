@@ -267,14 +267,22 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
-    
+
     const rentalItem = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.RENTALS)?.items?.find(item => item.name === rentalType);
     if (!rentalItem) return;
 
+    // Map rental type to specific propertyId for correct table mapping
     let specificPropertyId = WORK_ITEM_PROPERTY_IDS.RENTALS;
-    
+    if (rentalType === WORK_ITEM_NAMES.CORE_DRILL) {
+      specificPropertyId = 'core_drill';
+    } else if (rentalType === WORK_ITEM_NAMES.TOOL_RENTAL) {
+      specificPropertyId = 'tool_rental';
+    } else if (rentalType === WORK_ITEM_NAMES.SCAFFOLDING_EN || rentalType === 'Lešenie') {
+      specificPropertyId = 'scaffolding';
+    }
+
     const newItem = {
       id: Date.now(),
       propertyId: specificPropertyId,
