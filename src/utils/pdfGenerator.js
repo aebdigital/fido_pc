@@ -373,9 +373,17 @@ export const generateInvoicePDF = ({
         // For plasterboarding items, build full translated name with subtitle and type
         if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && item.selectedType) {
           displayName = `${t(itemName)} ${t(item.subtitle)}, ${t(item.selectedType)}`;
-        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && item.selectedType) {
+        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
           // For sanitary installation, show the type name (e.g., "Rohový ventil") instead of generic name
-          displayName = t(item.selectedType);
+          // Use selectedType first, fall back to subtitle (both are set when loading from DB)
+          displayName = t(item.selectedType || item.subtitle);
+        } else if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle) {
+          // For plinth items, show name with subtitle (e.g., "Sokel - rezanie a brúsenie")
+          displayName = `${t(itemName)} - ${t(item.subtitle)}`;
+        } else if (item.isLargeFormat) {
+          // For Large Format, show base name + "veľkoformát" (e.g., "Obklad Veľkoformát" not "Obklad do 60cm Veľkoformát")
+          const baseName = item.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60 ? 'Tiling' : 'Paving';
+          displayName = `${t(baseName)} ${t(WORK_ITEM_NAMES.LARGE_FORMAT)}`;
         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
           // For electrical and plumbing work, show just the name without subtitle
           displayName = t(itemName);

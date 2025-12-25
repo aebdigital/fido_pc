@@ -686,10 +686,17 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           workTotal += calculation.workCost;
           materialTotal += calculation.materialCost;
 
-          items.push({
+          // For Large Format tiling/paving, update the name to show "veľkoformát"
+          const itemToAdd = {
             ...workItem,
             calculation
-          });
+          };
+          if (isLargeFormat) {
+            itemToAdd.isLargeFormat = true;
+            // Update subtitle to indicate large format
+            itemToAdd.subtitle = WORK_ITEM_NAMES.LARGE_FORMAT;
+          }
+          items.push(itemToAdd);
 
           // Track materials as separate items
           if (calculation.material) {
@@ -802,6 +809,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
                 items.push({
                   ...workItem,
                   id: `${workItem.id}_jolly`,
+                  propertyId: 'jolly_edging', // Override to prevent grouping with tiling
                   name: WORK_ITEM_NAMES.JOLLY_EDGING,
                   calculation: {
                     workCost: jollyEdgingCost,
@@ -824,6 +832,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
                 items.push({
                   ...workItem,
                   id: `${workItem.id}_plinth_cutting`,
+                  propertyId: 'plinth_cutting', // Override to prevent grouping with paving
                   name: WORK_ITEM_NAMES.PLINTH,
                   subtitle: WORK_ITEM_NAMES.CUTTING_AND_GRINDING,
                   calculation: {
@@ -847,6 +856,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
                 items.push({
                   ...workItem,
                   id: `${workItem.id}_plinth_bonding`,
+                  propertyId: 'plinth_bonding', // Override to prevent grouping with paving
                   name: WORK_ITEM_NAMES.PLINTH,
                   subtitle: WORK_ITEM_NAMES.BONDING,
                   calculation: {

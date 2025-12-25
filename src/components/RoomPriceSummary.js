@@ -96,15 +96,21 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                       if (shouldGroup) {
                         // Group by propertyId (which includes wall/ceiling distinction)
-                        const groupKey = item.propertyId;
+                        // Add large format flag to key to keep them separate
+                        const groupKey = item.isLargeFormat ? `${item.propertyId}_largeformat` : item.propertyId;
 
                         if (!workGroups[groupKey]) {
                           const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
                           // Always translate the name
                           let workName = t(itemName);
 
-                          // Add subtitle for specific work types (wall/ceiling distinction)
-                          if (item.subtitle) {
+                          // For Large Format, show base name + "veľkoformát" (e.g., "Obklad Veľkoformát" not "Obklad do 60cm Veľkoformát")
+                          if (item.isLargeFormat) {
+                            // Use base name (Tiling/Paving) instead of full name with size qualifier
+                            const baseName = item.propertyId === 'tiling_under_60' ? WORK_ITEM_NAMES.TILING : WORK_ITEM_NAMES.PAVING;
+                            workName = `${t(baseName)} ${t(WORK_ITEM_NAMES.LARGE_FORMAT)}`;
+                          } else if (item.subtitle) {
+                            // Add subtitle for specific work types (wall/ceiling distinction)
                             workName = `${workName} ${t(item.subtitle)}`;
                           }
 
@@ -125,9 +131,13 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                         // For plasterboarding items, build full translated name with subtitle and type
                         if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && item.selectedType) {
                           workName = `${t(item.name)} ${t(item.subtitle)}, ${t(item.selectedType)}`;
-                        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && item.selectedType) {
+                        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
                           // For sanitary installation, show the type name (e.g., "Rohový ventil") instead of generic name
-                          workName = t(item.selectedType);
+                          // Use selectedType first, fall back to subtitle (both are set when loading from DB)
+                          workName = t(item.selectedType || item.subtitle);
+                        } else if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle) {
+                          // For plinth items, show name with subtitle (e.g., "Sokel - rezanie a brúsenie")
+                          workName = `${t(item.name)} - ${t(item.subtitle)}`;
                         } else {
                           const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
                           // Always translate the name
