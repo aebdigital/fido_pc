@@ -61,14 +61,19 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
   // Sync workData when room.workItems changes (e.g., after loading from database)
   useEffect(() => {
     // Only sync if room.workItems has items and our local state doesn't match
-    // Check by comparing the IDs in both arrays
-    const roomItemIds = (room.workItems || []).map(i => i.id).sort().join(',');
-    const workDataIds = workData.map(i => i.id).sort().join(',');
+    // Use functional update to avoid needing workData in dependency array
+    if (room.workItems && room.workItems.length > 0) {
+      const roomItemIds = room.workItems.map(i => i.id).sort().join(',');
 
-    if (roomItemIds !== workDataIds && room.workItems && room.workItems.length > 0) {
-      // Room data was updated externally (e.g., loaded from database)
-      setWorkData(room.workItems);
-      lastSavedData.current = JSON.stringify(room.workItems);
+      setWorkData(currentWorkData => {
+        const currentIds = currentWorkData.map(i => i.id).sort().join(',');
+        if (roomItemIds !== currentIds) {
+          // Room data was updated externally (e.g., loaded from database)
+          lastSavedData.current = JSON.stringify(room.workItems);
+          return room.workItems;
+        }
+        return currentWorkData;
+      });
     }
   }, [room.workItems]);
 
