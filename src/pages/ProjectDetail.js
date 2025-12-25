@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import { hasWorkItemInput } from '../utils/priceCalculations';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -146,7 +147,7 @@ const ProjectDetail = () => {
             >
               <div>
                 <div className="font-medium text-gray-900">{room.name}</div>
-                <div className="text-sm text-gray-600">{room.workItems?.length || 0} {t('works')}</div>
+                <div className="text-sm text-gray-600">{room.workItems?.filter(hasWorkItemInput).length || 0} {t('works')}</div>
               </div>
               <div className="text-right">
                 <div className="text-xs text-gray-500 mb-1">{t('VAT not included')}</div>

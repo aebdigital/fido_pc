@@ -22,6 +22,7 @@ import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { generatePriceOfferPDF } from '../utils/pdfGenerator';
 import { compressImage } from '../utils/imageCompression';
+import { hasWorkItemInput } from '../utils/priceCalculations';
 import { workProperties } from '../config/workProperties';
 import RoomDetailsModal from './RoomDetailsModal';
 import ProjectPriceList from './ProjectPriceList';
@@ -667,7 +668,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     >
                       <div className={`transition-all duration-300 flex-1 min-w-0 ${deleteMode ? 'mr-4' : ''}`}>
                         <div className="font-medium text-gray-900 dark:text-white text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
-                        <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems?.length || 0} {t('works')}</div>
+                        <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems?.filter(hasWorkItemInput).length || 0} {t('works')}</div>
                       </div>
 
                       {deleteMode ? (
