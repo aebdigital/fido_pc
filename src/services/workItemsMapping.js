@@ -171,6 +171,13 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         count: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
       };
 
+    case 'demolitions':
+      // Preparatory and demolition works use DURATION (hours) - stored as count
+      return {
+        ...baseRecord,
+        count: workItem.fields?.[WORK_ITEM_NAMES.DURATION_EN] || 0
+      };
+
     case 'window_installations':
       // Window installation uses CIRCUMFERENCE (stored as count) and PRICE
       return {
@@ -461,6 +468,15 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0,
           [WORK_ITEM_NAMES.RENTAL_DURATION]: dbRecord.number_of_days || 0
+        }
+      };
+
+    case 'demolitions':
+      // Preparatory and demolition works use DURATION (hours)
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.DURATION_EN]: dbRecord.count || 0
         }
       };
 

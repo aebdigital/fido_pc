@@ -354,7 +354,7 @@ export const translations = {
     "€/m": "€/m",
     "€/pkg": "€/bal",
     "€/day": "€/deň",
-    "€/days": "€/dní",
+    "€/days": "€/deň",
     "€/km": "€/km",
     "%": "%",
     "hrs": "hod",

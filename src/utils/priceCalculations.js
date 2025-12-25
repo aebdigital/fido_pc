@@ -1,12 +1,11 @@
 import {
-  WORK_TYPE_SUFFIXES,
-  WORK_ITEM_SUBTITLES,
-  MATERIAL_ITEM_NAMES,
-  MATERIAL_ITEM_SUBTITLES,
   WORK_ITEM_NAMES,
   WORK_ITEM_PROPERTY_IDS,
+  WORK_ITEM_SUBTITLES,
+  MATERIAL_ITEM_NAMES,
   UNIT_TYPES
 } from '../config/constants';
+import { getMaterialKey, findMaterialByKey, getAdhesiveKey, findAdhesiveByKey } from '../config/materialKeys';
 
 // Helper to format price string
 export const formatPrice = (price) => {
@@ -306,234 +305,6 @@ export const calculateWorkItemPrice = (workItem, priceItem) => {
   return Math.max(0, quantity * priceItem.price);
 };
 
-// Find matching material from price list
-export const findMatchingMaterial = (workItemName, workItemSubtype, priceList) => {
-  if (!priceList || !priceList.material) return null;
-
-  // Extract base work name by removing type suffixes
-  const typeSuffixes = WORK_TYPE_SUFFIXES;
-  let baseWorkName = workItemName;
-  let extractedType = null;
-
-  for (const suffix of typeSuffixes) {
-    if (workItemName.endsWith(suffix)) {
-      baseWorkName = workItemName.substring(0, workItemName.length - suffix.length);
-      extractedType = suffix.trim().toLowerCase();
-      break;
-    }
-  }
-
-  // Also try to extract type from subtype if not found in name (for DB-loaded items)
-  // workItemSubtype might be "partition, Simple" or "priečka, Jednoduchá"
-  if (!extractedType && workItemSubtype) {
-    const subtypeLower = workItemSubtype.toLowerCase();
-    if (subtypeLower.includes('simple') || subtypeLower.includes('jednoduch')) {
-      extractedType = 'simple';
-    } else if (subtypeLower.includes('double') || subtypeLower.includes('dvojit') || subtypeLower.includes('zdvojen')) {
-      extractedType = 'double';
-    } else if (subtypeLower.includes('triple') || subtypeLower.includes('trojit')) {
-      extractedType = 'triple';
-    }
-  }
-  
-  // Material mapping based on work item names (both English and Slovak)
-  const materialMappings = {
-    [WORK_ITEM_NAMES.BRICK_PARTITIONS]: MATERIAL_ITEM_NAMES.PARTITION_MASONRY,
-    [WORK_ITEM_NAMES.MUROVANIE_PRIECOK]: MATERIAL_ITEM_NAMES.PARTITION_MASONRY,
-    [WORK_ITEM_NAMES.BRICK_LOAD_BEARING_WALL]: MATERIAL_ITEM_NAMES.LOAD_BEARING_MASONRY, 
-    [WORK_ITEM_NAMES.MUROVANIE_NOSNEHO_MURIVA]: MATERIAL_ITEM_NAMES.LOAD_BEARING_MASONRY,
-    [WORK_ITEM_NAMES.PLASTERBOARDING]: MATERIAL_ITEM_NAMES.PLASTERBOARD,
-    [WORK_ITEM_NAMES.SADROKARTON]: MATERIAL_ITEM_NAMES.PLASTERBOARD,
-    [WORK_ITEM_NAMES.SADROKARTONARSKE_PRACE]: MATERIAL_ITEM_NAMES.PLASTERBOARD,
-    [WORK_ITEM_NAMES.NETTING]: MATERIAL_ITEM_NAMES.MESH,
-    [WORK_ITEM_NAMES.SIETKOVANIE]: MATERIAL_ITEM_NAMES.MESH,
-    [WORK_ITEM_NAMES.PLASTERING]: MATERIAL_ITEM_NAMES.PLASTER,
-    [WORK_ITEM_NAMES.OMIETKA]: MATERIAL_ITEM_NAMES.PLASTER,
-    [WORK_ITEM_NAMES.PLASTERING_OF_WINDOW_SASH]: MATERIAL_ITEM_NAMES.PLASTER,
-    [WORK_ITEM_NAMES.OMIETKA_SPALETY]: MATERIAL_ITEM_NAMES.PLASTER,
-    [WORK_ITEM_NAMES.FACADE_PLASTERING]: MATERIAL_ITEM_NAMES.FACADE_PLASTER,
-    [WORK_ITEM_NAMES.FASADNE_OMIETKY]: MATERIAL_ITEM_NAMES.FACADE_PLASTER,
-    [WORK_ITEM_NAMES.INSTALLATION_OF_CORNER_BEAD]: MATERIAL_ITEM_NAMES.CORNER_BEAD,
-    [WORK_ITEM_NAMES.OSADENIE_ROHOVYCH_LIST]: MATERIAL_ITEM_NAMES.CORNER_BEAD,
-    [WORK_ITEM_NAMES.OSADENIE_ROHOVEJ_LISTY]: MATERIAL_ITEM_NAMES.CORNER_BEAD,
-    [WORK_ITEM_NAMES.PENETRATION_COATING]: MATERIAL_ITEM_NAMES.PRIMER,
-    [WORK_ITEM_NAMES.PENETRACNY_NATER]: MATERIAL_ITEM_NAMES.PRIMER,
-    [WORK_ITEM_NAMES.PAINTING]: MATERIAL_ITEM_NAMES.PAINT,
-    [WORK_ITEM_NAMES.MALOVANIE]: MATERIAL_ITEM_NAMES.PAINT,
-    [WORK_ITEM_NAMES.LEVELLING]: MATERIAL_ITEM_NAMES.SELF_LEVELLING_COMPOUND,
-    [WORK_ITEM_NAMES.VYROVNAVANIE]: MATERIAL_ITEM_NAMES.SELF_LEVELLING_COMPOUND,
-    [WORK_ITEM_NAMES.NIVELACKA]: MATERIAL_ITEM_NAMES.SELF_LEVELLING_COMPOUND,
-    [WORK_ITEM_NAMES.FLOATING_FLOOR]: MATERIAL_ITEM_NAMES.FLOATING_FLOOR,
-    [WORK_ITEM_NAMES.PLAVAJUCA_PODLAHA]: MATERIAL_ITEM_NAMES.FLOATING_FLOOR,
-    [WORK_ITEM_NAMES.SKIRTING]: MATERIAL_ITEM_NAMES.SKIRTING_BOARD,
-    [WORK_ITEM_NAMES.SOKLOVE_LISTY]: MATERIAL_ITEM_NAMES.SKIRTING_BOARD,
-    [WORK_ITEM_NAMES.TILING_UNDER_60CM]: MATERIAL_ITEM_NAMES.TILES,
-    [WORK_ITEM_NAMES.OBKLAD_DO_60CM]: MATERIAL_ITEM_NAMES.TILES,
-    [WORK_ITEM_NAMES.PAVING_UNDER_60CM]: MATERIAL_ITEM_NAMES.PAVINGS,
-    [WORK_ITEM_NAMES.DLAZBA_DO_60_CM]: MATERIAL_ITEM_NAMES.PAVINGS,
-    [WORK_ITEM_NAMES.SILICONING]: MATERIAL_ITEM_NAMES.SILICONE,
-    [WORK_ITEM_NAMES.SILIKONOVANIE]: MATERIAL_ITEM_NAMES.SILICONE,
-    [WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK]: MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL,
-    [WORK_ITEM_NAMES.POMOCNE_A_UKONCOVACIE_PRACE]: MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL
-  };
-  
-  const materialName = materialMappings[baseWorkName];
-  if (!materialName) return null;
-  
-  // 1. Try to find exact match including subtitle logic
-  let material = priceList.material.find(item => {
-    const nameMatch = item.name.toLowerCase() === materialName.toLowerCase();
-    
-    // Check subtitle match if both exist
-    if (workItemSubtype && item.subtitle) {
-      const workSubLower = workItemSubtype.toLowerCase();
-      const materialSubLower = item.subtitle.toLowerCase();
-      
-      // Direct match
-      let subtitleMatch = materialSubLower.includes(workSubLower);
-      
-      // For paint items, handle Slovak-English subtitle differences
-      if (!subtitleMatch && materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PAINT.toLowerCase()) {
-        if ((workSubLower.includes(WORK_ITEM_SUBTITLES.WALL[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.WALL[0])) ||
-            (workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]) && materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]))) {
-          subtitleMatch = true;
-        }
-      }
-      
-      // Handle specific ceiling/strop case for plasterboard
-      if (!subtitleMatch && (materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PLASTERBOARD.toLowerCase() || materialName.toLowerCase() === MATERIAL_ITEM_NAMES.SADROKARTON.toLowerCase())) {
-        // Check if work is ceiling type and material is ceiling type (in either language)
-        const isCeilingWork = workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]);
-        const isCeilingMaterial = materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || materialSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]);
-        if (isCeilingWork && isCeilingMaterial) {
-          subtitleMatch = true;
-        }
-      }
-
-      // For plasterboard and sádrokartón items, handle word order differences and extracted types
-      if (!subtitleMatch && (materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PLASTERBOARD.toLowerCase() || materialName.toLowerCase() === MATERIAL_ITEM_NAMES.SADROKARTON.toLowerCase())) {
-        // Complex matching logic for plasterboard subtypes
-        let subtypeToMatch = workItemSubtype;
-        
-        if (extractedType) {
-          if (subtypeToMatch) {
-            const subtypeLower = subtypeToMatch.toLowerCase();
-            
-            // Handle specific offset wall cases
-            if (subtypeLower.includes(WORK_ITEM_SUBTITLES.OFFSET_WALL[1]) || subtypeLower.includes(WORK_ITEM_SUBTITLES.OFFSET_WALL[0])) {
-              if (extractedType === 'simple' || extractedType === 'jednoduchý') {
-                if (materialSubLower.includes('jednoduchá predsadená stena') || 
-                    materialSubLower.includes('simple, offset wall')) {
-                  subtitleMatch = true;
-                }
-              } else if (extractedType === 'double' || extractedType === 'dvojitý') {
-                if (materialSubLower.includes('zdvojená predsadená stena') || 
-                    materialSubLower.includes('double, offset wall')) {
-                  subtitleMatch = true;
-                }
-              }
-            } 
-            // Handle partition cases  
-            else if (subtypeLower.includes(WORK_ITEM_SUBTITLES.PARTITION[1]) || subtypeLower.includes(WORK_ITEM_SUBTITLES.PARTITION[0])) {
-              const combo1 = `${extractedType}, ${subtypeLower}`;
-              const combo2 = `${subtypeLower}, ${extractedType}`;
-              
-              if (materialSubLower.includes(combo1) || materialSubLower.includes(combo2)) {
-                subtitleMatch = true;
-              }
-            }
-            // Handle offset wall cases (generic)
-            else if (subtypeLower.includes(WORK_ITEM_SUBTITLES.OFFSET_WALL[1]) || subtypeLower.includes(WORK_ITEM_SUBTITLES.OFFSET_WALL[0])) {
-              const combo1 = `${extractedType}, offset wall`;
-              const combo2 = `${extractedType}, predsadená stena`;
-              
-              if (materialSubLower.includes(combo1) || materialSubLower.includes(combo2)) {
-                subtitleMatch = true;
-              }
-            }
-            else {
-              const combo1 = `${extractedType}, ${subtypeLower}`;
-              const combo2 = `${subtypeLower}, ${extractedType}`;
-              
-              if (materialSubLower.includes(combo1) || materialSubLower.includes(combo2)) {
-                subtitleMatch = true;
-              }
-            }
-          }
-        }
-        
-        // If still no match, try the original complex matching
-        if (!subtitleMatch && workSubLower) {
-          const workParts = workSubLower.split(',').map(p => p.trim());
-          const materialParts = materialSubLower.split(',').map(p => p.trim());
-          
-          if (extractedType && !workParts.includes(extractedType)) {
-            workParts.push(extractedType);
-          }
-          
-          if (workParts.length <= materialParts.length) {
-            subtitleMatch = workParts.every(part => 
-              materialParts.some(matPart => 
-                matPart.includes(part) || matPart.includes(matPart) ||
-                (part.includes('jednoduč') && matPart.includes('simple')) ||
-                (part.includes('simple') && matPart.includes('jednoduč')) ||
-                (part.includes('dvojit') && matPart.includes('double')) ||
-                (part.includes('double') && matPart.includes('dvojit')) ||
-                (part.includes('trojit') && matPart.includes('triple')) ||
-                (part.includes('triple') && matPart.includes('trojit')) ||
-                (part.includes('priečk') && matPart.includes('partition')) ||
-                (part.includes('partition') && matPart.includes('priečk')) ||
-                (part.includes('predsadená') && matPart.includes('offset')) ||
-                (part.includes('offset') && matPart.includes('predsadená')) ||
-                (part.includes('stena') && matPart.includes('wall')) ||
-                (part.includes('wall') && matPart.includes('stena')) ||
-                (part.includes('strop') && matPart.includes('ceiling')) ||
-                (part.includes('ceiling') && matPart.includes('strop')) ||
-                (part.includes('zdvojen') && matPart.includes('double')) ||
-                (part.includes('double') && matPart.includes('zdvojen'))
-              )
-            );
-          }
-        }
-      }
-      
-      return nameMatch && subtitleMatch;
-    }
-    
-    // If no exact match with subtitle, just match by name (fallback will happen later if this returns false, wait... no, find returns the first match)
-    // Actually, if we are inside the 'if (workItemSubtype)' block, we only want to return TRUE if we found a match.
-    // If we return 'nameMatch', we might return true for a name match even if subtitle didn't match, which might be wrong if there are multiple items with same name.
-    
-    // However, the original logic seemed to rely on nameMatch being strict.
-    
-    return nameMatch && (workItemSubtype ? (item.subtitle ? false : false) : true); 
-    // Wait, the original logic was:
-    // return nameMatch && subtitleMatch; 
-    // If we are here, it means we checked subtitles.
-  });
-  
-  // 2. Special case: If looking for plasterboard ceiling, also try Sádrokartón with strop
-  if (!material && workItemSubtype && materialName.toLowerCase() === MATERIAL_ITEM_NAMES.PLASTERBOARD.toLowerCase()) {
-    const workSubLower = workItemSubtype.toLowerCase();
-    const isCeilingWork = workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[0]) || workSubLower.includes(WORK_ITEM_SUBTITLES.CEILING[1]);
-    if (isCeilingWork) {
-      material = priceList.material.find(item => {
-        const isSadrokarton = item.name.toLowerCase() === MATERIAL_ITEM_NAMES.SADROKARTON.toLowerCase();
-        const isCeilingMaterial = item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_SUBTITLES.CEILING[0]) || item.subtitle.toLowerCase().includes(WORK_ITEM_SUBTITLES.CEILING[1]));
-        return isSadrokarton && isCeilingMaterial;
-      });
-    }
-  }
-
-  // 3. If not found, and we have a subtype, try finding by name only as fallback
-  if (!material && workItemSubtype) {
-    material = priceList.material.find(item =>
-      item.name.toLowerCase() === materialName.toLowerCase()
-    );
-  }
-
-  return material;
-};
 
 // Calculate cost for a specific material based on quantity
 export const calculateMaterialCost = (workItem, material, workQuantity) => {
@@ -628,12 +399,10 @@ export const calculateWorkItemWithMaterials = (
     const price = parseFloat(values.Price || 0);
     materialCost = count * price; // Count * price per piece
   } else {
-    // Find matching material - combine work subtitle and selected type for full context
-    const fullSubtype = workItem.subtitle ?
-      (workItem.selectedType ? `${workItem.subtitle}, ${workItem.selectedType}` : workItem.subtitle) :
-      workItem.selectedType;
-    material = findMatchingMaterial(priceItem.name, fullSubtype, priceList);
-    
+    // Find matching material using direct key lookup
+    const materialKey = getMaterialKey(workItem.propertyId, workItem.selectedType);
+    material = findMaterialByKey(materialKey, priceList.material);
+
     if (material && workItem.propertyId === WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR) {
       materialQuantityToUse = Math.ceil(quantity * 1.1); // Add 10% and round up for floating floor material
     }
@@ -646,41 +415,20 @@ export const calculateWorkItemWithMaterials = (
   let additionalMaterialCost = 0;
   let additionalMaterialQuantity = 0;
 
-  if (!skipAdhesive && ((priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.TILING.toLowerCase()) || priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.OBKLAD.toLowerCase()) ||
-       workItem.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60) ||
-      (priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.PAVING.toLowerCase()) || priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.DLAZBA.toLowerCase()) ||
-       workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60))) {
-
-    // Find the single adhesive item for both tiling and paving
-    const adhesive = priceList.material.find(item =>
-      item.name.toLowerCase() === MATERIAL_ITEM_NAMES.ADHESIVE.toLowerCase() &&
-      item.subtitle && item.subtitle.toLowerCase().includes(MATERIAL_ITEM_SUBTITLES.TILING_PAVING.toLowerCase())
-    );
+  // For tiling and paving works, add adhesive cost using key lookup
+  const adhesiveKey = getAdhesiveKey(workItem.propertyId);
+  if (!skipAdhesive && adhesiveKey) {
+    const adhesive = findAdhesiveByKey(adhesiveKey, priceList.material);
 
     if (adhesive) {
       additionalMaterial = adhesive;
-      // If total area is provided, use it for aggregated calculation; otherwise use individual quantity
-      const areaToUse = totalTilingPavingArea > 0 ? totalTilingPavingArea : quantity;
-      additionalMaterialQuantity = areaToUse;
-      additionalMaterialCost = calculateMaterialCost(workItem, additionalMaterial, areaToUse);
-      materialCost += additionalMaterialCost;
-    }
-  }
-
-  // For netting works, also add adhesive cost
-  if (!skipAdhesive && (priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.NETTING.toLowerCase()) || priceItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SIETKOVANIE.toLowerCase()) ||
-      workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_WALL || workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING)) {
-
-    // Find the adhesive for netting
-    const adhesive = priceList.material.find(item =>
-      item.name.toLowerCase() === MATERIAL_ITEM_NAMES.ADHESIVE.toLowerCase() &&
-      item.subtitle && item.subtitle.toLowerCase().includes(MATERIAL_ITEM_SUBTITLES.NETTING.toLowerCase())
-    );
-
-    if (adhesive) {
-      additionalMaterial = adhesive;
-      // If total netting area is provided, use it for aggregated calculation; otherwise use individual quantity
-      const areaToUse = totalNettingArea > 0 ? totalNettingArea : quantity;
+      // Determine area to use based on work type
+      let areaToUse = quantity;
+      if (adhesiveKey === 'adhesive_tiling' && totalTilingPavingArea > 0) {
+        areaToUse = totalTilingPavingArea;
+      } else if (adhesiveKey === 'adhesive_netting' && totalNettingArea > 0) {
+        areaToUse = totalNettingArea;
+      }
       additionalMaterialQuantity = areaToUse;
       additionalMaterialCost = calculateMaterialCost(workItem, additionalMaterial, areaToUse);
       materialCost += additionalMaterialCost;

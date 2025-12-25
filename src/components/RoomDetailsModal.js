@@ -126,8 +126,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       const newItem = {
         id: Date.now(),
         propertyId,
-        name: t(property.name),
-        subtitle: t(property.subtitle),
+        // Store English keys - display code will translate
+        name: property.name,
+        subtitle: property.subtitle,
         fields: {},
         complementaryWorks: {},
         selectedType: null,
@@ -148,9 +149,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     const newItem = {
       id: Date.now(),
       propertyId,
-      name: (property.id.startsWith('plasterboarding_') || property.id.startsWith('plastering_') || property.id.startsWith('painting_') || property.id.startsWith('netting_')) ? 
-        `${t(property.name)} ${t(property.subtitle)}` : t(property.name),
-      subtitle: t(property.subtitle),
+      // Store English keys - display code will translate
+      name: property.name,
+      subtitle: property.subtitle,
       fields: {},
       complementaryWorks: {},
       selectedType: property.types ? property.types[0] : null,
@@ -204,10 +205,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     const newItem = {
       id: Date.now(),
       propertyId: property.id,
-      name: property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ? t(property.name) : 
-             property.id.startsWith('plasterboarding_') ? 
-               (type ? `${t(property.name)} ${t(property.subtitle)}, ${t(type)}` : `${t(property.name)} ${t(property.subtitle)}`) :
-             `${t(property.name)} ${t(type)}`,
+      // Store just the base name - display code will build full name with subtitle and type
+      name: property.name,
       subtitle: property.subtitle,
       fields: {},
       complementaryWorks: {},
@@ -632,13 +631,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       const newItem = {
         id: Date.now(),
         propertyId: complementaryProperty.id,
-        name: (complementaryProperty.id.startsWith('plasterboarding_') ||
-               complementaryProperty.id.startsWith('plastering_') ||
-               complementaryProperty.id.startsWith('painting_') ||
-               complementaryProperty.id.startsWith('netting_')) ?
-          `${t(complementaryProperty.name)} ${t(complementaryProperty.subtitle)}` :
-          t(complementaryProperty.name),
-        subtitle: t(complementaryProperty.subtitle),
+        // Store English keys - display code will translate
+        name: complementaryProperty.name,
+        subtitle: complementaryProperty.subtitle,
         fields: {},
         complementaryWorks: {},
         selectedType: complementaryProperty.types ? complementaryProperty.types[0] : null,
