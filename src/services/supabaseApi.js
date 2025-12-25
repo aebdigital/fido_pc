@@ -507,9 +507,13 @@ export const invoicesApi = {
 
 export const workItemsApi = {
   // Get all work items for a room using optimized RPC function
-  getAllForRoomRPC: async (roomId) => {
+  getAllForRoomRPC: async (roomId, contractorId = null) => {
     try {
-      const { data, error } = await supabase.rpc('get_room_items', { p_room_id: roomId })
+      const params = { p_room_id: roomId };
+      if (contractorId) {
+        params.p_contractor_id = contractorId;
+      }
+      const { data, error } = await supabase.rpc('get_room_items', params)
       if (error) throw error
       return { data, error: null }
     } catch (error) {

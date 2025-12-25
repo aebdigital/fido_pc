@@ -528,9 +528,10 @@ export const useProjectManager = (appData, setAppData) => {
   }, [appData.projectHistory]);
 
   // Room Functions
-  const loadWorkItemsForRoom = async (roomId) => {
+  const loadWorkItemsForRoom = async (roomId, contractorId) => {
     try {
-      const { data, error } = await api.workItems.getAllForRoomRPC(roomId);
+      // Pass contractor ID to filter work items by current contractor
+      const { data, error } = await api.workItems.getAllForRoomRPC(roomId, contractorId);
       if (error) {
         console.error('[SUPABASE] RPC get_room_items error:', error);
         return [];
@@ -556,7 +557,7 @@ export const useProjectManager = (appData, setAppData) => {
     try {
       console.log(`[SUPABASE] Loading details for project ${projectId}...`);
       const rooms = await api.rooms.getByProject(projectId);
-      
+
       if (!rooms || rooms.length === 0) {
          setAppData(prev => ({
           ...prev,
@@ -569,7 +570,8 @@ export const useProjectManager = (appData, setAppData) => {
       }
 
       const roomsWithWorkItems = await Promise.all(rooms.map(async (room) => {
-        const workItems = await loadWorkItemsForRoom(room.id);
+        // Pass contractor ID to only load work items for the current contractor
+        const workItems = await loadWorkItemsForRoom(room.id, appData.activeContractorId);
         return {
           ...room,
           workItems: workItems || []
@@ -587,7 +589,7 @@ export const useProjectManager = (appData, setAppData) => {
     } catch (error) {
       console.error(`[SUPABASE] Error loading details for project ${projectId}:`, error);
     }
-  }, [setAppData]);
+  }, [setAppData, appData.activeContractorId]);
 
   const addRoomToProject = useCallback(async (projectId, roomData) => {
     try {
@@ -657,7 +659,8 @@ export const useProjectManager = (appData, setAppData) => {
       'groutings',
       'penetration_coatings',
       'siliconings',
-      'custom_works'
+      'custom_works',
+      'scaffoldings'
     ];
 
     // Delete existing items from ALL work item tables for this room
