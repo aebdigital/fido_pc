@@ -661,9 +661,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           }
 
           // Only add adhesive for the first tiling/paving or netting item
-          // Skip adhesive entirely if Large Format is enabled (no materials for large format)
           const isLargeFormat = isTilingOrPaving && workItem.fields[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD];
-          const skipTilingPavingAdhesive = isTilingOrPaving && (tilingPavingAdhesiveAdded || isLargeFormat);
+          const skipTilingPavingAdhesive = isTilingOrPaving && tilingPavingAdhesiveAdded;
           const skipNettingAdhesive = isNetting && nettingAdhesiveAdded;
           const skipAdhesive = skipTilingPavingAdhesive || skipNettingAdhesive;
 
