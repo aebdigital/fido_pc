@@ -373,6 +373,9 @@ export const generateInvoicePDF = ({
         // For plasterboarding items, build full translated name with subtitle and type
         if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && item.selectedType) {
           displayName = `${t(itemName)} ${t(item.subtitle)}, ${t(item.selectedType)}`;
+        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
+          // For electrical and plumbing work, show just the name without subtitle
+          displayName = t(itemName);
         } else {
           displayName = item.subtitle ? `${t(itemName)} - ${t(item.subtitle)}` : t(itemName);
         }
