@@ -304,12 +304,11 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'plasterboarding_partitions':
-    case 'plasterboarding_offset_walls':
-    case 'plasterboarding_ceilings':
+    case 'plasterboarding_ceilings': {
+      // Partitions and ceilings use WIDTH x LENGTH
       // Map bigint type back to string: 1=Simple, 2=Double, 3=Triple
       const typeNames = { 1: 'Simple', 2: 'Double', 3: 'Triple' };
       const plasterboardType = typeNames[dbRecord.type] || 'Simple';
-      // Keep name and subtitle separate - display code will translate and combine them
       return {
         ...baseItem,
         fields: {
@@ -318,6 +317,21 @@ export function databaseToWorkItem(dbRecord, tableName) {
         },
         selectedType: plasterboardType
       };
+    }
+
+    case 'plasterboarding_offset_walls': {
+      // Offset walls use WIDTH x HEIGHT
+      const typeNamesOffset = { 1: 'Simple', 2: 'Double', 3: 'Triple' };
+      const offsetType = typeNamesOffset[dbRecord.type] || 'Simple';
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
+        },
+        selectedType: offsetType
+      };
+    }
 
     case 'netting_walls':
     case 'plastering_walls':
