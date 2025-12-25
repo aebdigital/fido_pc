@@ -369,7 +369,13 @@ export const generateInvoicePDF = ({
 
         // Get the work item name - try multiple sources
         const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId) || '';
-        const displayName = item.subtitle ? `${t(itemName)} - ${t(item.subtitle)}` : t(itemName);
+        let displayName;
+        // For plasterboarding items, build full translated name with subtitle and type
+        if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && item.selectedType) {
+          displayName = `${t(itemName)} ${t(item.subtitle)}, ${t(item.selectedType)}`;
+        } else {
+          displayName = item.subtitle ? `${t(itemName)} - ${t(item.subtitle)}` : t(itemName);
+        }
 
         tableData.push([
           sanitizeText(displayName || ''),

@@ -302,13 +302,9 @@ export function databaseToWorkItem(dbRecord, tableName) {
       // Map bigint type back to string: 1=Simple, 2=Double, 3=Triple
       const typeNames = { 1: 'Simple', 2: 'Double', 3: 'Triple' };
       const plasterboardType = typeNames[dbRecord.type] || 'Simple';
-      // Rebuild full name like "Plasterboarding partition, Simple"
-      const plasterboardName = subtitle
-        ? `${name} ${subtitle}, ${plasterboardType}`
-        : `${name} ${plasterboardType}`;
+      // Keep name and subtitle separate - display code will translate and combine them
       return {
         ...baseItem,
-        name: plasterboardName,
         fields: {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0

@@ -111,9 +111,16 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                         workGroups[groupKey].totalCost += item.calculation.workCost;
                       } else {
                         // Non-grouped items - render as before
-                        const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
-                        // Always translate the name
-                        const workName = t(itemName);
+                        let workName;
+
+                        // For plasterboarding items, build full translated name with subtitle and type
+                        if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && item.selectedType) {
+                          workName = `${t(item.name)} ${t(item.subtitle)}, ${t(item.selectedType)}`;
+                        } else {
+                          const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                          // Always translate the name
+                          workName = t(itemName);
+                        }
 
                         let workDescription;
                         if ((item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
