@@ -101,7 +101,12 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                         if (!workGroups[groupKey]) {
                           const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
                           // Always translate the name
-                          const workName = t(itemName);
+                          let workName = t(itemName);
+
+                          // Add subtitle for specific work types (wall/ceiling distinction)
+                          if (item.subtitle) {
+                            workName = `${workName} ${t(item.subtitle)}`;
+                          }
 
                           workGroups[groupKey] = {
                             name: workName,

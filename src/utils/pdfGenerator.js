@@ -377,7 +377,8 @@ export const generateInvoicePDF = ({
           // For electrical and plumbing work, show just the name without subtitle
           displayName = t(itemName);
         } else {
-          displayName = item.subtitle ? `${t(itemName)} - ${t(item.subtitle)}` : t(itemName);
+          // Add subtitle for work types (wall/ceiling distinction, etc.)
+          displayName = item.subtitle ? `${t(itemName)} ${t(item.subtitle)}` : t(itemName);
         }
 
         tableData.push([
