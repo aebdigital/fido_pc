@@ -163,7 +163,7 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Sanitary installations', subtitle: 'Mirror', price: 50, unit: '€/pc' }
         ],
         others: [
-          { name: 'Scaffolding', price: 10, unit: '€/days' },
+          { name: 'Scaffolding', price: 10, unit: '€/day' },
           { name: 'Scaffolding', subtitle: 'assembly and disassembly', price: 30, unit: '€/m²' },
           { name: 'Core Drill', price: 25, unit: '€/h' },
           { name: 'Tool rental', price: 10, unit: '€/h' },

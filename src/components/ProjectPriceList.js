@@ -158,7 +158,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             <>
               <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
               {item.subtitle && (
-                <p className="text-sm lg:text-base text-black dark:text-white mt-1">{t(item.subtitle)}</p>
+                <p className="text-xs lg:text-sm text-black dark:text-white mt-0.5 leading-tight">{t(item.subtitle)}</p>
               )}
             </>
           )}
