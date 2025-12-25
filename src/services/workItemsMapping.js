@@ -497,6 +497,16 @@ export function databaseToWorkItem(dbRecord, tableName) {
         }
       };
 
+    case 'installation_of_corner_beads':
+    case 'plastering_of_window_sashes':
+      // These use LENGTH field stored as count
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.count || 0
+        }
+      };
+
     default:
       // Generic mapping
       return {
