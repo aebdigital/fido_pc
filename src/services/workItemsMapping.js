@@ -151,7 +151,7 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
-        large_format: workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT] || false,
+        large_format: workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD] || workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT] || false,
         jolly_edging: workItem.fields?.[WORK_ITEM_NAMES.JOLLY_EDGING] || workItem.fields?.[WORK_ITEM_NAMES.JOLLY_EDGING_FIELD] || 0
       };
 
@@ -161,7 +161,7 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        large_format: workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT] || false,
+        large_format: workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD] || workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT] || false,
         plinth_cutting: workItem.fields?.[WORK_ITEM_NAMES.PLINTH_CUTTING_AND_GRINDING_FIELD] || workItem.fields?.['Plinth_cutting and grinding'] || 0,
         plinth_bonding: workItem.fields?.[WORK_ITEM_NAMES.PLINTH_BONDING_FIELD] || workItem.fields?.['Plinth_bonding'] || 0
       };
@@ -381,7 +381,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
         fields: {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0,
-          [WORK_ITEM_NAMES.LARGE_FORMAT]: dbRecord.large_format || false,
+          [WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD]: dbRecord.large_format || false,
           [WORK_ITEM_NAMES.JOLLY_EDGING]: dbRecord.jolly_edging || 0
         }
       };
@@ -393,7 +393,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
         fields: {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0,
-          [WORK_ITEM_NAMES.LARGE_FORMAT]: dbRecord.large_format || false,
+          [WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD]: dbRecord.large_format || false,
           [WORK_ITEM_NAMES.PLINTH_CUTTING_AND_GRINDING_FIELD]: dbRecord.plinth_cutting || 0,
           [WORK_ITEM_NAMES.PLINTH_BONDING_FIELD]: dbRecord.plinth_bonding || 0
         }
