@@ -104,6 +104,11 @@ export const MATERIAL_KEY_MAPPINGS = {
     namesSk: ['Omietka'],
     subtitlePattern: null
   },
+  'window_sash': {
+    name: 'Plaster',
+    namesSk: ['Omietka'],
+    subtitlePattern: null
+  },
 
   // Facade
   'facade_plastering': {
