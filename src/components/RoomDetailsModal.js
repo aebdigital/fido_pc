@@ -615,7 +615,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
 
       // Determine which variant to use based on parent's field structure
       const hasHeightField = parentProperty?.fields?.some(f => f.name === WORK_ITEM_NAMES.HEIGHT);
-      const hasLengthField = parentProperty?.fields?.some(f => f.name === WORK_ITEM_NAMES.LENGTH);
 
       // Check if parent is a partition or offset wall (these are walls even though they don't have HEIGHT field)
       const isPartitionOrOffsetWall = parentProperty?.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION ||
@@ -670,11 +669,21 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
           newItem.fields[WORK_ITEM_NAMES.WIDTH] = parentItem.fields.Šírka;
         }
 
-        // Copy Height or Length depending on complementary work type
-        if (hasHeightField && (parentItem.fields[WORK_ITEM_NAMES.HEIGHT] !== undefined || parentItem.fields.Výška !== undefined)) {
-          newItem.fields[WORK_ITEM_NAMES.HEIGHT] = parentItem.fields[WORK_ITEM_NAMES.HEIGHT] || parentItem.fields.Výška;
-        } else if (hasLengthField && (parentItem.fields[WORK_ITEM_NAMES.LENGTH] !== undefined || parentItem.fields.Dĺžka !== undefined)) {
-          newItem.fields[WORK_ITEM_NAMES.LENGTH] = parentItem.fields[WORK_ITEM_NAMES.LENGTH] || parentItem.fields.Dĺžka;
+        // Determine what field the complementary item needs
+        const complementaryNeedsHeight = complementaryProperty.fields?.some(f => f.name === WORK_ITEM_NAMES.HEIGHT);
+        const complementaryNeedsLength = complementaryProperty.fields?.some(f => f.name === WORK_ITEM_NAMES.LENGTH);
+
+        // Get the second dimension from parent (could be HEIGHT or LENGTH)
+        const parentSecondDim = parentItem.fields[WORK_ITEM_NAMES.HEIGHT] ??
+                                parentItem.fields.Výška ??
+                                parentItem.fields[WORK_ITEM_NAMES.LENGTH] ??
+                                parentItem.fields.Dĺžka;
+
+        // Copy to the field that the complementary work needs
+        if (complementaryNeedsHeight && parentSecondDim !== undefined) {
+          newItem.fields[WORK_ITEM_NAMES.HEIGHT] = parentSecondDim;
+        } else if (complementaryNeedsLength && parentSecondDim !== undefined) {
+          newItem.fields[WORK_ITEM_NAMES.LENGTH] = parentSecondDim;
         }
 
         // Copy doors and windows if present
