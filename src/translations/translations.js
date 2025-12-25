@@ -90,6 +90,8 @@ export const translations = {
     "Pomocný a spojovací materiál": "Auxiliary and connecting material",
     "Inštalácia sanity": "Sanitary installation",
     "Lešenie": "Scaffolding",
+    "Lešenie - montáž a demontáž": "Scaffolding - assembly and disassembly",
+    "Lešenie - prenájom": "Scaffolding - rental",
     "Jadrová vrtačka": "Core Drill",
     "Požičovňa náradia": "Tool rental",
     "Vlastná práca a materiál": "Custom work and material",
@@ -317,6 +319,8 @@ export const translations = {
     
     // ========== RENTALS & TOOLS ==========
     "Scaffolding": "Lešenie",
+    "Scaffolding - assembly and disassembly": "Lešenie - montáž a demontáž",
+    "Scaffolding - rental": "Lešenie - prenájom",
     "Core Drill": "Jadrová vrtačka",
     "Tool rental": "Požičovňa náradia",
     "Rental": "Požičovňa",

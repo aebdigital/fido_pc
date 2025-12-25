@@ -425,7 +425,16 @@ export const generateInvoicePDF = ({
         if (unit.startsWith('€/')) unit = unit.substring(2);
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = othersCost * itemVatRate;
-        const displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
+
+        // For scaffolding items, subtitle contains the full name (e.g., "Lešenie - montáž a demontáž")
+        // so we should use subtitle directly instead of combining name + subtitle
+        let displayName;
+        if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('prenájom') ||
+            item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
+          displayName = t(item.subtitle);
+        } else {
+          displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
+        }
 
         tableData.push([
           sanitizeText(displayName || ''),

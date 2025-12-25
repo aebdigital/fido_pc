@@ -276,7 +276,15 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     
                     // Fall back to looking up name from propertyId if item.name is undefined
                     // For custom work items, use the user-entered name and selected unit
+                    // For scaffolding items, use subtitle which contains the full name (e.g., "Lešenie - montáž a demontáž")
                     let itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
+
+                    // For scaffolding items, use subtitle as name
+                    if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('prenájom') ||
+                        item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
+                      itemNameOthers = item.subtitle;
+                    }
+
                     if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
                       if (item.fields?.[WORK_ITEM_NAMES.NAME]) {
                         itemNameOthers = item.fields[WORK_ITEM_NAMES.NAME];
