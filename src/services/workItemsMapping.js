@@ -123,29 +123,59 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       };
 
     case 'netting_walls':
-    case 'netting_ceilings':
     case 'plastering_walls':
-    case 'plastering_ceilings':
     case 'painting_walls':
-    case 'painting_ceilings':
     case 'facade_plasterings':
     case 'penetration_coatings':
+      // Wall types use WIDTH x HEIGHT
       return {
         ...baseRecord,
-        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0
+      };
+
+    case 'netting_ceilings':
+    case 'plastering_ceilings':
+    case 'painting_ceilings':
+      // Ceiling types use WIDTH x LENGTH
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
       };
 
     case 'tile_ceramics':
+      // Tiling uses WIDTH x HEIGHT (wall tiling)
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0
+      };
+
     case 'paving_ceramics':
     case 'laying_floating_floors':
     case 'levellings':
-    case 'skirting_of_floating_floors':
     case 'groutings':
+      // Floor types use WIDTH x LENGTH
       return {
         ...baseRecord,
-        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
+      };
+
+    case 'siliconings':
+      // Siliconing only uses LENGTH - stored as count
+      return {
+        ...baseRecord,
+        count: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
+      };
+
+    case 'window_installations':
+      // Window installation uses CIRCUMFERENCE (stored as count) and PRICE
+      return {
+        ...baseRecord,
+        count: workItem.fields?.[WORK_ITEM_NAMES.CIRCUMFERENCE] || 0,
+        price_per_window: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
       };
 
     case 'wirings':
@@ -273,13 +303,11 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'netting_walls':
-    case 'netting_ceilings':
     case 'plastering_walls':
-    case 'plastering_ceilings':
     case 'painting_walls':
-    case 'painting_ceilings':
     case 'facade_plasterings':
     case 'penetration_coatings':
+      // Wall types use WIDTH x HEIGHT
       return {
         ...baseItem,
         fields: {
@@ -288,17 +316,57 @@ export function databaseToWorkItem(dbRecord, tableName) {
         }
       };
 
-    case 'tile_ceramics':
-    case 'paving_ceramics':
-    case 'laying_floating_floors':
-    case 'levellings':
-    case 'skirting_of_floating_floors':
-    case 'groutings':
+    case 'netting_ceilings':
+    case 'plastering_ceilings':
+    case 'painting_ceilings':
+      // Ceiling types use WIDTH x LENGTH
       return {
         ...baseItem,
         fields: {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
+        }
+      };
+
+    case 'tile_ceramics':
+      // Tiling uses WIDTH x HEIGHT (wall tiling)
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
+        }
+      };
+
+    case 'paving_ceramics':
+    case 'laying_floating_floors':
+    case 'levellings':
+    case 'groutings':
+      // Floor types use WIDTH x LENGTH
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
+        }
+      };
+
+    case 'siliconings':
+      // Siliconing only uses LENGTH - stored as count
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.count || 0
+        }
+      };
+
+    case 'window_installations':
+      // Window installation uses CIRCUMFERENCE (stored as count) and PRICE
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.CIRCUMFERENCE]: dbRecord.count || 0,
+          [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_window || 0
         }
       };
 

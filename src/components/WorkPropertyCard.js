@@ -790,7 +790,7 @@ const WorkPropertyCard = ({
         
         {/* Existing sanitary items */}
         {existingItems.map(item => (
-          <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
+          <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-900 dark:text-white text-lg">
                 {t(item.selectedType)}
