@@ -672,12 +672,22 @@ export const useProjectManager = (appData, setAppData) => {
       try {
         const existingItems = await api.workItems.getByRoom(roomId, tableName);
         if (existingItems && existingItems.length > 0) {
-          await Promise.all(existingItems.map(item =>
+          const deleteResults = await Promise.all(existingItems.map(item =>
             api.workItems.delete(tableName, item.id)
+              .catch(err => {
+                console.error(`Failed to delete item ${item.id} from ${tableName}:`, err);
+                return null;
+              })
           ));
+          // Log if any deletions failed
+          const failedCount = deleteResults.filter(r => r === null).length;
+          if (failedCount > 0) {
+            console.warn(`[saveWorkItemsForRoom] ${failedCount}/${existingItems.length} deletions failed for ${tableName}`);
+          }
         }
       } catch (error) {
-        // Table might not have any items for this room, which is fine
+        // Log fetch errors (not just silently swallow them)
+        console.warn(`[saveWorkItemsForRoom] Error fetching items from ${tableName}:`, error.message);
       }
     });
 
@@ -788,6 +798,67 @@ export const useProjectManager = (appData, setAppData) => {
     return rooms;
   }, [projectRoomsData]);
 
+  // === RECEIPT MANAGEMENT ===
+
+  const getProjectReceipts = useCallback(async (projectId) => {
+    try {
+      const receipts = await api.receipts.getByProject(projectId);
+      return receipts || [];
+    } catch (error) {
+      console.error('[SUPABASE] Error fetching receipts:', error);
+      return [];
+    }
+  }, []);
+
+  const addReceipt = useCallback(async (projectId, receiptData) => {
+    try {
+      const receipt = await api.receipts.create({
+        project_id: projectId,
+        image_url: receiptData.imageUrl,
+        amount: receiptData.totalAmount,
+        merchant_name: receiptData.vendorName,
+        receipt_date: receiptData.date,
+        items: receiptData.items || [],
+        raw_ocr_text: receiptData.rawText
+      });
+      return receipt;
+    } catch (error) {
+      console.error('[SUPABASE] Error adding receipt:', error);
+      throw error;
+    }
+  }, []);
+
+  const deleteReceipt = useCallback(async (receiptId) => {
+    try {
+      await api.receipts.delete(receiptId);
+    } catch (error) {
+      console.error('[SUPABASE] Error deleting receipt:', error);
+      throw error;
+    }
+  }, []);
+
+  const analyzeReceiptImage = useCallback(async (imageBase64) => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/analyze-receipt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ imageBase64 })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze receipt');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error analyzing receipt:', error);
+      throw error;
+    }
+  }, []);
+
   return {
     findProjectById,
     addProject,
@@ -802,6 +873,11 @@ export const useProjectManager = (appData, setAppData) => {
     addRoomToProject,
     updateProjectRoom,
     deleteProjectRoom,
-    getProjectRooms
+    getProjectRooms,
+    // Receipt functions
+    getProjectReceipts,
+    addReceipt,
+    deleteReceipt,
+    analyzeReceiptImage
   };
 };

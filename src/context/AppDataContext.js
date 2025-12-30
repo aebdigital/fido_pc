@@ -121,8 +121,8 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Auxiliary and finishing work', price: 10, unit: '%' }
         ],
         material: [
-          { name: 'Partition masonry', subtitle: '75 - 175mm', price: 30, unit: '€/m²', materialKey: 'brick_partition' },
-          { name: 'Load-bearing masonry', subtitle: '200 - 450mm', price: 160, unit: '€/m²', materialKey: 'brick_load_bearing_wall' },
+          { name: 'Partition masonry', subtitle: '75 - 175mm', price: 30, unit: '€/m²', materialKey: 'brick_partitions' },
+          { name: 'Load-bearing masonry', subtitle: '200 - 450mm', price: 160, unit: '€/m²', materialKey: 'brick_load_bearing' },
           { name: 'Plasterboard', subtitle: 'simple, partition', price: 7, unit: '€/pc', capacity: { value: 1, unit: 'm²' }, materialKey: 'plasterboarding_partition_simple' },
           { name: 'Plasterboard', subtitle: 'double, partition', price: 99, unit: '€/pc', capacity: { value: 99, unit: 'm²' }, materialKey: 'plasterboarding_partition_double' },
           { name: 'Plasterboard', subtitle: 'triple, partition', price: 99, unit: '€/pc', capacity: { value: 99, unit: 'm²' }, materialKey: 'plasterboarding_partition_triple' },
@@ -144,6 +144,7 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Silicone', price: 8, unit: '€/pkg', capacity: { value: 15, unit: 'm' }, materialKey: 'siliconing' },
           { name: 'Tiles', subtitle: 'ceramic', price: 25, unit: '€/m²', materialKey: 'tiling_under_60' },
           { name: 'Pavings', subtitle: 'ceramic', price: 25, unit: '€/m²', materialKey: 'paving_under_60' },
+          { name: 'Grout', subtitle: 'tiling and paving', price: 12, unit: '€/pkg', capacity: { value: 5, unit: 'm²' }, materialKey: 'grouting' },
           { name: 'Auxiliary and fastening material', price: 10, unit: '%' }
         ],
         installations: [
@@ -163,8 +164,8 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Sanitary installations', subtitle: 'Mirror', price: 50, unit: '€/pc' }
         ],
         others: [
-          { name: 'Scaffolding', price: 10, unit: '€/day' },
           { name: 'Scaffolding', subtitle: 'assembly and disassembly', price: 30, unit: '€/m²' },
+          { name: 'Scaffolding', subtitle: 'rental per day', price: 10, unit: '€/m²/day' },
           { name: 'Core Drill', price: 25, unit: '€/h' },
           { name: 'Tool rental', price: 10, unit: '€/h' },
           { name: 'Custom work and material', price: 50, unit: '€' },
@@ -602,6 +603,12 @@ export const AppDataProvider = ({ children }) => {
     // History functions
     getProjectHistory: projectManager.getProjectHistory,
     addProjectHistoryEntry: projectManager.addProjectHistoryEntry,
+
+    // Receipt functions
+    getProjectReceipts: projectManager.getProjectReceipts,
+    addReceipt: projectManager.addReceipt,
+    deleteReceipt: projectManager.deleteReceipt,
+    analyzeReceiptImage: projectManager.analyzeReceiptImage,
 
     // Room functions
     addRoomToProject: projectManager.addRoomToProject,

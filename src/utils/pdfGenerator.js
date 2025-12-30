@@ -1,8 +1,42 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import QRCode from 'qrcode';
 import { InterRegular } from './fonts/InterRegular';
 import { InterBold } from './fonts/InterBold';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/constants';
+
+// Generate EPC QR code for SEPA payment (Slovak "Pay by Square" compatible)
+const generatePaymentQRCode = async (iban, bic, amount, invoiceNumber, recipientName) => {
+  try {
+    // EPC QR code format (European Payments Council)
+    // This is the standard format used in Slovakia for payment QR codes
+    const epcData = [
+      'BCD',                           // Service Tag
+      '002',                           // Version
+      '1',                             // Character set (1 = UTF-8)
+      'SCT',                           // Identification (SEPA Credit Transfer)
+      bic || '',                       // BIC/SWIFT of beneficiary bank
+      recipientName?.substring(0, 70) || '', // Name of beneficiary (max 70 chars)
+      iban?.replace(/\s/g, '') || '',  // IBAN of beneficiary
+      `EUR${amount?.toFixed(2) || '0.00'}`, // Amount in EUR
+      '',                              // Purpose (optional)
+      invoiceNumber || '',             // Remittance reference (variable symbol)
+      '',                              // Remittance text (optional)
+      ''                               // Beneficiary to originator info (optional)
+    ].join('\n');
+
+    const qrDataUrl = await QRCode.toDataURL(epcData, {
+      width: 150,
+      margin: 1,
+      errorCorrectionLevel: 'M'
+    });
+
+    return qrDataUrl;
+  } catch (error) {
+    console.warn('Failed to generate payment QR code:', error);
+    return null;
+  }
+};
 
 // Helper to determine work item unit based on propertyId and fields
 // Returns just the unit (like 'm²', 'ks', 'h') without €/ prefix
@@ -99,7 +133,7 @@ const sanitizeText = (text) => {
   return String(text);
 };
 
-export const generateInvoicePDF = ({
+export const generateInvoicePDF = async ({
   invoice,
   contractor,
   client,
@@ -593,6 +627,39 @@ export const generateInvoicePDF = ({
     doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
     doc.text(sanitizeText(formatCurrency(totalWithVAT)), rightX, totalY, { align: 'right' });
 
+    // === QR CODE SECTION - Left side, below table (only for invoices, not price offers) ===
+    if (!isPriceOffer) {
+      const bankAccount = contractor?.bank_account_number || contractor?.bankAccount;
+      const swiftCode = contractor?.swift_code || contractor?.bankCode;
+
+      if (bankAccount) {
+        try {
+          const qrCodeDataUrl = await generatePaymentQRCode(
+            bankAccount,
+            swiftCode,
+            totalWithVAT,
+            invoice.invoiceNumber,
+            contractor?.name
+          );
+
+          if (qrCodeDataUrl) {
+            const qrSize = 30;
+            const qrX = 20;
+            const qrY = finalY + 5;
+
+            doc.addImage(qrCodeDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+
+            // Add label below QR code
+            doc.setFontSize(6);
+            doc.setFont('Inter', 'normal');
+            doc.text(sanitizeText(t('Scan to pay')), qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+          }
+        } catch (e) {
+          console.warn('Failed to add QR code to PDF:', e);
+        }
+      }
+    }
+
     // === SIGNATURE SECTION ===
     const signatureY = totalY + 12; // Proportionally moved down
     doc.setFontSize(9);
@@ -617,7 +684,21 @@ export const generateInvoicePDF = ({
       doc.line(rightX - 40, signatureY + 18, rightX, signatureY + 18);
     }
 
-    // === INVOICE NOTES - Centered above footer ===
+    // Calculate the bottom of the content (signature section bottom)
+    const signatureBottomY = signatureY + 23; // signature image ends at signatureY + 3 + 20
+
+    // === FOOTER SECTION - Contractor info ===
+    // Check if content would collide with footer - footer starts at Y=252
+    // If signature bottom is too close to footer, move entire footer to a new page
+    const footerStartY = 252;
+    const needsNewPage = signatureBottomY > (footerStartY - 10); // 10px safety margin
+
+    if (needsNewPage) {
+      doc.addPage();
+    }
+
+    // === INVOICE NOTES - Centered above footer icons ===
+    // Notes go above the footer on the same page as the footer
     if (invoice.notes) {
       doc.setFontSize(8);
       doc.setFont('Inter', 'normal');
@@ -625,9 +706,8 @@ export const generateInvoicePDF = ({
       doc.text(notesText, 105, 242, { align: 'center' });
     }
 
-    // === FOOTER SECTION - Contractor info ===
-
     // Top row ABOVE divider: Name | Phone | Web | Email (equally spaced with icons)
+    // Footer is always at the bottom of the page (same Y positions), just on a new page if needed
     const topRowY = 252;
     const pageWidth = 170; // usable width (20 to 190)
     const startX = 20;

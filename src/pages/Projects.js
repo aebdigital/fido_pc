@@ -546,21 +546,6 @@ const Projects = () => {
                     <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{project.number || project.id}</span>
-                        {/* Project Status Badge */}
-                        <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
-                          project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid'
-                            ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                            : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent'
-                            ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                            : project.invoiceStatus === 'neuhradeny'
-                            ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                            : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                        }`}>
-                          {t(project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid' ? 'vyfakturovany'
-                            : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent' ? 'odoslany'
-                            : project.invoiceStatus === 'neuhradeny' ? 'neuhradeny'
-                            : 'neodoslany')}
-                        </span>
                       </div>
                       <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
                       {/* Client name - only visible on desktop */}
@@ -579,8 +564,25 @@ const Projects = () => {
                     ) : (
                       <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
                         <div className="text-right">
-                          <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
+                          {/* Status Badge - above price */}
+                          <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${
+                            project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid'
+                              ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                              : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent'
+                              ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                              : project.invoiceStatus === 'neuhradeny'
+                              ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                              : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                          }`}>
+                            {t(project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid' ? 'vyfakturovany'
+                              : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent' ? 'odoslany'
+                              : project.invoiceStatus === 'neuhradeny' ? 'neuhradeny'
+                              : 'neodoslany')}
+                          </span>
+                          {/* Price */}
                           <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                          {/* VAT not included - below price */}
+                          <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                       </div>

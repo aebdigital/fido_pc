@@ -396,7 +396,6 @@ export const invoicesApi = {
         .from('invoices')
         .select(`
           *,
-          clients (id, name),
           projects!invoices_project_id_fkey (id, name, category),
           contractors (id, name)
         `)
@@ -423,7 +422,6 @@ export const invoicesApi = {
         .from('invoices')
         .select(`
           *,
-          clients (*),
           projects!invoices_project_id_fkey (*),
           contractors (*)
         `)
@@ -697,6 +695,75 @@ export const invoiceSettingsApi = {
   }
 }
 
+// ========== RECEIPTS ==========
+
+export const receiptsApi = {
+  // Get all receipts for a project
+  getByProject: async (projectId) => {
+    try {
+      const { data, error } = await supabase
+        .from('receipts')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('receipt_date', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      handleError('receiptsApi.getByProject', error)
+    }
+  },
+
+  // Create new receipt
+  create: async (receiptData) => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('receipts')
+        .insert([{ ...receiptData, user_id: userId }])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('receiptsApi.create', error)
+    }
+  },
+
+  // Update receipt
+  update: async (id, updates) => {
+    try {
+      const { data, error } = await supabase
+        .from('receipts')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('receiptsApi.update', error)
+    }
+  },
+
+  // Delete receipt
+  delete: async (id) => {
+    try {
+      const { error } = await supabase
+        .from('receipts')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('receiptsApi.delete', error)
+    }
+  }
+}
+
 // Export all APIs
 const api = {
   contractors: contractorsApi,
@@ -707,6 +774,7 @@ const api = {
   workItems: workItemsApi,
   priceLists: priceListsApi,
   invoiceSettings: invoiceSettingsApi,
+  receipts: receiptsApi,
 }
 
 export default api

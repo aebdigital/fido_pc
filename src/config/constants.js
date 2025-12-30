@@ -185,3 +185,23 @@ export const UNIT_TYPES = {
   DAYS: 'days',
   PACKAGE: 'pkg'
 };
+
+// Default areas for door/window deductions when detailed dimensions not available
+export const DEFAULT_AREAS = {
+  DOOR: 2,        // 2m² per door
+  WINDOW: 1.5     // 1.5m² per window
+};
+
+// Material calculation multipliers
+export const MATERIAL_MULTIPLIERS = {
+  FLOATING_FLOOR_EXTRA: 1.1  // 10% extra for floating floor
+};
+
+// Complementary work names (for database mapping)
+export const COMPLEMENTARY_WORK_NAMES = {
+  NETTING: 'Netting',
+  PAINTING: 'Painting',
+  PLASTERING: 'Plastering',
+  TILING_UNDER_60CM: 'Tiling under 60cm',
+  PENETRATION_COATING: 'Penetration coating'
+};

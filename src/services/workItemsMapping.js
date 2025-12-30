@@ -3,7 +3,7 @@
  * Maps between app's dynamic work item structure and database tables
  */
 
-import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
+import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, COMPLEMENTARY_WORK_NAMES } from '../config/constants';
 import { workProperties } from '../config/workProperties';
 
 // Map propertyId to database table name
@@ -75,6 +75,15 @@ export const PROPERTY_TO_TABLE = {
 export function workItemToDatabase(workItem, roomId, contractorId) {
   let tableName = PROPERTY_TO_TABLE[workItem.propertyId];
 
+  // Handle custom work/material - route to correct table based on selectedType
+  if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+    if (workItem.selectedType === 'Material') {
+      tableName = 'custom_materials';
+    } else {
+      tableName = 'custom_works';
+    }
+  }
+
   // Fallback for rentals items that might not have propertyId set correctly in older data
   // or if they are sub-items of 'rentals' property
   if (!tableName && workItem.name) {
@@ -104,11 +113,11 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
-        netting: workItem.complementaryWorks?.['Netting'] ? 1 : 0, // Should be constant but complementaryWorks keys are stored as strings
-        painting: workItem.complementaryWorks?.['Painting'] ? 1 : 0,
-        plastering: workItem.complementaryWorks?.['Plastering'] ? 1 : 0,
-        tiling: workItem.complementaryWorks?.['Tiling under 60cm'] ? 1 : 0,
-        penetration_one: workItem.complementaryWorks?.['Penetration coating'] ? 1 : 0,
+        netting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.NETTING] ? 1 : 0,
+        painting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PAINTING] ? 1 : 0,
+        plastering: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PLASTERING] ? 1 : 0,
+        tiling: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.TILING_UNDER_60CM] ? 1 : 0,
+        penetration_one: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0,
         penetration_two: 0,
         penetration_three: 0
       };
@@ -218,8 +227,8 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     case 'installation_of_door_jambs':
       return {
         ...baseRecord,
-        count: workItem.fields?.[WORK_ITEM_NAMES.COUNT] || workItem.fields?.['Počet'] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        price_per_door_jamb: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || workItem.fields?.['Cena'] || 0
+        count: workItem.fields?.[WORK_ITEM_NAMES.COUNT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        price_per_door_jamb: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
       };
 
     case 'custom_works':
@@ -286,9 +295,23 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
  */
 export function databaseToWorkItem(dbRecord, tableName) {
   // Find propertyId from table name
-  const propertyId = Object.keys(PROPERTY_TO_TABLE).find(
+  // Note: Some tables like custom_works are shared by multiple propertyIds (CUSTOM_WORK, COMMUTE)
+  // so we need to detect the correct one based on the record data
+  let propertyId = Object.keys(PROPERTY_TO_TABLE).find(
     key => PROPERTY_TO_TABLE[key] === tableName
   );
+
+  // Special handling for custom_works table - detect commute vs custom work
+  if (tableName === 'custom_works') {
+    const isCommuteRecord = (dbRecord.title === 'Cesta' || dbRecord.title === 'Commute') &&
+                            dbRecord.unit === 'km';
+    propertyId = isCommuteRecord ? WORK_ITEM_PROPERTY_IDS.COMMUTE : WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK;
+  }
+
+  // Special handling for custom_materials table
+  if (tableName === 'custom_materials') {
+    propertyId = WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK;
+  }
 
   if (!propertyId) {
     console.warn(`No propertyId mapping for table: ${tableName}`);
@@ -324,10 +347,10 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          'Netting': dbRecord.netting === 1,
-          'Painting': dbRecord.painting === 1,
-          'Plastering': dbRecord.plastering === 1,
-          'Tiling under 60cm': dbRecord.tiling === 1
+          [COMPLEMENTARY_WORK_NAMES.NETTING]: dbRecord.netting === 1,
+          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
+          [COMPLEMENTARY_WORK_NAMES.PLASTERING]: dbRecord.plastering === 1,
+          [COMPLEMENTARY_WORK_NAMES.TILING_UNDER_60CM]: dbRecord.tiling === 1
         }
       };
 
@@ -473,10 +496,11 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'custom_works':
-      // Detect if this is a commute item (saved with unit 'km' or title 'Cesta'/'Commute')
-      const isCommuteItem = dbRecord.unit === 'km' ||
-                            dbRecord.title === 'Cesta' ||
-                            dbRecord.title === 'Commute';
+      // Detect if this is a commute item
+      // Commute items have: title 'Cesta' or 'Commute', AND unit 'km', AND number_of_days > 0
+      // This distinguishes from custom work items that might also use 'km' unit
+      const isCommuteItem = (dbRecord.title === 'Cesta' || dbRecord.title === 'Commute') &&
+                            dbRecord.unit === 'km';
 
       if (isCommuteItem) {
         return {
@@ -497,6 +521,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         name: dbRecord.title,
+        selectedType: 'Work',
         selectedUnit: dbRecord.unit,
         fields: {
           [WORK_ITEM_NAMES.NAME]: dbRecord.title,
@@ -509,6 +534,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
       return {
         ...baseItem,
         name: dbRecord.title,
+        selectedType: 'Material',
         selectedUnit: dbRecord.unit,
         fields: {
           [WORK_ITEM_NAMES.NAME]: dbRecord.title,

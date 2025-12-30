@@ -7,7 +7,7 @@ import ContractorProfileModal from '../components/ContractorProfileModal';
 
 const Invoices = () => {
   const { t } = useLanguage();
-  const { contractors, activeContractorId, setActiveContractor, addContractor, updateContractor, getInvoicesForContractor, formatPrice, findProjectById, calculateProjectTotalPriceWithBreakdown, generalPriceList } = useAppData();
+  const { contractors, activeContractorId, setActiveContractor, addContractor, updateContractor, getInvoicesForContractor, formatPrice, findProjectById, calculateProjectTotalPriceWithBreakdown, generalPriceList, clients } = useAppData();
   const [selectedStatus, setSelectedStatus] = useState(t('All'));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -352,11 +352,42 @@ const Invoices = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">
+                  {/* Invoice number with dates */}
+                  <div className="flex items-center gap-2 mb-2 flex-wrap text-sm text-gray-500 dark:text-gray-400">
+                    <span className="lg:text-base">
                       {invoice.invoiceNumber}
                     </span>
-                    <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
+                    <span className="hidden lg:inline">•</span>
+                    <span className="hidden lg:inline">{t('Issue Date')}: {formatDate(invoice.issueDate)}</span>
+                    <span className="hidden lg:inline">•</span>
+                    <span className="hidden lg:inline">{t('Due Date')}: {formatDate(invoice.dueDate)}</span>
+                  </div>
+                  {/* Project name */}
+                  <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-1">
+                    {invoice.projectName}
+                  </h3>
+                  {/* Client name - below project name */}
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {(() => {
+                      const project = findProjectById(invoice.projectId, invoice.categoryId);
+                      if (project?.clientId) {
+                        const client = clients.find(c => c.id === project.clientId);
+                        return client?.name || t('No client');
+                      }
+                      return t('No client');
+                    })()}
+                  </div>
+                  {/* Mobile: dates below client */}
+                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1 lg:hidden">
+                    <span>{formatDate(invoice.issueDate)}</span>
+                    <span>→</span>
+                    <span>{formatDate(invoice.dueDate)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    {/* Status badge - above price */}
+                    <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${
                       invoice.status === 'sent'
                         ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
                         : invoice.status === 'paid'
@@ -365,19 +396,10 @@ const Invoices = () => {
                     }`}>
                       {t(invoice.status === 'sent' ? 'sent' : invoice.status === 'paid' ? 'Paid' : 'unsent')}
                     </span>
-                  </div>
-                  <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-1">
-                    {invoice.projectName}
-                  </h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span>{t('Issue Date')}: {formatDate(invoice.issueDate)}</span>
-                    <span>{t('Due Date')}: {formatDate(invoice.dueDate)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('Total price')}</div>
+                    {/* Price */}
                     <div className="font-semibold text-gray-900 dark:text-white text-lg">{getInvoiceTotal(invoice)} €</div>
+                    {/* VAT not included - below price */}
+                    <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                 </div>

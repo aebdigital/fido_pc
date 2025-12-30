@@ -69,13 +69,13 @@ export const MATERIAL_KEY_MAPPINGS = {
     subtitlePattern: 'ceiling'
   },
 
-  // Brick work
-  'brick_partition': {
+  // Brick work (keys match WORK_ITEM_PROPERTY_IDS)
+  'brick_partitions': {
     name: 'Partition masonry',
     namesSk: ['Murivo priečkové'],
     subtitlePattern: null
   },
-  'brick_load_bearing_wall': {
+  'brick_load_bearing': {
     name: 'Load-bearing masonry',
     namesSk: ['Murivo nosné'],
     subtitlePattern: null

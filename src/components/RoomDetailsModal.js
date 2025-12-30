@@ -804,7 +804,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
         onClick={handleClose}
       >
         <div 
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[85vh] lg:h-[90vh] max-h-[calc(100vh-2rem)] flex flex-col animate-slide-in"
+          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[75vh] lg:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in"
           onClick={(e) => e.stopPropagation()}
         >        
           {/* Header */}

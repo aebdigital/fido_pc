@@ -16,7 +16,10 @@ import {
   Image,
   X,
   StickyNote,
-  AlertTriangle
+  AlertTriangle,
+  Receipt,
+  Loader2,
+  Camera
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -61,7 +64,11 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     addProjectHistoryEntry,
     addProject,
     assignProjectToClient,
-    priceOfferSettings
+    priceOfferSettings,
+    getProjectReceipts,
+    addReceipt,
+    deleteReceipt,
+    analyzeReceiptImage
   } = useAppData();
 
   // Local state
@@ -97,6 +104,14 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
   const [photoDeleteMode, setPhotoDeleteMode] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
+
+  // Receipt state
+  const [receipts, setReceipts] = useState([]);
+  const [isLoadingReceipts, setIsLoadingReceipts] = useState(false);
+  const [showReceiptsModal, setShowReceiptsModal] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
+  const [isAnalyzingReceipt, setIsAnalyzingReceipt] = useState(false);
+  const receiptInputRef = useRef(null);
 
   // Refs
   const photoInputRef = useRef(null);
@@ -381,7 +396,92 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     setIsEditingDetailNotes(false);
   };
 
-  const handlePreviewPriceOffer = () => {
+  // === RECEIPT HANDLERS ===
+
+  const loadReceipts = async () => {
+    if (!project?.id) return;
+    setIsLoadingReceipts(true);
+    try {
+      const projectReceipts = await getProjectReceipts(project.id);
+      setReceipts(projectReceipts);
+    } catch (error) {
+      console.error('Error loading receipts:', error);
+    }
+    setIsLoadingReceipts(false);
+  };
+
+  const handleReceiptUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzingReceipt(true);
+
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Image = event.target.result;
+
+        try {
+          // Analyze with GPT-4 Vision
+          const analysisResult = await analyzeReceiptImage(base64Image);
+
+          // Save receipt with analyzed data
+          await addReceipt(project.id, {
+            imageUrl: base64Image,
+            totalAmount: analysisResult.total_amount || null,
+            vendorName: analysisResult.vendor_name || null,
+            date: analysisResult.date || null,
+            items: analysisResult.items || [],
+            rawText: analysisResult.raw_text || ''
+          });
+
+          // Refresh receipts list
+          await loadReceipts();
+          setIsAnalyzingReceipt(false);
+        } catch (error) {
+          console.error('Error analyzing receipt:', error);
+          alert(t('Failed to analyze receipt. Please try again.'));
+          setIsAnalyzingReceipt(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading receipt:', error);
+      setIsAnalyzingReceipt(false);
+    }
+
+    // Reset input
+    if (receiptInputRef.current) {
+      receiptInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteReceipt = async (receiptId) => {
+    try {
+      await deleteReceipt(receiptId);
+      setReceipts(receipts.filter(r => r.id !== receiptId));
+      if (selectedReceipt?.id === receiptId) {
+        setSelectedReceipt(null);
+      }
+    } catch (error) {
+      console.error('Error deleting receipt:', error);
+    }
+  };
+
+  const calculateReceiptsTotal = () => {
+    return receipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+  };
+
+  // Load receipts when modal opens
+  useEffect(() => {
+    if (showReceiptsModal && project?.id) {
+      loadReceipts();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showReceiptsModal, project?.id]);
+
+  const handlePreviewPriceOffer = async () => {
     // Ensure we have a valid project breakdown
     const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
 
@@ -419,7 +519,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         setPdfUrl(null);
       }
 
-      const result = generatePriceOfferPDF({
+      const result = await generatePriceOfferPDF({
         invoice: priceOfferData,
         contractor,
         client,
@@ -930,6 +1030,50 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             </div>
           </div>
 
+          {/* Receipts Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Receipts')}</h2>
+            </div>
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => receiptInputRef.current?.click()}
+                  disabled={isAnalyzingReceipt}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
+                >
+                  {isAnalyzingReceipt ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{t('Analyzing...')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4" />
+                      <span>{t('Add receipt')}</span>
+                    </>
+                  )}
+                </button>
+                <input
+                  ref={receiptInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleReceiptUpload}
+                />
+                <button
+                  onClick={() => setShowReceiptsModal(true)}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>{t('View receipts')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* History */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -1266,6 +1410,170 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           invoice={getInvoiceForProject(project.id)}
           hideViewProject={true}
         />
+      )}
+
+      {/* Receipts Modal */}
+      {showReceiptsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[75vh] lg:max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Receipts')}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t('Total')}: {formatPrice(calculateReceiptsTotal())}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowReceiptsModal(false);
+                  setSelectedReceipt(null);
+                }}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="w-5 h-5 lg:w-6 lg:h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+              {isLoadingReceipts ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                </div>
+              ) : receipts.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>{t('No receipts yet')}</p>
+                  <p className="text-sm mt-2">{t('Upload a receipt photo to track expenses')}</p>
+                </div>
+              ) : selectedReceipt ? (
+                // Receipt Detail View
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setSelectedReceipt(null)}
+                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    {t('Back to list')}
+                  </button>
+
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden">
+                    <img
+                      src={selectedReceipt.image_url}
+                      alt="Receipt"
+                      className="w-full max-h-64 object-contain bg-white dark:bg-gray-900"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    {selectedReceipt.merchant_name && (
+                      <div>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Vendor')}</span>
+                        <p className="font-medium text-gray-900 dark:text-white">{selectedReceipt.merchant_name}</p>
+                      </div>
+                    )}
+                    {selectedReceipt.receipt_date && (
+                      <div>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Date')}</span>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {new Date(selectedReceipt.receipt_date).toLocaleDateString('sk-SK')}
+                        </p>
+                      </div>
+                    )}
+                    {selectedReceipt.amount && (
+                      <div>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Amount')}</span>
+                        <p className="font-semibold text-lg text-gray-900 dark:text-white">
+                          {formatPrice(selectedReceipt.amount)}
+                        </p>
+                      </div>
+                    )}
+                    {selectedReceipt.items && selectedReceipt.items.length > 0 && (
+                      <div>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Items')}</span>
+                        <div className="mt-2 space-y-1">
+                          {selectedReceipt.items.map((item, idx) => (
+                            <div key={idx} className="flex justify-between text-sm">
+                              <span className="text-gray-700 dark:text-gray-300">
+                                {item.name} {item.quantity > 1 ? `(${item.quantity}x)` : ''}
+                              </span>
+                              <span className="text-gray-900 dark:text-white">{formatPrice(item.price)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleDeleteReceipt(selectedReceipt.id)}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {t('Delete receipt')}
+                  </button>
+                </div>
+              ) : (
+                // Receipts List
+                <div className="space-y-3">
+                  {receipts.map(receipt => (
+                    <div
+                      key={receipt.id}
+                      onClick={() => setSelectedReceipt(receipt)}
+                      className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-shrink-0">
+                        <img
+                          src={receipt.image_url}
+                          alt="Receipt"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 dark:text-white truncate">
+                          {receipt.merchant_name || t('Unknown vendor')}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {receipt.receipt_date ? new Date(receipt.receipt_date).toLocaleDateString('sk-SK') : t('No date')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          {receipt.amount ? formatPrice(receipt.amount) : '-'}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer with Add Button */}
+            {!selectedReceipt && (
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => receiptInputRef.current?.click()}
+                  disabled={isAnalyzingReceipt}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
+                >
+                  {isAnalyzingReceipt ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{t('Analyzing...')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>{t('Add receipt')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Animated Lightbox */}
