@@ -102,22 +102,15 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
           });
         }
 
-        if (addProjectHistoryEntry) {
-          // iOS does NOT add any history event when marking invoice as paid
-          // The 'finished' event is added when SENDING the invoice, not when marking as paid
-
-          const isEdit = updates.invoiceNumber || updates.issueDate || updates.paymentMethod || updates.notes || updates.dueDate || updates.paymentDays || updates.dispatchDate;
-          const hasNonStatusUpdates = Object.keys(updates).some(key => key !== 'status');
-
-          // Note: iOS doesn't have an 'invoice_edited' event, so we skip this for now
-          // If needed, we could add a custom event or use an existing one
-        }
+        // iOS does NOT add any history event when marking invoice as paid
+        // The 'finished' event is added when SENDING the invoice, not when marking as paid
+        // Note: iOS doesn't have an 'invoice_edited' event, so we skip history tracking here
       }
     } catch (error) {
       console.error('[SUPABASE] Error updating invoice:', error);
       throw error;
     }
-  }, [appData.invoices, setAppData, addProjectHistoryEntry, updateProject]);
+  }, [appData.invoices, setAppData, updateProject]);
 
   const deleteInvoice = useCallback(async (invoiceId) => {
     try {

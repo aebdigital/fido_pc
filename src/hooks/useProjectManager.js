@@ -3,7 +3,7 @@ import api from '../services/supabaseApi';
 import { databaseToWorkItem, getTableName, workItemToDatabase, tableCanHaveDoors, tableCanHaveWindows, doorToDatabase, windowToDatabase, doorFromDatabase, windowFromDatabase, TABLES_WITH_DOORS_WINDOWS } from '../services/workItemsMapping';
 import { analyzeReceipt } from '../services/openaiReceiptService';
 import { priceListToDbColumns } from '../services/priceListMapping';
-import { PROJECT_STATUS, PROJECT_EVENTS } from '../utils/dataTransformers';
+import { PROJECT_EVENTS } from '../utils/dataTransformers';
 import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';
@@ -742,7 +742,7 @@ export const useProjectManager = (appData, setAppData) => {
     } catch (error) {
       console.error(`[SUPABASE] Error loading details for project ${projectId}:`, error);
     }
-  }, [setAppData, appData.activeContractorId]);
+  }, [setAppData]);
 
   const addRoomToProject = useCallback(async (projectId, roomData) => {
     try {
@@ -783,7 +783,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error adding room:', error);
       throw error;
     }
-  }, [appData.activeContractorId, setAppData]);
+  }, [setAppData]);
 
   const saveWorkItemsForRoom = useCallback(async (roomId, workItems) => {
     // Get all possible work item tables to ensure we delete removed items too

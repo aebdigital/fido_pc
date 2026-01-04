@@ -17,7 +17,7 @@ import { useClientManager } from '../hooks/useClientManager';
 import { useProjectManager } from '../hooks/useProjectManager';
 import { useInvoiceManager } from '../hooks/useInvoiceManager';
 import { useContractorManager } from '../hooks/useContractorManager';
-import { priceListToDbColumns, dbColumnsToPriceList, getDbColumnForItem } from '../services/priceListMapping';
+import { dbColumnsToPriceList, getDbColumnForItem } from '../services/priceListMapping';
 import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';

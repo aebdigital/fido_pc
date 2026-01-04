@@ -46,18 +46,6 @@ const isValidIBAN = (iban) => {
   return remainder === 1;
 };
 
-// Check if user's locale is in SEPA zone
-const isInSEPACountry = () => {
-  try {
-    // Get country from browser locale
-    const locale = navigator.language || navigator.userLanguage || 'en-US';
-    const countryCode = locale.split('-')[1]?.toUpperCase() || '';
-    return SEPA_COUNTRIES.has(countryCode);
-  } catch {
-    return false;
-  }
-};
-
 // Check if IBAN country is in SEPA zone
 const isIBANInSEPACountry = (iban) => {
   if (!iban) return false;

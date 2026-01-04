@@ -438,11 +438,9 @@ export const translations = {
     "Back to Project List": "Späť na zoznam projektov",
     "Associate project with a client": "Asociovať projekt s klientom",
     "Select Client": "Vybrať klienta",
-    "not sent": "neodoslaný",
     "last change": "posledná zmena",
     "Duplicate": "Duplikovať",
     "History": "História",
-    "Created": "Vytvorené",
     "Preview": "Náhľad",
     "Send": "Odoslať",
     
@@ -598,8 +596,6 @@ export const translations = {
     // ========== INVOICES ==========
     "Any Time": "Kedykoľvek",
     "All": "Všetky",
-    "Paid": "Uhradené",
-    "Unpaid": "Neuhradené",
     "Overdue": "Po splatnosti",
     "There is no Invoice for selected Contractor.": "Pre vybraného dodávateľa nebola vytvorená žiadna faktúra.",
     "No invoice has been created for the selected supplier.": "Pre vybraného dodávateľa nebola vytvorená žiadna faktúra.",
@@ -647,7 +643,6 @@ export const translations = {
     "Invoice Paid": "Faktúra uhradená",
     "Invoice Edited": "Faktúra upravená",
     "Invoice Deleted": "Faktúra zmazaná",
-    "sent": "odoslaný",
     "unsent": "neodoslaný",
     "Select items and generate PDF": "vybrať položky a vegenerovať PDF",
     "View Project": "Zobraziť projekt",
