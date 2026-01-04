@@ -66,6 +66,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     addProjectHistoryEntry,
     addProject,
     assignProjectToClient,
+    removeProjectFromClient,
     priceOfferSettings,
     getProjectReceipts,
     addReceipt,
@@ -719,7 +720,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Klient')}</h2>
             </div>
-            <div 
+            <div
               onClick={() => !project.is_archived && setShowClientSelector(true)}
               className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
             >
@@ -731,7 +732,23 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   {selectedClientForProject ? selectedClientForProject.email : t('Associate project with a client')}
                 </div>
               </div>
-              {!project.is_archived && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {!project.is_archived && selectedClientForProject && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeProjectFromClient(selectedClientForProject.id, project.id);
+                      updateProject(project.category, project.id, { clientId: null });
+                      setSelectedClientForProject(null);
+                    }}
+                    className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    title={t('Remove')}
+                  >
+                    <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  </button>
+                )}
+                {!project.is_archived && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
+              </div>
             </div>
           </div>
 
