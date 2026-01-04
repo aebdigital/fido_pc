@@ -256,7 +256,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                           </div>
               
                           {/* Issue Date */}
-                          <div className="max-w-full overflow-hidden">
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                               {t('Issue Date')}
                             </label>
@@ -264,12 +264,13 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                               type="date"
                               value={issueDate}
                               onChange={(e) => setIssueDate(e.target.value)}
-                              className="w-full max-w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
+                              className="w-full min-w-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white appearance-none"
+                              style={{ WebkitAppearance: 'none' }}
                             />
                           </div>
 
                           {/* Date of Dispatch */}
-                          <div className="max-w-full overflow-hidden">
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                               {t('Date of Dispatch')}
                             </label>
@@ -277,7 +278,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                               type="date"
                               value={dispatchDate}
                               onChange={(e) => setDispatchDate(e.target.value)}
-                              className="w-full max-w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
+                              className="w-full min-w-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white appearance-none"
+                              style={{ WebkitAppearance: 'none' }}
                             />
                           </div>
                           
