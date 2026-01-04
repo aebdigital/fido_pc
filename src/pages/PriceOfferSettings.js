@@ -141,30 +141,34 @@ const PriceOfferSettings = ({ onBack }) => {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4 lg:mb-6">
             <Clock className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Validity Period')}</h2>
+            <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Price offer validity')}</h2>
           </div>
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              {/* Left side - Text */}
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-white text-lg mb-1">{t('Offer validity period')}</h3>
-                <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('How long price offers remain valid')}</p>
-              </div>
-              {/* Right side - Input with autosave */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  value={timeLimit}
-                  onChange={(e) => handleTimeLimitChange(e.target.value)}
-                  min="1"
-                  max="365"
-                  className="w-20 p-2 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 text-center"
-                />
-                <span className="text-gray-600 dark:text-gray-400">{t('days')}</span>
+            <div className="flex flex-col gap-4">
+              {/* Duration buttons */}
+              <div className="flex items-center gap-2 lg:gap-3">
+                <div className="grid grid-cols-4 gap-2 flex-1 lg:flex lg:flex-initial lg:gap-3">
+                  {[7, 14, 30, 60].map((days) => (
+                    <button
+                      key={days}
+                      onClick={() => handleTimeLimitChange(days)}
+                      className={`py-1.5 lg:px-4 lg:py-2 rounded-xl font-semibold transition-colors text-sm lg:text-base text-center ${
+                        timeLimit === days
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                          : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      {days} {t('days')}
+                    </button>
+                  ))}
+                </div>
                 {isSaving && (
-                  <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                  <Loader2 className="w-4 h-4 text-gray-400 animate-spin ml-2" />
                 )}
               </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('Validity of your price offers will be set for')} {timeLimit} {t('days')} {t('since creation')}.
+              </p>
             </div>
           </div>
         </div>
@@ -204,8 +208,8 @@ const PriceOfferSettings = ({ onBack }) => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 truncate">{contractor.name}</h3>
-                          {contractor.contactPerson && (
-                            <p className="text-gray-600 dark:text-gray-400 truncate">{contractor.contactPerson}</p>
+                          {contractor.businessId && (
+                            <p className="text-gray-600 dark:text-gray-400 truncate">{contractor.businessId}</p>
                           )}
                         </div>
                       </div>

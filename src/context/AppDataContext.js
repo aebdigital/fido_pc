@@ -2,14 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from '../services/supabaseApi';
 import { useAuth } from './AuthContext';
 import { useLanguage } from './LanguageContext'; // Import useLanguage
-import { 
-  transformClientFromDB, 
-  transformContractorFromDB, 
-  transformInvoiceFromDB 
+import {
+  transformClientFromDB,
+  transformContractorFromDB,
+  transformInvoiceFromDB
 } from '../utils/dataTransformers';
-import { 
-  calculateRoomPrice, 
-  calculateRoomPriceWithMaterials, 
+import {
+  calculateRoomPrice,
+  calculateRoomPriceWithMaterials,
   calculateWorkItemWithMaterials,
   formatPrice
 } from '../utils/priceCalculations';
@@ -17,6 +17,7 @@ import { useClientManager } from '../hooks/useClientManager';
 import { useProjectManager } from '../hooks/useProjectManager';
 import { useInvoiceManager } from '../hooks/useInvoiceManager';
 import { useContractorManager } from '../hooks/useContractorManager';
+import { priceListToDbColumns, dbColumnsToPriceList, getDbColumnForItem } from '../services/priceListMapping';
 import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';
@@ -168,7 +169,6 @@ export const AppDataProvider = ({ children }) => {
           { name: 'Scaffolding', subtitle: 'rental per day', price: 10, unit: '€/m²/day' },
           { name: 'Core Drill', price: 25, unit: '€/h' },
           { name: 'Tool rental', price: 10, unit: '€/h' },
-          { name: 'Custom work and material', price: 50, unit: '€' },
           { name: 'Commute', price: 1, unit: '€/km' },
           { name: 'VAT', price: 23, unit: '%' }
         ]
@@ -246,6 +246,20 @@ export const AppDataProvider = ({ children }) => {
                 console.warn('Failed to parse price_list_snapshot for project:', project.id);
               }
             }
+
+            // Fallback: If priceListSnapshot is null but project has a price_list_id,
+            // try to build it from the price_lists table (iOS-created projects store prices there)
+            if (!priceListSnapshot && project.price_list_id) {
+              const linkedPriceList = (allPriceLists || []).find(pl => pl.c_id === project.price_list_id);
+              if (linkedPriceList) {
+                try {
+                  priceListSnapshot = dbColumnsToPriceList(linkedPriceList, getDefaultData().generalPriceList);
+                  console.log('[SUPABASE] Built priceListSnapshot from price_lists table for project:', project.id);
+                } catch (e) {
+                  console.warn('Failed to build priceListSnapshot from price_lists for project:', project.id, e);
+                }
+              }
+            }
             let photos = [];
             if (project.photos) {
               try {
@@ -292,7 +306,7 @@ export const AppDataProvider = ({ children }) => {
           // Build contractor projects structure
           const contractorProjects = {};
           transformedContractors.forEach(contractor => {
-            const contractorProjectsList = transformedProjects.filter(p => p.c_id === contractor.id);
+            const contractorProjectsList = transformedProjects.filter(p => p.contractor_id === contractor.id);
     
                       // Group projects by category
                       const categories = getDefaultCategories().map(cat => ({
@@ -309,11 +323,28 @@ export const AppDataProvider = ({ children }) => {
           // Get active contractor (first one or null)
           const activeContractorId = transformedContractors.length > 0 ? transformedContractors[0].id : null;
           const activeContractor = transformedContractors.find(c => c.id === activeContractorId);
-    
-          // Use price list from database or default
-          // Find the price list that matches the active contractor
-          const priceListData = (allPriceLists || []).find(pl => pl.c_id === activeContractorId);
-          const generalPriceList = priceListData?.data || getDefaultData().generalPriceList;
+
+          // Find the GENERAL price list for this contractor (is_general=true)
+          // This is the iOS-compatible format where general price list has is_general=true
+          const generalPriceListData = (allPriceLists || []).find(
+            pl => pl.contractor_id === activeContractorId && pl.is_general === true
+          );
+
+          // Fallback: try old format where price list was identified by c_id = activeContractorId
+          const legacyPriceListData = !generalPriceListData
+            ? (allPriceLists || []).find(pl => pl.c_id === activeContractorId)
+            : null;
+
+          const priceListData = generalPriceListData || legacyPriceListData;
+
+          // Load from individual columns (for iOS compatibility)
+          let generalPriceList;
+          if (priceListData) {
+            // Convert database columns to generalPriceList format
+            generalPriceList = dbColumnsToPriceList(priceListData, getDefaultData().generalPriceList);
+          } else {
+            generalPriceList = getDefaultData().generalPriceList;
+          }
           
           // Load price offer settings from active contractor
           let priceOfferSettings = getDefaultData().priceOfferSettings;
@@ -500,6 +531,7 @@ export const AppDataProvider = ({ children }) => {
   };
 
   // General price list management functions
+  // iOS-compatible: saves to price_lists table with is_general=true and contractor_id
   const updateGeneralPriceList = (category, itemIndex, newPrice) => {
     setAppData(prev => {
       const newGeneralPriceList = {
@@ -511,10 +543,16 @@ export const AppDataProvider = ({ children }) => {
 
       // Save to Supabase if we have a contractor
       if (prev.activeContractorId) {
-        api.priceLists.upsert({
-          c_id: prev.activeContractorId,
-          data: newGeneralPriceList
-        }).catch(err => console.error('Failed to save price list:', err));
+        // Get the database column name for this specific item
+        const columnName = getDbColumnForItem(category, itemIndex);
+
+        if (columnName) {
+          // Save individual column value to GENERAL price list (is_general=true)
+          // This is what iOS reads in Settings > Prices
+          const updateData = { [columnName]: parseFloat(newPrice) };
+          api.priceLists.upsertGeneral(prev.activeContractorId, updateData)
+            .catch(err => console.error('Failed to save general price list:', err));
+        }
       }
 
       return {
@@ -528,7 +566,7 @@ export const AppDataProvider = ({ children }) => {
     // Get the original price from defaults (we'll need to store this)
     const defaultData = getDefaultData();
     const originalPrice = defaultData.generalPriceList[category][itemIndex]?.price;
-    
+
     if (originalPrice !== undefined) {
       setAppData(prev => {
         const newGeneralPriceList = {
@@ -540,10 +578,15 @@ export const AppDataProvider = ({ children }) => {
 
         // Save to Supabase if we have a contractor
         if (prev.activeContractorId) {
-          api.priceLists.upsert({
-            c_id: prev.activeContractorId,
-            data: newGeneralPriceList
-          }).catch(err => console.error('Failed to save price list:', err));
+          // Get the database column name for this specific item
+          const columnName = getDbColumnForItem(category, itemIndex);
+
+          if (columnName) {
+            // Save individual column value to GENERAL price list (is_general=true)
+            const updateData = { [columnName]: originalPrice };
+            api.priceLists.upsertGeneral(prev.activeContractorId, updateData)
+              .catch(err => console.error('Failed to save general price list:', err));
+          }
         }
 
         return {

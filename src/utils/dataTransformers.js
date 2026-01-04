@@ -1,4 +1,92 @@
 
+// ============================================================================
+// iOS-COMPATIBLE CONSTANTS
+// These match the iOS app's enum values for consistency across platforms
+// ============================================================================
+
+// Project Status - matches iOS ProjectStatus enum
+// iOS stores as Int64: 0=notSent, 1=sent, 2=approved, 3=finished
+export const PROJECT_STATUS = {
+  NOT_SENT: 0,
+  SENT: 1,
+  APPROVED: 2,
+  FINISHED: 3
+};
+
+// Project Events - matches iOS ProjectEvents enum (rawValue strings)
+// Used for history events
+export const PROJECT_EVENTS = {
+  CREATED: 'created',
+  NOT_SENT: 'notSent',
+  SENT: 'sent',
+  APPROVED: 'approved',
+  ARCHIVED: 'archived',
+  UNARCHIVED: 'unArchived',
+  DUPLICATED: 'duplicated',
+  INVOICE_SENT: 'invoiceSent',
+  INVOICE_GENERATED: 'invoiceGenerated',
+  FINISHED: 'finished',
+  INVOICE_DELETED: 'invoiceDeleted'
+};
+
+// Invoice Status - matches iOS InvoiceStatus enum
+// iOS uses: paid, unpaid, afterMaturity
+// Database uses: paid, unsent, overdue (mapped via statusToDatabase/statusFromDatabase in iOS)
+export const INVOICE_STATUS = {
+  // App-side values (iOS compatible)
+  UNPAID: 'unpaid',
+  PAID: 'paid',
+  AFTER_MATURITY: 'afterMaturity'
+};
+
+// Map iOS invoice status to database status
+export const invoiceStatusToDatabase = (iosStatus) => {
+  switch (iosStatus) {
+    case 'unpaid': return 'unsent';
+    case 'afterMaturity': return 'overdue';
+    case 'paid': return 'paid';
+    default: return iosStatus;
+  }
+};
+
+// Map database invoice status to iOS status
+export const invoiceStatusFromDatabase = (dbStatus) => {
+  switch (dbStatus) {
+    case 'unsent': return 'unpaid';
+    case 'overdue': return 'afterMaturity';
+    case 'paid': return 'paid';
+    default: return dbStatus;
+  }
+};
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+// Helper to format project number the iOS way: year + 3-digit sequential number
+// iOS stores only the sequential number (1, 2, 3...) in `number` field
+// and computes projectNumber as year from dateCreated + padded number
+// e.g., number=3, dateCreated=2026 -> "2026003"
+export const formatProjectNumber = (project) => {
+  if (!project) return '';
+
+  const number = parseInt(project.number || 0);
+
+  // If number is already in year+sequence format (legacy), return as is
+  // Legacy format: 2026001, 2026002, etc. (7 digits starting with 202x)
+  if (number >= 2020000 && number <= 2099999) {
+    return String(number);
+  }
+
+  // iOS format: just the sequential number (1, 2, 3...)
+  // Compute display as year + 3-digit padded number
+  const createdDate = project.createdDate ? new Date(project.createdDate) : new Date();
+  const year = createdDate.getFullYear();
+  const paddedNumber = String(number).padStart(3, '0');
+
+  return `${year}${paddedNumber}`;
+};
+
 // Helper to transform invoice from database format to app format
 export const transformInvoiceFromDB = (dbInvoice) => {
   if (!dbInvoice) return null;
@@ -23,7 +111,7 @@ export const transformInvoiceFromDB = (dbInvoice) => {
     paymentMethod: dbInvoice.payment_type,
     paymentDays: maturityDays,
     notes: dbInvoice.note,
-    status: dbInvoice.status,
+    status: invoiceStatusFromDatabase(dbInvoice.status), // Convert DB status to iOS-compatible status
     projectId: dbInvoice.project_id,
     projectName: dbInvoice.projects?.name || '',
     categoryId: dbInvoice.projects?.category || '',
@@ -84,6 +172,14 @@ export const transformContractorToDB = (contractorData) => {
   };
 };
 
+// Normalize client type to iOS values (personal/corporation)
+// Desktop used to use private/business, iOS uses personal/corporation
+const normalizeClientType = (type) => {
+  if (type === 'private' || type === 'personal') return 'personal';
+  if (type === 'business' || type === 'corporation') return 'corporation';
+  return 'personal';
+};
+
 // Helper to transform client from DB (snake_case) to App (camelCase)
 export const transformClientFromDB = (dbClient) => {
   if (!dbClient) return null;
@@ -101,7 +197,7 @@ export const transformClientFromDB = (dbClient) => {
     taxId: dbClient.tax_id,
     vatId: dbClient.vat_registration_number,
     contactPerson: dbClient.contact_person_name,
-    type: dbClient.type,
+    type: normalizeClientType(dbClient.type),
     contractorId: dbClient.contractor_id || dbClient.c_id,
     userId: dbClient.user_id,
     createdAt: dbClient.created_at,
@@ -124,6 +220,6 @@ export const transformClientToDB = (clientData) => {
     tax_id: clientData.taxId || null,
     vat_registration_number: clientData.vatId || null,
     contact_person_name: clientData.contactPerson || null,
-    type: clientData.type || 'private'
+    type: normalizeClientType(clientData.type) // Use iOS values: personal/corporation
   };
 };

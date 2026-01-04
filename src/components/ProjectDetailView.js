@@ -26,6 +26,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { generatePriceOfferPDF } from '../utils/pdfGenerator';
 import { compressImage } from '../utils/imageCompression';
 import { hasWorkItemInput } from '../utils/priceCalculations';
+import { formatProjectNumber, PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS } from '../utils/dataTransformers';
 import { workProperties } from '../config/workProperties';
 import RoomDetailsModal from './RoomDetailsModal';
 import ProjectPriceList from './ProjectPriceList';
@@ -45,6 +46,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     setActiveContractor,
     addContractor,
     addClient, // Add this
+    projectCategories,
     updateProject,
     archiveProject,
     unarchiveProject,
@@ -145,7 +147,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       setSelectedClientForProject(null);
     }
 
-    setProjectDetailNotes(project.detail_notes || '');
+    setProjectDetailNotes(project.detailNotes || '');
     setProjectPhotos(project.photos || []);
   }, [project, clients]);
 
@@ -253,7 +255,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const handleSaveProjectPriceList = (priceData) => {
     updateProject(project.category, project.id, { priceListSnapshot: priceData });
-    setShowProjectPriceList(false);
+    // Don't close the modal - let user continue editing
+    // Modal will close when user clicks the X button
   };
 
   const handleDuplicateProject = async () => {
@@ -280,7 +283,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const handleAssignProjectContractor = async (newContractorId) => {
     try {
-      await updateProject(project.category, project.id, { c_id: newContractorId });
+      await updateProject(project.category, project.id, { contractor_id: newContractorId });
       setActiveContractor(newContractorId);
       setShowContractorSelector(false);
       // Removed onBack() to keep user in project detail view
@@ -332,7 +335,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         quality: 0.7
       });
       newPhotos.push({
-        id: Date.now() + Math.random(),
+        id: crypto.randomUUID(), // Use string UUID for iOS compatibility
         url: compressedBase64,
         name: file.name,
         createdAt: new Date().toISOString()
@@ -361,7 +364,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         quality: 0.7
       });
       newPhotos.push({
-        id: Date.now() + Math.random(),
+        id: crypto.randomUUID(), // Use string UUID for iOS compatibility
         url: compressedBase64,
         name: file.name,
         createdAt: new Date().toISOString()
@@ -392,7 +395,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const handleSaveDetailNotes = () => {
-    updateProject(project.category, project.id, { detail_notes: projectDetailNotes });
+    updateProject(project.category, project.id, { detailNotes: projectDetailNotes });
     setIsEditingDetailNotes(false);
   };
 
@@ -531,7 +534,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         formatDate,
         formatPrice,
         projectNotes: project.notes,
-        projectNumber: project.number,
+        projectNumber: formatProjectNumber(project),
         offerValidityPeriod: priceOfferSettings?.timeLimit || 30
       }, t); // Pass t as the second argument
       setPdfUrl(result.blobUrl);
@@ -573,10 +576,18 @@ ${project.notes ? `
 ${t('Notes_CP')}: ${project.notes}` : ''}
     `.trim();
 
-    // Track history
+    // Track history - iOS compatible
     addProjectHistoryEntry(project.id, {
-      type: 'Price offer sent'
+      type: PROJECT_EVENTS.SENT // iOS compatible: 'sent'
     });
+
+    // Update project status to SENT (1) - iOS compatible
+    const category = projectCategories.find(cat => cat.projects.some(p => p.id === project.id));
+    if (category && updateProject) {
+      updateProject(category.id, project.id, {
+        status: PROJECT_STATUS.SENT // iOS: 1
+      });
+    }
 
     if (navigator.share) {
       try {
@@ -642,26 +653,26 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-base lg:text-lg text-gray-700 dark:text-gray-300">{project.number || project.id}</span>
+            <span className="text-base lg:text-lg text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || project.id}</span>
             {project.is_archived && (
               <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs lg:text-sm font-medium rounded-full">
                 {t('Archived')}
               </span>
             )}
-            {/* Project Status Badge */}
+            {/* Project Status Badge - Uses same logic as Projects list */}
             <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
-              project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid'
-                ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent'
-                ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                : project.invoiceStatus === 'neuhradeny'
+              project.status === PROJECT_STATUS.FINISHED
                 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                : project.status === PROJECT_STATUS.APPROVED
+                ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                : project.status === PROJECT_STATUS.SENT
+                ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
                 : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
             }`}>
-              {t(project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid' ? 'vyfakturovany'
-                : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent' ? 'odoslany'
-                : project.invoiceStatus === 'neuhradeny' ? 'neuhradeny'
-                : 'neodoslany')}
+              {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
+                : project.status === PROJECT_STATUS.APPROVED ? 'approved'
+                : project.status === PROJECT_STATUS.SENT ? 'sent'
+                : 'not sent')}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -884,14 +895,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${ 
-                        invoice.status === 'sent'
+                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                        invoice.status === INVOICE_STATUS.PAID
                           ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                          : invoice.status === 'paid'
-                          ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                          : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                          : invoice.status === INVOICE_STATUS.AFTER_MATURITY
+                          ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                          : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
                       }`}>
-                        {t(invoice.status === 'sent' ? 'sent' : invoice.status === 'paid' ? 'Paid' : 'unsent')}
+                        {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
+                          : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
+                          : 'Unpaid')}
                       </span>
                       {!project.is_archived && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
                     </div>
@@ -944,14 +957,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                             <button
                               key={contractor.id}
                               onClick={() => handleAssignProjectContractor(contractor.id)}
-                              className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${ 
-                                (project.c_id || activeContractorId) === contractor.id
+                              className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${
+                                (project.contractor_id || activeContractorId) === contractor.id
                                   ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                                   : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
                               }`}
                             >
                               <span className="font-medium truncate">{contractor.name}</span>
-                              {(project.c_id || activeContractorId) === contractor.id && (
+                              {(project.contractor_id || activeContractorId) === contractor.id && (
                                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                               )}
                             </button>
@@ -1083,28 +1096,30 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
               {(() => {
                 const history = getProjectHistory(project.id) || [];
-                const createdEvent = { type: 'Created', date: project.created_at };
-                
-                const allEvents = [...history, createdEvent]
-                  .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort newest first
 
-                const formatHistoryEventType = (eventType) => {
-                  return eventType
-                    .replace(/_/g, ' ')
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-                };
+                // Check if history already has a "created" event (case-insensitive)
+                const hasCreatedEvent = history.some(e =>
+                  e.type && e.type.toLowerCase() === 'created'
+                );
+
+                // Only add synthetic "Created" if not already in history (for backwards compatibility)
+                let allEvents = [...history];
+                if (!hasCreatedEvent && project.created_at) {
+                  allEvents.push({ type: 'Created', date: project.created_at });
+                }
+
+                // Sort newest first
+                allEvents = allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 return allEvents.map((event, index) => (
                   <div key={index} className="flex items-center gap-3">
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {t(formatHistoryEventType(event.type))}
+                        {t(event.type)}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {event.date ? new Date(event.date).toLocaleString('sk-SK') : '-'}
+                        {event.date ? new Date(event.date).toLocaleString('sk-SK', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                       </span>
                     </div>
                   </div>

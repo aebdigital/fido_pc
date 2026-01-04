@@ -97,9 +97,12 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     return null;
   }
 
+  // Generate a unique c_id for each work item (iOS compatibility)
+  const workItemCId = crypto.randomUUID();
+
   const baseRecord = {
     room_id: roomId,
-    c_id: contractorId,
+    c_id: workItemCId,
     // Include linked fields for complementary works (will be null for non-linked items)
     linked_to_parent: workItem.linkedToParent || null,
     linked_work_key: workItem.linkedWorkKey || null
@@ -543,37 +546,55 @@ export function databaseToWorkItem(dbRecord, tableName) {
         }
       };
 
-    case 'scaffoldings':
+    case 'scaffoldings': {
+      // Get rentalFields from workProperties for Scaffolding
+      const rentalsProperty = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.RENTALS);
+      const scaffoldingItem = rentalsProperty?.items?.find(item => item.name === WORK_ITEM_NAMES.SCAFFOLDING_EN);
       return {
         ...baseItem,
-        name: 'Lešenie',
-        subtitle: 'Lešenie',
+        propertyId: 'scaffolding',
+        name: WORK_ITEM_NAMES.SCAFFOLDING_EN,
+        selectedType: WORK_ITEM_NAMES.SCAFFOLDING_EN,
+        rentalFields: scaffoldingItem?.fields || [],
         fields: {
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0,
           [WORK_ITEM_NAMES.RENTAL_DURATION]: dbRecord.number_of_days || 0
         }
       };
+    }
 
-    case 'core_drills':
+    case 'core_drills': {
+      // Get rentalFields from workProperties for Core Drill
+      const rentalsPropertyCD = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.RENTALS);
+      const coreDrillItem = rentalsPropertyCD?.items?.find(item => item.name === WORK_ITEM_NAMES.CORE_DRILL);
       return {
         ...baseItem,
         propertyId: 'core_drill',
         name: WORK_ITEM_NAMES.CORE_DRILL,
+        selectedType: WORK_ITEM_NAMES.CORE_DRILL,
+        rentalFields: coreDrillItem?.fields || [],
         fields: {
           [WORK_ITEM_NAMES.COUNT]: dbRecord.count || 0
         }
       };
+    }
 
-    case 'tool_rentals':
+    case 'tool_rentals': {
+      // Get rentalFields from workProperties for Tool Rental
+      const rentalsPropertyTR = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.RENTALS);
+      const toolRentalItem = rentalsPropertyTR?.items?.find(item => item.name === WORK_ITEM_NAMES.TOOL_RENTAL);
       return {
         ...baseItem,
         propertyId: 'tool_rental',
         name: WORK_ITEM_NAMES.TOOL_RENTAL,
+        selectedType: WORK_ITEM_NAMES.TOOL_RENTAL,
+        rentalFields: toolRentalItem?.fields || [],
         fields: {
           [WORK_ITEM_NAMES.COUNT]: dbRecord.count || 0
         }
       };
+    }
 
     case 'demolitions':
       // Preparatory and demolition works use DURATION (hours)
@@ -612,4 +633,88 @@ export function databaseToWorkItem(dbRecord, tableName) {
  */
 export function getTableName(propertyId) {
   return PROPERTY_TO_TABLE[propertyId] || null;
+}
+
+/**
+ * Tables that can have doors/windows
+ */
+export const TABLES_WITH_DOORS_WINDOWS = [
+  'brick_load_bearing_walls',
+  'brick_partitions',
+  'facade_plasterings',
+  'netting_walls',
+  'plasterboarding_offset_walls',
+  'plasterboarding_partitions',
+  'plastering_walls',
+  'tile_ceramics',
+  'plasterboarding_ceilings' // Windows only
+];
+
+/**
+ * Check if a table can have doors
+ */
+export function tableCanHaveDoors(tableName) {
+  // Ceilings can't have doors
+  return TABLES_WITH_DOORS_WINDOWS.includes(tableName) && tableName !== 'plasterboarding_ceilings';
+}
+
+/**
+ * Check if a table can have windows
+ */
+export function tableCanHaveWindows(tableName) {
+  return TABLES_WITH_DOORS_WINDOWS.includes(tableName);
+}
+
+/**
+ * Convert door from database to app format
+ * @param {Object} dbDoor - Door record from database
+ * @returns {Object} App door item
+ */
+export function doorFromDatabase(dbDoor) {
+  return {
+    id: dbDoor.id || dbDoor.c_id,
+    c_id: dbDoor.c_id,
+    width: dbDoor.size1 || 0,
+    height: dbDoor.size2 || 0
+  };
+}
+
+/**
+ * Convert window from database to app format
+ * @param {Object} dbWindow - Window record from database
+ * @returns {Object} App window item
+ */
+export function windowFromDatabase(dbWindow) {
+  return {
+    id: dbWindow.id || dbWindow.c_id,
+    c_id: dbWindow.c_id,
+    width: dbWindow.size1 || 0,
+    height: dbWindow.size2 || 0
+  };
+}
+
+/**
+ * Convert door from app to database format
+ * @param {Object} appDoor - Door from app
+ * @returns {Object} Database door record
+ */
+export function doorToDatabase(appDoor) {
+  return {
+    c_id: appDoor.c_id || crypto.randomUUID(),
+    size1: appDoor.width || 0,
+    size2: appDoor.height || 0
+  };
+}
+
+/**
+ * Convert window from app to database format
+ * @param {Object} appWindow - Window from app
+ * @returns {Object} Database window record
+ */
+export function windowToDatabase(appWindow) {
+  return {
+    c_id: appWindow.c_id || crypto.randomUUID(),
+    size1: appWindow.width || 0,
+    size2: appWindow.height || 0
+  };
 }

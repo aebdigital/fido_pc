@@ -110,11 +110,11 @@ const ProjectDetail = () => {
 
         {/* New Room Selector */}
         {showRoomSelector && (
-          <div className="bg-gray-100 rounded-2xl p-6 mb-4">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 mb-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">{t('New room')}</h3>
-              <button 
-                className="text-gray-600 hover:text-gray-900"
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('New room')}</h3>
+              <button
+                className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                 onClick={() => setShowRoomSelector(false)}
               >
                 🗑️
@@ -124,7 +124,7 @@ const ProjectDetail = () => {
               {roomTypes.map(room => (
                 <button
                   key={room}
-                  className="bg-white rounded-xl p-3 text-gray-900 font-medium hover:bg-gray-50 transition-colors"
+                  className="bg-white dark:bg-gray-700 rounded-xl p-3 text-gray-900 dark:text-white font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 >
                   {t(room)}
                 </button>

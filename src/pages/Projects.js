@@ -10,6 +10,7 @@ import ContractorProfileModal from '../components/ContractorProfileModal';
 import ProjectDetailView from '../components/ProjectDetailView';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 
 const Projects = () => {
   const location = useLocation();
@@ -545,7 +546,7 @@ const Projects = () => {
                   >
                     <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{project.number || project.id}</span>
+                        <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
                       </div>
                       <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
                       {/* Client name - only visible on desktop */}
@@ -564,20 +565,20 @@ const Projects = () => {
                     ) : (
                       <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
                         <div className="text-right">
-                          {/* Status Badge - above price */}
+                          {/* Status Badge - iOS compatible: status is integer 0-3 */}
                           <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${
-                            project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid'
-                              ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                              : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent'
-                              ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                              : project.invoiceStatus === 'neuhradeny'
+                            project.status === PROJECT_STATUS.FINISHED
                               ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                              : project.status === PROJECT_STATUS.APPROVED
+                              ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                              : project.status === PROJECT_STATUS.SENT
+                              ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
                               : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
                           }`}>
-                            {t(project.invoiceStatus === 'vyfakturovany' || project.invoiceStatus === 'paid' ? 'vyfakturovany'
-                              : project.invoiceStatus === 'odoslany' || project.invoiceStatus === 'sent' ? 'odoslany'
-                              : project.invoiceStatus === 'neuhradeny' ? 'neuhradeny'
-                              : 'neodoslany')}
+                            {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
+                              : project.status === PROJECT_STATUS.APPROVED ? 'approved'
+                              : project.status === PROJECT_STATUS.SENT ? 'sent'
+                              : 'not sent')}
                           </span>
                           {/* Price */}
                           <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>

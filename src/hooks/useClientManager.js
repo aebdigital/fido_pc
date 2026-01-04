@@ -7,8 +7,9 @@ export const useClientManager = (appData, setAppData) => {
     try {
       const mappedData = {
         ...transformClientToDB(clientData),
-        c_id: appData.activeContractorId,
+        contractor_id: appData.activeContractorId, // Link to contractor
         is_user: false
+        // c_id will be auto-generated in supabaseApi.js
       };
 
       const newClientDB = await api.clients.create(mappedData);

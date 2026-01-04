@@ -12,6 +12,7 @@ import {
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
+import { SimpleLayerIcon, DoubleLayerIcon, TripleLayerIcon, ActiveLayersIcon } from './LayerIcons';
 
 // Helper to get the item label based on property type
 const getItemLabel = (property, item, index, t) => {
@@ -121,7 +122,16 @@ const WorkPropertyCard = ({
   onUpdateItemState // For updating top-level item properties like selectedType
 }) => {
   const { t } = useLanguage();
-  const existingItems = workData.filter(item => item.propertyId === property.id);
+
+  // For rentals, we need to match items with specific rental propertyIds (core_drill, tool_rental, scaffolding)
+  // as well as the parent 'rentals' propertyId
+  const rentalPropertyIds = ['rentals', 'core_drill', 'tool_rental', 'scaffolding'];
+  const existingItems = workData.filter(item => {
+    if (property.id === WORK_ITEM_PROPERTY_IDS.RENTALS) {
+      return rentalPropertyIds.includes(item.propertyId);
+    }
+    return item.propertyId === property.id;
+  });
 
   const renderDoorWindowSection = (item, type) => {
     const items = item.doorWindowItems?.[type] || [];
@@ -525,13 +535,9 @@ const WorkPropertyCard = ({
                           <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                           <button
                             onClick={(e) => onToggleComplementaryWork(existingItem.id, uniqueKey, e)}
-                            className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
-                              instanceCount > 0
-                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-medium hover:bg-gray-700 dark:hover:bg-gray-200'
-                                : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                            }`}
+                            className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
                           >
-                            {instanceCount > 0 ? instanceCount : <Plus className="w-3 h-3 text-gray-400" />}
+                            <ActiveLayersIcon activeLayers={instanceCount} className="w-full h-full" />
                           </button>
                         </div>
                       );
@@ -594,17 +600,20 @@ const WorkPropertyCard = ({
                 <button
                   key={type}
                   onClick={(e) => onTypeSelect(type, e)}
-                  className="p-3 lg:p-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center flex items-center justify-center gap-2"
+                  className="p-3 lg:p-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm lg:text-sm text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center flex flex-col items-center justify-center gap-1"
                 >
                   {type === 'Work' && <Hammer className="w-4 h-4" />}
                   {type === 'Material' && <Package className="w-4 h-4" />}
+                  {type === 'Simple' && <SimpleLayerIcon className="w-10 h-10" />}
+                  {type === 'Double' && <DoubleLayerIcon className="w-10 h-10" />}
+                  {type === 'Triple' && <TripleLayerIcon className="w-10 h-10" />}
                   {t(type)}
                 </button>
               ))}
             </div>
           </div>
         )}
-        
+
         {/* Existing type items */}
         {expandedItems[property.id] && existingItems.map((item, index) => (
           <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
@@ -705,20 +714,15 @@ const WorkPropertyCard = ({
                       ).length;
 
                       return (
-                        <div key={uniqueKey} className="flex items-center justify-between gap-3">
-                          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                          <button
-                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                            className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
-                              instanceCount > 0
-                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-medium hover:bg-gray-700 dark:hover:bg-gray-200'
-                                : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                            }`}
-                          >
-                            {instanceCount > 0 ? instanceCount : <Plus className="w-3 h-3 text-gray-400" />}
-                          </button>
-                        </div>
-                      );
+                                              <div key={uniqueKey} className="flex items-center justify-between gap-3">
+                                                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
+                                                <button
+                                                  onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                                                  className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
+                                                >
+                                                  <ActiveLayersIcon activeLayers={instanceCount} className="w-full h-full" />
+                                                </button>
+                                              </div>                      );
                     })}
                   </div>
                 )}
@@ -896,7 +900,7 @@ const WorkPropertyCard = ({
                     e.stopPropagation();
                     onUpdateItemState(item.id, { selectedType: type });
                   }}
-                  className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex items-center justify-center gap-2 ${
+                  className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex flex-col items-center justify-center gap-1 ${
                     item.selectedType === type
                       ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -904,6 +908,9 @@ const WorkPropertyCard = ({
                 >
                   {type === 'Work' && <Hammer className="w-4 h-4" />}
                   {type === 'Material' && <Package className="w-4 h-4" />}
+                  {type === 'Simple' && <SimpleLayerIcon className="w-10 h-10" />}
+                  {type === 'Double' && <DoubleLayerIcon className="w-10 h-10" />}
+                  {type === 'Triple' && <TripleLayerIcon className="w-10 h-10" />}
                   {t(type)}
                 </button>
               ))}
@@ -1017,13 +1024,9 @@ const WorkPropertyCard = ({
                         <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                         <button
                           onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                          className={`w-7 h-7 lg:w-6 lg:h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
-                            instanceCount > 0
-                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-medium hover:bg-gray-700 dark:hover:bg-gray-200'
-                              : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                          }`}
+                          className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
                         >
-                          {instanceCount > 0 ? instanceCount : <Plus className="w-3 h-3 text-gray-400" />}
+                          <ActiveLayersIcon activeLayers={instanceCount} className="w-full h-full" />
                         </button>
                       </div>
                     );

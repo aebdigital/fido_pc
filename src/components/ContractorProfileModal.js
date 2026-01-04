@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { Building2, Upload, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { compressImage } from '../utils/imageCompression';
+import RpoAutocomplete from './RpoAutocomplete';
 
 const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) => {
-  const { t } = useLanguage();
+  const { t, isSlovak } = useLanguage();
   const [isClosing, setIsClosing] = useState(false);
+  const [showIcoSearch, setShowIcoSearch] = useState(false);
   const logoInputRef = useRef(null);
   const signatureInputRef = useRef(null);
   
@@ -45,6 +47,25 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleIcoSelect = (entity) => {
+    const streetPart = entity.address?.street || '';
+    const numberPart = entity.address?.buildingNumber || '';
+    const fullStreet = [streetPart, numberPart].filter(Boolean).join(' ');
+
+    setFormData(prev => ({
+      ...prev,
+      name: entity.name || '',
+      street: fullStreet,
+      city: entity.address?.municipality || '',
+      postalCode: entity.address?.postalCode || '',
+      country: entity.address?.country || 'Slovensko',
+      businessId: entity.ico || '',
+      taxId: entity.dic || '',
+      vatNumber: entity.dicDph || '', // IČ DPH from ApplyPark API
+    }));
+    setShowIcoSearch(false);
   };
 
   const handleImageUpload = async (e, field) => {
@@ -197,7 +218,32 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Contractor details')}</h3>
             <div className="space-y-4">
-              
+
+              {/* IČO Search Button / Component - Only for Slovak language */}
+              {isSlovak && (
+                <div className="mb-4">
+                  {showIcoSearch ? (
+                    <div className="relative">
+                      <RpoAutocomplete onSelect={handleIcoSelect} t={t} />
+                      <button
+                        onClick={() => setShowIcoSearch(false)}
+                        className="absolute right-2 top-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowIcoSearch(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
+                    >
+                      <Building2 className="w-4 h-4" />
+                      {t('Vyplniť podľa IČO')}
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">

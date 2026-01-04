@@ -162,11 +162,6 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
               )}
             </>
           )}
-          {item.isOverridden && (
-            <p className="text-xs lg:text-sm text-blue-600 dark:text-blue-400 mt-1">
-              {t('Original')}: {item.originalPrice} {t(item.unit)}
-            </p>
-          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <NumberInput
@@ -352,7 +347,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             
             {expandedSections.others && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                {projectPriceData.others.map((item, index) => (
+                {projectPriceData.others.filter(item => item.name !== 'Custom work and material').map((item, index) => (
                   <PriceCard key={index} item={item} category="others" itemIndex={index} />
                 ))}
               </div>

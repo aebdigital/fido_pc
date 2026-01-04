@@ -4,12 +4,13 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
+import { PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS } from '../utils/dataTransformers';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import PDFPreviewModal from './PDFPreviewModal';
 
 const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewProject = false }) => {
   const { t } = useLanguage();
-  const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices } = useAppData();
+  const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
   const navigate = useNavigate();
 
   // Edit mode state - now opens a modal instead of inline editing
@@ -114,16 +115,23 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   };
 
   const handleSend = async () => {
-    // Record history
-    if (invoice.status === 'unsent') {
-      // This will automatically add the history entry via useInvoiceManager
-      updateInvoice(invoice.id, { status: 'sent' });
-    } else {
-      // Manually add history entry for re-sends
-      addProjectHistoryEntry(invoice.projectId, {
-        type: 'invoice_sent',
-        invoiceNumber: invoice.invoiceNumber,
-        date: new Date().toISOString()
+    // Record history - use iOS-compatible events
+    // iOS adds both 'invoiceSent' and 'finished' events when sending invoice
+    addProjectHistoryEntry(invoice.projectId, {
+      type: PROJECT_EVENTS.INVOICE_SENT, // iOS compatible: 'invoiceSent'
+      invoiceNumber: invoice.invoiceNumber,
+      date: new Date().toISOString()
+    });
+    addProjectHistoryEntry(invoice.projectId, {
+      type: PROJECT_EVENTS.FINISHED, // iOS compatible: 'finished'
+      invoiceNumber: invoice.invoiceNumber,
+      date: new Date().toISOString()
+    });
+
+    // Update project status to FINISHED (3) - iOS compatible
+    if (updateProject && invoice.categoryId && invoice.projectId) {
+      updateProject(invoice.categoryId, invoice.projectId, {
+        status: PROJECT_STATUS.FINISHED // iOS: 3
       });
     }
 
@@ -254,19 +262,21 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Status Badge */}
+          {/* Status Badge - iOS compatible statuses: unpaid, paid, afterMaturity */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className={`px-4 py-2 text-sm font-medium rounded-full ${
-              invoice.status === 'paid'
-                ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                : invoice.status === 'sent'
+              invoice.status === INVOICE_STATUS.PAID
                 ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                : invoice.status === INVOICE_STATUS.AFTER_MATURITY
+                ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
             }`}>
-              {t(invoice.status === 'paid' ? 'Paid' : invoice.status === 'sent' ? 'Invoice sent' : 'Invoice not sent')}
+              {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
+                : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
+                : 'Unpaid')}
             </span>
 
-            {invoice.status !== 'paid' && (
+            {invoice.status !== INVOICE_STATUS.PAID && (
               <button
                 onClick={handleMarkAsPaid}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"

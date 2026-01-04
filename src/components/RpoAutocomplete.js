@@ -64,7 +64,7 @@ const RpoAutocomplete = ({ onSelect, t }) => {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('Search by Name or IČO...')}
+                placeholder={t('Enter IČO...')}
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
                 autoFocus
             />
@@ -86,8 +86,9 @@ const RpoAutocomplete = ({ onSelect, t }) => {
               className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0"
             >
               <div className="font-medium text-gray-900 dark:text-white">{entity.name}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap gap-2">
                 {entity.ico && <span>IČO: {entity.ico}</span>}
+                {entity.dic && <span>• DIČ: {entity.dic}</span>}
                 {entity.address?.municipality && (
                   <span>• {entity.address.municipality}</span>
                 )}

@@ -6,7 +6,14 @@ import RpoAutocomplete from './RpoAutocomplete';
 const ClientForm = ({ onSave, onCancel, initialData = null }) => {
   const { t, isSlovak } = useLanguage();
   const isEditing = !!initialData;
-  const [clientType, setClientType] = useState(initialData?.type || 'private');
+  // iOS uses 'personal' and 'corporation', desktop used to use 'private' and 'business'
+  // Normalize to iOS values for cross-platform compatibility
+  const normalizeType = (type) => {
+    if (type === 'private' || type === 'personal') return 'personal';
+    if (type === 'business' || type === 'corporation') return 'corporation';
+    return 'personal';
+  };
+  const [clientType, setClientType] = useState(normalizeType(initialData?.type));
   const [showRpoSearch, setShowRpoSearch] = useState(false);
 
   const [clientForm, setClientForm] = useState({
@@ -41,7 +48,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
         vatId: initialData.vatId || '',
         contactPerson: initialData.contactPerson || ''
       });
-      setClientType(initialData.type || 'private');
+      setClientType(normalizeType(initialData.type));
     } else {
       // Reset to empty form when creating new client
       setClientForm({
@@ -58,7 +65,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
         vatId: '',
         contactPerson: ''
       });
-      setClientType('private');
+      setClientType('personal');
     }
     setShowRpoSearch(false);
   }, [initialData]);
@@ -81,10 +88,10 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
       street: fullStreet,
       city: entity.address?.municipality || '',
       postalCode: entity.address?.postalCode || '',
-      country: 'Slovensko',
+      country: entity.address?.country || 'Slovensko',
       businessId: entity.ico || '',
       taxId: entity.dic || '',
-      // vatId is not provided by public RPO
+      vatId: entity.dicDph || '', // IČ DPH from ApplyPark API
     }));
     setShowRpoSearch(false);
   };
@@ -109,21 +116,21 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
         <div className="flex sm:flex-col gap-3 mb-6 lg:mb-8">
           <button
             className={`py-3 px-4 lg:px-6 rounded-2xl font-medium transition-all text-left flex-1 sm:flex-none ${
-              clientType === 'private' 
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500' 
+              clientType === 'personal'
+                ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
-            onClick={() => setClientType('private')}
+            onClick={() => setClientType('personal')}
           >
             {t('Private')}
           </button>
           <button
             className={`py-3 px-4 lg:px-6 rounded-2xl font-medium transition-all text-left flex-1 sm:flex-none ${
-              clientType === 'business' 
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500' 
+              clientType === 'corporation'
+                ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
-            onClick={() => setClientType('business')}
+            onClick={() => setClientType('corporation')}
           >
             {t('Business')}
           </button>
@@ -134,7 +141,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
             <User className="w-8 h-8 lg:w-10 lg:h-10 text-white dark:text-gray-900" />
           </div>
           <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
-            {clientType === 'private' ? t('Private entity') : t('Business entity')}
+            {clientType === 'personal' ? t('Private entity') : t('Business entity')}
           </h2>
         </div>
       </div>
@@ -144,7 +151,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           
           {/* RPO Search Button / Component */}
-          {clientType === 'business' && isSlovak && (
+          {clientType === 'corporation' && isSlovak && (
             <div className="col-span-1 lg:col-span-2 mb-2">
               {showRpoSearch ? (
                 <div className="relative">
@@ -174,7 +181,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
               type="text" 
               value={clientForm.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder={clientType === 'private' ? t('Name and surname') : t('Name of company')}
+              placeholder={clientType === 'personal' ? t('Name and surname') : t('Name of company')}
               className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
             />
           </div>
@@ -256,7 +263,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
             />
           </div>
 
-          {clientType === 'business' && (
+          {clientType === 'corporation' && (
             <>
               <div className="space-y-2">
                 <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo organizácie')}</label>

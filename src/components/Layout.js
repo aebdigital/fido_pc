@@ -4,15 +4,18 @@ import { ClipboardList, FileText, Users, Settings, LogOut } from 'lucide-react';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useDarkMode } from '../context/DarkModeContext';
 import UnsavedChangesModal from './UnsavedChangesModal';
 import { useNavigate } from 'react-router-dom';
 import logo from '../logo.png';
+// Dark logo is in public folder, reference directly
 
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { signOut, user } = useAuth();
+  const { isDarkMode } = useDarkMode();
   const {
     attemptNavigation,
     showModal,
@@ -88,7 +91,7 @@ const Layout = ({ children }) => {
       <div className="hidden lg:flex lg:flex-col lg:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
         {/* Logo */}
         <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
-          <img src={logo} alt="Fido Logo" className="h-12 w-auto" />
+          <img src={isDarkMode ? '/dark-logo.jpg' : logo} alt="Fido Logo" className="h-12 w-auto" />
         </div>
 
         {/* Desktop Navigation */}

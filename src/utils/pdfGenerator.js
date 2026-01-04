@@ -5,9 +5,108 @@ import { InterRegular } from './fonts/InterRegular';
 import { InterBold } from './fonts/InterBold';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/constants';
 
+// SEPA countries list (European Payments Council members)
+const SEPA_COUNTRIES = new Set([
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IS', 'IE', 'IT',
+  'LV', 'LI', 'LT', 'LU', 'MT', 'MC', 'NL', 'NO', 'PL', 'PT', 'RO', 'SM', 'SK', 'SI', 'ES', 'SE',
+  'CH', 'GB'
+]);
+
+// Validate IBAN using modulo 97 check (ISO 13616)
+const isValidIBAN = (iban) => {
+  if (!iban) return false;
+
+  const cleanIBAN = iban.replace(/\s/g, '').toUpperCase();
+  if (cleanIBAN.length < 4) return false;
+
+  // Move first 4 characters to end
+  const rearranged = cleanIBAN.slice(4) + cleanIBAN.slice(0, 4);
+
+  // Convert letters to numbers (A=10, B=11, ..., Z=35)
+  let numericString = '';
+  for (const char of rearranged) {
+    const code = char.charCodeAt(0);
+    if (code >= 65 && code <= 90) {
+      // Letter A-Z
+      numericString += (code - 55).toString();
+    } else if (code >= 48 && code <= 57) {
+      // Digit 0-9
+      numericString += char;
+    } else {
+      return false; // Invalid character
+    }
+  }
+
+  // Calculate modulo 97 using string-based division (handles large numbers)
+  let remainder = 0;
+  for (const digit of numericString) {
+    remainder = (remainder * 10 + parseInt(digit, 10)) % 97;
+  }
+
+  return remainder === 1;
+};
+
+// Check if user's locale is in SEPA zone
+const isInSEPACountry = () => {
+  try {
+    // Get country from browser locale
+    const locale = navigator.language || navigator.userLanguage || 'en-US';
+    const countryCode = locale.split('-')[1]?.toUpperCase() || '';
+    return SEPA_COUNTRIES.has(countryCode);
+  } catch {
+    return false;
+  }
+};
+
+// Check if IBAN country is in SEPA zone
+const isIBANInSEPACountry = (iban) => {
+  if (!iban) return false;
+  const cleanIBAN = iban.replace(/\s/g, '').toUpperCase();
+  if (cleanIBAN.length < 2) return false;
+  const countryCode = cleanIBAN.slice(0, 2);
+  return SEPA_COUNTRIES.has(countryCode);
+};
+
+// Normalize text for QR code (replace Unicode characters that can break scanning)
+const normalizeForQR = (text) => {
+  if (!text) return '';
+  return text
+    // Normalize newlines
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    // Replace various Unicode dashes with ASCII hyphen
+    .replace(/\u2010/g, '-') // hyphen
+    .replace(/\u2011/g, '-') // non-breaking hyphen
+    .replace(/\u2012/g, '-') // figure dash
+    .replace(/\u2013/g, '-') // en dash
+    .replace(/\u2014/g, '-') // em dash
+    .replace(/\u2015/g, '-') // horizontal bar
+    // Replace other problematic characters
+    .replace(/[\u2018\u2019]/g, "'") // smart single quotes
+    .replace(/[\u201C\u201D]/g, '"'); // smart double quotes
+};
+
 // Generate EPC QR code for SEPA payment (Slovak "Pay by Square" compatible)
 const generatePaymentQRCode = async (iban, bic, amount, invoiceNumber, recipientName) => {
   try {
+    // Validate IBAN
+    if (!isValidIBAN(iban)) {
+      console.warn('Invalid IBAN, skipping QR code generation');
+      return null;
+    }
+
+    // Check if IBAN is from SEPA country
+    if (!isIBANInSEPACountry(iban)) {
+      console.warn('IBAN is not from a SEPA country, skipping QR code generation');
+      return null;
+    }
+
+    // Clean and normalize inputs
+    const cleanIBAN = iban.replace(/\s/g, '').toUpperCase();
+    const cleanBIC = normalizeForQR(bic || '');
+    const cleanName = normalizeForQR(recipientName?.substring(0, 70) || '');
+    const cleanInvoiceNumber = normalizeForQR(invoiceNumber || '');
+
     // EPC QR code format (European Payments Council)
     // This is the standard format used in Slovakia for payment QR codes
     const epcData = [
@@ -15,12 +114,12 @@ const generatePaymentQRCode = async (iban, bic, amount, invoiceNumber, recipient
       '002',                           // Version
       '1',                             // Character set (1 = UTF-8)
       'SCT',                           // Identification (SEPA Credit Transfer)
-      bic || '',                       // BIC/SWIFT of beneficiary bank
-      recipientName?.substring(0, 70) || '', // Name of beneficiary (max 70 chars)
-      iban?.replace(/\s/g, '') || '',  // IBAN of beneficiary
+      cleanBIC,                        // BIC/SWIFT of beneficiary bank
+      cleanName,                       // Name of beneficiary (max 70 chars)
+      cleanIBAN,                       // IBAN of beneficiary
       `EUR${amount?.toFixed(2) || '0.00'}`, // Amount in EUR
       '',                              // Purpose (optional)
-      invoiceNumber || '',             // Remittance reference (variable symbol)
+      cleanInvoiceNumber,              // Remittance reference (variable symbol)
       '',                              // Remittance text (optional)
       ''                               // Beneficiary to originator info (optional)
     ].join('\n');
@@ -744,34 +843,47 @@ export const generateInvoicePDF = async ({
     const col2 = startX + colWidth;
     const col3 = startX + colWidth * 2;
     const col4 = startX + colWidth * 3;
+    const iconOffset = 5; // Space after icon for text
+    const textMaxWidth = colWidth - iconOffset - 2; // Available width for text (with small margin)
+    const iconLineHeight = 2.5; // Line height for wrapped text
 
     doc.setFontSize(7);
+
+    // Helper to draw wrapped text for footer icons
+    const drawWrappedIconText = (text, x, y, maxWidth, bold = false) => {
+      if (!text) return 0;
+      doc.setFont('Inter', bold ? 'bold' : 'normal');
+      const lines = doc.splitTextToSize(sanitizeText(text), maxWidth);
+      lines.forEach((line, i) => {
+        doc.text(line, x, y + (i * iconLineHeight));
+      });
+      return lines.length;
+    };
 
     // Column 1: Contact Person with user icon (not company name)
     const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
     if (contactPerson) {
       drawIcon('user', col1, topRowY, 3);
-      doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(contactPerson), col1 + 5, topRowY);
+      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, true);
     }
 
     // Column 2: Phone with phone icon
     doc.setFont('Inter', 'normal');
     if (contractor?.phone) {
       drawIcon('phone', col2, topRowY, 3);
-      doc.text(sanitizeText(contractor.phone), col2 + 5, topRowY);
+      drawWrappedIconText(contractor.phone, col2 + iconOffset, topRowY, textMaxWidth);
     }
 
     // Column 3: Web with globe icon
     if (contractor?.website) {
       drawIcon('web', col3, topRowY, 3);
-      doc.text(sanitizeText(contractor.website), col3 + 5, topRowY);
+      drawWrappedIconText(contractor.website, col3 + iconOffset, topRowY, textMaxWidth);
     }
 
     // Column 4: Email with envelope icon
     if (contractor?.email) {
       drawIcon('email', col4, topRowY, 3);
-      doc.text(sanitizeText(contractor.email), col4 + 5, topRowY);
+      drawWrappedIconText(contractor.email, col4 + iconOffset, topRowY, textMaxWidth);
     }
 
     // Divider line - equal spacing above and below

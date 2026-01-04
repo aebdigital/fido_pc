@@ -361,8 +361,10 @@ export const findPriceListItem = (workItem, priceList) => {
   };
 
   // For rental items, use the actual rental item name instead of generic mapping
+  // Rental items can have propertyId of 'rentals', 'core_drill', 'tool_rental', or 'scaffolding'
+  const rentalPropertyIds = ['rentals', 'core_drill', 'tool_rental', 'scaffolding'];
   let targetName;
-  if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.RENTALS && workItem.name) {
+  if (rentalPropertyIds.includes(workItem.propertyId) && workItem.name) {
     targetName = workItem.name; // Use "Scaffolding", "Core Drill", or "Tool rental"
   } else {
     targetName = workIdMappings[workItem.propertyId];
@@ -388,6 +390,13 @@ export const findPriceListItem = (workItem, priceList) => {
         const isNetting = !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.NETTING.toLowerCase();
         const isPainting = !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.PAINTING.toLowerCase();
         const isSanitary = !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.SANITARY_INSTALLATIONS.toLowerCase();
+
+        // Skip subtitle matching for rental items (Scaffolding, Core Drill, Tool rental)
+        // These items have selectedType set to the item name but subtitles are descriptive (e.g., "assembly and disassembly")
+        const rentalPropertyIds = ['rentals', 'core_drill', 'tool_rental', 'scaffolding'];
+        if (rentalPropertyIds.includes(workItem.propertyId)) {
+          return true; // Just match by name for rentals
+        }
 
         // For items with subtypes (like plasterboarding), check subtitle too
         if (workItem.selectedType && item.subtitle) {
@@ -735,10 +744,11 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
 
     if (priceItem && workItem.fields) {
       // Special handling for scaffolding - show as two separate items
-      const isScaffolding = (workItem.subtitle && (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || 
+      // Check by propertyId first (most reliable), then by name/subtitle
+      const isScaffolding = workItem.propertyId === 'scaffolding' ||
+          (workItem.subtitle && (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
           workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
-          (workItem.name && (workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
-          (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.RENTALS && workItem.name && (workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase())));
+          (workItem.name && (workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase())));
           
       if (isScaffolding) {
         const values = workItem.fields;
@@ -796,10 +806,12 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
         othersTotal += assemblyCost + rentalCost;
       } else {
         // Check if this is an "Others" category item
-        const isOthersItem = workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || 
+        // Rental items can have propertyId of 'rentals', 'core_drill', 'tool_rental', or 'scaffolding'
+        const rentalPropertyIds = ['rentals', 'core_drill', 'tool_rental', 'scaffolding'];
+        const isOthersItem = workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ||
                             workItem.propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE ||
-                            workItem.propertyId === WORK_ITEM_PROPERTY_IDS.RENTALS ||
-                            (workItem.subtitle && (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || 
+                            rentalPropertyIds.includes(workItem.propertyId) ||
+                            (workItem.subtitle && (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
                              workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
                             (workItem.name && workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase())) ||
                             (priceItem && (

@@ -201,3 +201,259 @@
 .hide-number-arrows[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Light mode shadow for cards, containers, and buttons */
+/* Using :not(.dark) to target light mode only */
+:root:not(.dark) .rounded-xl,
+:root:not(.dark) .rounded-2xl,
+:root:not(.dark) .rounded-lg,
+:root:not(.dark) button:not([class*="bg-transparent"]),
+:root:not(.dark) [class*="bg-white"],
+:root:not(.dark) [class*="bg-gray-100"],
+:root:not(.dark) [class*="bg-gray-200"] {
+  border: 1px solid rgb(229, 231, 235);
+  box-shadow: rgba(255, 255, 255, 0.19) 0px 1px 2px inset, rgba(0, 0, 0, 0.19) 0px 1px 2px, rgba(0, 0, 0, 0.082) 0px 2px 4px;
+}
+
+/* ========== DARK MODE OVERRIDES ========== */
+/* Override Tailwind dark blue colors to dark grey/almost black */
+
+/* Main backgrounds - override bg-gray-900 to almost black */
+.dark .bg-gray-900 {
+  background-color: #0d0d0d !important;
+}
+
+/* Secondary backgrounds - override bg-gray-800 to dark grey */
+.dark .bg-gray-800 {
+  background-color: #1a1a1a !important;
+}
+
+/* Tertiary backgrounds - override bg-gray-700 */
+.dark .bg-gray-700 {
+  background-color: #252525 !important;
+}
+
+/* Cards and containers in dark mode - gradient background with top light effect */
+.dark .rounded-xl,
+.dark .rounded-2xl,
+.dark .rounded-lg {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+  border: none !important;
+  border-top: 1px solid rgba(255,255,255,0.1) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,0.06),
+    0 1px 3px rgba(0,0,0,0.4),
+    0 4px 6px rgba(0,0,0,0.3) !important;
+}
+
+/* Buttons in dark mode */
+.dark button:not([class*="bg-transparent"]):not(.rounded-xl):not(.rounded-2xl):not(.rounded-lg) {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 100%) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-top-color: rgba(255,255,255,0.15) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,0.06),
+    0 1px 2px rgba(0,0,0,0.3) !important;
+}
+
+/* Override specific dark bg colors used in components */
+.dark [class*="dark:bg-gray-900"] {
+  background-color: #0d0d0d !important;
+}
+
+.dark [class*="dark:bg-gray-800"] {
+  background-color: #1a1a1a !important;
+}
+
+.dark [class*="dark:bg-gray-700"] {
+  background-color: #252525 !important;
+}
+
+/* Sidebar specific styling */
+.dark aside,
+.dark nav {
+  background-color: #0a0a0a !important;
+}
+
+/* Input fields in dark mode - regular flat grey, no gradient/shadow */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #2a2a2a !important;
+  background: #2a2a2a !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  border-top: 1px solid rgba(255,255,255,0.15) !important;
+  box-shadow: none !important;
+}
+
+/* Text that should be lighter in dark mode */
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: #a0a0a0 !important;
+}
+
+/* Icons and text that are too dark - make them lighter */
+.dark svg.text-gray-600,
+.dark svg.text-gray-500,
+.dark svg.text-gray-400,
+.dark [class*="dark:text-gray-400"],
+.dark [class*="dark:text-gray-500"] {
+  color: #b0b0b0 !important;
+}
+
+/* Active sidebar link text */
+.dark .text-gray-900,
+.dark [class*="dark:text-white"] {
+  color: #ffffff !important;
+}
+
+/* Button text in dark mode - ensure readable */
+.dark button .text-gray-900,
+.dark button.text-gray-900,
+.dark button[class*="dark:text-gray-900"],
+.dark button .text-gray-800,
+.dark button.text-gray-800 {
+  color: #ffffff !important;
+}
+
+/* Save/action buttons text */
+.dark button[class*="bg-gray-900"] span,
+.dark button[class*="bg-gray-900"],
+.dark button[class*="dark:bg-white"] {
+  color: #ffffff !important;
+}
+
+/* Active toggle/selection states - text should be white */
+.dark [class*="bg-gray-900"] .text-white,
+.dark [class*="dark:bg-white"] {
+  color: #0d0d0d !important;
+}
+
+/* Price offer validity and similar active states */
+.dark .bg-gray-900.text-white,
+.dark [class*="bg-gray-900"][class*="text-white"] {
+  color: #ffffff !important;
+}
+
+/* Icons in modals/popups should be white */
+.dark .modal svg,
+.dark [role="dialog"] svg,
+.dark .fixed svg:not(.text-red-500):not(.text-green-500):not(.text-red-400) {
+  color: #e0e0e0 !important;
+}
+
+/* Archive button icon and similar header icons */
+.dark header svg,
+.dark [class*="flex"][class*="items-center"][class*="gap"] > svg,
+.dark button svg {
+  color: #e0e0e0 !important;
+}
+
+/* Delete/trash icons should be red in dark mode */
+.dark svg.text-red-500,
+.dark svg.text-red-400,
+.dark .text-red-500 svg,
+.dark .text-red-400 svg,
+.dark button:hover svg.text-gray-400,
+.dark [class*="hover:text-red"] svg {
+  color: #ef4444 !important;
+}
+
+/* Preserve green icons */
+.dark svg.text-green-500,
+.dark svg.text-green-400,
+.dark .text-green-500 svg {
+  color: #22c55e !important;
+}
+
+/* Project categories sidebar - inner shadow should be dark for white text */
+.dark [class*="shadow-inner"],
+.dark .shadow-inner {
+  --tw-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.3) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), inset 0 2px 4px 0 rgb(0 0 0 / 0.3) !important;
+}
+
+/* Dark mode scrollbar update */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Icon-only buttons in dark mode - no border, transparent bg */
+/* Only for navigation/close buttons that have ONLY an icon, no text, no bg color */
+.dark button[class*="text-gray-600"][class*="hover:text-gray-900"]:not([class*="bg-"]):not([class*="rounded-2xl"]):not([class*="px-"]),
+.dark button[class*="text-gray-400"][class*="hover:text-gray-600"]:not([class*="bg-"]):not([class*="rounded-2xl"]):not([class*="px-"]) {
+  border: none !important;
+  border-top: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Filter text buttons (year/status filters on Invoices) - no styling, just text */
+.dark button[class*="text-sm"][class*="font-medium"]:not([class*="bg-"]):not([class*="rounded-2xl"]):not([class*="px-"]) {
+  background: transparent !important;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+/* Contractor dropdown button - no border */
+.dark button[class*="flex"][class*="items-center"][class*="gap-2"]:not([class*="bg-"]):not([class*="rounded-2xl"]):not([class*="px-"]) {
+  background: transparent !important;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+/* Logout button in dark mode - no border, transparent background */
+.dark .border-t button,
+.dark [class*="border-t"] button {
+  background: transparent !important;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Category selectors gradient overlay - dark in dark mode */
+.dark .bg-gradient-to-t[class*="from-white"] {
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, transparent 100%) !important;
+}
+
+/* Category selector cards in dark mode - dark inward shadow */
+.dark button[class*="rounded-2xl"][class*="overflow-hidden"] .h-24,
+.dark button[class*="rounded-2xl"][class*="overflow-hidden"] .h-56,
+.dark button[class*="rounded-3xl"][class*="overflow-hidden"] {
+  box-shadow: inset 0 -40px 40px -20px rgba(0,0,0,0.7) !important;
+}
+
+/* Category text should be white in dark mode */
+.dark button[class*="rounded-2xl"] h3,
+.dark button[class*="rounded-3xl"] h3,
+.dark button[class*="rounded-2xl"] span,
+.dark button[class*="rounded-3xl"] span {
+  color: #ffffff !important;
+}
+
+/* Active work item border - high priority to ensure visibility */
+/* Light mode: black border */
+.ring-2.ring-gray-900 {
+  --tw-ring-color: rgb(17 24 39) !important;
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color) !important;
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color) !important;
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000) !important;
+}
+
+/* Dark mode: white border */
+.dark .ring-2.dark\:ring-white {
+  --tw-ring-color: rgb(255 255 255) !important;
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color) !important;
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color) !important;
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000) !important;
+}

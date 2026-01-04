@@ -1,6 +1,9 @@
 import { useCallback } from 'react';
 import api from '../services/supabaseApi';
-import { databaseToWorkItem, getTableName, workItemToDatabase } from '../services/workItemsMapping';
+import { databaseToWorkItem, getTableName, workItemToDatabase, tableCanHaveDoors, tableCanHaveWindows, doorToDatabase, windowToDatabase, doorFromDatabase, windowFromDatabase, TABLES_WITH_DOORS_WINDOWS } from '../services/workItemsMapping';
+import { analyzeReceipt } from '../services/openaiReceiptService';
+import { priceListToDbColumns } from '../services/priceListMapping';
+import { PROJECT_STATUS, PROJECT_EVENTS } from '../utils/dataTransformers';
 import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';
@@ -58,13 +61,13 @@ export const useProjectManager = (appData, setAppData) => {
         throw error;
       }
 
-      // Create a deep copy of the current general price list as a snapshot for this project
+      // Create a deep copy of the current general price list for this project
       const priceListSnapshot = JSON.parse(JSON.stringify(generalPriceList));
 
-      // Calculate next project number logic
+      // Calculate next project number logic (iOS compatible)
+      // iOS stores only the sequential number (1, 2, 3...) and computes projectNumber as year + 3-digit number
+      // e.g., number=3, dateCreated=2026 -> projectNumber="2026003"
       const currentYear = new Date().getFullYear();
-      const yearPrefix = parseInt(`${currentYear}000`);
-      const yearMax = parseInt(`${currentYear}999`);
 
       // Gather all projects for the current contractor (active and archived)
       let activeProjects = [];
@@ -73,45 +76,82 @@ export const useProjectManager = (appData, setAppData) => {
       } else {
         activeProjects = projectCategories?.flatMap(cat => cat.projects || []) || [];
       }
-      
-      const contractorArchivedProjects = (archivedProjects || []).filter(p => p.c_id === activeContractorId);
+
+      const contractorArchivedProjects = (archivedProjects || []).filter(p => p.contractor_id === activeContractorId);
       const allContractorProjects = [...activeProjects, ...contractorArchivedProjects];
 
-      // Find projects in the current year range
+      // Find projects created in the current year
       const currentYearProjects = allContractorProjects.filter(p => {
-        const num = parseInt(p.number || 0);
-        return num >= yearPrefix && num <= yearMax;
+        const createdDate = p.createdDate ? new Date(p.createdDate) : new Date();
+        return createdDate.getFullYear() === currentYear;
       });
 
-      // Determine next number
+      // Determine next sequential number (iOS compatible: just 1, 2, 3, etc.)
       let nextNumber;
       if (currentYearProjects.length === 0) {
-        nextNumber = parseInt(`${currentYear}001`);
+        nextNumber = 1;
       } else {
         const maxNumber = Math.max(...currentYearProjects.map(p => parseInt(p.number || 0)));
         nextNumber = maxNumber + 1;
       }
 
-      // Initial history entry
+      // Initial history entry - iOS compatible
       const initialHistory = [{
-        type: 'Project created',
+        type: PROJECT_EVENTS.CREATED, // iOS compatible: 'created'
         date: new Date().toISOString()
       }];
 
+      // Generate a unique c_id for iOS compatibility (UUID format)
+      const projectCId = crypto.randomUUID();
+
+      // Create the project first
       const newProject = await api.projects.create({
         name: projectData.name,
         category: categoryId,
-        c_id: activeContractorId,
+        c_id: projectCId,
         client_id: projectData.clientId || null,
         contractor_id: activeContractorId,
-        status: 0, // Database uses bigint: 0=not sent, 1=sent, 2=archived
+        status: 0, // iOS compatible: 0=notSent, 1=sent, 2=approved, 3=finished
         is_archived: false,
         number: nextNumber,
         notes: null,
         price_list_id: null,
+        // Keep price_list_snapshot for backwards compatibility with old projects
+        // but also create a proper price_lists row for iOS
         price_list_snapshot: JSON.stringify(priceListSnapshot),
         project_history: JSON.stringify(initialHistory)
       });
+
+      // Create a project-specific price list in the price_lists table (iOS-compatible)
+      // This mimics iOS behavior: copy general price list values to a new row with is_general=false
+      try {
+        const dbPriceData = priceListToDbColumns(priceListSnapshot);
+        const createdPriceList = await api.priceLists.createForProject(projectCId, activeContractorId, dbPriceData);
+        console.log('[addProject] Created project price list for iOS compatibility');
+
+        // CRITICAL: Update the project with the price_list_id so iOS can link them
+        // Without this, iOS will create a new default price list with default values (15€ etc.)
+        if (createdPriceList && createdPriceList.c_id) {
+          await api.projects.update(projectCId, { price_list_id: createdPriceList.c_id });
+          console.log('[addProject] Linked price_list_id to project:', createdPriceList.c_id);
+        }
+      } catch (priceListError) {
+        console.error('[addProject] Failed to create project price list:', priceListError);
+        // Don't fail the whole operation if price list creation fails
+      }
+
+      // Also write to history_events table for iOS sync
+      try {
+        await api.historyEvents.create({
+          type: PROJECT_EVENTS.CREATED,
+          project_id: projectCId,
+          created_at: initialHistory[0].date
+        });
+        console.log('[addProject] Created history event in history_events table for iOS sync');
+      } catch (historyError) {
+        console.error('[addProject] Failed to create history event:', historyError);
+        // Don't fail the whole operation if history event creation fails
+      }
 
       // Add the price list snapshot and history to the project object
       const projectWithSnapshot = {
@@ -200,7 +240,7 @@ export const useProjectManager = (appData, setAppData) => {
     try {
       const mappedData = {};
       if (projectData.name !== undefined) mappedData.name = projectData.name;
-      if (projectData.c_id !== undefined) mappedData.c_id = projectData.c_id;
+      if (projectData.contractor_id !== undefined) mappedData.contractor_id = projectData.contractor_id;
       if (projectData.clientId !== undefined) mappedData.client_id = projectData.clientId || null;
       if (projectData.status !== undefined) mappedData.status = projectData.status;
       if (projectData.hasInvoice !== undefined) mappedData.has_invoice = projectData.hasInvoice;
@@ -211,12 +251,24 @@ export const useProjectManager = (appData, setAppData) => {
         mappedData.price_list_snapshot = typeof projectData.priceListSnapshot === 'string'
           ? projectData.priceListSnapshot
           : JSON.stringify(projectData.priceListSnapshot);
+
+        // CRITICAL: Also update the price_lists table for iOS sync compatibility
+        // iOS reads from the price_lists table, not the JSON snapshot on the project
+        try {
+          const priceListData = typeof projectData.priceListSnapshot === 'string'
+            ? JSON.parse(projectData.priceListSnapshot)
+            : projectData.priceListSnapshot;
+          const dbPriceData = priceListToDbColumns(priceListData);
+          await api.priceLists.updateProjectPriceList(projectId, dbPriceData);
+          console.log('[updateProject] Updated price_lists table for iOS sync');
+        } catch (priceListError) {
+          console.error('[updateProject] Failed to update price_lists table:', priceListError);
+        }
       }
-      if (projectData.detail_notes !== undefined) mappedData.detail_notes = projectData.detail_notes;
+      if (projectData.detailNotes !== undefined) mappedData.detailNotes = projectData.detailNotes;
       if (projectData.photos !== undefined) {
-        mappedData.photos = typeof projectData.photos === 'string'
-          ? projectData.photos
-          : JSON.stringify(projectData.photos);
+        // Pass photos array directly to Supabase JSONB - don't stringify!
+        mappedData.photos = projectData.photos;
       }
       if (projectData.notes !== undefined) mappedData.notes = projectData.notes;
 
@@ -225,11 +277,11 @@ export const useProjectManager = (appData, setAppData) => {
       }
 
       setAppData(prev => {
-        // Handle project move if c_id changed
-        if (projectData.c_id && prev.activeContractorId && projectData.c_id !== prev.activeContractorId) {
+        // Handle project move if contractor_id changed
+        if (projectData.contractor_id && prev.activeContractorId && projectData.contractor_id !== prev.activeContractorId) {
           let projectToMove = null;
           const oldContractorId = prev.activeContractorId;
-          const newContractorId = projectData.c_id;
+          const newContractorId = projectData.contractor_id;
 
           if (!prev.contractorProjects[newContractorId]) return prev;
 
@@ -512,10 +564,18 @@ export const useProjectManager = (appData, setAppData) => {
       }
     }));
 
-    // Update in Supabase
+    // Update in Supabase - both project_history JSON and history_events table
     try {
+      // Update project_history JSON column (for desktop backwards compatibility)
       await api.projects.update(projectId, {
         project_history: JSON.stringify(updatedHistory)
+      });
+
+      // Also write to history_events table (for iOS sync)
+      await api.historyEvents.create({
+        type: historyEntry.type,
+        project_id: projectId,
+        created_at: newEntry.date
       });
     } catch (error) {
       console.error('[SUPABASE] Error saving project history:', error);
@@ -539,13 +599,104 @@ export const useProjectManager = (appData, setAppData) => {
       if (!data || data.length === 0) return [];
 
       const allWorkItems = [];
+      const workItemsWithDoorsWindows = []; // Track items that can have doors/windows
+
       data.forEach(record => {
         const tableName = record._table_name;
         const workItem = databaseToWorkItem(record, tableName);
         if (workItem) {
           allWorkItems.push(workItem);
+          // Track items that can have doors/windows
+          if (TABLES_WITH_DOORS_WINDOWS.includes(tableName) && record.c_id) {
+            workItemsWithDoorsWindows.push({
+              workItem,
+              tableName,
+              cId: record.c_id
+            });
+          }
         }
       });
+
+      // Load doors and windows for work items that support them
+      if (workItemsWithDoorsWindows.length > 0) {
+        // Group by table name for efficient batch loading
+        const byTable = {};
+        workItemsWithDoorsWindows.forEach(item => {
+          if (!byTable[item.tableName]) {
+            byTable[item.tableName] = [];
+          }
+          byTable[item.tableName].push(item);
+        });
+
+        // Load doors and windows for each table type
+        await Promise.all(Object.entries(byTable).map(async ([tableName, items]) => {
+          const cIds = items.map(item => item.cId);
+
+          // Load doors if table supports them
+          if (tableCanHaveDoors(tableName)) {
+            try {
+              const doors = await api.doors.getByParents(tableName, cIds);
+              if (doors && doors.length > 0) {
+                // Group doors by parent c_id
+                const doorsByParent = {};
+                doors.forEach(door => {
+                  // Find which parent this door belongs to based on foreign key
+                  const parentKey = Object.keys(door).find(key =>
+                    key.endsWith('_id') && door[key] && cIds.includes(door[key])
+                  );
+                  const parentCId = parentKey ? door[parentKey] : null;
+                  if (parentCId) {
+                    if (!doorsByParent[parentCId]) doorsByParent[parentCId] = [];
+                    doorsByParent[parentCId].push(doorFromDatabase(door));
+                  }
+                });
+
+                // Attach doors to work items
+                items.forEach(item => {
+                  if (doorsByParent[item.cId]) {
+                    item.workItem.doorWindowItems = item.workItem.doorWindowItems || { doors: [], windows: [] };
+                    item.workItem.doorWindowItems.doors = doorsByParent[item.cId];
+                  }
+                });
+              }
+            } catch (error) {
+              console.error(`Error loading doors for ${tableName}:`, error);
+            }
+          }
+
+          // Load windows if table supports them
+          if (tableCanHaveWindows(tableName)) {
+            try {
+              const windows = await api.windows.getByParents(tableName, cIds);
+              if (windows && windows.length > 0) {
+                // Group windows by parent c_id
+                const windowsByParent = {};
+                windows.forEach(window => {
+                  // Find which parent this window belongs to based on foreign key
+                  const parentKey = Object.keys(window).find(key =>
+                    key.endsWith('_id') && window[key] && cIds.includes(window[key])
+                  );
+                  const parentCId = parentKey ? window[parentKey] : null;
+                  if (parentCId) {
+                    if (!windowsByParent[parentCId]) windowsByParent[parentCId] = [];
+                    windowsByParent[parentCId].push(windowFromDatabase(window));
+                  }
+                });
+
+                // Attach windows to work items
+                items.forEach(item => {
+                  if (windowsByParent[item.cId]) {
+                    item.workItem.doorWindowItems = item.workItem.doorWindowItems || { doors: [], windows: [] };
+                    item.workItem.doorWindowItems.windows = windowsByParent[item.cId];
+                  }
+                });
+              }
+            } catch (error) {
+              console.error(`Error loading windows for ${tableName}:`, error);
+            }
+          }
+        }));
+      }
 
       return allWorkItems;
     } catch (error) {
@@ -571,8 +722,9 @@ export const useProjectManager = (appData, setAppData) => {
       }
 
       const roomsWithWorkItems = await Promise.all(rooms.map(async (room) => {
-        // Pass contractor ID to only load work items for the current contractor
-        const workItems = await loadWorkItemsForRoom(room.id, appData.activeContractorId);
+        // Don't pass contractor ID - work items are scoped by room, not contractor
+        // (c_id is now a unique UUID per work item, not contractor ID)
+        const workItems = await loadWorkItemsForRoom(room.id, null);
         return {
           ...room,
           workItems: workItems || []
@@ -594,9 +746,12 @@ export const useProjectManager = (appData, setAppData) => {
 
   const addRoomToProject = useCallback(async (projectId, roomData) => {
     try {
+      // Generate a unique c_id for iOS compatibility (UUID format)
+      const roomCId = crypto.randomUUID();
+
       const newRoom = await api.rooms.create({
         project_id: projectId,
-        c_id: appData.activeContractorId,
+        c_id: roomCId,
         name: roomData.name,
         room_type: roomData.roomType || null,
         floor_length: roomData.floorLength || 0,
@@ -699,6 +854,7 @@ export const useProjectManager = (appData, setAppData) => {
 
     // First pass: Save parent items and build ID mapping
     const idMapping = {}; // old app ID -> new database UUID
+    const savedParentItems = []; // Track saved items with their doors/windows
 
     await Promise.all(parentItems.map(async (workItem) => {
       const tableName = getTableName(workItem.propertyId);
@@ -707,17 +863,59 @@ export const useProjectManager = (appData, setAppData) => {
         return;
       }
       const dbRecord = workItemToDatabase(workItem, roomId, appData.activeContractorId);
+      console.log(`[saveWorkItems] Saving to ${tableName}:`, dbRecord);
       if (dbRecord) {
         try {
-          const result = await api.workItems.create(tableName, dbRecord);
+          const result = await api.workItems.upsert(tableName, dbRecord);
+          console.log(`[saveWorkItems] Saved to ${tableName}, result:`, result);
           // Store mapping from old ID to new database UUID
           if (result && result.id) {
             idMapping[workItem.id] = result.id;
+            // Track this item for door/window saving
+            savedParentItems.push({
+              workItem,
+              tableName,
+              dbCId: result.c_id || result.id
+            });
           }
         } catch (error) {
           console.error(`Error saving work item to ${tableName}:`, error);
           throw error;
         }
+      } else {
+        console.warn(`[saveWorkItems] No dbRecord for workItem:`, workItem);
+      }
+    }));
+
+    // Save doors and windows for parent items that support them
+    await Promise.all(savedParentItems.map(async ({ workItem, tableName, dbCId }) => {
+      const doorWindowItems = workItem.doorWindowItems;
+      if (!doorWindowItems) return;
+
+      // Save doors
+      if (tableCanHaveDoors(tableName) && doorWindowItems.doors && doorWindowItems.doors.length > 0) {
+        await Promise.all(doorWindowItems.doors.map(async (door) => {
+          try {
+            const dbDoor = doorToDatabase(door);
+            await api.doors.upsert(dbDoor, tableName, dbCId);
+            console.log(`[saveWorkItems] Saved door to ${tableName}:`, dbDoor);
+          } catch (error) {
+            console.error(`Error saving door for ${tableName}:`, error);
+          }
+        }));
+      }
+
+      // Save windows
+      if (tableCanHaveWindows(tableName) && doorWindowItems.windows && doorWindowItems.windows.length > 0) {
+        await Promise.all(doorWindowItems.windows.map(async (window) => {
+          try {
+            const dbWindow = windowToDatabase(window);
+            await api.windows.upsert(dbWindow, tableName, dbCId);
+            console.log(`[saveWorkItems] Saved window to ${tableName}:`, dbWindow);
+          } catch (error) {
+            console.error(`Error saving window for ${tableName}:`, error);
+          }
+        }));
       }
     }));
 
@@ -738,7 +936,7 @@ export const useProjectManager = (appData, setAppData) => {
       const dbRecord = workItemToDatabase(updatedWorkItem, roomId, appData.activeContractorId);
       if (dbRecord) {
         try {
-          await api.workItems.create(tableName, dbRecord);
+          await api.workItems.upsert(tableName, dbRecord);
         } catch (error) {
           console.error(`Error saving linked work item to ${tableName}:`, error);
           throw error;
@@ -749,6 +947,7 @@ export const useProjectManager = (appData, setAppData) => {
 
   const updateProjectRoom = useCallback(async (projectId, roomId, roomData) => {
     try {
+      console.log('[updateProjectRoom] Called with:', { projectId, roomId, workItemsCount: roomData.workItems?.length });
       if (!roomId) throw new Error('Room ID is required to update a room');
 
       const { workItems, ...otherData } = roomData;
@@ -758,7 +957,9 @@ export const useProjectManager = (appData, setAppData) => {
       }
 
       if (workItems) {
+        console.log('[updateProjectRoom] Saving workItems:', workItems.length, 'items');
         await saveWorkItemsForRoom(roomId, workItems);
+        console.log('[updateProjectRoom] workItems saved successfully');
       }
 
       setAppData(prev => ({
@@ -812,14 +1013,24 @@ export const useProjectManager = (appData, setAppData) => {
 
   const addReceipt = useCallback(async (projectId, receiptData) => {
     try {
+      // Ensure amount is always a number (iOS requires non-null Double)
+      const amount = typeof receiptData.totalAmount === 'number' ? receiptData.totalAmount : 0;
+
+      // Format items array to match iOS expectations (each item needs name, quantity, price as numbers)
+      const formattedItems = (receiptData.items || []).map(item => ({
+        name: item.name || '',
+        quantity: typeof item.quantity === 'number' ? item.quantity : 1,
+        price: typeof item.price === 'number' ? item.price : 0
+      }));
+
       const receipt = await api.receipts.create({
         project_id: projectId,
         image_url: receiptData.imageUrl,
-        amount: receiptData.totalAmount,
-        merchant_name: receiptData.vendorName,
-        receipt_date: receiptData.date,
-        items: receiptData.items || [],
-        raw_ocr_text: receiptData.rawText
+        amount: amount,
+        merchant_name: receiptData.vendorName || '',
+        receipt_date: receiptData.date || new Date().toISOString().split('T')[0],
+        items: formattedItems,
+        raw_ocr_text: receiptData.rawText || ''
       });
       return receipt;
     } catch (error) {
@@ -839,20 +1050,9 @@ export const useProjectManager = (appData, setAppData) => {
 
   const analyzeReceiptImage = useCallback(async (imageBase64) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/functions/v1/analyze-receipt`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({ imageBase64 })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze receipt');
-      }
-
-      return await response.json();
+      // Use OpenAI GPT-4 Vision directly (same as iOS implementation)
+      const result = await analyzeReceipt(imageBase64);
+      return result;
     } catch (error) {
       console.error('Error analyzing receipt:', error);
       throw error;

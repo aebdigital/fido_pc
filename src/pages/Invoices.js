@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Plus, Hash, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
+import { INVOICE_STATUS } from '../utils/dataTransformers';
 import InvoiceDetailModal from '../components/InvoiceDetailModal';
 import ContractorProfileModal from '../components/ContractorProfileModal';
 
@@ -161,7 +162,7 @@ const Invoices = () => {
       totalAmount += totalWithVAT;
       totalCount++;
 
-      if (invoice.status === 'paid') {
+      if (invoice.status === INVOICE_STATUS.PAID) {
         paidAmount += totalWithVAT;
         paidCount++;
       } else {
@@ -386,15 +387,17 @@ const Invoices = () => {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    {/* Status badge - above price */}
+                    {/* Status badge - above price (iOS compatible: unpaid, paid, afterMaturity) */}
                     <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${
-                      invoice.status === 'sent'
+                      invoice.status === INVOICE_STATUS.PAID
                         ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                        : invoice.status === 'paid'
-                        ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                        : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                        : invoice.status === INVOICE_STATUS.AFTER_MATURITY
+                        ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                        : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
                     }`}>
-                      {t(invoice.status === 'sent' ? 'sent' : invoice.status === 'paid' ? 'Paid' : 'unsent')}
+                      {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
+                        : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
+                        : 'Unpaid')}
                     </span>
                     {/* Price */}
                     <div className="font-semibold text-gray-900 dark:text-white text-lg">{getInvoiceTotal(invoice)} €</div>

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import api from '../services/supabaseApi';
-import { transformInvoiceFromDB } from '../utils/dataTransformers';
+import { transformInvoiceFromDB, invoiceStatusToDatabase, INVOICE_STATUS, PROJECT_EVENTS } from '../utils/dataTransformers';
 
 export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, updateProject) => {
   const createInvoice = useCallback(async (projectId, categoryId, invoiceData, findProjectById) => {
@@ -19,7 +19,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         maturity_days: invoiceData.paymentDays || 30,
         note: invoiceData.notes || null,
         project_id: projectId,
-        c_id: appData.activeContractorId,
+        // c_id will be auto-generated as UUID in supabaseApi.js
         client_id: project.clientId,
         contractor_id: appData.activeContractorId,
         status: 'unsent'
@@ -41,7 +41,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
       if (addProjectHistoryEntry) {
         await addProjectHistoryEntry(projectId, {
-          type: 'invoice_created',
+          type: PROJECT_EVENTS.INVOICE_GENERATED, // iOS compatible: 'invoiceGenerated'
           invoiceNumber: transformedInvoice.invoiceNumber
         });
       }
@@ -50,7 +50,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         await updateProject(categoryId, projectId, {
           hasInvoice: true,
           invoiceId: transformedInvoice.id,
-          invoiceStatus: 'unsent'
+          invoiceStatus: INVOICE_STATUS.UNPAID // iOS compatible: 'unpaid'
         });
       }
 
@@ -74,7 +74,8 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       if (updates.paymentMethod !== undefined) dbUpdates.payment_type = updates.paymentMethod;
       if (updates.paymentDays !== undefined) dbUpdates.maturity_days = updates.paymentDays;
       if (updates.notes !== undefined) dbUpdates.note = updates.notes;
-      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      // Convert iOS-compatible status to database status
+      if (updates.status !== undefined) dbUpdates.status = invoiceStatusToDatabase(updates.status);
       
       // Only call API if there are mappable updates
       if (Object.keys(dbUpdates).length > 0) {
@@ -93,38 +94,23 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
       if (invoice) {
         if (updateProject && updates.status) {
-          // Sync status with project
+          // Only sync invoiceStatus with project - do NOT change project.status
+          // iOS: marking invoice as paid only changes invoice.status, not project.status
+          // Project status is only changed when SENDING the invoice (to FINISHED=3)
           await updateProject(invoice.categoryId, invoice.projectId, {
             invoiceStatus: updates.status
           });
         }
 
         if (addProjectHistoryEntry) {
-          const projectId = invoice.projectId;
-
-          if (updates.status) {
-            if (updates.status === 'sent') {
-              await addProjectHistoryEntry(projectId, {
-                type: 'invoice_sent',
-                invoiceNumber: invoice.invoiceNumber
-              });
-            } else if (updates.status === 'paid') {
-              await addProjectHistoryEntry(projectId, {
-                type: 'invoice_paid',
-                invoiceNumber: invoice.invoiceNumber
-              });
-            }
-          }
+          // iOS does NOT add any history event when marking invoice as paid
+          // The 'finished' event is added when SENDING the invoice, not when marking as paid
 
           const isEdit = updates.invoiceNumber || updates.issueDate || updates.paymentMethod || updates.notes || updates.dueDate || updates.paymentDays || updates.dispatchDate;
           const hasNonStatusUpdates = Object.keys(updates).some(key => key !== 'status');
 
-          if (hasNonStatusUpdates && isEdit) {
-             await addProjectHistoryEntry(projectId, {
-              type: 'invoice_edited',
-              invoiceNumber: updates.invoiceNumber || invoice.invoiceNumber
-            });
-          }
+          // Note: iOS doesn't have an 'invoice_edited' event, so we skip this for now
+          // If needed, we could add a custom event or use an existing one
         }
       }
     } catch (error) {
@@ -157,7 +143,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
         if (addProjectHistoryEntry) {
           await addProjectHistoryEntry(invoice.projectId, {
-            type: 'invoice_deleted',
+            type: PROJECT_EVENTS.INVOICE_DELETED, // iOS compatible: 'invoiceDeleted'
             invoiceNumber: invoice.invoiceNumber
           });
         }

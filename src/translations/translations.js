@@ -53,6 +53,27 @@ export const translations = {
     "Hotovosť": "Cash",
     "Prevodom": "Transfer",
 
+    // iOS-compatible project status translations
+    "not sent": "Not sent",
+    "sent": "Sent",
+    "approved": "Approved",
+    "finished": "Finished",
+
+    // iOS-compatible invoice status translations
+    "unpaid": "Unpaid",
+    "paid": "Paid",
+    "afterMaturity": "Overdue",
+
+    // iOS-compatible project event translations
+    "created": "Created",
+    "notSent": "Not sent",
+    "invoiceSent": "Invoice sent",
+    "invoiceGenerated": "Invoice generated",
+    "invoiceDeleted": "Invoice deleted",
+    "archived": "Archived",
+    "unArchived": "Unarchived",
+    "duplicated": "Duplicated",
+
     // Work Items Translations (Slovak Key -> English Value)
     "Elektroinštalačné práce": "Electrical installation work",
     "Vodoinštalačné práce": "Plumbing work",
@@ -496,9 +517,12 @@ export const translations = {
     "Supplier": "Dodávateľ",
     "supplier, validity of price offer": "dodávateľ, platnosť cenovej ponuky",
     "supplier information, validity of price offer": "dodávateľ, platnosť cenovej ponuky",
+    "Price offer validity": "Platnosť cenovej ponuky",
     "Validity Period": "Platnosť ponuky",
     "Offer validity period": "Doba platnosti ponuky",
     "How long price offers remain valid": "Ako dlho sú cenové ponuky platné",
+    "Validity of your price offers will be set for": "Platnosť vašich cenových ponúk bude nastavená na",
+    "since creation": "od vytvorenia",
     "Contractors": "Dodávatelia",
     "Add contractor": "Pridať dodávateľa",
     "No contractors yet": "Zatiaľ žiadni dodávatelia",
@@ -790,15 +814,49 @@ export const translations = {
     "invoices total": "faktúry celkovo",
     "invoices": "faktúry",
 
-    // ========== PROJECT STATUS ==========
-    "Not sent": "Neodoslaný",
-    "Sent": "Odoslaný",
-    "Not paid": "Neuhradený",
-    "Invoiced": "Vyfakturovaný",
-    "neodoslany": "Neodoslaný",
-    "odoslany": "Odoslaný",
-    "neuhradeny": "Neuhradený",
-    "vyfakturovany": "Vyfakturovaný"
+    // ========== PROJECT STATUS (iOS COMPATIBLE) ==========
+    // iOS uses integer status 0-3: notSent, sent, approved, finished (neuter form)
+    "not sent": "Neodoslané",
+    "Not sent": "Neodoslané",
+    "Sent": "Odoslané",
+    "Not paid": "Neuhradené",
+    "Invoiced": "Vyfakturované",
+    // Legacy Slovak status keys (for backwards compatibility)
+    "neodoslany": "Neodoslané",
+    "odoslany": "Odoslané",
+    "neuhradeny": "Neuhradené",
+    "vyfakturovany": "Vyfakturované",
+
+    // iOS-compatible project events (camelCase rawValues from iOS ProjectEvents enum, neuter form)
+    "Created": "Vytvorené",
+    "created": "Vytvorené",
+    "notSent": "Neodoslané",
+    "Notsent": "Neodoslané",
+    "sent": "Odoslané",
+    "approved": "Schválené",
+    "Approved": "Schválené",
+    "archived": "Archivované",
+    "Archived": "Archivované",
+    "unArchived": "Obnovené",
+    "Unarchived": "Obnovené",
+    "duplicated": "Duplikované",
+    "Duplicated": "Duplikované",
+    "invoiceSent": "Faktúra odoslaná",
+    "Invoicesent": "Faktúra odoslaná",
+    "invoiceGenerated": "Faktúra vytvorená",
+    "Invoicegenerated": "Faktúra vytvorená",
+    "finished": "Vyfakturované",
+    "Finished": "Vyfakturované",
+    "invoiceDeleted": "Faktúra vymazaná",
+    "Invoicedeleted": "Faktúra vymazaná",
+
+    // iOS-compatible invoice statuses (neuter form for general use)
+    "unpaid": "Neuhradené",
+    "Unpaid": "Neuhradené",
+    "paid": "Uhradené",
+    "Paid": "Uhradené",
+    "afterMaturity": "Po splatnosti",
+    "Aftermaturity": "Po splatnosti"
   }
 };
 
