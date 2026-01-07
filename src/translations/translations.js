@@ -379,7 +379,6 @@ export const translations = {
     "Commute": "Cesta",
     "Others": "Ostatné",
     "rental per day": "prenájom na deň",
-    "assembly and disassembly": "montáž a demontáž",
     "Custom work and material": "Vlastná práca a materiál",
 
     // ========== MEASUREMENTS & SPECIFICATIONS ==========
@@ -820,7 +819,6 @@ export const translations = {
     "No notes": "Žiadne poznámky",
     "Contractor": "Dodávateľ",
     "Phone": "Telefón",
-    "Paint": "Farba",
 
     // ========== STATISTICS ==========
     "Statistics": "Štatistiky",
