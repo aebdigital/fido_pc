@@ -64,22 +64,6 @@ export const useProjectManager = (appData, setAppData) => {
       // Create a deep copy of the current general price list for this project
       const priceListSnapshot = JSON.parse(JSON.stringify(generalPriceList));
 
-      // Calculate next project number logic (iOS compatible)
-      // iOS stores only the sequential number (1, 2, 3...) and computes projectNumber as year + 3-digit number
-      // e.g., number=3, dateCreated=2026 -> projectNumber="2026003"
-      const currentYear = new Date().getFullYear();
-
-      // Gather all projects for the current contractor (active and archived)
-      let activeProjects = [];
-      if (activeContractorId && contractorProjects[activeContractorId]?.categories) {
-        activeProjects = contractorProjects[activeContractorId].categories.flatMap(cat => cat.projects || []);
-      } else {
-        activeProjects = projectCategories?.flatMap(cat => cat.projects || []) || [];
-      }
-
-      const contractorArchivedProjects = (archivedProjects || []).filter(p => p.contractor_id === activeContractorId);
-      const allContractorProjects = [...activeProjects, ...contractorArchivedProjects];
-
       // Determine next sequential number (set to 0 to trigger database auto-assignment)
       const nextNumber = 0;
 
