@@ -136,7 +136,7 @@ const Settings = () => {
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-3 mb-2">
                 <span className="font-medium text-gray-900 dark:text-white text-lg">{user?.email || 'customer@email.com'}</span>
-                {isPro && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">PRO ACTIVE</span>}
+                {isPro && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">{t('PRO ACTIVE')}</span>}
               </div>
 
               {isPro ? (

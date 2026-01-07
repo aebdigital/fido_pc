@@ -557,6 +557,8 @@ export const translations = {
     "after that they will be deleted automatically": "potom budú automaticky vymazané",
 
     // ========== USER ACCOUNT ==========
+    "PRO ACTIVE": "PRO POUŽÍVATEĽ",
+    "You have full access to all features.": "Máte plný prístup ku všetkým funkciám.",
     "Pro User": "Pro používateľ",
     "Customize prices throughout the app and export projects to PDF": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF",
     "Customise prices in the entire app and export projects to PDF. Try Pro For Free!": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF. Vyskúšajte Pro zadarmo!",
