@@ -130,11 +130,12 @@ const Archive = ({ onBack }) => {
                   <button
                     key={days}
                     onClick={() => handleArchiveRetentionChange(days)}
-                    className={`py-1.5 lg:px-4 lg:py-2 rounded-xl font-semibold transition-colors text-sm lg:text-base text-center ${archiveRetentionDays === days
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                    className={`py-1.5 lg:px-4 lg:py-2 rounded-xl font-semibold transition-all text-sm lg:text-base text-center flex items-center justify-center gap-2 shadow-sm ${archiveRetentionDays === days
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 transform scale-[1.02]'
                       : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                   >
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${archiveRetentionDays === days ? 'bg-blue-400' : 'bg-transparent'}`} />
                     {days === 9999 ? t('Forever') : `${days} ${t('days')}`}
                   </button>
                 ))}

@@ -35,12 +35,12 @@ const Projects = () => {
 
   // Special state for viewing orphan projects (projects without contractor)
   const [viewingOrphanProjects, setViewingOrphanProjects] = useState(false);
-  
+
   const [activeCategory, setActiveCategory] = useState('flats');
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentView, setCurrentView] = useState(window.innerWidth < 1024 ? 'categories' : 'projects'); // 'categories', 'projects', 'details'
   const [viewSource, setViewSource] = useState('projects'); // 'projects' or 'archive'
-  
+
 
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -48,7 +48,7 @@ const Projects = () => {
   const [isClosingModal, setIsClosingModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [showContractorSelector, setShowContractorSelector] = useState(false);
-  
+
   // Ref for dropdown (used in header)
   const dropdownRef = useRef(null);
 
@@ -189,7 +189,7 @@ const Projects = () => {
         if (project) {
           // For archived projects, we might not set active category, or set it to original
           if (project.originalCategoryId) {
-             setActiveCategory(project.originalCategoryId);
+            setActiveCategory(project.originalCategoryId);
           }
           setSelectedProject(project);
           setCurrentView('details');
@@ -277,7 +277,7 @@ const Projects = () => {
 
   const handleArchiveProject = (projectId) => {
     archiveProject(activeCategory, projectId);
-    
+
     // If we're currently viewing the archived project, go back to project list
     if (selectedProject && selectedProject.id === projectId) {
       setSelectedProject(null);
@@ -334,330 +334,324 @@ const Projects = () => {
     <>
       <div className="pb-20 lg:pb-0 overflow-hidden w-full min-w-0">
         <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
-      
-      {/* Contractor Profile Dropdown */}
-      {(currentView === 'categories' || currentView === 'projects') && (
-        <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
-        <button
-          className="flex items-center gap-2"
-          onClick={() => setShowContractorSelector(!showContractorSelector)}
-        >
-          {/* Mobile: truncated name */}
-          <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
-            {(() => {
-              const name = viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'));
-              return name.length > 16 ? name.substring(0, 16) + '...' : name;
-            })()}
-          </span>
-          {/* Desktop: full name */}
-          <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
-            {viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'))}
-          </span>
-          <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-        </button>
-        
-        {/* Contractor Dropdown */}
-        {showContractorSelector && (
-          <div className="absolute top-full left-0 mt-2 w-full max-w-xs lg:w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-10 animate-slide-in-top">
-            <div className="p-4 space-y-3">
-              
-              {/* Create New Profile */}
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-row items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md" 
-                   onClick={handleCreateContractorProfile}>
-                <div>
-                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
 
-                </div>
-                <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
+        {/* Contractor Profile Dropdown */}
+        {(currentView === 'categories' || currentView === 'projects') && (
+          <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
+            <button
+              className="flex items-center gap-2 bg-transparent"
+              onClick={() => setShowContractorSelector(!showContractorSelector)}
+            >
+              {/* Mobile: truncated name */}
+              <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
+                {(() => {
+                  const name = viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'));
+                  return name.length > 16 ? name.substring(0, 16) + '...' : name;
+                })()}
+              </span>
+              {/* Desktop: full name */}
+              <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
+                {viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'))}
+              </span>
+              <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+            </button>
 
-              {/* Existing Contractors */}
-              {contractors.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
-                    {t('Select contractor')}
+            {/* Contractor Dropdown */}
+            {showContractorSelector && (
+              <div className="absolute top-full left-0 mt-2 w-full max-w-xs lg:w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-10 animate-slide-in-top">
+                <div className="p-4 space-y-3">
+
+                  {/* Create New Profile */}
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-row items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+                    onClick={handleCreateContractorProfile}>
+                    <div>
+                      <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
+
+                    </div>
+                    <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
+                      <Plus className="w-5 h-5" />
+                    </button>
                   </div>
-                  {contractors.map(contractor => (
-                    <div
-                      key={contractor.id}
-                      className={`p-3 rounded-xl cursor-pointer transition-colors ${
-                        activeContractorId === contractor.id && !viewingOrphanProjects
-                          ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
-                          : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-                      }`}
-                      onClick={() => handleContractorSelect(contractor.id)}
-                    >
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {contractor.name}
+
+                  {/* Existing Contractors */}
+                  {contractors.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
+                        {t('Select contractor')}
                       </div>
-                      {contractor.email && (
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {contractor.email}
+                      {contractors.map(contractor => (
+                        <div
+                          key={contractor.id}
+                          className={`p-3 rounded-xl cursor-pointer transition-colors ${activeContractorId === contractor.id && !viewingOrphanProjects
+                              ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
+                              : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                            }`}
+                          onClick={() => handleContractorSelect(contractor.id)}
+                        >
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {contractor.name}
+                          </div>
+                          {contractor.email && (
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              {contractor.email}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              {/* Orphan Projects Option - only show if there are orphan projects */}
-              {hasOrphanProjects() && (
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                  <div
-                    className={`p-3 rounded-xl cursor-pointer transition-colors ${
-                      viewingOrphanProjects
-                        ? 'bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-600'
-                        : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                    onClick={handleViewOrphanProjects}
-                  >
-                    <div className="font-medium text-amber-700 dark:text-amber-400">
-                      {t('Projects without contractor')}
+                  {/* Orphan Projects Option - only show if there are orphan projects */}
+                  {hasOrphanProjects() && (
+                    <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                      <div
+                        className={`p-3 rounded-xl cursor-pointer transition-colors ${viewingOrphanProjects
+                            ? 'bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-600'
+                            : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                          }`}
+                        onClick={handleViewOrphanProjects}
+                      >
+                        <div className="font-medium text-amber-700 dark:text-amber-400">
+                          {t('Projects without contractor')}
+                        </div>
+                        <div className="text-sm text-amber-600 dark:text-amber-500">
+                          {t('Projects with deleted contractor')}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-amber-600 dark:text-amber-500">
-                      {t('Projects with deleted contractor')}
-                    </div>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
-      </div>
-      )}
 
-      <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden w-full">
-        {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar - Hidden when viewing project details */}
-        <div className={`lg:w-80 flex lg:flex-col w-screen lg:w-80 ${currentView === 'details' ? 'hidden' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{maxWidth: '100vw'}}>
-          <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-6 py-4 space-x-2 lg:space-x-0 lg:space-y-3 scrollbar-hide" style={{width: '100%'}}>
-            {displayCategories.map(category => (
-              <button
-                key={category.id}
-                onClick={() => handleCategorySelect(category.id)}
-                className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-2xl overflow-hidden transition-all duration-200 ${
-                  activeCategory === category.id 
-                    ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg transform scale-105' 
-                    : 'hover:shadow-md'
-                }`}
-              >
-                <div className="h-24 lg:h-32 relative shadow-lg">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-3 flex justify-between items-end">
-                    <h3 className="text-base lg:text-xl font-bold text-gray-900">{t(category.name)}</h3>
-                    <span className="text-gray-900 text-xs lg:text-sm font-medium">{category.count} {t('projects')}</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Main Content - Categories, Projects or Details */}
-        <div className={`flex-1 flex flex-col min-w-0 ${currentView === 'details' ? 'w-full lg:flex-1' : ''}`}>
-          {/* Category Selection View - Mobile Only */}
-          {currentView === 'categories' && (
-            <div className="pt-2 pb-4 lg:hidden min-w-0 w-full">
-              <div className="space-y-4">
-                {displayCategories.map(category => (
-                  <button
-                    key={category.id}
-                    onClick={() => handleCategorySelect(category.id)}
-                    className="w-full h-56 rounded-3xl overflow-hidden transition-all duration-200 relative shadow-lg hover:shadow-xl"
-                  >
+        <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden w-full">
+          {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar - Hidden when viewing project details */}
+          <div className={`lg:w-80 flex lg:flex-col w-screen lg:w-80 ${currentView === 'details' ? 'hidden' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{ maxWidth: '100vw' }}>
+            <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-6 py-4 space-x-2 lg:space-x-0 lg:space-y-3 scrollbar-hide" style={{ width: '100%' }}>
+              {displayCategories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategorySelect(category.id)}
+                  className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-2xl overflow-hidden transition-all duration-200 ${activeCategory === category.id
+                      ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg transform scale-105'
+                      : 'hover:shadow-md'
+                    }`}
+                >
+                  <div className="h-24 lg:h-32 relative shadow-lg">
                     <img
                       src={category.image}
                       alt={category.name}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between items-end">
-                      <h3 className="text-3xl font-bold text-gray-900">{t(category.name)}</h3>
-                      <span className="text-sm font-medium text-gray-900">{category.count} {t('projects')}</span>
+                    <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-3 flex justify-between items-end">
+                      <h3 className="text-base lg:text-xl font-bold text-gray-900">{t(category.name)}</h3>
+                      <span className="text-gray-900 text-xs lg:text-sm font-medium">{category.count} {t('projects')}</span>
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Project List View */}
-          {currentView === 'projects' && (
-            <div className="pt-4 pb-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 overflow-hidden w-full">
-              {/* Project List Header */}
-              <div className="flex flex-col gap-4 w-full">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <button 
-                      onClick={() => setCurrentView('categories')}
-                      className="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <h2 className="text-lg sm:text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
-                      {t(displayCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
-                    </h2>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    {!viewingOrphanProjects && (
-                      <>
-                        <button
-                          onClick={toggleProjectDeleteMode}
-                          className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${
-                            projectDeleteMode
-                              ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                              : 'bg-gray-500 text-white hover:bg-gray-600'
-                          }`}
-                        >
-                          <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
-                        </button>
-                        <button
-                          onClick={() => setShowNewProjectModal(true)}
-                          className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span className="hidden sm:inline">{t('Pridať projekt')}</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Projects List */}
-              <div className="space-y-3 min-w-0 w-full">
-                {activeProjects.map(project => (
-                  <div
-                    key={project.id}
-                    className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${
-                      projectDeleteMode && !viewingOrphanProjects
-                        ? 'justify-between'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
-                    }`}
-                    onClick={(projectDeleteMode && !viewingOrphanProjects) ? undefined : () => handleProjectSelect(project)}
-                  >
-                    <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
-                      </div>
-                      <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
-                      {/* Client name - only visible on desktop */}
-                      <p className="hidden lg:block text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1">
-                        {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
-                      </p>
-                    </div>
-
-                    {projectDeleteMode && !viewingOrphanProjects ? (
-                      <button
-                        onClick={() => handleArchiveProject(project.id)}
-                        className="bg-amber-100 hover:bg-amber-200 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
-                      >
-                        <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
-                        <div className="text-right">
-                          {/* Status Badge - iOS compatible: status is integer 0-3 */}
-                          <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${
-                            project.status === PROJECT_STATUS.FINISHED
-                              ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                              : project.status === PROJECT_STATUS.APPROVED
-                              ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                              : project.status === PROJECT_STATUS.SENT
-                              ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                              : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                          }`}>
-                            {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
-                              : project.status === PROJECT_STATUS.APPROVED ? 'approved'
-                              : project.status === PROJECT_STATUS.SENT ? 'sent'
-                              : 'not sent')}
-                          </span>
-                          {/* Price */}
-                          <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
-                          {/* VAT not included - below price */}
-                          <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {activeProjects.length === 0 && (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  <p>{t('No projects in this category yet.')}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Project Details View */}
-          {currentView === 'details' && currentProject && (
-            <ProjectDetailView
-              project={currentProject}
-              onBack={handleBackToProjects}
-              viewSource={viewSource}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* New Project Modal */}
-      {showNewProjectModal && (
-      <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
-        <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-base font-medium text-gray-900 dark:text-white mb-2">{t('Project Name')}</label>
-              <input
-                type="text"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder={t('Enter project name')}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
-                autoFocus
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <button
-                onClick={handleCloseNewProjectModal}
-                className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
-              >
-                {t('Cancel')}
-              </button>
-              <button
-                onClick={handleNewProject}
-                disabled={!newProjectName.trim()}
-                className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-              >
-                {t('Create')}
-              </button>
+                </button>
+              ))}
             </div>
           </div>
-        </div>
-      </div>
-    )}
-    
-    {/* Modals specific to Project Details are now handled within ProjectDetailView */}
 
-    {/* Contractor Profile Modal */}
-    {showContractorModal && (
-      <ContractorProfileModal
-        onClose={() => setShowContractorModal(false)}
-        onSave={handleSaveContractor}
-      />
-    )}
-    </div>
+          {/* Main Content - Categories, Projects or Details */}
+          <div className={`flex-1 flex flex-col min-w-0 ${currentView === 'details' ? 'w-full lg:flex-1' : ''}`}>
+            {/* Category Selection View - Mobile Only */}
+            {currentView === 'categories' && (
+              <div className="pt-2 pb-4 lg:hidden min-w-0 w-full">
+                <div className="space-y-4">
+                  {displayCategories.map(category => (
+                    <button
+                      key={category.id}
+                      onClick={() => handleCategorySelect(category.id)}
+                      className="w-full h-56 rounded-3xl overflow-hidden transition-all duration-200 relative shadow-lg hover:shadow-xl"
+                    >
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between items-end">
+                        <h3 className="text-3xl font-bold text-gray-900">{t(category.name)}</h3>
+                        <span className="text-sm font-medium text-gray-900">{category.count} {t('projects')}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Project List View */}
+            {currentView === 'projects' && (
+              <div className="pt-4 pb-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 overflow-hidden w-full">
+                {/* Project List Header */}
+                <div className="flex flex-col gap-4 w-full">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <button
+                        onClick={() => setCurrentView('categories')}
+                        className="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <h2 className="text-lg sm:text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
+                        {t(displayCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
+                      </h2>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      {!viewingOrphanProjects && (
+                        <>
+                          <button
+                            onClick={toggleProjectDeleteMode}
+                            className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${projectDeleteMode
+                                ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                                : 'bg-gray-500 text-white hover:bg-gray-600'
+                              }`}
+                          >
+                            <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
+                          </button>
+                          <button
+                            onClick={() => setShowNewProjectModal(true)}
+                            className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span className="hidden sm:inline">{t('Pridať projekt')}</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Projects List */}
+                <div className="space-y-3 min-w-0 w-full">
+                  {activeProjects.map(project => (
+                    <div
+                      key={project.id}
+                      className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
+                          ? 'justify-between'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
+                        }`}
+                      onClick={(projectDeleteMode && !viewingOrphanProjects) ? undefined : () => handleProjectSelect(project)}
+                    >
+                      <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
+                        </div>
+                        <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
+                        {/* Client name - only visible on desktop */}
+                        <p className="hidden lg:block text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1">
+                          {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
+                        </p>
+                      </div>
+
+                      {projectDeleteMode && !viewingOrphanProjects ? (
+                        <button
+                          onClick={() => handleArchiveProject(project.id)}
+                          className="bg-amber-100 hover:bg-amber-200 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
+                        >
+                          <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
+                          <div className="text-right">
+                            {/* Status Badge - iOS compatible: status is integer 0-3 */}
+                            <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${project.status === PROJECT_STATUS.FINISHED
+                                ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                                : project.status === PROJECT_STATUS.APPROVED
+                                  ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                                  : project.status === PROJECT_STATUS.SENT
+                                    ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                                    : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                              }`}>
+                              {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
+                                : project.status === PROJECT_STATUS.APPROVED ? 'approved'
+                                  : project.status === PROJECT_STATUS.SENT ? 'sent'
+                                    : 'not sent')}
+                            </span>
+                            {/* Price */}
+                            <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                            {/* VAT not included - below price */}
+                            <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {activeProjects.length === 0 && (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <p>{t('No projects in this category yet.')}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Project Details View */}
+            {currentView === 'details' && currentProject && (
+              <ProjectDetailView
+                project={currentProject}
+                onBack={handleBackToProjects}
+                viewSource={viewSource}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* New Project Modal */}
+        {showNewProjectModal && (
+          <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
+            <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-base font-medium text-gray-900 dark:text-white mb-2">{t('Project Name')}</label>
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder={t('Enter project name')}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <button
+                    onClick={handleCloseNewProjectModal}
+                    className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
+                  >
+                    {t('Cancel')}
+                  </button>
+                  <button
+                    onClick={handleNewProject}
+                    disabled={!newProjectName.trim()}
+                    className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                  >
+                    {t('Create')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modals specific to Project Details are now handled within ProjectDetailView */}
+
+        {/* Contractor Profile Modal */}
+        {showContractorModal && (
+          <ContractorProfileModal
+            onClose={() => setShowContractorModal(false)}
+            onSave={handleSaveContractor}
+          />
+        )}
+      </div>
     </>
   );
 };

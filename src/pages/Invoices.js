@@ -200,86 +200,86 @@ const Invoices = () => {
         </button>
       </div>
 
-      {/* Contractor Profile Dropdown */}
-      <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
-        <button
-          className="flex items-center gap-2"
-          onClick={() => setShowContractorSelector(!showContractorSelector)}
-        >
-          {/* Mobile: truncated name */}
-          <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
-            {(() => {
-              const name = getCurrentContractor()?.name || t('Select contractor');
-              return name.length > 16 ? name.substring(0, 16) + '...' : name;
-            })()}
-          </span>
-          {/* Desktop: full name */}
-          <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
-            {getCurrentContractor()?.name || t('Select contractor')}
-          </span>
-          <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-        </button>
+      {/* Contractor and Stats Header */}
+      <div className="flex items-center justify-between mb-4 lg:mb-6">
+        <div className="relative" ref={dropdownRef}>
+          <button
+            className="flex items-center gap-2 bg-transparent"
+            onClick={() => setShowContractorSelector(!showContractorSelector)}
+          >
+            {/* Mobile: truncated name */}
+            <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
+              {(() => {
+                const name = getCurrentContractor()?.name || t('Select contractor');
+                return name.length > 12 ? name.substring(0, 12) + '...' : name;
+              })()}
+            </span>
+            {/* Desktop: full name */}
+            <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
+              {getCurrentContractor()?.name || t('Select contractor')}
+            </span>
+            <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+          </button>
 
-        {/* Contractor Dropdown */}
-        {showContractorSelector && (
-          <div className="absolute top-full left-0 mt-2 w-full max-w-xs lg:w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-10 animate-slide-in-top">
-            <div className="p-4 space-y-3">
-
-              {/* Create New Profile */}
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-row items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-                onClick={() => {
-                  setShowContractorSelector(false);
-                  setShowContractorModal(true);
-                }}>
-                <div>
-                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
-
-                </div>
-                <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Existing Contractors */}
-              {contractors.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
-                    {t('Select contractor')}
+          {/* Contractor Dropdown */}
+          {showContractorSelector && (
+            <div className="absolute top-full left-0 mt-2 w-full max-w-xs lg:w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-10 animate-slide-in-top">
+              <div className="p-4 space-y-3">
+                {/* Create New Profile */}
+                <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-row items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+                  onClick={() => {
+                    setShowContractorSelector(false);
+                    setShowContractorModal(true);
+                  }}>
+                  <div>
+                    <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
                   </div>
-                  {contractors.map(contractor => (
-                    <div
-                      key={contractor.id}
-                      className={`p-3 rounded-xl cursor-pointer transition-colors ${activeContractorId === contractor.id
+                  <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Existing Contractors */}
+                {contractors.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
+                      {t('Select contractor')}
+                    </div>
+                    {contractors.map(contractor => (
+                      <div
+                        key={contractor.id}
+                        className={`p-3 rounded-xl cursor-pointer transition-colors ${activeContractorId === contractor.id
                           ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
                           : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-                        }`}
-                      onClick={() => handleContractorSelect(contractor)}
-                    >
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {contractor.name}
-                      </div>
-                      {contractor.email && (
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {contractor.email}
+                          }`}
+                        onClick={() => handleContractorSelect(contractor)}
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {contractor.name}
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                        {contractor.email && (
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {contractor.email}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Mobile Stats Button - Below Contractor */}
-      <div className="lg:hidden flex justify-end mb-4">
-        <button
-          onClick={() => setShowStatsModal(true)}
-          className="w-10 h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
-        >
-          <Hash className="w-5 h-5" />
-        </button>
+        {/* Mobile Stats Button */}
+        <div className="lg:hidden">
+          <button
+            onClick={() => setShowStatsModal(true)}
+            className="w-10 h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+          >
+            <Hash className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <div className="mb-6 lg:mb-8 w-[calc(100vw-2rem)] lg:w-auto -ml-4 lg:ml-0 overflow-x-auto scrollbar-hide">
@@ -288,7 +288,7 @@ const Invoices = () => {
           <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button
               onClick={() => setShowYearDropdown(!showYearDropdown)}
-              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap"
+              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap bg-transparent"
             >
               {selectedYear}
               <ChevronDown className={`w-4 h-4 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
@@ -303,8 +303,8 @@ const Invoices = () => {
                       setShowYearDropdown(false);
                     }}
                     className={`w-full px-4 py-2 text-left text-sm transition-colors ${selectedYear === year
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                   >
                     {year}
@@ -319,9 +319,9 @@ const Invoices = () => {
           {statusFilters.map(filter => (
             <button
               key={filter}
-              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap ${selectedStatus === filter
-                  ? 'text-gray-900 dark:text-white'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap bg-transparent ${selectedStatus === filter
+                ? 'text-gray-900 dark:text-white'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               onClick={() => setSelectedStatus(filter)}
             >
@@ -397,10 +397,10 @@ const Invoices = () => {
 
                       return (
                         <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${isPaid
-                            ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                            : isOverdue
-                              ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                              : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                          ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                          : isOverdue
+                            ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                            : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
                           }`}>
                           {isPaid ? t('Paid')
                             : isOverdue ? t('afterMaturity')

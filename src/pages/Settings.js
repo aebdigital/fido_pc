@@ -163,7 +163,7 @@ const Settings = () => {
                 <button
                   onClick={handleRestore}
                   disabled={loadingPro}
-                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-4 py-3 font-medium transition-colors"
+                  className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-6 py-3 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md"
                 >
                   {t('Restore Purchases')}
                 </button>

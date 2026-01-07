@@ -39,7 +39,7 @@ const Layout = ({ children }) => {
       if (window.innerWidth >= 1024) return; // Only on mobile
 
       const currentScrollY = window.scrollY;
-      
+
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
         // Scrolling down and past threshold - hide navigation
         setIsNavVisible(false);
@@ -47,7 +47,7 @@ const Layout = ({ children }) => {
         // Scrolling up - show navigation
         setIsNavVisible(true);
       }
-      
+
       setLastScrollY(currentScrollY);
     };
 
@@ -102,11 +102,10 @@ const Layout = ({ children }) => {
                 key={item.path}
                 href={item.path}
                 onClick={(e) => handleNavigation(item.path, e)}
-                className={`w-full flex items-center px-4 py-3 rounded-xl text-left transition-all duration-200 ${
-                  location.pathname === item.path
-                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-                }`}
+                className={`w-full flex items-center px-4 py-3 rounded-xl text-left transition-all duration-200 ${location.pathname === item.path
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                  }`}
               >
                 <item.icon className="w-5 h-5 mr-3" />
                 <span className="text-lg font-medium">{item.name}</span>
@@ -116,10 +115,10 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Account Section at bottom */}
-        <div className="p-2.5 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={signOut}
-            className="w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 group"
+            className="w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl group"
           >
             <div className="flex items-center min-w-0 flex-1">
               <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
@@ -153,9 +152,8 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Bottom Navigation - Mobile Only */}
-      <div className={`lg:hidden fixed bottom-4 left-4 right-4 z-40 transition-transform duration-300 ${
-        isNavVisible ? 'translate-y-0' : 'translate-y-[calc(100%+16px)]'
-      }`}>
+      <div className={`lg:hidden fixed bottom-4 left-4 right-4 z-40 transition-transform duration-300 ${isNavVisible ? 'translate-y-0' : 'translate-y-[calc(100%+16px)]'
+        }`}>
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-[2rem] border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
           <div className="flex justify-around">
             {menuItems.map(item => {
@@ -165,25 +163,23 @@ const Layout = ({ children }) => {
                   key={item.path}
                   href={item.path}
                   onClick={(e) => handleNavigation(item.path, e)}
-                  className={`flex flex-col items-center px-1.5 py-0.5 m-0.5 rounded-2xl transition-all duration-200 ${
-                    isActive
-                      ? '' // No background for active item
-                      : ''
-                  }`}
+                  className={`mobile-nav-link flex flex-col items-center px-1.5 py-0.5 m-0.5 rounded-2xl transition-all duration-200 bg-transparent ${isActive
+                    ? '' // No background for active item
+                    : ''
+                    }`}
                 >
                   <item.icon
                     className={`w-5 h-5 mb-0.5 ${ // Smaller icon size
                       isActive
                         ? 'text-blue-500 dark:text-blue-400' // Active icon color
                         : 'text-gray-400'
-                    }`}
+                      }`}
                   />
                   <span
-                    className={`text-xs font-medium ${
-                      isActive
-                        ? 'text-blue-500 dark:text-blue-400' // Active text color
-                        : 'text-gray-400'
-                    }`}
+                    className={`text-xs font-medium ${isActive
+                      ? 'text-blue-500 dark:text-blue-400' // Active text color
+                      : 'text-gray-400'
+                      }`}
                   >
                     {item.name}
                   </span>

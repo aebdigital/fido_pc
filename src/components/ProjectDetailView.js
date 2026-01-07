@@ -1212,7 +1212,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   autoFocus
                 />
                 <div className="flex gap-2">
-                  <button onClick={() => setIsEditingDetailNotes(false)} className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded-xl">{t('Cancel')}</button>
+                  <button onClick={() => setIsEditingDetailNotes(false)} className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>
                   <button onClick={handleSaveDetailNotes} className="flex-1 px-3 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl">{t('Save')}</button>
                 </div>
               </div>
@@ -1337,36 +1337,56 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       {/* Modals */}
       {showNewRoomModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold mb-4">{t('New room')}</h3>
-            <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto relative">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('New room')}</h3>
+              <button
+                onClick={() => setShowNewRoomModal(false)}
+                className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
+                title={t('Cancel')}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-2">
               {roomTypes.map((type) => (
-                <button key={type} onClick={() => handleAddRoom(type)} className="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <button key={type} onClick={() => handleAddRoom(type)} className="p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                   {t(type)}
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowNewRoomModal(false)} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl">{t('Cancel')}</button>
           </div>
         </div>
       )}
 
       {showCustomRoomModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold mb-4">{t('Custom Room Name')}</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
+              <button
+                onClick={() => setShowCustomRoomModal(false)}
+                className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
+                title={t('Cancel')}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
             <input
               type="text"
               value={customRoomName}
               onChange={(e) => setCustomRoomName(e.target.value)}
-              className="w-full p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl mb-6"
+              className="w-full p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') handleCustomRoomCreate(); }}
+              placeholder={t('Enter room name')}
             />
-            <div className="flex gap-3">
-              <button onClick={() => setShowCustomRoomModal(false)} className="flex-1 px-4 py-3 bg-gray-100 rounded-xl">{t('Cancel')}</button>
-              <button onClick={handleCustomRoomCreate} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl">{t('Create')}</button>
-            </div>
+            <button
+              onClick={handleCustomRoomCreate}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            >
+              {t('Create')}
+            </button>
           </div>
         </div>
       )}
@@ -1423,7 +1443,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   {t('Add client')}
                 </button>
 
-                <button onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl">{t('Cancel')}</button>
+                <button onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>
               </>
             )}
           </div>
@@ -1465,7 +1485,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <h3 className="text-xl font-semibold">{t('Contractor Required')}</h3>
             </div>
             <p className="text-gray-600 mb-6">{t('A contractor must be assigned to duplicate a project.')}</p>
-            <button onClick={() => setShowContractorWarning(false)} className="w-full px-4 py-3 bg-gray-100 rounded-xl">{t('Cancel')}</button>
+            <button onClick={() => setShowContractorWarning(false)} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>
           </div>
         </div>
       )}

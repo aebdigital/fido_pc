@@ -115,23 +115,23 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
         <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Type of client?')}</h3>
         <div className="flex sm:flex-col gap-3 mb-6 lg:mb-8">
           <button
-            className={`py-3 px-4 lg:px-6 rounded-2xl font-medium transition-all text-left flex-1 sm:flex-none ${
-              clientType === 'personal'
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`py-3 px-4 lg:px-6 rounded-2xl font-semibold transition-all text-left flex-1 sm:flex-none flex items-center gap-3 shadow-sm ${clientType === 'personal'
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02]'
+                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
             onClick={() => setClientType('personal')}
           >
+            <div className={`w-2 h-2 rounded-full ${clientType === 'personal' ? 'bg-blue-400' : 'bg-transparent'}`} />
             {t('Private')}
           </button>
           <button
-            className={`py-3 px-4 lg:px-6 rounded-2xl font-medium transition-all text-left flex-1 sm:flex-none ${
-              clientType === 'corporation'
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border-2 border-gray-400 dark:border-gray-500'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`py-3 px-4 lg:px-6 rounded-2xl font-semibold transition-all text-left flex-1 sm:flex-none flex items-center gap-3 shadow-sm ${clientType === 'corporation'
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02]'
+                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
             onClick={() => setClientType('corporation')}
           >
+            <div className={`w-2 h-2 rounded-full ${clientType === 'corporation' ? 'bg-blue-400' : 'bg-transparent'}`} />
             {t('Business')}
           </button>
         </div>
@@ -149,7 +149,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
       {/* Form Fields */}
       <div className="flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          
+
           {/* RPO Search Button / Component */}
           {clientType === 'corporation' && isSlovak && (
             <div className="col-span-1 lg:col-span-2 mb-2">
@@ -177,8 +177,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
           <div className="space-y-2">
             <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Name')}</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={clientForm.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder={clientType === 'personal' ? t('Name and surname') : t('Name of company')}
@@ -188,8 +188,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
           <div className="space-y-2">
             <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Email')}</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               value={clientForm.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder={t('Email address')}
@@ -199,8 +199,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
           <div className="space-y-2">
             <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Phone number')}</label>
-            <input 
-              type="tel" 
+            <input
+              type="tel"
               value={clientForm.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               placeholder={t('Number')}
@@ -210,8 +210,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
           <div className="space-y-2">
             <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Street')}</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={clientForm.street}
               onChange={(e) => handleInputChange('street', e.target.value)}
               placeholder={t('Street')}
@@ -221,8 +221,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
           <div className="space-y-2">
             <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Additional info')}</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={clientForm.additionalInfo}
               onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
               placeholder={t('App #, Suite (optional)')}
@@ -232,8 +232,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
           <div className="space-y-2">
             <label className="block text-base font-medium text-gray-900 dark:text-white">{t('City')}</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={clientForm.city}
               onChange={(e) => handleInputChange('city', e.target.value)}
               placeholder={t('City')}
@@ -243,8 +243,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
           <div className="space-y-2">
             <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Postal code')}</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={clientForm.postalCode}
               onChange={(e) => handleInputChange('postalCode', e.target.value)}
               placeholder={t('ZIP Code')}
@@ -254,8 +254,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
           <div className="space-y-2">
             <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Country')}</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={clientForm.country}
               onChange={(e) => handleInputChange('country', e.target.value)}
               placeholder={t('Country')}
@@ -267,8 +267,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
             <>
               <div className="space-y-2">
                 <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo organizácie')}</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={clientForm.businessId}
                   onChange={(e) => handleInputChange('businessId', e.target.value)}
                   placeholder={t('BID')}
@@ -278,8 +278,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
               <div className="space-y-2">
                 <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Daňové identifikačné číslo')}</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={clientForm.taxId}
                   onChange={(e) => handleInputChange('taxId', e.target.value)}
                   placeholder={t('TID')}
@@ -289,8 +289,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
               <div className="space-y-2">
                 <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo pre daň z pridanej hodnoty')}</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={clientForm.vatId}
                   onChange={(e) => handleInputChange('vatId', e.target.value)}
                   placeholder={t('VAT ID')}
@@ -300,8 +300,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
 
               <div className="space-y-2">
                 <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Kontaktná osoba')}</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={clientForm.contactPerson}
                   onChange={(e) => handleInputChange('contactPerson', e.target.value)}
                   placeholder={t('Name and surname')}
@@ -310,7 +310,7 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
               </div>
             </>
           )}
-          
+
           <div className="mt-6 lg:mt-8 col-span-full flex gap-3">
             <button
               onClick={onCancel}

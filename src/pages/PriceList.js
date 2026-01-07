@@ -352,14 +352,12 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
                 {t('Percentage Increase')}
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  type="number"
+                <NumberInput
                   value={percentageIncrease}
-                  onChange={(e) => setPercentageIncrease(e.target.value)}
+                  onChange={(val) => setPercentageIncrease(val)}
                   placeholder="10"
-                  min="0"
-                  step="0.1"
-                  className="flex-1 p-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-lg"
+                  min={0}
+                  className="flex-1"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {

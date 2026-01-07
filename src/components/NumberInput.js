@@ -1,38 +1,63 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
-const NumberInput = ({ 
-  value, 
-  onChange, 
-  className = "", 
+const evaluateExpression = (str) => {
+  try {
+    // Replace comma with dot for calculation
+    let expr = str.replace(/,/g, '.').replace(/\s/g, '');
+
+    // Check if the first or last character is an operator (invalid for standalone evaluation)
+    if (['+', '-', '*', '/'].includes(expr.slice(-1))) return null;
+    if (['+', '*', '/'].includes(expr.slice(0, 1))) return null;
+
+    // Allow only numbers, operators (+, -, *, /), dots, and parentheses
+    // This is a safety check before using Function constructor
+    if (!/^[0-9.+\-*/()]+$/.test(expr)) return null;
+
+    // eslint-disable-next-line no-new-func
+    const result = new Function(`return ${expr}`)();
+    return typeof result === 'number' && !isNaN(result) ? result : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const NumberInput = ({
+  value,
+  onChange,
+  className = "",
   min = 0,
   disabled = false,
   size = "normal", // "small" or "normal"
   placeholder = "0",
-  ...props 
+  ...props
 }) => {
   const [internalValue, setInternalValue] = useState(
-    value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString() : ''
+    value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString().replace('.', ',') : ''
   );
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
   // Debounced onChange for arrow button clicks to prevent scroll jumping
-  const debouncedOnChange = useCallback((value) => {
+  const debouncedOnChange = useCallback((val) => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(() => {
-      onChange(value);
+      onChange(val);
     }, 300); // 300ms delay
   }, [onChange]);
 
   // Update internal value when prop changes (from external source)
   useEffect(() => {
-    setInternalValue(
-      value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString() : ''
-    );
-  }, [value]);
+    // Only update if not currently focused to avoid jumping while typing
+    if (!isFocused) {
+      setInternalValue(
+        value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString().replace('.', ',') : ''
+      );
+    }
+  }, [value, isFocused]);
 
   // Cleanup debounce timeout on unmount
   useEffect(() => {
@@ -45,77 +70,133 @@ const NumberInput = ({
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
-    setInternalValue(newValue);
-    // Don't call onChange during typing - only on blur
+    // Allow digits, comma, dot, and operators
+    if (/^[0-9.,+\-*/() ]*$/.test(newValue)) {
+      setInternalValue(newValue);
+    }
+  };
+
+  const processAndSubmit = () => {
+    if (internalValue === '' || internalValue === null || internalValue === undefined) {
+      onChange(0);
+      setInternalValue('');
+      return;
+    }
+
+    // Try to evaluate as expression first
+    const evaluatedValue = evaluateExpression(internalValue);
+
+    if (evaluatedValue !== null) {
+      const roundedValue = Math.round(evaluatedValue * 100) / 100;
+      const finalValue = Math.max(min, roundedValue);
+      setInternalValue(finalValue.toString().replace('.', ','));
+      onChange(finalValue);
+    } else {
+      // Fallback to simple parse if expression evaluation failed
+      const numericValue = parseFloat(internalValue.replace(',', '.'));
+      if (!isNaN(numericValue)) {
+        const finalValue = Math.max(min, Math.round(numericValue * 100) / 100);
+        setInternalValue(finalValue.toString().replace('.', ','));
+        onChange(finalValue);
+      } else {
+        setInternalValue(value !== 0 ? value.toString().replace('.', ',') : '');
+        onChange(value || 0);
+      }
+    }
   };
 
   const handleInputBlur = () => {
-    // Only format on blur, don't cause re-renders during typing
-    if (internalValue === '' || internalValue === null || internalValue === undefined) {
-      // Keep empty for placeholder
-      onChange(0);
-      return;
-    }
-    
-    const numericValue = parseFloat(internalValue);
-    if (!isNaN(numericValue) && numericValue >= min) {
-      setInternalValue(numericValue.toString());
-      onChange(numericValue);
-    } else {
-      setInternalValue('');
-      onChange(0);
-    }
+    setIsFocused(false);
+    processAndSubmit();
   };
 
   const incrementValue = (step) => {
-    const currentValue = parseFloat(internalValue) || 0;
+    const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
     const newValue = Math.max(min, currentValue + step);
-    const roundedValue = Math.round(newValue * 100) / 100; // Round to 2 decimal places
-    setInternalValue(roundedValue.toString());
+    const roundedValue = Math.round(newValue * 100) / 100;
+    setInternalValue(roundedValue.toString().replace('.', ','));
     debouncedOnChange(roundedValue);
-    
-    // Refocus the input after arrow click
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
   };
 
   const decrementValue = (step) => {
-    const currentValue = parseFloat(internalValue) || 0;
+    const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
     const newValue = Math.max(min, currentValue - step);
-    const roundedValue = Math.round(newValue * 100) / 100; // Round to 2 decimal places
-    setInternalValue(roundedValue.toString());
+    const roundedValue = Math.round(newValue * 100) / 100;
+    setInternalValue(roundedValue.toString().replace('.', ','));
     debouncedOnChange(roundedValue);
-    
-    // Refocus the input after arrow click
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
   };
 
   const isSmall = size === "small";
-  const inputWidth = isSmall ? "w-20" : "w-28"; // Made wider to show all numbers
-  const paddingRight = isSmall ? "pr-10" : "pr-14"; // More padding for two arrow sets
+  const inputWidth = isSmall ? "w-24" : "w-32";
+  const paddingRight = isSmall ? "pr-10" : "pr-14";
   const fontSize = isSmall ? "text-xs" : "text-sm";
   const borderRadius = isSmall ? "rounded" : "rounded-xl";
 
+  const addSymbol = (symbol) => {
+    if (inputRef.current) {
+      const start = inputRef.current.selectionStart;
+      const end = inputRef.current.selectionEnd;
+      const text = internalValue;
+      const before = text.substring(0, start);
+      const after = text.substring(end);
+      const newValue = before + symbol + after;
+      setInternalValue(newValue);
+
+      // Reset cursor position after state update
+      setTimeout(() => {
+        inputRef.current.selectionStart = inputRef.current.selectionEnd = start + symbol.length;
+        inputRef.current.focus();
+      }, 0);
+    }
+  };
+
   return (
-    <>
+    <div className="relative inline-block">
+      {/* Math Toolbar - only visible on focus and if not disabled */}
+      {isFocused && !disabled && (
+        <div
+          className="absolute bottom-full mb-2 left-0 right-0 flex justify-between bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-xl z-[100] p-1 animate-in fade-in slide-in-from-bottom-2 duration-200"
+          onMouseDown={(e) => e.preventDefault()} // Prevent blur when clicking toolbar
+        >
+          {['+', '-', '*'].map(op => (
+            <button
+              key={op}
+              onClick={() => addSymbol(op)}
+              className="w-7 h-7 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-900 dark:text-white font-bold text-lg transition-colors"
+            >
+              {op === '*' ? '×' : op}
+            </button>
+          ))}
+          <button
+            onClick={processAndSubmit}
+            className="w-7 h-7 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded text-blue-600 dark:text-blue-400 font-bold text-lg transition-colors border border-blue-200 dark:border-blue-800"
+          >
+            =
+          </button>
+        </div>
+      )}
+
       <div className={`relative inline-flex overflow-hidden ${borderRadius} ${className}`}>
         <input
           ref={inputRef}
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={internalValue}
           onChange={handleInputChange}
+          onFocus={() => setIsFocused(true)}
           onBlur={handleInputBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              processAndSubmit();
+              inputRef.current.blur();
+            }
+          }}
           disabled={disabled}
           placeholder={placeholder}
           className={`hide-number-arrows ${inputWidth} px-2 py-1 ${paddingRight} ${borderRadius} text-center font-semibold border-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fontSize}`}
-          min={min}
-          step="0.01"
           {...props}
         />
-        
+
         {/* Arrow controls - side by side */}
         <div className={`absolute ${isSmall ? 'right-0.5' : 'right-1'} top-0 bottom-0 flex`}>
           {/* Big increment arrows (±1) */}
@@ -141,7 +222,7 @@ const NumberInput = ({
               <ChevronDown className={`${isSmall ? 'w-2 h-2' : 'w-3 h-3'} text-gray-600 dark:text-gray-400`} />
             </button>
           </div>
-          
+
           {/* Small increment arrows (±0.1) */}
           <div className="flex flex-col h-full">
             <button
@@ -167,7 +248,7 @@ const NumberInput = ({
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

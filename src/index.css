@@ -2,11 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  color: #ffffff;
+}
+
 /* Modal Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -17,6 +26,7 @@
     transform: translateY(16px) scale(0.95);
     opacity: 0;
   }
+
   to {
     transform: translateY(0) scale(1);
     opacity: 1;
@@ -28,6 +38,7 @@
     transform: translateY(-8px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -39,6 +50,7 @@
     transform: translateY(8px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -49,6 +61,7 @@
   from {
     opacity: 1;
   }
+
   to {
     opacity: 0;
   }
@@ -59,6 +72,7 @@
     transform: translateY(0) scale(1);
     opacity: 1;
   }
+
   to {
     transform: translateY(16px) scale(0.95);
     opacity: 0;
@@ -70,6 +84,7 @@
     transform: translateY(0);
     opacity: 1;
   }
+
   to {
     transform: translateY(-8px);
     opacity: 0;
@@ -111,6 +126,7 @@
     opacity: 0;
     transform: scale(0.85);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -127,6 +143,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -138,6 +155,7 @@
     opacity: 0;
     transform: translateX(-30px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateX(0) scale(1);
@@ -149,6 +167,7 @@
     opacity: 0;
     transform: translateX(30px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateX(0) scale(1);
@@ -171,23 +190,29 @@
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: #f3f4f6;
   border-radius: 3px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #9ca3af;
   border-radius: 3px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
+
 .dark .custom-scrollbar::-webkit-scrollbar-track {
   background: #374151;
 }
+
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #6b7280;
 }
+
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
@@ -198,19 +223,21 @@
   -webkit-appearance: none;
   margin: 0;
 }
+
 .hide-number-arrows[type=number] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Light mode shadow for cards, containers, and buttons */
 /* Using :not(.dark) to target light mode only */
-:root:not(.dark) .rounded-xl,
-:root:not(.dark) .rounded-2xl,
-:root:not(.dark) .rounded-lg,
-:root:not(.dark) button:not([class*="bg-transparent"]),
-:root:not(.dark) [class*="bg-white"],
-:root:not(.dark) [class*="bg-gray-100"],
-:root:not(.dark) [class*="bg-gray-200"] {
+:root:not(.dark) .rounded-xl:not(input):not(textarea):not(select):not([class*="bg-transparent"]),
+:root:not(.dark) .rounded-2xl:not(input):not(textarea):not(select):not([class*="bg-transparent"]),
+:root:not(.dark) .rounded-lg:not(input):not(textarea):not(select):not([class*="bg-transparent"]),
+:root:not(.dark) button:not([class*="bg-transparent"]):not([class*="text-gray-900"]):not([class*="font-bold"]),
+:root:not(.dark) [class*="bg-white"]:not(button):not(input):not(textarea),
+:root:not(.dark) [class*="bg-gray-100"]:not(button),
+:root:not(.dark) [class*="bg-gray-200"]:not(button) {
   border: 1px solid rgb(229, 231, 235);
   box-shadow: rgba(255, 255, 255, 0.19) 0px 1px 2px inset, rgba(0, 0, 0, 0.19) 0px 1px 2px, rgba(0, 0, 0, 0.082) 0px 2px 4px;
 }
@@ -234,26 +261,32 @@
 }
 
 /* Cards and containers in dark mode - gradient background with top light effect */
-.dark .rounded-xl,
-.dark .rounded-2xl,
-.dark .rounded-lg {
+.dark .rounded-xl:not(input):not(textarea):not(select),
+.dark .rounded-2xl:not(input):not(textarea):not(select),
+.dark .rounded-lg:not(input):not(textarea):not(select) {
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%) !important;
-  border: none !important;
-  border-top: 1px solid rgba(255,255,255,0.1) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255,255,255,0.06),
-    0 1px 3px rgba(0,0,0,0.4),
-    0 4px 6px rgba(0,0,0,0.3) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 4px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Allow borders to show on buttons in dark mode if explicitly defined */
+.dark button.border,
+.dark button[class*="border-"],
+.dark button.border-2 {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Buttons in dark mode */
 .dark button:not([class*="bg-transparent"]):not(.rounded-xl):not(.rounded-2xl):not(.rounded-lg) {
   background: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 100%) !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  border-top-color: rgba(255,255,255,0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-top-color: rgba(255, 255, 255, 0.15) !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255,255,255,0.06),
-    0 1px 2px rgba(0,0,0,0.3) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Override specific dark bg colors used in components */
@@ -275,15 +308,45 @@
   background-color: #0a0a0a !important;
 }
 
-/* Input fields in dark mode - regular flat grey, no gradient/shadow */
+/* Input fields - regular flat look, no gradient/shadow */
+input,
+textarea,
+select {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root:not(.dark) input,
+:root:not(.dark) textarea,
+:root:not(.dark) select {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: none !important;
+}
+
+:root:not(.dark) input:focus,
+:root:not(.dark) textarea:focus,
+:root:not(.dark) select:focus {
+  border-color: #3b82f6 !important;
+  outline: 2px solid #3b82f6;
+  outline-offset: -1px;
+}
+
 .dark input,
 .dark textarea,
 .dark select {
-  background-color: #2a2a2a !important;
-  background: #2a2a2a !important;
-  border: 1px solid rgba(255,255,255,0.15) !important;
-  border-top: 1px solid rgba(255,255,255,0.15) !important;
+  background-color: #121212 !important;
+  background: #121212 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #60a5fa !important;
+  outline: 2px solid #60a5fa;
+  outline-offset: -1px;
 }
 
 /* Text that should be lighter in dark mode */
@@ -309,6 +372,7 @@
 }
 
 /* Button text in dark mode - ensure readable */
+.dark button:not(.text-blue-600):not(.text-red-600):not(.text-green-600),
 .dark button .text-gray-900,
 .dark button.text-gray-900,
 .dark button[class*="dark:text-gray-900"],
@@ -319,14 +383,24 @@
 
 /* Save/action buttons text */
 .dark button[class*="bg-gray-900"] span,
-.dark button[class*="bg-gray-900"],
-.dark button[class*="dark:bg-white"] {
+.dark button[class*="bg-gray-900"] {
   color: #ffffff !important;
 }
 
-/* Active toggle/selection states - text should be white */
-.dark [class*="bg-gray-900"] .text-white,
-.dark [class*="dark:bg-white"] {
+/* Active toggle/selection states - background white, text dark */
+/* Only target buttons that are SPECIFICALLY meant to be active selections */
+.dark button.bg-white:not([class*="dark:bg-"]),
+.dark button[class*="bg-white"]:not([class*="dark:bg-"]):not(.bg-transparent),
+.dark a.bg-white:not([class*="dark:bg-"]):not(.bg-transparent) {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0d0d0d !important;
+  border: none !important;
+}
+
+/* Specific fix for periods and selection buttons text */
+.dark .bg-white.text-gray-900,
+.dark [class*="dark:bg-white"][class*="dark:text-gray-900"] {
   color: #0d0d0d !important;
 }
 
@@ -345,7 +419,7 @@
 
 /* Archive button icon and similar header icons */
 .dark header svg,
-.dark [class*="flex"][class*="items-center"][class*="gap"] > svg,
+.dark [class*="flex"][class*="items-center"][class*="gap"]>svg,
 .dark button svg {
   color: #e0e0e0 !important;
 }
@@ -378,11 +452,22 @@
 .dark .custom-scrollbar::-webkit-scrollbar-track {
   background: #1a1a1a;
 }
+
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #3a3a3a;
 }
+
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #4a4a4a;
+}
+
+/* Mobile bottom navigation links - remove global dark mode gradients */
+.dark a.mobile-nav-link.rounded-2xl {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
 }
 
 /* Icon-only buttons in dark mode - no border, transparent bg */
@@ -411,26 +496,26 @@
   box-shadow: none !important;
 }
 
-/* Logout button in dark mode - no border, transparent background */
-.dark .border-t button,
-.dark [class*="border-t"] button {
+/* Sidebar footer logout specific - no border/bg by default, but keep radius */
+.dark aside .border-t button,
+.dark nav+div.border-t button,
+.dark .lg\:w-64 .border-t button {
   background: transparent !important;
   border: none !important;
   border-top: none !important;
   box-shadow: none !important;
-  border-radius: 0 !important;
 }
 
 /* Category selectors gradient overlay - dark in dark mode */
 .dark .bg-gradient-to-t[class*="from-white"] {
-  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, transparent 100%) !important;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%) !important;
 }
 
 /* Category selector cards in dark mode - dark inward shadow */
 .dark button[class*="rounded-2xl"][class*="overflow-hidden"] .h-24,
 .dark button[class*="rounded-2xl"][class*="overflow-hidden"] .h-56,
 .dark button[class*="rounded-3xl"][class*="overflow-hidden"] {
-  box-shadow: inset 0 -40px 40px -20px rgba(0,0,0,0.7) !important;
+  box-shadow: inset 0 -40px 40px -20px rgba(0, 0, 0, 0.7) !important;
 }
 
 /* Category text should be white in dark mode */
@@ -477,7 +562,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Mobile-specific date input styling */
 @media (max-width: 640px) {
   input[type="date"] {
-    font-size: 16px; /* Prevents iOS zoom on focus */
+    font-size: 16px;
+    /* Prevents iOS zoom on focus */
     padding-right: 8px;
   }
 }

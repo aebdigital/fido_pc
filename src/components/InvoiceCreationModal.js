@@ -3,6 +3,7 @@ import { X, FileText, Save } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import UncompletedFieldsModal from './UncompletedFieldsModal';
+import NumberInput from './NumberInput';
 
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null }) => {
   const { t } = useLanguage();
@@ -219,176 +220,166 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <span className="text-sm text-gray-600 dark:text-gray-400">{t('Project')}</span>
                 <span className="text-sm font-medium text-gray-900 dark:text-white">{project.name}</span>
               </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{t('Contractor')}</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{currentContractor?.name || '-'}</span>
-                          </div>
-                          <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{t('without VAT')}</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{totalWithoutVAT.toFixed(2)} €</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">{t('VAT')}</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{vat.toFixed(2)} €</span>
-                          </div>
-                          <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Total Price')}</span>
-                            <span className="text-lg font-bold text-gray-900 dark:text-white">{totalWithVAT.toFixed(2)} €</span>
-                          </div>
-                        </div>
-              
-                        {/* Invoice Settings */}
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Invoice Settings')}</h3>
-              
-                          {/* Invoice Number */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              {t('Invoice Number')}
-                            </label>
-                            <input
-                              type="text"
-                              value={invoiceNumber}
-                              onChange={(e) => setInvoiceNumber(e.target.value)}
-                              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
-                              placeholder="2025001"
-                            />
-                          </div>
-              
-                          {/* Issue Date */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              {t('Issue Date')}
-                            </label>
-                            <input
-                              type="date"
-                              value={issueDate}
-                              onChange={(e) => setIssueDate(e.target.value)}
-                              className="w-full min-w-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white appearance-none"
-                              style={{ WebkitAppearance: 'none' }}
-                            />
-                          </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Contractor')}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{currentContractor?.name || '-'}</span>
+              </div>
+              <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('without VAT')}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{totalWithoutVAT.toFixed(2)} €</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('VAT')}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{vat.toFixed(2)} €</span>
+              </div>
+              <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Total Price')}</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{totalWithVAT.toFixed(2)} €</span>
+              </div>
+            </div>
 
-                          {/* Date of Dispatch */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              {t('Date of Dispatch')}
-                            </label>
-                            <input
-                              type="date"
-                              value={dispatchDate}
-                              onChange={(e) => setDispatchDate(e.target.value)}
-                              className="w-full min-w-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white appearance-none"
-                              style={{ WebkitAppearance: 'none' }}
-                            />
-                          </div>
-                          
-                                      {/* Payment Method */}
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                          {t('Payment Method')}
-                                        </label>
-                                        <div className="flex gap-3">
-                                          <button
-                                            onClick={() => setPaymentMethod('cash')}
-                                            className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                                              paymentMethod === 'cash'
-                                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                                            }`}
-                                          >
-                                            {t('Cash')}
-                                          </button>
-                                          <button
-                                            onClick={() => setPaymentMethod('transfer')}
-                                            className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                                              paymentMethod === 'transfer'
-                                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                                            }`}
-                                          >
-                                            {t('Transfer')}
-                                          </button>
-                                        </div>
-                                      </div>
-                          
-                                                  {/* Payment Due (Days) */}
-                          
-                                                  <div>
-                          
-                                                    <div className="flex items-center justify-between mb-2">
-                          
-                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          
-                                                        {t('Payment Due (Days)')}
-                          
-                                                      </label>
-                          
-                                                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                          
-                                                        {t('Maturity')}: {(() => {
-                          
-                                                          if (!issueDate) return '-';
-                          
-                                                          const d = new Date(issueDate);
-                          
-                                                          d.setDate(d.getDate() + parseInt(paymentDays || 0));
-                          
-                                                          return d.toLocaleDateString('sk-SK');
-                          
-                                                        })()}
-                          
-                                                      </span>
-                          
-                                                    </div>
-                          
-                                                    <div className="flex gap-2">
-                          
-                                                      <input
-                          
-                                                        type="number"
-                          
-                                                        value={paymentDays}
-                          
-                                                        onChange={(e) => setPaymentDays(parseInt(e.target.value) || 0)}
-                          
-                                                        className="w-20 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white text-center"
-                          
-                                                      />
-                          
-                                                      <div className="flex gap-2 flex-1 overflow-x-auto">
-                          
-                                                        {[7, 14, 30, 60].map(days => (
-                          
-                                                          <button
-                          
-                                                            key={days}
-                          
-                                                            onClick={() => setPaymentDays(days)}
-                          
-                                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
-                          
-                                                              paymentDays === days
-                          
-                                                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                          
-                                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                          
-                                                            }`}
-                          
-                                                          >
-                          
-                                                            {days}
-                          
-                                                          </button>
-                          
-                                                        ))}
-                          
-                                                      </div>
-                          
-                                                    </div>
-                          
-                                                  </div>              {/* Notes */}
+            {/* Invoice Settings */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Invoice Settings')}</h3>
+
+              {/* Invoice Number */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('Invoice Number')}
+                </label>
+                <input
+                  type="text"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
+                  placeholder="2025001"
+                />
+              </div>
+
+              {/* Issue Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('Issue Date')}
+                </label>
+                <input
+                  type="date"
+                  value={issueDate}
+                  onChange={(e) => setIssueDate(e.target.value)}
+                  className="w-full min-w-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white appearance-none"
+                  style={{ WebkitAppearance: 'none' }}
+                />
+              </div>
+
+              {/* Date of Dispatch */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('Date of Dispatch')}
+                </label>
+                <input
+                  type="date"
+                  value={dispatchDate}
+                  onChange={(e) => setDispatchDate(e.target.value)}
+                  className="w-full min-w-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white appearance-none"
+                  style={{ WebkitAppearance: 'none' }}
+                />
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('Payment Method')}
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${paymentMethod === 'cash'
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                      }`}
+                  >
+                    {t('Cash')}
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod('transfer')}
+                    className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${paymentMethod === 'transfer'
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                      }`}
+                  >
+                    {t('Transfer')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Payment Due (Days) */}
+
+              <div>
+
+                <div className="flex items-center justify-between mb-2">
+
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+
+                    {t('Payment Due (Days)')}
+
+                  </label>
+
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+
+                    {t('Maturity')}: {(() => {
+
+                      if (!issueDate) return '-';
+
+                      const d = new Date(issueDate);
+
+                      d.setDate(d.getDate() + parseInt(paymentDays || 0));
+
+                      return d.toLocaleDateString('sk-SK');
+
+                    })()}
+
+                  </span>
+
+                </div>
+
+                <div className="flex gap-2">
+                  <NumberInput
+                    value={paymentDays}
+                    onChange={(val) => setPaymentDays(val)}
+                    className="w-20"
+                    min={0}
+                  />
+
+                  <div className="flex gap-2 flex-1 overflow-x-auto">
+
+                    {[7, 14, 30, 60].map(days => (
+
+                      <button
+
+                        key={days}
+
+                        onClick={() => setPaymentDays(days)}
+
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${paymentDays === days
+
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+
+                          }`}
+
+                      >
+
+                        {days}
+
+                      </button>
+
+                    ))}
+
+                  </div>
+
+                </div>
+
+              </div>              {/* Notes */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('Notes')}
