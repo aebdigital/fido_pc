@@ -548,6 +548,7 @@ export const translations = {
     "Dark Mode": "Tmavý režim",
     "Language": "Jazyk",
     "set application appearance": "nastavte vzhľad aplikácie",
+    "Archiving period": "Doba archivovania",
     "archived projects, archiving period": "archivované projekty, doba archivovania",
     "archived projects, archive duration": "archivované projekty, doba archivácie",
     "Forever": "Navždy",
