@@ -204,6 +204,8 @@ export const translations = {
     "Settings": "Nastavenia",
     "Contact": "Kontakt",
     "Archive": "Archív",
+    "No Archived Projects": "Žiadne archivované projekty",
+    "Archived projects will appear here": "Archivované projekty sa zobrazia tu",
     "Archived on": "Archivované",
     "From": "Z",
     "Unknown": "Neznáme",
