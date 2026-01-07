@@ -525,7 +525,7 @@ export const AppDataProvider = ({ children }) => {
         }
       });
     }
-  }, [loading, appData.priceOfferSettings?.archiveRetentionDays, appData.archivedProjects?.length, projectManager]);
+  }, [loading, appData.priceOfferSettings?.archiveRetentionDays, appData.archivedProjects, projectManager]);
 
 
 

@@ -108,7 +108,7 @@ export const useContractorManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error updating price offer settings:', error);
       throw error;
     }
-  }, [appData.activeContractorId, setAppData]);
+  }, [appData.activeContractorId, appData.priceOfferSettings, setAppData]);
 
   // Helper function to get project categories for a specific contractor
   const getProjectCategoriesForContractor = useCallback((contractorId) => {

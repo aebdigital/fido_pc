@@ -5,7 +5,6 @@ import {
   Settings as SettingsIcon,
   Send,
   ChevronRight,
-  Edit,
   Moon,
   Sun,
   Globe,

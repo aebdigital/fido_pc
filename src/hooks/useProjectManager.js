@@ -80,12 +80,6 @@ export const useProjectManager = (appData, setAppData) => {
       const contractorArchivedProjects = (archivedProjects || []).filter(p => p.contractor_id === activeContractorId);
       const allContractorProjects = [...activeProjects, ...contractorArchivedProjects];
 
-      // Find projects created in the current year
-      const currentYearProjects = allContractorProjects.filter(p => {
-        const createdDate = p.createdDate ? new Date(p.createdDate) : new Date();
-        return createdDate.getFullYear() === currentYear;
-      });
-
       // Determine next sequential number (set to 0 to trigger database auto-assignment)
       const nextNumber = 0;
 
