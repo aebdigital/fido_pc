@@ -555,7 +555,6 @@ export const translations = {
     "Your projects will remain in archive forever. They will not be deleted, unless you do so.": "Vaše projekty zostanú v archíve navždy. Nebudú automaticky vymazané, pokiaľ tak neurobíte sami.",
     "Your projects will remain in archive for": "Vaše projekty zostanú v archíve na",
     "after that they will be deleted automatically": "potom budú automaticky vymazané",
-    "day": "deň",
 
     // ========== USER ACCOUNT ==========
     "Pro User": "Pro používateľ",
