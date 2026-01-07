@@ -17,7 +17,7 @@ const getDefaultCategories = () => [
   { id: 'cottages', name: 'Cottages', count: 0, image: cottagesImage, projects: [] }
 ];
 
-export const useProjectManager = (appData, setAppData) => {
+export const useProjectManager = (appData, setAppData, user) => {
   const {
     activeContractorId,
     contractorProjects,
@@ -206,7 +206,7 @@ export const useProjectManager = (appData, setAppData) => {
       console.error('[SUPABASE] Error adding project:', error);
       throw error;
     }
-  }, [activeContractorId, generalPriceList, setAppData, user?.id]);
+  }, [activeContractorId, generalPriceList, setAppData, user]);
 
   const updateProject = useCallback(async (categoryId, projectId, projectData) => {
     try {
