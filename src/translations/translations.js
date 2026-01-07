@@ -167,7 +167,8 @@ export const translations = {
     "zástena sklenená": "glass screen",
     "zrkadlo": "mirror",
     "montáž a demontáž": "assembly and disassembly",
-    "outlet": "outlet"
+    "outlet": "outlet",
+    "days_2_4": "days"
   },
   sk: {
     // ========== PDF / QR CODE ==========
@@ -206,7 +207,7 @@ export const translations = {
     "Archived on": "Archivované",
     "From": "Z",
     "Unknown": "Neznáme",
-    
+
     // ========== PROJECT CATEGORIES ==========
     "Flats": "Byty",
     "Apartments": "Byty",
@@ -214,7 +215,7 @@ export const translations = {
     "Companies": "Firmy",
     "Cottages": "Chaty",
     "projects": "projekty",
-    
+
     // ========== ROOM TYPES ==========
     "Hallway": "Chodba",
     "Toilet": "WC",
@@ -226,14 +227,14 @@ export const translations = {
     "Guest room": "Hosťovská",
     "Work room": "Pracovňa",
     "Custom": "Vlastné",
-    
+
     // ========== WORK TYPES - MAIN CATEGORIES ==========
     "Work": "Práca",
     "Preparatory and demolition works": "Prípravné a búracie práce",
-      "Wiring": "Elektroinštalačné práce",
-      "Electrical installation work": "Elektroinštalačné práce",
-      "Plumbing": "Vodoinštalačné práce",
-      "Plumbing work": "Vodoinštalačné práce",    "Brick partitions": "Murovanie priečok",
+    "Wiring": "Elektroinštalačné práce",
+    "Electrical installation work": "Elektroinštalačné práce",
+    "Plumbing": "Vodoinštalačné práce",
+    "Plumbing work": "Vodoinštalačné práce", "Brick partitions": "Murovanie priečok",
     "Brick load-bearing wall": "Murovanie nosného muriva",
     "Plasterboarding": "Sádrokartón",
     "Netting": "Sieťkovanie",
@@ -267,7 +268,7 @@ export const translations = {
     "Osadenie rohovej lišty": "Osadenie rohovej lišty",
     "Omietka špalety": "Omietka špalety",
     "Auxiliary and finishing work": "Pomocné a ukončovacie práce",
-    
+
     // ========== WORK SPECIFICATIONS ==========
     "switch, socket, light, connection point": "vývínač, zásuvka, svetlo, bod napojenia",
     "hot, cold, waste, connection point": "teplá, studená, odpad, bod napojenia",
@@ -297,7 +298,7 @@ export const translations = {
     "Paving": "Dlažba",
     "Jolly Edging": "Jolly hrana",
     "Plinth": "Sokel",
-    
+
     // ========== MATERIAL TYPES ==========
     "Material": "Materiál",
     "Partition masonry": "Priečkové murivo",
@@ -330,7 +331,7 @@ export const translations = {
     "Floor tiles": "Dlažba",
     "Auxiliary and connecting material": "Pomocný a spojovací materiál",
     "Auxiliary and fastening material": "Pomocný a spojovací materiál",
-    
+
     // ========== SANITARY INSTALLATIONS ==========
     "Sanitary installation": "Inštalácia sanity",
     "Sanitary installations": "Inštalácia sanity",
@@ -362,7 +363,7 @@ export const translations = {
     "Urinal": "Pisoár",
     "Bath screen": "Zástena sklenená",
     "Mirror": "Zrkadlo",
-    
+
     // ========== RENTALS & TOOLS ==========
     "Scaffolding": "Lešenie",
     "Scaffolding - assembly and disassembly": "Lešenie - montáž a demontáž",
@@ -374,7 +375,7 @@ export const translations = {
     "Commute": "Cesta",
     "Others": "Ostatné",
     "Custom work and material": "Vlastná práca a materiál",
-    
+
     // ========== MEASUREMENTS & SPECIFICATIONS ==========
     "Number of outlets": "Počet vývodov",
     "outlet": "vývod",
@@ -391,11 +392,11 @@ export const translations = {
     "Description": "Popis",
     "Price": "Cena",
     "Quantity": "Počet",
-    
+
     // ========== UNITS ==========
     "€/hr": "€/hod",
     "€/pc": "€/ks",
-    "€/m²": "€/m²",
+    "€/m2": "€/m2",
     "€/lm": "€/m",
     "€/bm": "€/m",
     "€/m": "€/m",
@@ -409,18 +410,19 @@ export const translations = {
     "pc": "ks",
     "lm": "m",
     "km": "km",
-    "m²": "m²",
+    "m2": "m2",
     "m": "m",
     "h": "h",
     "pack": "bal",
     "pkg": "bal",
     "day": "deň",
     "days": "dní",
+    "days_2_4": "dni",
     "pieces": "kusy",
     "piece": "kus",
     "package": "balenie",
     "no.": "č.",
-    
+
     // ========== PROJECT MANAGEMENT ==========
     "Project": "Projekt",
     "Client": "Klient",
@@ -443,7 +445,7 @@ export const translations = {
     "History": "História",
     "Preview": "Náhľad",
     "Send": "Odoslať",
-    
+
     // ========== CLIENT MANAGEMENT ==========
     "Add client": "Pridať klienta",
     "New client": "Nový klient",
@@ -454,7 +456,7 @@ export const translations = {
     "Associate project with client": "Asociovať projekt s klientom",
     "Client's projects": "Projekty klienta",
     "No clients available. Create a client first.": "Nie sú dostupní žiadni klienti. Najprv vytvorte klienta.",
-    
+
     // ========== FORM FIELDS ==========
     "Name": "Meno",
     "Name and surname": "Meno a priezvisko",
@@ -476,7 +478,7 @@ export const translations = {
     "Tax ID": "DIČ",
     "VAT Registration Number": "IČ DPH",
     "Contact person": "Kontaktná osoba",
-    
+
     // ========== PERSON & BUSINESS TYPES ==========
     "Person type?": "Typ osoby?",
     "Type of client?": "Typ klienta?",
@@ -489,7 +491,7 @@ export const translations = {
     "Organization ID": "Identifikačné číslo organizácie",
     "Company ID": "IČO",
     "VAT ID": "IČ DPH",
-    
+
     // ========== PRICING & VAT ==========
     "Total price offer": "Celková cenová ponuka",
     "Total price": "Celková cena",
@@ -534,7 +536,7 @@ export const translations = {
     "Saved": "Uložené",
     "Click or drag photos here": "Kliknite alebo pretiahnite fotografie sem",
     "Drop photos here": "Sem pretiahnite fotografie",
-    
+
     // ========== SETTINGS & PREFERENCES ==========
     "Access": "Prístup",
     "Restricted Access": "Omedzený prístup",
@@ -546,7 +548,7 @@ export const translations = {
     "set application appearance": "nastavte vzhľad aplikácie",
     "archived projects, archiving period": "archivované projekty, doba archivovania",
     "archived projects, archive duration": "archivované projekty, doba archivácie",
-    
+
     // ========== USER ACCOUNT ==========
     "Pro User": "Pro používateľ",
     "Customize prices throughout the app and export projects to PDF": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF",
@@ -554,7 +556,7 @@ export const translations = {
     "Customise prices in the entire app and export projects to PDF. Vyskúšajte Pro zadarmo!": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF. Vyskúšajte Pro zadarmo!",
     "Try Pro": "Vyskúšať Pro",
     "Restore Purchases": "Obnoviť nákupy",
-    
+
     // ========== MODAL ACTIONS ==========
     "Save": "Uložiť",
     "Save changes": "Uložiť zmeny",
@@ -570,7 +572,7 @@ export const translations = {
     "Apply": "Použiť",
     "Unarchive": "Obnoviť z archívu",
     "Delete Forever": "Natrvalo odstrániť",
-    
+
     // ========== STATUS MESSAGES ==========
     "Loading...": "Načítava...",
     "Unsaved Changes": "Neuložené zmeny",
@@ -592,7 +594,7 @@ export const translations = {
     "Failed to duplicate project.": "Nepodarilo sa duplikovať projekt.",
     "Failed to reassign project": "Nepodarilo sa priradiť projekt",
     "Loading project details...": "Načítavam detaily projektu...",
-    
+
     // ========== INVOICES ==========
     "Any Time": "Kedykoľvek",
     "All": "Všetky",
@@ -610,6 +612,8 @@ export const translations = {
     "Payment Due": "Platné do",
     "Payment Due (Days)": "Splatnosť (dni)",
     "Maturity": "Splatnosť",
+    "Matures in": "Splatné o",
+    "Matures today": "Splatné dnes",
     "Subscriber": "Odberateľ",
     "Valid until": "Platné do",
     "Bank Account / IBAN": "Číslo účtu / IBAN",
@@ -676,7 +680,7 @@ export const translations = {
     "Sanitary type": "Typ sanity",
     "Rental duration": "Dĺžka prenájmu",
     "Core drill no.": "Jadrová vrtačka č.",
-    
+
     // ========== CAPACITY & OUTPUT ==========
     "capacity per": "výdatnosť na",
     "capacity per 25kg package": "výdatnosť na balenie 25kg",
@@ -684,7 +688,7 @@ export const translations = {
     "output per piece": "vydatnosť na kus",
     "output per 25kg package": "vydatnosť na balenie 25kg",
     "output per package": "vydatnosť na balenie",
-    
+
     // ========== SPECIFICATIONS & DIMENSIONS ==========
     "75 - 175mm": "75 - 175mm",
     "200 - 450mm": "200 - 450mm",
@@ -706,14 +710,14 @@ export const translations = {
     "Tool no.": "Náradie č.",
     "room": "miestnosť",
     "works": "práce",
-    
+
     // ========== PRICE LIST MANAGEMENT ==========
     "Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.": "Tu upravte ceny. Nové projekty zdedia tieto ceny. Existujúce prepisy projektov sú zachované.",
     "Override prices for this project only. Original prices are preserved in general settings.": "Prepísať ceny len pre tento projekt. Pôvodné ceny sú zachované v základnom cenníku.",
     "Increase All Prices": "Zvýšiť všetky ceny",
     "Percentage Increase": "Percentuálne zvýšenie",
     "Example: Enter 10 for 10% increase. All prices will be updated.": "Príklad: Zadajte 10 pre 10% zvýšenie. Všetky ceny budú aktualizované.",
-    
+
     // ========== CLIENT MANAGEMENT (additional) ==========
     "Add Client": "Pridať klienta",
     "Fill in your client and then assign a project to them": "Vyplňte údaje klienta a následne mu priraďte projekt",
@@ -727,7 +731,7 @@ export const translations = {
     "TID": "DIČ",
     "Delete client": "Vymazať klienta",
     "Are you sure you want to delete this client?": "Ste si istí, že chcete vymazať tohto klienta?",
-    
+
     // ========== LEGAL & INFO ==========
     "Tutorial": "Tutoriál",
     "Terms of Use": "Podmienky používania",
@@ -781,11 +785,11 @@ export const translations = {
     // NEW CONTRACTOR TRANSLATIONS
     "Create contractor": "Vytvoriť dodávateľa",
     "Upload logo": "Nahrať logo",
-    "Change logo": "Zmeniť logo",
+    "Change signature": "Zmeniť podpis",
     "Business information": "Obchodné informácie",
     "Bank account number": "Číslo bankového účtu",
     "Bank Code": "Kód banky",
-    "Legal appendix": "Právna poznámka",
+    "Legal appendix": "Spisová vložka",
     "Note": "Poznámka", // Placeholder for legal appendix
     "Signature": "Podpis",
     "Upload signature image": "Nahrať obrázok podpisu",

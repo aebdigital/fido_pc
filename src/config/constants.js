@@ -57,18 +57,18 @@ export const WORK_ITEM_NAMES = {
   LARGE_FORMAT: 'Large Format',
   JOLLY_EDGING: 'Jolly Edging',
   PLINTH: 'Plinth',
-  
+
   // Field Names (Compound keys used in form state)
   LARGE_FORMAT_ABOVE_60CM_FIELD: 'Large Format_above 60cm',
   JOLLY_EDGING_FIELD: 'Jolly Edging',
   PLINTH_CUTTING_AND_GRINDING_FIELD: 'Plinth_cutting and grinding',
   PLINTH_BONDING_FIELD: 'Plinth_bonding',
-  
+
   // Subtitles for matching
   ABOVE_60CM: 'above 60cm',
   CUTTING_AND_GRINDING: 'cutting and grinding',
   BONDING: 'bonding',
-  
+
   // Field labels
   NUMBER_OF_OUTLETS_EN: 'Number of outlets',
   NUMBER_OF_OUTLETS_SK: 'Počet vývodov',
@@ -77,7 +77,7 @@ export const WORK_ITEM_NAMES = {
   DURATION_EN: 'Duration',
   DURATION_SK: 'Trvanie',
   RENTAL_DURATION: 'Rental duration',
-  
+
   // Common Field Names
   WIDTH: 'Width',
   HEIGHT: 'Height',
@@ -88,8 +88,9 @@ export const WORK_ITEM_NAMES = {
   PRICE: 'Price',
   NAME: 'Name',
   QUANTITY: 'Quantity',
+  UNIT: 'Unit',
   CIRCUMFERENCE: 'Circumference',
-  
+
   // Localized work names
   PREPARATORY_AND_DEMOLITION_WORKS: 'Preparatory and demolition works',
   ELECTRICAL_INSTALLATION_WORK: 'Elektroinštalačné práce',
@@ -116,7 +117,7 @@ export const WORK_ITEM_NAMES = {
   INSTALLATION_OF_DOOR_JAMB: 'Installation of door jamb',
   CUSTOM_WORK_AND_MATERIAL: 'Custom work and material',
   AUXILIARY_AND_FINISHING_WORK: 'Auxiliary and finishing work',
-  
+
   // Slovak specific names for mapping
   MUROVANIE_PRIECOK: 'Murovanie priečok',
   MUROVANIE_NOSNEHO_MURIVA: 'Murovanie nosného muriva',
@@ -178,7 +179,7 @@ export const WORK_ITEM_PROPERTY_IDS = {
 export const UNIT_TYPES = {
   HOUR: 'h',
   PIECE: 'pc',
-  METER_SQUARE: 'm²',
+  METER_SQUARE: 'm2',
   METER: 'm',
   KM: 'km',
   DAY: 'day',

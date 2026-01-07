@@ -79,8 +79,8 @@ const MATERIAL_COLUMN_MAPPING = {
   'material_20_capacity': 'material_silicone_capacity',
   'material_21': 'material_tiles_price', // Tiles ceramic
   'material_22': 'material_pavings_price', // Pavings ceramic
-  'material_23': 'material_cailing_wall_capacity', // Grout (using cailing_wall_capacity - seems like a typo in DB)
-  'material_24': 'material_auxiliary_and_fastening_price', // Auxiliary and fastening material
+  // material_23 (Grout) removed from UI, so Auxiliary shifts to index 23
+  'material_23': 'material_auxiliary_and_fastening_price', // Auxiliary and fastening material
 };
 
 // Sanitary installations mapping
@@ -107,9 +107,8 @@ const OTHERS_COLUMN_MAPPING = {
   'others_1': 'others_scaffolding_price', // Scaffolding rental per day
   'others_2': 'others_core_drill_rental_price', // Core Drill
   'others_3': 'others_tool_rental_price', // Tool rental
-  // 'others_4': custom work - not in individual column
-  'others_5': 'others_commute_price', // Commute
-  'others_6': 'others_vat_price', // VAT
+  'others_4': 'others_commute_price', // Commute
+  'others_5': 'others_vat_price', // VAT
 };
 
 /**
@@ -185,6 +184,15 @@ export function getDbColumnForItem(category, index) {
 }
 
 /**
+ * Get the database column name for a specific material capacity item
+ */
+export function getDbColumnForCapacity(category, index) {
+  if (category !== 'material') return null;
+  const key = `${category}_${index}_capacity`;
+  return MATERIAL_COLUMN_MAPPING[key] || null;
+}
+
+/**
  * Convert database columns back to generalPriceList format
  */
 export function dbColumnsToPriceList(dbRow, defaultPriceList) {
@@ -210,7 +218,7 @@ export function dbColumnsToPriceList(dbRow, defaultPriceList) {
       if (result.material[index]) {
         if (isCapacity) {
           if (!result.material[index].capacity) {
-            result.material[index].capacity = { value: 0, unit: 'm²' };
+            result.material[index].capacity = { value: 0, unit: 'm2' };
           }
           result.material[index].capacity.value = parseFloat(dbRow[column]);
         } else {

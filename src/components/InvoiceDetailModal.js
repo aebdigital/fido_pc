@@ -18,6 +18,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfBlob, setPdfBlob] = useState(null);
 
   // Use live invoice data from global state to reflect real-time updates
   const invoice = invoices?.find(inv => inv.id === invoiceProp?.id) || invoiceProp;
@@ -99,6 +100,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         t // Pass the t function
       });
       setPdfUrl(result.blobUrl);
+      setPdfBlob(result.pdfBlob);
       setShowPDFPreview(true);
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -111,6 +113,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     if (pdfUrl) {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
+      setPdfBlob(null);
     }
   };
 
@@ -156,10 +159,42 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
     // Check if Web Share API is supported
     if (navigator.share) {
       try {
-        await navigator.share({
+        let currentBlob = pdfBlob;
+
+        // If we don't have a blob (e.g. user clicked Send without Preview), generate it now
+        if (!currentBlob) {
+          const result = await generateInvoicePDF({
+            invoice,
+            contractor,
+            client,
+            projectBreakdown,
+            vatRate,
+            totalWithoutVAT,
+            vat,
+            totalWithVAT,
+            formatDate,
+            formatPrice,
+            t // Pass the t function
+          });
+          currentBlob = result.pdfBlob;
+          setPdfBlob(currentBlob);
+          setPdfUrl(result.blobUrl);
+        }
+
+        const shareData = {
           title: `${t('Invoice')} ${invoice.invoiceNumber}`,
-          text: invoiceText,
-        });
+        };
+
+        // If we have a PDF blob, try to share it as a file
+        if (currentBlob && navigator.canShare && navigator.canShare({ files: [new File([currentBlob], 'test.pdf', { type: 'application/pdf' })] })) {
+          const file = new File([currentBlob], `${t('Invoice')} ${invoice.invoiceNumber}.pdf`, { type: 'application/pdf' });
+          shareData.files = [file];
+        } else {
+          // Fallback to text if file sharing not supported
+          shareData.text = invoiceText;
+        }
+
+        await navigator.share(shareData);
       } catch (error) {
         // User cancelled or share failed
         if (error.name !== 'AbortError') {
@@ -264,16 +299,15 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         <div className="p-6 space-y-6">
           {/* Status Badge - iOS compatible statuses: unpaid, paid, afterMaturity */}
           <div className="flex items-center gap-3 flex-wrap">
-            <span className={`px-4 py-2 text-sm font-medium rounded-full ${
-              invoice.status === INVOICE_STATUS.PAID
-                ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                : invoice.status === INVOICE_STATUS.AFTER_MATURITY
+            <span className={`px-4 py-2 text-sm font-medium rounded-full ${invoice.status === INVOICE_STATUS.PAID
+              ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+              : invoice.status === INVOICE_STATUS.AFTER_MATURITY
                 ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
                 : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-            }`}>
+              }`}>
               {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
                 : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
-                : 'Unpaid')}
+                  : 'Unpaid')}
             </span>
 
             {invoice.status !== INVOICE_STATUS.PAID && (

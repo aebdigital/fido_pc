@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   User,
   ClipboardList,
@@ -71,10 +72,12 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     getProjectReceipts,
     addReceipt,
     deleteReceipt,
-    analyzeReceiptImage
+    analyzeReceiptImage,
+    isPro // Added Pro check
   } = useAppData();
 
   // Local state
+  const [showPaywall, setShowPaywall] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
   const [showRoomDetailsModal, setShowRoomDetailsModal] = useState(false);
@@ -101,6 +104,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [isEditingDetailNotes, setIsEditingDetailNotes] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfBlob, setPdfBlob] = useState(null);
   const [photoPage, setPhotoPage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxDirection, setLightboxDirection] = useState(0); // -1 for left, 1 for right, 0 for initial
@@ -124,7 +128,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   useEffect(() => {
     const initializeData = async () => {
       if (!project?.id) return;
-      
+
       setIsLoadingDetails(true);
       await loadProjectDetails(project.id);
       setIsLoadingDetails(false);
@@ -181,7 +185,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const roomTypes = [
-    t('Hallway'), t('Toilet'), t('Bathroom'), t('Kitchen'), 
+    t('Hallway'), t('Toilet'), t('Bathroom'), t('Kitchen'),
     t('Living room'), t('Kids room'), t('Bedroom'), t('Guest room'),
     t('Work room'), t('Custom')
   ];
@@ -211,7 +215,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const handleClientSelect = (client) => {
     setSelectedClientForProject(client);
     setShowClientSelector(false);
-    
+
     // Update project with client info
     assignProjectToClient(client.id, project.id, project.name);
     updateProject(project.category, project.id, {
@@ -297,7 +301,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const handleCreateClientInModal = async (clientData) => {
     try {
       const newClient = await addClient(clientData);
-      
+
       if (newClient) {
         handleClientSelect(newClient);
         setShowCreateClientInModal(false);
@@ -312,7 +316,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     try {
       const newContractor = await addContractor(contractorData);
       setShowContractorModal(false);
-      
+
       // If we created a contractor from the project detail, select it immediately
       if (newContractor) {
         handleAssignProjectContractor(newContractor.id);
@@ -482,10 +486,11 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     if (showReceiptsModal && project?.id) {
       loadReceipts();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showReceiptsModal, project?.id]);
 
   const handlePreviewPriceOffer = async () => {
+    if (!isPro) { setShowPaywall(true); return; }
     // Ensure we have a valid project breakdown
     const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
 
@@ -539,6 +544,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         offerValidityPeriod: priceOfferSettings?.timeLimit || 30
       }, t); // Pass t as the second argument
       setPdfUrl(result.blobUrl);
+      setPdfBlob(result.pdfBlob);
       setShowPDFPreview(true);
     } catch (error) {
       console.error('Error generating Price Offer PDF:', error);
@@ -551,10 +557,12 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     if (pdfUrl) {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
+      setPdfBlob(null);
     }
   };
 
   const handleSendPriceOffer = async () => {
+    if (!isPro) { setShowPaywall(true); return; }
     const contractor = getCurrentContractor();
     const client = clients.find(c => c.id === project.clientId);
     const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
@@ -592,10 +600,51 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
     if (navigator.share) {
       try {
-        await navigator.share({
+        let currentBlob = pdfBlob;
+
+        // If we don't have a blob (e.g. user clicked Send without Preview), generate it now
+        if (!currentBlob) {
+          const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+          const result = await generatePriceOfferPDF({
+            invoice: {
+              invoiceNumber: '',
+              projectName: project.name,
+              issueDate: new Date().toISOString(),
+              dueDate: new Date().toISOString(),
+              paymentMethod: 'transfer'
+            },
+            contractor,
+            client,
+            projectBreakdown,
+            vatRate,
+            totalWithoutVAT,
+            vat,
+            totalWithVAT,
+            formatDate: (dateString) => new Date(dateString).toLocaleDateString('sk-SK'),
+            formatPrice,
+            projectNotes: project.notes,
+            projectNumber: formatProjectNumber(project),
+            offerValidityPeriod: priceOfferSettings?.timeLimit || 30
+          }, t);
+          currentBlob = result.pdfBlob;
+          setPdfBlob(currentBlob);
+          setPdfUrl(result.blobUrl);
+        }
+
+        const shareData = {
           title: `${t('Cenová ponuka')} - ${project.name}`,
-          text: text,
-        });
+        };
+
+        // If we have a PDF blob, try to share it as a file
+        if (currentBlob && navigator.canShare && navigator.canShare({ files: [new File([currentBlob], 'test.pdf', { type: 'application/pdf' })] })) {
+          const file = new File([currentBlob], `${t('Cenová ponuka')} - ${project.name}.pdf`, { type: 'application/pdf' });
+          shareData.files = [file];
+        } else {
+          // Fallback to text if file sharing not supported
+          shareData.text = text;
+        }
+
+        await navigator.share(shareData);
       } catch (error) {
         if (error.name !== 'AbortError') {
           console.error('Error sharing:', error);
@@ -615,7 +664,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
   return (
     <div className="flex-1 p-0 lg:p-6 overflow-y-auto min-w-0">
-      
+
       {/* Project Header */}
       <div className="mb-6">
         <div className="flex flex-col gap-2 lg:gap-4">
@@ -661,19 +710,18 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               </span>
             )}
             {/* Project Status Badge - Uses same logic as Projects list */}
-            <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${
-              project.status === PROJECT_STATUS.FINISHED
-                ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                : project.status === PROJECT_STATUS.APPROVED
+            <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${project.status === PROJECT_STATUS.FINISHED
+              ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+              : project.status === PROJECT_STATUS.APPROVED
                 ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
                 : project.status === PROJECT_STATUS.SENT
-                ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-            }`}>
+                  ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                  : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+              }`}>
               {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
                 : project.status === PROJECT_STATUS.APPROVED ? 'approved'
-                : project.status === PROJECT_STATUS.SENT ? 'sent'
-                : 'not sent')}
+                  : project.status === PROJECT_STATUS.SENT ? 'sent'
+                    : 'not sent')}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -713,7 +761,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left column */}
         <div className="flex-1 space-y-4 lg:space-y-6 min-w-0">
-          
+
           {/* Client Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -780,8 +828,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-3">
               {isLoadingDetails ? (
                 <div className="text-center py-12">
-                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
-                   <p className="text-gray-500 dark:text-gray-400 font-medium">{t('Loading project details...')}</p>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">{t('Loading project details...')}</p>
                 </div>
               ) : (
                 <>
@@ -883,7 +931,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             {!project.is_archived && (
               !getInvoiceForProject(project.id) ? (
                 <button
-                  onClick={() => setShowInvoiceCreationModal(true)}
+                  onClick={() => {
+                    if (!isPro) { setShowPaywall(true); return; }
+                    setShowInvoiceCreationModal(true);
+                  }}
                   className="w-full bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                 >
                   <Plus className="w-4 h-4" />
@@ -912,16 +963,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        invoice.status === INVOICE_STATUS.PAID
-                          ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                          : invoice.status === INVOICE_STATUS.AFTER_MATURITY
+                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${invoice.status === INVOICE_STATUS.PAID
+                        ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                        : invoice.status === INVOICE_STATUS.AFTER_MATURITY
                           ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
                           : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                      }`}>
+                        }`}>
                         {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
                           : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
-                          : 'Unpaid')}
+                            : 'Unpaid')}
                       </span>
                       {!project.is_archived && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
                     </div>
@@ -936,7 +986,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <BarChart3 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Project management')}</h2>
             </div>
-            
+
             {!project.is_archived && (
               <div className="space-y-3">
                 <div
@@ -968,17 +1018,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                       <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in">
                         <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
-                        
+
                         <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
                           {contractors.map(contractor => (
                             <button
                               key={contractor.id}
                               onClick={() => handleAssignProjectContractor(contractor.id)}
-                              className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${
-                                (project.contractor_id || activeContractorId) === contractor.id
-                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                  : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
-                              }`}
+                              className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${(project.contractor_id || activeContractorId) === contractor.id
+                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                                }`}
                             >
                               <span className="font-medium truncate">{contractor.name}</span>
                               {(project.contractor_id || activeContractorId) === contractor.id && (
@@ -988,7 +1037,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                           ))}
                         </div>
 
-                        <button 
+                        <button
                           onClick={() => {
                             setShowContractorSelector(false);
                             setShowContractorModal(true);
@@ -999,8 +1048,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                           {t('Add contractor')}
                         </button>
 
-                        <button 
-                          onClick={() => setShowContractorSelector(false)} 
+                        <button
+                          onClick={() => setShowContractorSelector(false)}
                           className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl"
                         >
                           {t('Cancel')}
@@ -1025,24 +1074,24 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <Archive className="w-4 h-4 text-yellow-500" />
                     <span className="text-sm sm:text-lg">{t('Unarchive')}</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       deleteArchivedProject(project.id);
                       onBack();
                     }}
                     className="flex-1 bg-red-600 text-white py-3 px-4 rounded-2xl font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
-                    <Trash2 className="w-4 h-4" /> 
+                    <Trash2 className="w-4 h-4" />
                     <span className="text-sm sm:text-lg">{t('Delete Forever')}</span>
                   </button>
                 </>
               ) : (
                 <>
-                  <button 
+                  <button
                     onClick={handleDuplicateProject}
                     className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
-                    <Copy className="w-4 h-4" /> 
+                    <Copy className="w-4 h-4" />
                     <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
                   </button>
                   <button
@@ -1089,7 +1138,6 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   ref={receiptInputRef}
                   type="file"
                   accept="image/*"
-                  capture="environment"
                   className="hidden"
                   onChange={handleReceiptUpload}
                 />
@@ -1197,9 +1245,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
             {projectPhotos.length > 0 ? (
               <div
-                className={`relative bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm transition-all duration-200 ${
-                  isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
-                } ${!project.is_archived && !photoDeleteMode ? 'cursor-pointer' : ''}`}
+                className={`relative bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
+                  } ${!project.is_archived && !photoDeleteMode ? 'cursor-pointer' : ''}`}
                 onClick={!project.is_archived && !photoDeleteMode ? () => photoInputRef.current?.click() : undefined}
                 onDrop={!project.is_archived && !photoDeleteMode ? handlePhotoDrop : undefined}
                 onDragOver={!project.is_archived && !photoDeleteMode ? handlePhotoDragOver : undefined}
@@ -1228,7 +1275,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                           <Trash2 className="w-8 h-8 text-white" />
                         </div>
                       )}
-                                          </div>
+                    </div>
                   ))}
                 </div>
 
@@ -1238,11 +1285,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <button
                       onClick={(e) => { e.stopPropagation(); setPhotoPage(p => Math.max(0, p - 1)); }}
                       disabled={photoPage === 0}
-                      className={`p-2 rounded-xl transition-all duration-200 ${
-                        photoPage === 0
-                          ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                      }`}
+                      className={`p-2 rounded-xl transition-all duration-200 ${photoPage === 0
+                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </button>
@@ -1252,11 +1298,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <button
                       onClick={(e) => { e.stopPropagation(); setPhotoPage(p => Math.min(Math.ceil(projectPhotos.length / 21) - 1, p + 1)); }}
                       disabled={photoPage >= Math.ceil(projectPhotos.length / 21) - 1}
-                      className={`p-2 rounded-xl transition-all duration-200 ${
-                        photoPage >= Math.ceil(projectPhotos.length / 21) - 1
-                          ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                      }`}
+                      className={`p-2 rounded-xl transition-all duration-200 ${photoPage >= Math.ceil(projectPhotos.length / 21) - 1
+                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
                     >
                       <ChevronRight className="w-5 h-5" />
                     </button>
@@ -1272,9 +1317,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               </div>
             ) : (
               <div
-                className={`min-h-[120px] flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-2xl transition-all duration-200 ${
-                  isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
-                } ${!project.is_archived ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}`}
+                className={`min-h-[120px] flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-2xl transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
+                  } ${!project.is_archived ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}`}
                 onClick={!project.is_archived ? () => photoInputRef.current?.click() : undefined}
                 onDrop={!project.is_archived ? handlePhotoDrop : undefined}
                 onDragOver={!project.is_archived ? handlePhotoDragOver : undefined}
@@ -1338,11 +1382,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 </button>
               )}
             </div>
-            
+
             {showCreateClientInModal ? (
-              <ClientForm 
-                onSave={handleCreateClientInModal} 
-                onCancel={() => setShowCreateClientInModal(false)} 
+              <ClientForm
+                onSave={handleCreateClientInModal}
+                onCancel={() => setShowCreateClientInModal(false)}
               />
             ) : (
               <>
@@ -1364,11 +1408,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
                     )
                     .map(client => (
-                    <button key={client.id} onClick={() => handleClientSelect(client)} className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left">
-                      <div className="font-medium">{client.name}</div>
-                      <div className="text-sm text-gray-500">{client.email}</div>
-                    </button>
-                  ))}
+                      <button key={client.id} onClick={() => handleClientSelect(client)} className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left">
+                        <div className="font-medium">{client.name}</div>
+                        <div className="text-sm text-gray-500">{client.email}</div>
+                      </button>
+                    ))}
                 </div>
 
                 <button
@@ -1611,11 +1655,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       {/* Animated Lightbox */}
       {selectedPhotoIndex !== null && projectPhotos.length > 0 && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
-            lightboxOpen
-              ? 'bg-black/80 backdrop-blur-md opacity-100'
-              : 'bg-black/0 backdrop-blur-none opacity-0'
-          }`}
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${lightboxOpen
+            ? 'bg-black/80 backdrop-blur-md opacity-100'
+            : 'bg-black/0 backdrop-blur-none opacity-0'
+            }`}
           onClick={() => {
             setLightboxOpen(false);
             setTimeout(() => setSelectedPhotoIndex(null), 300);
@@ -1663,24 +1706,22 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
           {/* Image Container with Slide Animation */}
           <div
-            className={`transition-all duration-300 ease-out ${
-              lightboxOpen
-                ? 'scale-100 opacity-100'
-                : 'scale-95 opacity-0'
-            }`}
+            className={`transition-all duration-300 ease-out ${lightboxOpen
+              ? 'scale-100 opacity-100'
+              : 'scale-95 opacity-0'
+              }`}
             onClick={(e) => e.stopPropagation()}
           >
             <img
               key={selectedPhotoIndex}
               src={projectPhotos[selectedPhotoIndex]?.url}
               alt={projectPhotos[selectedPhotoIndex]?.name || "Project Photo"}
-              className={`max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl ${
-                lightboxDirection === -1
-                  ? 'animate-slide-from-left'
-                  : lightboxDirection === 1
+              className={`max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl ${lightboxDirection === -1
+                ? 'animate-slide-from-left'
+                : lightboxDirection === 1
                   ? 'animate-slide-from-right'
                   : 'animate-fadeSlideIn'
-              }`}
+                }`}
             />
           </div>
 
@@ -1691,7 +1732,6 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         </div>
       )}
 
-      {/* PDF Preview Modal */}
       <PDFPreviewModal
         isOpen={showPDFPreview}
         onClose={handleClosePDFPreview}
@@ -1702,6 +1742,21 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         }}
         title={`${t('Cenová ponuka')} - ${project.name}`}
       />
+
+      {showPaywall && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md text-center">
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{t('Become Pro!')}</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">{t('Unlock PDF export, unlimited projects, and more.')}</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowPaywall(false)} className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-xl">{t('Close')}</button>
+              <Link to="/settings" onClick={() => setShowPaywall(false)} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center font-medium">
+                {t('Go to Settings')}
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -30,7 +30,7 @@ const getItemLabel = (property, item, index, t) => {
 
   // For plasterboarding with types: "Jednoduchá č. 1", "Dvojitá č. 1"
   if (property.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION ||
-      property.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET) {
+    property.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET) {
     if (item.selectedType) {
       return `${t(item.selectedType)} ${t('no.')} ${itemNumber}`;
     }
@@ -96,8 +96,8 @@ const getItemLabel = (property, item, index, t) => {
   return `${t(property.name)} ${t('no.')} ${itemNumber}`;
 };
 
-const WorkPropertyCard = ({ 
-  property, 
+const WorkPropertyCard = ({
+  property,
   workData,
   expandedItems,
   newlyAddedItems,
@@ -136,7 +136,7 @@ const WorkPropertyCard = ({
   const renderDoorWindowSection = (item, type) => {
     const items = item.doorWindowItems?.[type] || [];
     const typeName = type.charAt(0).toUpperCase() + type.slice(1);
-    
+
     return (
       <div className="space-y-3 lg:space-y-2">
         <div className="flex items-center justify-between">
@@ -148,7 +148,7 @@ const WorkPropertyCard = ({
             <Plus className="w-4 h-4 lg:w-3 lg:h-3" />
           </button>
         </div>
-        
+
         {items.map((subItem, index) => (
           <div key={subItem.id} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-3 space-y-3 lg:space-y-2">
             <div className="flex items-center justify-between">
@@ -170,7 +170,7 @@ const WorkPropertyCard = ({
                 </button>
               </div>
             </div>
-            
+
             <div className="space-y-3 lg:space-y-1">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                 <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 sm:w-12 sm:flex-shrink-0">{t('Width')}</span>
@@ -297,7 +297,7 @@ const WorkPropertyCard = ({
           <div className="flex-1">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
           </div>
-          <div 
+          <div
             className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
             onClick={(e) => onAddWorkItem(property.id, e)}
           >
@@ -330,7 +330,7 @@ const WorkPropertyCard = ({
             </div>
           </div>
         )}
-        
+
         {/* Existing rental items */}
         {expandedItems[property.id] && existingItems.map((item, index) => {
           // Custom label for tool rental: "Náradie č. 1"
@@ -339,39 +339,39 @@ const WorkPropertyCard = ({
             : `${t(item.name)} ${t('no.')} ${index + 1}`;
 
           return (
-          <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in ${newlyAddedItems.has(item.id) ? '' : ''}`}>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-900 dark:text-white text-lg">
-                {rentalLabel}
-              </span>
-              <button
-                onClick={(e) => onRemoveWorkItem(item.id, e)}
-                className="text-gray-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-              </button>
-            </div>
-            
-            {/* Rental fields */}
-            {item.rentalFields && (
-              <div className="space-y-3 lg:space-y-2">
-                {item.rentalFields.map(field => (
-                  <div key={field.name} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                    <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(field.name)}</span>
-                    <div className="flex items-center gap-2 justify-end w-full">
-                      <NumberInput
-                        value={item.fields[field.name] || 0}
-                        onChange={(value) => onUpdateWorkItem(item.id, field.name, value)}
-                        className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        min={0}
-                      />
-                      <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t(field.unit)}</span>
-                    </div>
-                  </div>
-                ))}
+            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in ${newlyAddedItems.has(item.id) ? '' : ''}`}>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-900 dark:text-white text-lg">
+                  {rentalLabel}
+                </span>
+                <button
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
               </div>
-            )}
-          </div>
+
+              {/* Rental fields */}
+              {item.rentalFields && (
+                <div className="space-y-3 lg:space-y-2">
+                  {item.rentalFields.map(field => (
+                    <div key={field.name} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                      <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(field.name)}</span>
+                      <div className="flex items-center gap-2 justify-end w-full">
+                        <NumberInput
+                          value={item.fields[field.name] || 0}
+                          onChange={(value) => onUpdateWorkItem(item.id, field.name, value)}
+                          className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
+                          min={0}
+                        />
+                        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t(field.unit)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
@@ -405,7 +405,7 @@ const WorkPropertyCard = ({
     };
 
     const isFilled = hasInput(existingItem);
-    
+
     return (
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm transition-all duration-300 ${isFilled ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Header with plus/minus button */}
@@ -455,12 +455,12 @@ const WorkPropertyCard = ({
                 {renderField(existingItem, field)}
               </div>
             ))}
-            
+
             {/* Doors and Windows sections */}
             {property.fields && (() => {
               const hasDoors = property.fields.some(f => f.name === WORK_ITEM_NAMES.DOORS);
               const hasWindows = property.fields.some(f => f.name === WORK_ITEM_NAMES.WINDOWS);
-              
+
               if (hasDoors && hasWindows) {
                 return (
                   <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3">
@@ -556,7 +556,7 @@ const WorkPropertyCard = ({
   // custom_work is handled in the regular property card section below
   if (property.types && property.id !== WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
     const existingItems = workData.filter(item => item.propertyId === property.id);
-    
+
     return (
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Always show header with plus button */}
@@ -575,7 +575,7 @@ const WorkPropertyCard = ({
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
-          <div 
+          <div
             className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
             onClick={(e) => onAddWorkItem(property.id, e)}
           >
@@ -644,7 +644,7 @@ const WorkPropertyCard = ({
             {property.fields && (() => {
               const hasDoors = property.fields.some(f => f.name === WORK_ITEM_NAMES.DOORS);
               const hasWindows = property.fields.some(f => f.name === WORK_ITEM_NAMES.WINDOWS);
-              
+
               if (hasDoors && hasWindows) {
                 return (
                   <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3">
@@ -714,15 +714,15 @@ const WorkPropertyCard = ({
                       ).length;
 
                       return (
-                                              <div key={uniqueKey} className="flex items-center justify-between gap-3">
-                                                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                                                <button
-                                                  onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                                                  className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
-                                                >
-                                                  <ActiveLayersIcon activeLayers={instanceCount} className="w-full h-full" />
-                                                </button>
-                                              </div>                      );
+                        <div key={uniqueKey} className="flex items-center justify-between gap-3">
+                          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
+                          <button
+                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                            className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
+                          >
+                            <ActiveLayersIcon activeLayers={instanceCount} className="w-full h-full" />
+                          </button>
+                        </div>);
                     })}
                   </div>
                 )}
@@ -779,7 +779,7 @@ const WorkPropertyCard = ({
             </div>
           </div>
         )}
-        
+
         {/* Existing sanitary items */}
         {existingItems.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
@@ -794,7 +794,7 @@ const WorkPropertyCard = ({
                 <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
               </button>
             </div>
-            
+
             {/* Count and Price fields */}
             <div className="space-y-3 lg:space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
@@ -827,7 +827,7 @@ const WorkPropertyCard = ({
       </div>
     );
   }
-  
+
   // 5. Regular property card for other properties (default)
   return (
     <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
@@ -846,7 +846,7 @@ const WorkPropertyCard = ({
             <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
           )}
         </div>
-        <div 
+        <div
           className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
           onClick={(e) => onAddWorkItem(property.id, e)}
         >
@@ -861,7 +861,7 @@ const WorkPropertyCard = ({
             {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
-                  {item.selectedType === 'Work' ? t('Názov práce') : t('Názov materiálu')}:
+                  {item.selectedType === 'Work' ? t('Work name') : t('Material name')}:
                 </span>
                 <input
                   id={`custom-work-name-${item.id}`}
@@ -869,7 +869,7 @@ const WorkPropertyCard = ({
                   defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
                   onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
                   className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
-                  placeholder={item.selectedType === 'Work' ? t('Názov práce') : t('Názov materiálu')}
+                  placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
                 />
               </div>
             ) : property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ? (
@@ -900,11 +900,10 @@ const WorkPropertyCard = ({
                     e.stopPropagation();
                     onUpdateItemState(item.id, { selectedType: type });
                   }}
-                  className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex flex-col items-center justify-center gap-1 ${
-                    item.selectedType === type
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
+                  className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex flex-col items-center justify-center gap-1 ${item.selectedType === type
+                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    }`}
                 >
                   {type === 'Work' && <Hammer className="w-4 h-4" />}
                   {type === 'Material' && <Package className="w-4 h-4" />}
@@ -920,7 +919,7 @@ const WorkPropertyCard = ({
           {/* Unit selector for custom work - only show after type is selected but before unit is selected */}
           {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
             <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
-              <span className="text-base font-medium text-gray-900 dark:text-white">{t('Vyberte jednotku')}</span>
+              <span className="text-base font-medium text-gray-900 dark:text-white">{t('Select unit')}</span>
               <div className="grid grid-cols-4 gap-2">
                 {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
                   <button
@@ -950,7 +949,7 @@ const WorkPropertyCard = ({
           {property.fields && (() => {
             const hasDoors = property.fields.some(f => f.name === WORK_ITEM_NAMES.DOORS);
             const hasWindows = property.fields.some(f => f.name === WORK_ITEM_NAMES.WINDOWS);
-            
+
             if (hasDoors && hasWindows) {
               return (
                 <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3">

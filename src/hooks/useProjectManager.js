@@ -26,7 +26,7 @@ export const useProjectManager = (appData, setAppData) => {
     generalPriceList,
     archivedProjects
   } = appData;
-  
+
   // Helper function to find project by ID across all categories
   const findProjectById = useCallback((projectId) => {
     // First, search in contractor-specific projects if we have an active contractor
@@ -86,14 +86,8 @@ export const useProjectManager = (appData, setAppData) => {
         return createdDate.getFullYear() === currentYear;
       });
 
-      // Determine next sequential number (iOS compatible: just 1, 2, 3, etc.)
-      let nextNumber;
-      if (currentYearProjects.length === 0) {
-        nextNumber = 1;
-      } else {
-        const maxNumber = Math.max(...currentYearProjects.map(p => parseInt(p.number || 0)));
-        nextNumber = maxNumber + 1;
-      }
+      // Determine next sequential number (set to 0 to trigger database auto-assignment)
+      const nextNumber = 0;
 
       // Initial history entry - iOS compatible
       const initialHistory = [{
@@ -711,7 +705,7 @@ export const useProjectManager = (appData, setAppData) => {
       const rooms = await api.rooms.getByProject(projectId);
 
       if (!rooms || rooms.length === 0) {
-         setAppData(prev => ({
+        setAppData(prev => ({
           ...prev,
           projectRoomsData: {
             ...prev.projectRoomsData,

@@ -16,16 +16,21 @@ import Archive from './Archive';
 import PriceOfferSettings from './PriceOfferSettings';
 import { useLanguage } from '../context/LanguageContext';
 import { useDarkMode } from '../context/DarkModeContext';
+import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 const Settings = () => {
   const location = useLocation();
   const { t, language, toggleLanguage } = useLanguage();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth(); // Add user
+  const { isPro, grantPromotionalEntitlement, checkProStatus } = useAppData(); // Add Pro context
+
   const [showPriceList, setShowPriceList] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [showPriceOffer, setShowPriceOffer] = useState(false);
+  const [loadingPro, setLoadingPro] = useState(false);
 
   // Handle navigation reset when clicking on Settings in navigation
   useEffect(() => {
@@ -75,26 +80,44 @@ const Settings = () => {
     window.open('https://fido.sk', '_blank');
   };
 
+  const handleTryPro = async () => {
+    setLoadingPro(true);
+    const success = await grantPromotionalEntitlement();
+    setLoadingPro(false);
+    if (success) {
+      alert(t("Pro activated successfully!"));
+    } else {
+      alert(t("Failed to activate Pro."));
+    }
+  };
+
+  const handleRestore = async () => {
+    setLoadingPro(true);
+    await checkProStatus();
+    setLoadingPro(false);
+    alert(t("Purchases restored."));
+  };
+
   if (showPriceList) {
     return (
-      <PriceList 
-        onBack={handleBackFromPriceList} 
+      <PriceList
+        onBack={handleBackFromPriceList}
       />
     );
   }
 
   if (showArchive) {
     return (
-      <Archive 
-        onBack={handleBackFromArchive} 
+      <Archive
+        onBack={handleBackFromArchive}
       />
     );
   }
 
   if (showPriceOffer) {
     return (
-      <PriceOfferSettings 
-        onBack={handleBackFromPriceOffer} 
+      <PriceOfferSettings
+        onBack={handleBackFromPriceOffer}
       />
     );
   }
@@ -113,16 +136,39 @@ const Settings = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-3 mb-2">
-                <span className="font-medium text-gray-900 dark:text-white text-lg">customer@email.com</span>
-                <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white self-start sm:self-auto">
-                  <Edit className="w-4 h-4" />
+                <span className="font-medium text-gray-900 dark:text-white text-lg">{user?.email || 'customer@email.com'}</span>
+                {isPro && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">PRO ACTIVE</span>}
+              </div>
+
+              {isPro ? (
+                <div className="text-base lg:text-lg text-green-600 mb-1">{t('You have full access to all features.')}</div>
+              ) : (
+                <>
+                  <div className="text-base lg:text-lg text-gray-600 dark:text-gray-400 mb-1">{t('Restricted Access')}</div>
+                  <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">{t('Customise prices in the entire app and export projects to PDF. Try Pro For Free!')}</div>
+                </>
+              )}
+
+              <div className="flex gap-3 mt-4">
+                {!isPro && (
+                  <button
+                    onClick={handleTryPro}
+                    disabled={loadingPro}
+                    className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-6 py-3 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md text-lg flex items-center gap-2"
+                  >
+                    {loadingPro && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {t('Try Pro')}
+                  </button>
+                )}
+
+                <button
+                  onClick={handleRestore}
+                  disabled={loadingPro}
+                  className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-4 py-3 font-medium transition-colors"
+                >
+                  {t('Restore Purchases')}
                 </button>
               </div>
-              <div className="text-base lg:text-lg text-gray-600 dark:text-gray-400 mb-1">{t('Restricted Access')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">{t('Customise prices in the entire app and export projects to PDF. Try Pro For Free!')}</div>
-              <button className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-6 py-3 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md text-lg">
-                {t('Try Pro')}
-              </button>
             </div>
           </div>
         </div>
@@ -229,7 +275,7 @@ const Settings = () => {
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
-          <div 
+          <div
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handleContactClick}
           >
@@ -237,7 +283,7 @@ const Settings = () => {
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
-          <div 
+          <div
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handleTermsClick}
           >
@@ -245,7 +291,7 @@ const Settings = () => {
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
-          <div 
+          <div
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handlePrivacyClick}
           >

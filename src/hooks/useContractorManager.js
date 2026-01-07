@@ -85,9 +85,15 @@ export const useContractorManager = (appData, setAppData) => {
     try {
       if (!appData.activeContractorId) return;
 
+      // Merge with existing settings
+      const updatedSettings = {
+        ...appData.priceOfferSettings,
+        ...newSettings
+      };
+
       // Update in Supabase
       await api.contractors.update(appData.activeContractorId, {
-        price_offer_settings: newSettings
+        price_offer_settings: updatedSettings
       });
 
       // Update local state
@@ -109,11 +115,11 @@ export const useContractorManager = (appData, setAppData) => {
     if (!contractorId) {
       return appData.projectCategories || getDefaultCategories();
     }
-    
+
     if (!appData.contractorProjects || !appData.contractorProjects[contractorId]) {
       return getDefaultCategories();
     }
-    
+
     return appData.contractorProjects[contractorId].categories || getDefaultCategories();
   }, [appData.projectCategories, appData.contractorProjects]);
 

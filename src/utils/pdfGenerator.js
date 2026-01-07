@@ -126,7 +126,7 @@ const generatePaymentQRCode = async (iban, bic, amount, invoiceNumber, recipient
 };
 
 // Helper to determine work item unit based on propertyId and fields
-// Returns just the unit (like 'm²', 'ks', 'h') without €/ prefix
+// Returns just the unit (like 'm2', 'ks', 'h') without €/ prefix
 const getWorkItemUnit = (item) => {
   // If already has unit in calculation, extract just the unit part
   if (item.calculation?.unit) {
@@ -164,8 +164,8 @@ const getWorkItemUnit = (item) => {
   if (fields[WORK_ITEM_NAMES.LENGTH] && !fields[WORK_ITEM_NAMES.WIDTH] && !fields[WORK_ITEM_NAMES.HEIGHT]) return 'm';
   if (fields[WORK_ITEM_NAMES.CIRCUMFERENCE]) return 'm';
 
-  // Default to m² for area-based work
-  return 'm²';
+  // Default to m2 for area-based work
+  return 'm2';
 };
 
 
@@ -285,7 +285,7 @@ export const generateInvoicePDF = async ({
     // Invoice number / Price Offer title - left side
     doc.setFontSize(14);
     doc.setFont('Inter', 'bold');
-    
+
     if (isPriceOffer) {
       // New format: CP {number} - {name} as MAIN TITLE (same style as invoice)
       const title = `${t('Price Offer Abbr')} ${projectNumber || ''} - ${invoice.projectName || ''}`;
@@ -508,6 +508,8 @@ export const generateInvoicePDF = async ({
         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
           // For electrical and plumbing work, show just the name without subtitle
           displayName = t(itemName);
+        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+          displayName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(itemName);
         } else {
           // Add subtitle for work types (wall/ceiling distinction, etc.)
           displayName = item.subtitle ? `${t(itemName)} ${t(item.subtitle)}` : t(itemName);
@@ -535,7 +537,7 @@ export const generateInvoicePDF = async ({
         const materialCost = item.calculation?.materialCost || 0;
         const pricePerUnit = quantity > 0 ? materialCost / quantity : 0;
         let unit = item.calculation?.unit || item.unit || '';
-        // Strip €/ prefix from unit if present (e.g. "€/m²" -> "m²")
+        // Strip €/ prefix from unit if present (e.g. "€/m2" -> "m2")
         if (unit.startsWith('€/')) unit = unit.substring(2);
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = materialCost * itemVatRate;
@@ -551,7 +553,9 @@ export const generateInvoicePDF = async ({
             translatedSubtitle = t(item.subtitle);
           }
         }
-        const displayName = translatedSubtitle ? `${t(item.name)} - ${translatedSubtitle}` : t(item.name);
+        const displayName = item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK
+          ? (item.fields?.[WORK_ITEM_NAMES.NAME] || t(item.name))
+          : (translatedSubtitle ? `${t(item.name)} - ${translatedSubtitle}` : t(item.name));
 
         tableData.push([
           sanitizeText(displayName || ''),
@@ -572,7 +576,7 @@ export const generateInvoicePDF = async ({
 
       projectBreakdown.othersItems.forEach(item => {
         let quantity = item.calculation?.quantity || 0;
-        const othersCost = item.calculation?.workCost || 0;
+        const othersCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
         let unit = item.calculation?.unit || item.unit || '';
         // Strip €/ prefix from unit if present (e.g. "€/h" -> "h")
         if (unit.startsWith('€/')) unit = unit.substring(2);
@@ -589,7 +593,7 @@ export const generateInvoicePDF = async ({
             // Scaffolding assembly - use m²
             unit = UNIT_TYPES.METER_SQUARE;
           } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) &&
-                     (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
+            (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
             unit = UNIT_TYPES.KM;
             const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
             const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
@@ -597,9 +601,6 @@ export const generateInvoicePDF = async ({
           } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK]) {
             unit = UNIT_TYPES.HOUR;
             quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
-          } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit) {
-            unit = item.selectedUnit;
-            quantity = parseFloat(values[WORK_ITEM_NAMES.QUANTITY] || values.Quantity || 0);
           } else if (!unit) {
             // Default to m² for area-based items
             unit = UNIT_TYPES.METER_SQUARE;
@@ -614,7 +615,7 @@ export const generateInvoicePDF = async ({
         // so we should use subtitle directly instead of combining name + subtitle
         let displayName;
         if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('prenájom') ||
-            item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
+          item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
           displayName = t(item.subtitle);
         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.fields?.[WORK_ITEM_NAMES.NAME]) {
           // For custom work, use the user-entered name
@@ -760,7 +761,31 @@ export const generateInvoicePDF = async ({
           if (contractor.signature.includes('jpeg') || contractor.signature.includes('jpg')) format = 'JPEG';
           else if (contractor.signature.includes('png')) format = 'PNG';
         }
-        doc.addImage(contractor.signature, format, rightX - 40, signatureY + 3, 40, 20);
+
+        // Use jsPDF's getImageProperties to get dimensions and preserve aspect ratio
+        const sigProps = doc.getImageProperties(contractor.signature);
+        let sigWidth = 40;
+        let sigHeight = 20;
+
+        if (sigProps.width && sigProps.height) {
+          const aspectRatio = sigProps.width / sigProps.height;
+          // Fit within 40x20 box
+          if (aspectRatio > 2) { // Wider than 2:1
+            sigWidth = 40;
+            sigHeight = 40 / aspectRatio;
+          } else { // Taller or narrower than 2:1
+            sigHeight = 20;
+            sigWidth = 20 * aspectRatio;
+          }
+        }
+
+        // Center in the box (box starts at rightX - 40, signatureY + 3)
+        const boxX = rightX - 40;
+        const boxY = signatureY + 3;
+        const centeredX = boxX + (40 - sigWidth) / 2;
+        const centeredY = boxY + (20 - sigHeight) / 2;
+
+        doc.addImage(contractor.signature, format, centeredX, centeredY, sigWidth, sigHeight);
       } catch (e) {
         console.warn('Failed to add signature to PDF:', e);
         doc.setLineWidth(0.3);
@@ -807,21 +832,21 @@ export const generateInvoicePDF = async ({
 
       if (type === 'user') {
         // Simple user icon - circle head + shoulders (two circles)
-        doc.circle(x + size/2, y - size * 0.6, size/4, 'S');
-        doc.circle(x + size/2, y - size * 0.1, size/3, 'S');
+        doc.circle(x + size / 2, y - size * 0.6, size / 4, 'S');
+        doc.circle(x + size / 2, y - size * 0.1, size / 3, 'S');
       } else if (type === 'phone') {
         // Simple phone icon - rectangle
         doc.roundedRect(x, y - size, size * 0.6, size, 0.3, 0.3, 'S');
       } else if (type === 'web') {
         // Simple globe icon - circle with cross lines
-        doc.circle(x + size/2, y - size/2, size/2, 'S');
-        doc.line(x, y - size/2, x + size, y - size/2);
-        doc.line(x + size/2, y - size, x + size/2, y);
+        doc.circle(x + size / 2, y - size / 2, size / 2, 'S');
+        doc.line(x, y - size / 2, x + size, y - size / 2);
+        doc.line(x + size / 2, y - size, x + size / 2, y);
       } else if (type === 'email') {
         // Simple envelope icon - rectangle with V
         doc.rect(x, y - size * 0.7, size, size * 0.7, 'S');
-        doc.line(x, y - size * 0.7, x + size/2, y - size * 0.3);
-        doc.line(x + size, y - size * 0.7, x + size/2, y - size * 0.3);
+        doc.line(x, y - size * 0.7, x + size / 2, y - size * 0.3);
+        doc.line(x + size, y - size * 0.7, x + size / 2, y - size * 0.3);
       }
     };
 
@@ -842,8 +867,15 @@ export const generateInvoicePDF = async ({
       if (!text) return 0;
       doc.setFont('Inter', bold ? 'bold' : 'normal');
       const lines = doc.splitTextToSize(sanitizeText(text), maxWidth);
+
+      // Vertical centering adjustment
+      // If lines.length > 1, shift start Y up so the block is centered relative to y
+      // y is where the icon is drawn (approx center)
+      const adjustment = (lines.length - 1) * iconLineHeight / 2;
+      const startY = y - adjustment;
+
       lines.forEach((line, i) => {
-        doc.text(line, x, y + (i * iconLineHeight));
+        doc.text(line, x, startY + (i * iconLineHeight));
       });
       return lines.length;
     };

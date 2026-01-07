@@ -227,10 +227,10 @@ const Invoices = () => {
 
               {/* Create New Profile */}
               <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-row items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-                   onClick={() => {
-                     setShowContractorSelector(false);
-                     setShowContractorModal(true);
-                   }}>
+                onClick={() => {
+                  setShowContractorSelector(false);
+                  setShowContractorModal(true);
+                }}>
                 <div>
                   <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
 
@@ -249,11 +249,10 @@ const Invoices = () => {
                   {contractors.map(contractor => (
                     <div
                       key={contractor.id}
-                      className={`p-3 rounded-xl cursor-pointer transition-colors ${
-                        activeContractorId === contractor.id
+                      className={`p-3 rounded-xl cursor-pointer transition-colors ${activeContractorId === contractor.id
                           ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
                           : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-                      }`}
+                        }`}
                       onClick={() => handleContractorSelect(contractor)}
                     >
                       <div className="font-medium text-gray-900 dark:text-white">
@@ -303,11 +302,10 @@ const Invoices = () => {
                       setSelectedYear(year);
                       setShowYearDropdown(false);
                     }}
-                    className={`w-full px-4 py-2 text-left text-sm transition-colors ${
-                      selectedYear === year
+                    className={`w-full px-4 py-2 text-left text-sm transition-colors ${selectedYear === year
                         ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
+                      }`}
                   >
                     {year}
                   </button>
@@ -321,11 +319,10 @@ const Invoices = () => {
           {statusFilters.map(filter => (
             <button
               key={filter}
-              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap ${
-                selectedStatus === filter
+              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap ${selectedStatus === filter
                   ? 'text-gray-900 dark:text-white'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
+                }`}
               onClick={() => setSelectedStatus(filter)}
             >
               {filter}
@@ -388,17 +385,30 @@ const Invoices = () => {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     {/* Status badge - above price (iOS compatible: unpaid, paid, afterMaturity) */}
-                    <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${
-                      invoice.status === INVOICE_STATUS.PAID
-                        ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                        : invoice.status === INVOICE_STATUS.AFTER_MATURITY
-                        ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                        : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
-                        : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
-                        : 'Unpaid')}
-                    </span>
+                    {(() => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const due = new Date(invoice.dueDate);
+                      due.setHours(0, 0, 0, 0);
+                      const diffTime = due - today;
+                      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      const isPaid = invoice.status === INVOICE_STATUS.PAID;
+                      const isOverdue = invoice.status === INVOICE_STATUS.AFTER_MATURITY || (!isPaid && days < 0);
+
+                      return (
+                        <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${isPaid
+                            ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                            : isOverdue
+                              ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                              : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                          }`}>
+                          {isPaid ? t('Paid')
+                            : isOverdue ? t('afterMaturity')
+                              : days === 0 ? t('Matures today')
+                                : `${t('Matures in')} ${days} ${days === 1 ? t('day') : (days >= 2 && days <= 4 ? t('days_2_4') : t('days'))}`}
+                        </span>
+                      );
+                    })()}
                     {/* Price */}
                     <div className="font-semibold text-gray-900 dark:text-white text-lg">{getInvoiceTotal(invoice)} €</div>
                     {/* VAT not included - below price */}

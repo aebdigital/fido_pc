@@ -6,7 +6,7 @@ import NumberInput from '../components/NumberInput';
 
 const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   const { t } = useLanguage();
-  const { generalPriceList, updateGeneralPriceList } = useAppData();
+  const { generalPriceList, updateGeneralPriceList, saveGeneralPriceListBulk } = useAppData();
   const [localPriceList, setLocalPriceList] = useState(null);
   const [originalPrices, setOriginalPrices] = useState({});
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
@@ -24,7 +24,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       Object.keys(generalPriceList).forEach(category => {
         clonedPriceList[category] = generalPriceList[category].map(item => ({ ...item }));
       });
-      
+
       // Only set if not already set or if explicitly needed (e.g. initial load)
       // For autosave, we want to keep local state if user is typing, but if context updates from elsewhere?
       // Since this is a page, it mounts once.
@@ -44,30 +44,39 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     // Only save if data has changed from last save AND lastSavedData is initialized
     if (lastSavedData.current && currentDataString !== lastSavedData.current) {
       setSaveStatus('modified');
-      
+
       const timer = setTimeout(() => {
         if (isUnmounting.current) return;
-        
+
         setSaveStatus('saving');
-        
+
         // Perform save
         Object.keys(localPriceList).forEach(category => {
           localPriceList[category].forEach((item, index) => {
             if (originalPrices[category] && originalPrices[category][index]) {
-              if (item.price !== originalPrices[category][index].price) {
-                updateGeneralPriceList(category, index, item.price);
+              const originalItem = originalPrices[category][index];
+              const priceChanged = item.price !== originalItem.price;
+              const capacityChanged = item.capacity && originalItem.capacity && item.capacity.value !== originalItem.capacity.value;
+
+              if (priceChanged || capacityChanged) {
+                updateGeneralPriceList(
+                  category,
+                  index,
+                  priceChanged ? item.price : undefined,
+                  capacityChanged ? item.capacity.value : undefined
+                );
               }
             }
           });
         });
-        
+
         setOriginalPrices(JSON.parse(currentDataString));
         lastSavedData.current = currentDataString;
-        
+
         setTimeout(() => {
           if (!isUnmounting.current) setSaveStatus('saved');
         }, 800);
-      }, 1000); 
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
@@ -102,7 +111,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     if (isNaN(percentage) || percentage <= 0) return;
 
     const multiplier = 1 + (percentage / 100);
-    
+
     setLocalPriceList(prev => {
       const updatedPrices = { ...prev };
       Object.keys(updatedPrices).forEach(category => {
@@ -113,7 +122,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       });
       return updatedPrices;
     });
-    
+
     setShowPercentageModal(false);
     setPercentageIncrease('');
   };
@@ -126,15 +135,32 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   const handleBack = () => {
     // If pending changes, save immediately
     if (saveStatus === 'modified' && localPriceList) {
-        Object.keys(localPriceList).forEach(category => {
-          localPriceList[category].forEach((item, index) => {
-            if (originalPrices[category] && originalPrices[category][index]) {
-              if (item.price !== originalPrices[category][index].price) {
-                updateGeneralPriceList(category, index, item.price);
-              }
+      const updates = {};
+      let hasUpdates = false;
+
+      Object.keys(localPriceList).forEach(category => {
+        localPriceList[category].forEach((item, index) => {
+          if (originalPrices[category] && originalPrices[category][index]) {
+            const originalItem = originalPrices[category][index];
+            const priceChanged = item.price !== originalItem.price;
+            const capacityChanged = item.capacity && originalItem.capacity && item.capacity.value !== originalItem.capacity.value;
+
+            if (priceChanged || capacityChanged) {
+              if (!updates[category]) updates[category] = {};
+              updates[category][index] = {};
+
+              if (priceChanged) updates[category][index].price = item.price;
+              if (capacityChanged) updates[category][index].capacity = item.capacity.value;
+
+              hasUpdates = true;
             }
-          });
+          }
         });
+      });
+
+      if (hasUpdates) {
+        saveGeneralPriceListBulk(updates);
+      }
     }
     isUnmounting.current = true;
     onBack();
@@ -213,7 +239,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6 lg:mb-8">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={handleBack}
               className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
@@ -221,15 +247,14 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             </button>
             <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
           </div>
-          
+
           <div
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
-              saveStatus === 'saved'
-                ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-                : saveStatus === 'saving'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${saveStatus === 'saved'
+              ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+              : saveStatus === 'saving'
                 ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                 : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
-            }`}
+              }`}
           >
             {saveStatus === 'saving' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -307,8 +332,10 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-              {localPriceList.others?.filter(item => item.name !== 'Custom work and material').map((item, index) => (
-                <PriceCard key={index} item={item} category="others" itemIndex={index} />
+              {localPriceList.others?.map((item, index) => (
+                item.name !== 'Custom work and material' && (
+                  <PriceCard key={index} item={item} category="others" itemIndex={index} />
+                )
               ))}
             </div>
           </div>

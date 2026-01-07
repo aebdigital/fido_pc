@@ -32,7 +32,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
       <div className="p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h3>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 custom-scrollbar">
         {workData.length > 0 ? (
           <>
@@ -58,6 +58,9 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                   ];
 
                   calculation.items.forEach(item => {
+                    // Skip auxiliary items as they are rendered separately at the bottom
+                    if (item.name === WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK) return;
+
                     if (item.calculation?.workCost > 0) {
                       // Check if this item should be grouped
                       const shouldGroup = groupablePropertyIds.includes(item.propertyId);
@@ -112,6 +115,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                         } else if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle) {
                           // For plinth items, show name with subtitle (e.g., "Sokel - rezanie a brúsenie")
                           workName = `${t(item.name)} - ${t(item.subtitle)}`;
+                        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+                          workName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(item.name);
                         } else {
                           const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
                           // Always translate the name
@@ -121,8 +126,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                         let workDescription;
                         const fields = item.fields || {};
                         if ((item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
-                            item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
-                            (item.name && item.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
+                          item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
+                          (item.name && item.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
                           if (item.subtitle.includes('- prenájom')) {
                             const duration = parseFloat(fields[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
                             workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
@@ -191,11 +196,17 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                   // Group materials by name and subtitle
                   calculation.materialItems.forEach(item => {
-                    const materialKey = `${item.name}-${item.subtitle || 'no-subtitle'}`;
+                    // Skip auxiliary material items as they are rendered separately at the bottom
+                    if (item.name === MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL) return;
+
+                    const displayName = item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK
+                      ? (item.fields?.[WORK_ITEM_NAMES.NAME] || item.name)
+                      : item.name;
+                    const materialKey = `${displayName}-${item.subtitle || 'no-subtitle'}`;
 
                     if (!materialGroups[materialKey]) {
                       materialGroups[materialKey] = {
-                        name: item.name,
+                        name: displayName,
                         subtitle: item.subtitle,
                         propertyId: item.propertyId,
                         unit: item.calculation.unit,
@@ -276,20 +287,10 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                     // For scaffolding items, use subtitle as name
                     if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('prenájom') ||
-                        item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
+                      item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
                       itemNameOthers = item.subtitle;
                     }
 
-                    if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-                      if (item.fields?.[WORK_ITEM_NAMES.NAME]) {
-                        itemNameOthers = item.fields[WORK_ITEM_NAMES.NAME];
-                      }
-                      // Use the user-selected unit for custom work
-                      if (item.selectedUnit) {
-                        unit = item.selectedUnit;
-                        quantity = parseFloat(item.fields?.[WORK_ITEM_NAMES.QUANTITY] || item.fields?.Quantity || 0);
-                      }
-                    }
                     const workName = t(itemNameOthers);
                     // Format quantity: for days show as integer with space, otherwise use existing format
                     const translatedUnit = t(unit);
@@ -301,7 +302,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     return (
                       <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
                         <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
-                        <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.calculation.workCost)}</span>
+                        <span className="text-gray-600 dark:text-gray-400">{formatPrice((item.calculation.workCost || 0) + (item.calculation.materialCost || 0))}</span>
                       </div>
                     );
                   }

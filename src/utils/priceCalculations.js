@@ -66,7 +66,7 @@ export const matchCeilingSubtype = (workSubtitle, itemSubtitle) => {
 export const isTilingOrPavingItem = (workItem, priceItem = null) => {
   // Check by propertyId first (most reliable)
   if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60 ||
-      workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60) {
+    workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60) {
     return true;
   }
 
@@ -74,9 +74,9 @@ export const isTilingOrPavingItem = (workItem, priceItem = null) => {
   if (priceItem?.name) {
     const nameLower = priceItem.name.toLowerCase();
     return nameLower.includes(WORK_ITEM_NAMES.TILING.toLowerCase()) ||
-           nameLower.includes(WORK_ITEM_NAMES.OBKLAD.toLowerCase()) ||
-           nameLower.includes(WORK_ITEM_NAMES.PAVING.toLowerCase()) ||
-           nameLower.includes(WORK_ITEM_NAMES.DLAZBA.toLowerCase());
+      nameLower.includes(WORK_ITEM_NAMES.OBKLAD.toLowerCase()) ||
+      nameLower.includes(WORK_ITEM_NAMES.PAVING.toLowerCase()) ||
+      nameLower.includes(WORK_ITEM_NAMES.DLAZBA.toLowerCase());
   }
 
   return false;
@@ -91,7 +91,7 @@ export const isTilingOrPavingItem = (workItem, priceItem = null) => {
 export const isNettingItem = (workItem, priceItem = null) => {
   // Check by propertyId first (most reliable)
   if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_WALL ||
-      workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING) {
+    workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING) {
     return true;
   }
 
@@ -99,7 +99,7 @@ export const isNettingItem = (workItem, priceItem = null) => {
   if (priceItem?.name) {
     const nameLower = priceItem.name.toLowerCase();
     return nameLower.includes(WORK_ITEM_NAMES.NETTING.toLowerCase()) ||
-           nameLower.includes(WORK_ITEM_NAMES.SIETKOVANIE.toLowerCase());
+      nameLower.includes(WORK_ITEM_NAMES.SIETKOVANIE.toLowerCase());
   }
 
   return false;
@@ -121,7 +121,7 @@ export const isFloatingFloorItem = (workItem, priceItem = null) => {
   if (priceItem?.name) {
     const nameLower = priceItem.name.toLowerCase();
     return nameLower.includes(WORK_ITEM_NAMES.FLOATING_FLOOR.toLowerCase()) ||
-           nameLower.includes(WORK_ITEM_NAMES.PLAVAJUCA_PODLAHA.toLowerCase());
+      nameLower.includes(WORK_ITEM_NAMES.PLAVAJUCA_PODLAHA.toLowerCase());
   }
 
   return false;
@@ -162,6 +162,9 @@ export const calculateWorkQuantity = (workItem, options = {}) => {
     const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
     const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
     quantity = distance * (days > 0 ? days : 1);
+  } else if (values[WORK_ITEM_NAMES.QUANTITY]) {
+    // Custom quantity field
+    quantity = parseFloat(values[WORK_ITEM_NAMES.QUANTITY] || 0);
   } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK]) {
     // Time calculation (h)
     quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
@@ -248,7 +251,7 @@ export const determineUnitAndQuantity = (item, defaultQuantity = 0) => {
   }
   // Distance-based items (Journey/Commute)
   else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) &&
-           (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
+    (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
     unit = UNIT_TYPES.KM;
     const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
     const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
@@ -256,8 +259,8 @@ export const determineUnitAndQuantity = (item, defaultQuantity = 0) => {
   }
   // Duration-based items (hour-based rentals)
   else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] ||
-           (values[WORK_ITEM_NAMES.COUNT] && (item.name === WORK_ITEM_NAMES.CORE_DRILL ||
-            item.name === 'Rental' || item.name === WORK_ITEM_NAMES.TOOL_RENTAL))) {
+    (values[WORK_ITEM_NAMES.COUNT] && (item.name === WORK_ITEM_NAMES.CORE_DRILL ||
+      item.name === 'Rental' || item.name === WORK_ITEM_NAMES.TOOL_RENTAL))) {
     unit = UNIT_TYPES.HOUR;
     quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || values[WORK_ITEM_NAMES.COUNT] || 0);
   }
@@ -325,7 +328,7 @@ export const hasWorkItemInput = (workItem) => {
  */
 export const findPriceListItem = (workItem, priceList) => {
   if (!workItem || !workItem.propertyId || !priceList) return null;
-  
+
   // Create mapping from work item IDs to price list items
   const workIdMappings = {
     [WORK_ITEM_PROPERTY_IDS.PREPARATORY]: WORK_ITEM_NAMES.PREPARATORY_AND_DEMOLITION_WORKS,
@@ -460,18 +463,17 @@ export const findPriceListItem = (workItem, priceList) => {
  * @returns {number} Calculated work cost
  */
 export const calculateWorkItemPrice = (workItem, priceItem) => {
-  if (!workItem.fields || !priceItem) return 0;
-  
-  let quantity = 0;
   const values = workItem.fields;
-  
+
   // Handle custom work items that have their own price
   if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-    const quantity = parseFloat(values.Quantity || 0);
-    const price = parseFloat(values.Price || 0);
+    const quantity = parseFloat(values[WORK_ITEM_NAMES.QUANTITY] || 0);
+    const price = parseFloat(values[WORK_ITEM_NAMES.PRICE] || 0);
     return quantity * price;
   }
-  
+
+  if (!priceItem) return 0;
+
   // Handle sanitary installations - use price list for work, Price field is for material
   if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) {
     const count = parseFloat(values.Count || 0);
@@ -492,12 +494,12 @@ export const calculateWorkItemPrice = (workItem, priceItem) => {
     // Work cost = count * price per piece from price list
     return count * priceItem.price;
   }
-  
+
   // Note: Scaffolding is handled specially in calculateRoomPriceWithMaterials with price list lookup
   // This fallback uses priceItem.price for assembly and default rental rate
   if (values[WORK_ITEM_NAMES.RENTAL_DURATION] && workItem.subtitle &&
-      (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
-       workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
+    (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
+      workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
     const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
     const duration = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
     // Scaffolding cost = assembly (priceItem.price per m²) + rental (default rate)
@@ -507,7 +509,7 @@ export const calculateWorkItemPrice = (workItem, priceItem) => {
   }
 
   // Use the shared helper function for quantity calculation
-  quantity = calculateWorkQuantity(workItem);
+  const quantity = calculateWorkQuantity(workItem);
 
   return Math.max(0, quantity * priceItem.price);
 };
@@ -522,13 +524,13 @@ export const calculateWorkItemPrice = (workItem, priceItem) => {
  */
 export const calculateMaterialCost = (material, workQuantity) => {
   if (!material || !workQuantity) return 0;
-  
+
   // If material has capacity, calculate based on packages needed
   if (material.capacity) {
     const packagesNeeded = Math.ceil(workQuantity / material.capacity.value);
     return packagesNeeded * material.price;
   }
-  
+
   // Direct calculation for materials priced per unit area/length
   return workQuantity * (material.price || 0);
 };
@@ -538,10 +540,6 @@ export const calculateMaterialCost = (material, workQuantity) => {
  * @param {Object} workItem - Work item with fields, propertyId
  * @param {Object} priceItem - Matching price list item
  * @param {Object} priceList - Full price list for material lookup
- * @param {number} totalTilingPavingArea - Pre-calculated total tiling/paving area for adhesive
- * @param {boolean} skipAdhesive - Whether to skip adhesive calculation (for aggregated items)
- * @param {number} totalNettingArea - Pre-calculated total netting area for adhesive
- * @returns {Object} Calculation result with workCost, materialCost, quantity, etc.
  */
 export const calculateWorkItemWithMaterials = (
   workItem,
@@ -551,12 +549,24 @@ export const calculateWorkItemWithMaterials = (
   skipAdhesive = false,
   totalNettingArea = 0
 ) => {
-  const workCost = calculateWorkItemPrice(workItem, priceItem);
   const values = workItem.fields || {};
+
+  if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+    const totalCost = calculateWorkItemPrice(workItem, null);
+    const quantity = parseFloat(values[WORK_ITEM_NAMES.QUANTITY] || 0);
+    const unit = workItem.selectedUnit || values[WORK_ITEM_NAMES.UNIT] || values.Unit || UNIT_TYPES.METER_SQUARE;
+
+    if (workItem.selectedType === 'Material') {
+      return { workCost: 0, materialCost: totalCost, quantity, unit };
+    }
+    return { workCost: totalCost, materialCost: 0, quantity, unit };
+  }
+
+  const workCost = calculateWorkItemPrice(workItem, priceItem);
 
   // Calculate quantity using the shared helper (includes door/window subtraction)
   let quantity = calculateWorkQuantity(workItem);
-  
+
   // Initialize materialQuantityToUse with base quantity
   let materialQuantityToUse = quantity;
 
@@ -588,7 +598,7 @@ export const calculateWorkItemWithMaterials = (
 
     materialCost = material ? calculateMaterialCost(material, materialQuantityToUse) : 0;
   }
-  
+
   // For tiling and paving works, also add adhesive cost
   let additionalMaterial = null;
   let additionalMaterialCost = 0;
@@ -653,7 +663,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     auxiliaryWorkCost: 0,
     auxiliaryMaterialCost: 0
   };
-  
+
   // Use provided price list (mandatory for this utility)
   const activePriceList = priceList;
   if (!activePriceList) return {
@@ -667,13 +677,13 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   const items = [];
   const materialItems = [];
   const othersItems = [];
-  
+
   // Pre-calculate total area for tiling and paving to optimize adhesive calculation
   let totalTilingPavingArea = 0;
   let tilingPavingAdhesiveAdded = false;
   let totalNettingArea = 0;
   let nettingAdhesiveAdded = false;
-  // Track non-large-format tiling/paving area for grouting calculation
+  // Track non-large-format tiling/paving area for grouting work calculation
   let totalGroutingArea = 0;
   // Track floating floor perimeter for skirting calculation
   let totalFloatingFloorPerimeter = 0;
@@ -683,7 +693,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     if (!hasWorkItemInput(workItem)) return;
 
     const priceItem = findPriceListItem(workItem, activePriceList);
-    if (priceItem && workItem.fields) {
+    if (workItem.fields && (priceItem || workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK)) {
       const isTilingOrPaving = isTilingOrPavingItem(workItem, priceItem);
       const isNetting = isNettingItem(workItem, priceItem);
       const isFloatingFloor = isFloatingFloorItem(workItem, priceItem);
@@ -714,7 +724,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
         }
         totalNettingArea += area;
       }
-      
+
       if (isFloatingFloor) {
         const values = workItem.fields;
         let perimeter = 0;
@@ -725,12 +735,12 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
         } else if (values.Circumference) {
           perimeter = parseFloat(values.Circumference || 0);
         }
-        
+
         // Subtract door widths from perimeter if doors are defined?
         // Usually skirting is not installed under doors. 
         // Logic: perimeter - (doors * door_width)
         // For simplicity, using simple perimeter for now as per instructions "2+2+5+5 thats 14".
-        
+
         totalFloatingFloorPerimeter += perimeter;
       }
     }
@@ -742,14 +752,14 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
 
     const priceItem = findPriceListItem(workItem, activePriceList);
 
-    if (priceItem && workItem.fields) {
+    if (workItem.fields && (priceItem || workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK)) {
       // Special handling for scaffolding - show as two separate items
       // Check by propertyId first (most reliable), then by name/subtitle
       const isScaffolding = workItem.propertyId === 'scaffolding' ||
-          (workItem.subtitle && (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
+        (workItem.subtitle && (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
           workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
-          (workItem.name && (workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase())));
-          
+        (workItem.name && (workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) || workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase())));
+
       if (isScaffolding) {
         const values = workItem.fields;
         const area = parseFloat(values.Length || 0) * parseFloat(values.Height || 0);
@@ -809,27 +819,43 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
         // Rental items can have propertyId of 'rentals', 'core_drill', 'tool_rental', or 'scaffolding'
         const rentalPropertyIds = ['rentals', 'core_drill', 'tool_rental', 'scaffolding'];
         const isOthersItem = workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ||
-                            workItem.propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE ||
-                            rentalPropertyIds.includes(workItem.propertyId) ||
-                            (workItem.subtitle && (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
-                             workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
-                            (workItem.name && workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase())) ||
-                            (priceItem && (
-                              priceItem.name === WORK_ITEM_NAMES.CUSTOM_WORK_AND_MATERIAL ||
-                              priceItem.name === WORK_ITEM_NAMES.JOURNEY ||
-                              priceItem.name === WORK_ITEM_NAMES.COMMUTE ||
-                              priceItem.name === WORK_ITEM_NAMES.TOOL_RENTAL ||
-                              priceItem.name === WORK_ITEM_NAMES.CORE_DRILL
-                            ));
-        
+          workItem.propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE ||
+          rentalPropertyIds.includes(workItem.propertyId) ||
+          (workItem.subtitle && (workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
+            workItem.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
+          (workItem.name && workItem.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase())) ||
+          (priceItem && (
+            priceItem.name === WORK_ITEM_NAMES.CUSTOM_WORK_AND_MATERIAL ||
+            priceItem.name === WORK_ITEM_NAMES.JOURNEY ||
+            priceItem.name === WORK_ITEM_NAMES.COMMUTE ||
+            priceItem.name === WORK_ITEM_NAMES.TOOL_RENTAL ||
+            priceItem.name === WORK_ITEM_NAMES.CORE_DRILL
+          ));
+
         if (isOthersItem) {
           const calculation = calculateWorkItemWithMaterials(workItem, priceItem, activePriceList);
-          othersTotal += calculation.workCost;
-          
-          othersItems.push({
-            ...workItem,
-            calculation
-          });
+
+          if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+            if (workItem.selectedType === 'Material') {
+              materialTotal += calculation.materialCost;
+              materialItems.push({
+                ...workItem,
+                calculation
+              });
+            } else {
+              workTotal += calculation.workCost;
+              items.push({
+                ...workItem,
+                calculation
+              });
+            }
+          } else {
+            othersTotal += (calculation.workCost || 0) + (calculation.materialCost || 0);
+            othersItems.push({
+              ...workItem,
+              calculation
+            });
+          }
         } else {
           // Normal calculation for work/material items
           // Check if this is a tiling/paving or netting item for adhesive aggregation
@@ -887,7 +913,13 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
 
           // Track materials as separate items
           if (calculation.material) {
-            const materialUnit = calculation.material.unit || UNIT_TYPES.METER_SQUARE;
+            let materialUnit = calculation.material.unit || UNIT_TYPES.METER_SQUARE;
+
+            // If material has capacity, use the capacity unit for display as that matches the quantity
+            if (calculation.material.capacity && calculation.material.capacity.unit) {
+              materialUnit = calculation.material.capacity.unit;
+            }
+
             const materialPrice = calculation.material.price || 0;
             const materialQuantity = calculation.materialQuantity || calculation.quantity || 0;
             let materialCostForItem = 0;
@@ -1062,7 +1094,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     }
   });
 
-  // Add grouting work and material for non-large-format tiling/paving
+  // Add grouting work for non-large-format tiling/paving (no material - matches iOS)
   if (totalGroutingArea > 0) {
     // Grouting work
     const groutingPriceItem = activePriceList.work.find(item =>
@@ -1084,42 +1116,24 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
         }
       });
     }
-
-    // Grouting material (Grout)
-    const groutMaterial = findMaterialByKey('grouting', activePriceList.material);
-    if (groutMaterial) {
-      const groutCost = calculateMaterialCost(groutMaterial, totalGroutingArea);
-      materialTotal += groutCost;
-      materialItems.push({
-        id: 'grouting_material',
-        name: groutMaterial.name,
-        subtitle: groutMaterial.subtitle || '',
-        calculation: {
-          quantity: totalGroutingArea,
-          materialCost: groutCost,
-          pricePerUnit: groutMaterial.price,
-          unit: groutMaterial.unit || UNIT_TYPES.PACKAGE
-        }
-      });
-    }
   }
-  
+
   // Add Skirting (Lištovanie) work and material for Floating Floor
   if (totalFloatingFloorPerimeter > 0) {
     // 1. Skirting Work (Lištovanie)
-    let skirtingWorkItem = activePriceList.work.find(item => 
+    let skirtingWorkItem = activePriceList.work.find(item =>
       item.name === WORK_ITEM_NAMES.SKIRTING // Matches 'Lištovanie'
     );
-    
+
     // Fallback for old projects/snapshots that still have 'Skirting'
     if (!skirtingWorkItem) {
       skirtingWorkItem = activePriceList.work.find(item => item.name === 'Skirting');
     }
-    
+
     if (skirtingWorkItem) {
       const skirtingWorkCost = totalFloatingFloorPerimeter * skirtingWorkItem.price;
       workTotal += skirtingWorkCost;
-      
+
       items.push({
         id: 'skirting_work',
         name: WORK_ITEM_NAMES.SKIRTING, // Force 'Lištovanie' regardless of what was found
@@ -1133,17 +1147,17 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
         }
       });
     }
-    
+
     // 2. Skirting Board Material (Soklové lišty)
-    let skirtingMaterialItem = activePriceList.material.find(item => 
+    let skirtingMaterialItem = activePriceList.material.find(item =>
       item.name === MATERIAL_ITEM_NAMES.SKIRTING_BOARD // Matches 'Soklové lišty'
     );
-    
+
     // Fallback for old projects/snapshots that still have 'Skirting board'
     if (!skirtingMaterialItem) {
       skirtingMaterialItem = activePriceList.material.find(item => item.name === 'Skirting board');
     }
-    
+
     if (skirtingMaterialItem) {
       let skirtingMaterialCost = 0;
       // Handle capacity if defined (though usually skirting is per meter)
@@ -1153,9 +1167,9 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
       } else {
         skirtingMaterialCost = totalFloatingFloorPerimeter * skirtingMaterialItem.price;
       }
-      
+
       materialTotal += skirtingMaterialCost;
-      
+
       materialItems.push({
         id: 'skirting_material',
         name: MATERIAL_ITEM_NAMES.SKIRTING_BOARD, // Force 'Soklové lišty' regardless of what was found
@@ -1178,10 +1192,42 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   const auxiliaryMaterialItem = activePriceList.material.find(item => item.name === MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL);
   const auxiliaryMaterialRate = auxiliaryMaterialItem ? auxiliaryMaterialItem.price / 100 : 0.10; // Default to 10% if not found
   const auxiliaryMaterialCost = materialTotal * auxiliaryMaterialRate;
-  
+
+  // Add auxiliary work to items if cost > 0
+  if (auxiliaryWorkCost > 0) {
+    items.push({
+      id: 'auxiliary_work_item',
+      name: WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK,
+      subtitle: '',
+      propertyId: 'auxiliary_work',
+      calculation: {
+        workCost: auxiliaryWorkCost,
+        materialCost: 0,
+        quantity: auxiliaryWorkRate * 100,
+        unit: '%'
+      }
+    });
+  }
+
+  // Add auxiliary material to materialItems if cost > 0
+  if (auxiliaryMaterialCost > 0) {
+    materialItems.push({
+      id: 'auxiliary_material_item',
+      name: MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL,
+      subtitle: '',
+      propertyId: 'auxiliary_material',
+      calculation: {
+        quantity: auxiliaryMaterialRate * 100,
+        materialCost: auxiliaryMaterialCost,
+        pricePerUnit: 0,
+        unit: '%'
+      }
+    });
+  }
+
   const finalWorkTotal = workTotal + auxiliaryWorkCost;
   const finalMaterialTotal = materialTotal + auxiliaryMaterialCost;
-  
+
   return {
     workTotal: finalWorkTotal,
     materialTotal: finalMaterialTotal,

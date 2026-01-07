@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { 
-  Archive as ArchiveIcon, 
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Archive as ArchiveIcon,
   ArrowLeft,
   ArchiveRestore,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -16,15 +17,46 @@ const Archive = ({ onBack }) => {
     unarchiveProject,
     deleteArchivedProject,
     calculateProjectTotalPrice,
-    formatPrice
+    formatPrice,
+    priceOfferSettings,
+    updatePriceOfferSettings
   } = useAppData();
 
   const [selectedProject, setSelectedProject] = useState(null);
   const [deletingProjectId, setDeletingProjectId] = useState(null);
   const [unarchivingProjectId, setUnarchivingProjectId] = useState(null);
+  const [archiveRetentionDays, setArchiveRetentionDays] = useState(priceOfferSettings?.archiveRetentionDays || 30);
+  const [isSaving, setIsSaving] = useState(false);
+  const archiveDebounceRef = useRef(null);
 
   // Show all archived projects regardless of contractor
   const allArchivedProjects = archivedProjects;
+
+  useEffect(() => {
+    return () => {
+      if (archiveDebounceRef.current) clearTimeout(archiveDebounceRef.current);
+    };
+  }, []);
+
+  const handleArchiveRetentionChange = (days) => {
+    setArchiveRetentionDays(days);
+    if (archiveDebounceRef.current) {
+      clearTimeout(archiveDebounceRef.current);
+    }
+
+    setIsSaving(true);
+    archiveDebounceRef.current = setTimeout(async () => {
+      try {
+        await updatePriceOfferSettings({ archiveRetentionDays: days });
+      } catch (error) {
+        console.error('Error saving archive settings:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 500);
+  };
+
+
 
   const handleUnarchiveProject = async (projectId, e) => {
     e.stopPropagation();
@@ -63,8 +95,8 @@ const Archive = ({ onBack }) => {
 
   if (selectedProject) {
     return (
-      <ProjectDetailView 
-        project={selectedProject} 
+      <ProjectDetailView
+        project={selectedProject}
         onBack={handleBackFromDetail}
         viewSource="archive"
       />
@@ -75,7 +107,7 @@ const Archive = ({ onBack }) => {
     <div className="pb-20 lg:pb-0">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6 lg:mb-8">
-        <button 
+        <button
           onClick={onBack}
           className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
@@ -83,6 +115,45 @@ const Archive = ({ onBack }) => {
         </button>
         <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Archive')}</h1>
       </div>
+
+      {/* Archive Settings */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4 lg:mb-6">
+          <ArchiveIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+          <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Archiving period')}</h2>
+        </div>
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="grid grid-cols-4 gap-2 flex-1 lg:flex lg:flex-initial lg:gap-3">
+                {[14, 30, 60, 9999].map((days) => (
+                  <button
+                    key={days}
+                    onClick={() => handleArchiveRetentionChange(days)}
+                    className={`py-1.5 lg:px-4 lg:py-2 rounded-xl font-semibold transition-colors text-sm lg:text-base text-center ${archiveRetentionDays === days
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                  >
+                    {days === 9999 ? t('Forever') : `${days} ${t('days')}`}
+                  </button>
+                ))}
+              </div>
+              {isSaving && (
+                <Loader2 className="w-4 h-4 text-gray-400 animate-spin ml-2" />
+              )}
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {archiveRetentionDays >= 9999
+                ? t('Your projects will remain in archive forever. They will not be deleted, unless you do so.')
+                : `${t('Your projects will remain in archive for')} ${archiveRetentionDays} ${t('days')}, ${t('after that they will be deleted automatically')}.`
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
+
 
 
       {/* Archived projects list */}
@@ -95,7 +166,7 @@ const Archive = ({ onBack }) => {
       ) : (
         <div className="space-y-3 lg:space-y-4">
           {allArchivedProjects.map((project) => (
-            <div 
+            <div
               key={project.id}
               className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer"
               onClick={() => handleProjectClick(project)}
@@ -109,13 +180,13 @@ const Archive = ({ onBack }) => {
                   {t('From')} {t(project.originalCategoryId || 'Unknown')}
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-4 mt-3 sm:mt-0">
                 <div className="text-left sm:text-right">
                   <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                   <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</div>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <button
                     onClick={(e) => handleUnarchiveProject(project.id, e)}

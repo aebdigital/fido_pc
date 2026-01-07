@@ -78,9 +78,7 @@ const PriceOfferSettings = ({ onBack }) => {
   // Cleanup debounce timeout on unmount
   useEffect(() => {
     return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
 
@@ -105,12 +103,14 @@ const PriceOfferSettings = ({ onBack }) => {
     }, 500);
   };
 
+
+
   return (
     <div className="pb-20 lg:pb-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-6 lg:mb-8">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={onBack}
             className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
@@ -118,7 +118,7 @@ const PriceOfferSettings = ({ onBack }) => {
           </button>
           <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Supplier')}</h1>
         </div>
-        
+
         <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => setDeleteMode(!deleteMode)}
@@ -136,7 +136,6 @@ const PriceOfferSettings = ({ onBack }) => {
       </div>
 
       <div>
-        
         {/* Time Limit Settings */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4 lg:mb-6">
@@ -145,18 +144,16 @@ const PriceOfferSettings = ({ onBack }) => {
           </div>
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
             <div className="flex flex-col gap-4">
-              {/* Duration buttons */}
               <div className="flex items-center gap-2 lg:gap-3">
                 <div className="grid grid-cols-4 gap-2 flex-1 lg:flex lg:flex-initial lg:gap-3">
                   {[7, 14, 30, 60].map((days) => (
                     <button
                       key={days}
                       onClick={() => handleTimeLimitChange(days)}
-                      className={`py-1.5 lg:px-4 lg:py-2 rounded-xl font-semibold transition-colors text-sm lg:text-base text-center ${
-                        timeLimit === days
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                          : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
+                      className={`py-1.5 lg:px-4 lg:py-2 rounded-xl font-semibold transition-colors text-sm lg:text-base text-center ${timeLimit === days
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                        : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
                     >
                       {days} {t('days')}
                     </button>
@@ -172,6 +169,8 @@ const PriceOfferSettings = ({ onBack }) => {
             </div>
           </div>
         </div>
+
+
 
         {/* Contractors List */}
         <div className="mb-8">
@@ -195,8 +194,8 @@ const PriceOfferSettings = ({ onBack }) => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {contractors.map((contractor) => (
-                <div 
-                  key={contractor.id} 
+                <div
+                  key={contractor.id}
                   className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${deleteMode ? '' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                   onClick={() => !deleteMode && handleEditContractor(contractor)}
                 >
@@ -214,7 +213,7 @@ const PriceOfferSettings = ({ onBack }) => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex-shrink-0 ml-2">
                       {deleteMode ? (
                         <button

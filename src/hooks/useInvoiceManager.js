@@ -8,11 +8,11 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       // We pass findProjectById as a dependency because useProjectManager owns it
       const projectResult = findProjectById(projectId);
       const project = projectResult?.project;
-      
+
       if (!project) return null;
 
       const mappedInvoiceData = {
-        number: invoiceData.invoiceNumber,
+        number: 0, // Set to 0 to trigger database auto-assignment
         date_created: new Date(invoiceData.issueDate).toISOString(),
         date_of_dispatch: invoiceData.dispatchDate,
         payment_type: invoiceData.paymentMethod || 'transfer',
@@ -67,7 +67,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
       // Map app camelCase fields to DB snake_case fields
       const dbUpdates = {};
-      
+
       if (updates.invoiceNumber !== undefined) dbUpdates.number = updates.invoiceNumber;
       if (updates.issueDate !== undefined) dbUpdates.date_created = updates.issueDate;
       if (updates.dispatchDate !== undefined) dbUpdates.date_of_dispatch = updates.dispatchDate;
@@ -76,7 +76,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       if (updates.notes !== undefined) dbUpdates.note = updates.notes;
       // Convert iOS-compatible status to database status
       if (updates.status !== undefined) dbUpdates.status = invoiceStatusToDatabase(updates.status);
-      
+
       // Only call API if there are mappable updates
       if (Object.keys(dbUpdates).length > 0) {
         await api.invoices.update(invoiceId, dbUpdates);
@@ -114,35 +114,44 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
   const deleteInvoice = useCallback(async (invoiceId) => {
     try {
+      console.log('[useInvoiceManager] Deleting invoice:', invoiceId);
       const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+
+      // Perform the actual deletion in DB first
       await api.invoices.delete(invoiceId);
 
-      setAppData(prev => {
-        const updatedState = {
-          ...prev,
-          invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
-        };
-        return updatedState;
-      });
+      // Update local state immediately
+      setAppData(prev => ({
+        ...prev,
+        invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
+      }));
 
+      // Perform secondary cleanup tasks. Wrap in try-catch so they don't 
+      // block the success of the main deletion if they fail.
       if (invoice) {
-        if (updateProject) {
-          await updateProject(invoice.categoryId, invoice.projectId, {
-            hasInvoice: false,
-            invoiceId: null,
-            invoiceStatus: null // or '' or whatever represents no invoice
-          });
-        }
+        try {
+          if (updateProject) {
+            console.log('[useInvoiceManager] Cleaning up project status for:', invoice.projectId);
+            await updateProject(invoice.categoryId || '', invoice.projectId, {
+              hasInvoice: false,
+              invoiceId: null,
+              invoiceStatus: null
+            });
+          }
 
-        if (addProjectHistoryEntry) {
-          await addProjectHistoryEntry(invoice.projectId, {
-            type: PROJECT_EVENTS.INVOICE_DELETED, // iOS compatible: 'invoiceDeleted'
-            invoiceNumber: invoice.invoiceNumber
-          });
+          if (addProjectHistoryEntry) {
+            await addProjectHistoryEntry(invoice.projectId, {
+              type: PROJECT_EVENTS.INVOICE_DELETED,
+              invoiceNumber: invoice.invoiceNumber
+            });
+          }
+        } catch (cleanupError) {
+          console.warn('[useInvoiceManager] Cleanup after invoice deletion failed:', cleanupError);
+          // Don't rethrow cleanup errors, the invoice IS deleted
         }
       }
     } catch (error) {
-      console.error('[SUPABASE] Error deleting invoice:', error);
+      console.error('[useInvoiceManager] Error deleting invoice:', error);
       throw error;
     }
   }, [appData.invoices, setAppData, addProjectHistoryEntry, updateProject]);

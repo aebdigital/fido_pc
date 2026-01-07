@@ -183,13 +183,6 @@ export const MATERIAL_KEY_MAPPINGS = {
     name: 'Silicone',
     namesSk: ['Silikón'],
     subtitlePattern: null
-  },
-
-  // Grouting
-  'grouting': {
-    name: 'Grout',
-    namesSk: ['Škárovacia hmota'],
-    subtitlePattern: null
   }
 };
 

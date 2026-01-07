@@ -17,7 +17,7 @@ import { useClientManager } from '../hooks/useClientManager';
 import { useProjectManager } from '../hooks/useProjectManager';
 import { useInvoiceManager } from '../hooks/useInvoiceManager';
 import { useContractorManager } from '../hooks/useContractorManager';
-import { dbColumnsToPriceList, getDbColumnForItem } from '../services/priceListMapping';
+import { dbColumnsToPriceList, getDbColumnForItem, getDbColumnForCapacity } from '../services/priceListMapping';
 import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.webp';
 import companiesImage from '../images/companies.jpg';
@@ -38,142 +38,220 @@ export const AppDataProvider = ({ children }) => {
   const { user } = useAuth();
   const { t } = useLanguage(); // Get t function
   const [loading, setLoading] = useState(true);
+  const [isPro, setIsPro] = useState(false); // Pro status
+
+  const RC_API_KEY = "sk_puuududJBAxTZDOuimFLoJJgqORLv";
+
+  const checkProStatus = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${user.id}`, {
+        headers: {
+          'Authorization': `Bearer ${RC_API_KEY}`,
+          'Content-Type': 'application/json',
+          'X-Platform': 'web'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const entitlements = data?.subscriber?.entitlements;
+        // Check for "Pro" entitlement
+        // RevenueCat returns expires_date. If null, it might be lifetime, need to check structure carefuly. 
+        // iOS checks: if customerInfo?.entitlements.all["Pro"]?.isActive == true
+        // REST API returns object. 
+
+        if (entitlements?.Pro) {
+          // Check if active
+          const expiresDate = entitlements.Pro.expires_date;
+          if (expiresDate) {
+            const isExpired = new Date(expiresDate) < new Date();
+            setIsPro(!isExpired);
+          } else {
+            // No expiration date usually means lifetime or active without expiration? 
+            // Actually for subscription it should have date. 
+            // Assuming active if present and no expiry implies lifetime or valid.
+            setIsPro(true);
+          }
+        } else {
+          setIsPro(false);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to check Pro status:", error);
+    }
+  }, [user]);
+
+  const grantPromotionalEntitlement = async () => {
+    if (!user?.id) return false;
+    try {
+      const startTime = Math.floor(Date.now());
+      const endTime = Math.floor(new Date().setMonth(new Date().getMonth() + 6)); // 6 months
+
+      const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${user.id}/entitlements/Pro/promotional`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RC_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          start_time_ms: startTime,
+          end_time_ms: endTime
+        })
+      });
+
+      if (response.ok) {
+        await checkProStatus();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to grant promotional entitlement:", error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      checkProStatus();
+    }
+  }, [user, checkProStatus]);
 
   // Default data structure
   const getDefaultData = () => ({
-      clients: [],
-      projectCategories: [
-        {
-          id: 'flats',
-          name: 'Flats',
-          count: 0,
-          image: flatsImage,
-          projects: []
-        },
-        {
-          id: 'houses',
-          name: 'Houses',
-          count: 0,
-          image: housesImage,
-          projects: []
-        },
-        {
-          id: 'companies',
-          name: 'Companies',
-          count: 0,
-          image: companiesImage,
-          projects: []
-        },
-        {
-          id: 'cottages',
-          name: 'Cottages',
-          count: 0,
-          image: cottagesImage,
-          projects: []
-        }
-      ],
-      archivedProjects: [], // Store archived projects
-      projectRoomsData: {}, // Store rooms by project ID
-      projectHistory: {}, // Store history events by project ID: { [projectId]: [{ type, date, ... }] }
-      contractors: [], // Store contractor profiles
-      contractorProjects: {}, // Store projects by contractor ID: { [contractorId]: { categories: [...], archivedProjects: [] } }
-      invoices: [], // Store all invoices
-      priceOfferSettings: {
-        timeLimit: 30, // Days
-        defaultValidityPeriod: 30
+    clients: [],
+    projectCategories: [
+      {
+        id: 'flats',
+        name: 'Flats',
+        count: 0,
+        image: flatsImage,
+        projects: []
       },
-      activeContractorId: null, // Currently selected contractor
-      generalPriceList: {
-        work: [
-          { name: 'Preparatory and demolition works', price: 15, unit: '€/h' },
-          { name: 'Elektroinštalačné práce', subtitle: 'outlet', price: 65, unit: '€/pc' },
-          { name: 'Vodoinštalačné práce', subtitle: 'outlet', price: 45, unit: '€/pc' },
-          { name: 'Brick partitions', subtitle: '75 - 175mm', price: 18, unit: '€/m²' },
-          { name: 'Brick load-bearing wall', subtitle: '200 - 450mm', price: 120, unit: '€/m²' },
-          { name: 'Plasterboarding', subtitle: 'partition, simple', price: 50, unit: '€/m²' },
-          { name: 'Plasterboarding', subtitle: 'partition, double', price: 70, unit: '€/m²' },
-          { name: 'Plasterboarding', subtitle: 'partition, triple', price: 70, unit: '€/m²' },
-          { name: 'Plasterboarding', subtitle: 'offset wall, simple', price: 50, unit: '€/m²' },
-          { name: 'Plasterboarding', subtitle: 'offset wall, double', price: 70, unit: '€/m²' },
-          { name: 'Plasterboarding', subtitle: 'ceiling', price: 100, unit: '€/m²' },
-          { name: 'Netting', subtitle: 'wall', price: 6, unit: '€/m²' },
-          { name: 'Netting', subtitle: 'ceiling', price: 8, unit: '€/m²' },
-          { name: 'Plastering', subtitle: 'wall', price: 7, unit: '€/m²' },
-          { name: 'Plastering', subtitle: 'ceiling', price: 7, unit: '€/m²' },
-          { name: 'Facade Plastering', price: 80, unit: '€/m²' },
-          { name: 'Installation of corner bead', price: 3, unit: '€/m' },
-          { name: 'Plastering of window sash', price: 5, unit: '€/m' },
-          { name: 'Penetration coating', price: 1, unit: '€/m²' },
-          { name: 'Painting', subtitle: 'wall, 2 layers', price: 3, unit: '€/m²' },
-          { name: 'Painting', subtitle: 'ceiling, 2 layers', price: 3, unit: '€/m²' },
-          { name: 'Levelling', price: 7, unit: '€/m²' },
-          { name: 'Floating floor', subtitle: 'laying', price: 7, unit: '€/m²' },
-          { name: 'Lištovanie', subtitle: 'floating floor', price: 4, unit: '€/m' },
-          { name: 'Tiling under 60cm', subtitle: 'ceramic', price: 30, unit: '€/m²' },
-          { name: 'Jolly Edging', price: 25, unit: '€/m' },
-          { name: 'Paving under 60cm', subtitle: 'ceramic', price: 30, unit: '€/m²' },
-          { name: 'Plinth', subtitle: 'cutting and grinding', price: 15, unit: '€/m' },
-          { name: 'Plinth', subtitle: 'bonding', price: 8, unit: '€/m' },
-          { name: 'Large Format', subtitle: 'above 60cm', price: 80, unit: '€/m²' },
-          { name: 'Grouting', subtitle: 'tiling and paving', price: 5, unit: '€/m²' },
-          { name: 'Siliconing', price: 2, unit: '€/m' },
-          { name: 'Window installation', price: 7, unit: '€/m' },
-          { name: 'Installation of door jamb', price: 60, unit: '€/pc' },
-          { name: 'Auxiliary and finishing work', price: 10, unit: '%' }
-        ],
-        material: [
-          { name: 'Partition masonry', subtitle: '75 - 175mm', price: 30, unit: '€/m²', materialKey: 'brick_partitions' },
-          { name: 'Load-bearing masonry', subtitle: '200 - 450mm', price: 160, unit: '€/m²', materialKey: 'brick_load_bearing' },
-          { name: 'Plasterboard', subtitle: 'simple, partition', price: 7, unit: '€/pc', capacity: { value: 1, unit: 'm²' }, materialKey: 'plasterboarding_partition_simple' },
-          { name: 'Plasterboard', subtitle: 'double, partition', price: 99, unit: '€/pc', capacity: { value: 99, unit: 'm²' }, materialKey: 'plasterboarding_partition_double' },
-          { name: 'Plasterboard', subtitle: 'triple, partition', price: 99, unit: '€/pc', capacity: { value: 99, unit: 'm²' }, materialKey: 'plasterboarding_partition_triple' },
-          { name: 'Plasterboard', subtitle: 'simple, offset wall', price: 15, unit: '€/pc', capacity: { value: 10, unit: 'm²' }, materialKey: 'plasterboarding_offset_simple' },
-          { name: 'Plasterboard', subtitle: 'double, offset wall', price: 20, unit: '€/pc', capacity: { value: 15, unit: 'm²' }, materialKey: 'plasterboarding_offset_double' },
-          { name: 'Plasterboard', subtitle: 'ceiling', price: 7, unit: '€/pc', capacity: { value: 3, unit: 'm²' }, materialKey: 'plasterboarding_ceiling' },
-          { name: 'Mesh', price: 2, unit: '€/m²', materialKey: 'netting_wall' },
-          { name: 'Adhesive', subtitle: 'netting', price: 9, unit: '€/pkg', capacity: { value: 6, unit: 'm²' }, materialKey: 'adhesive_netting' },
-          { name: 'Adhesive', subtitle: 'tiling and paving', price: 15, unit: '€/pkg', capacity: { value: 3, unit: 'm²' }, materialKey: 'adhesive_tiling' },
-          { name: 'Plaster', price: 13, unit: '€/pkg', capacity: { value: 8, unit: 'm²' }, materialKey: 'plastering_wall' },
-          { name: 'Facade Plaster', price: 25, unit: '€/pkg', capacity: { value: 10, unit: 'm²' }, materialKey: 'facade_plastering' },
-          { name: 'Corner bead', price: 4, unit: '€/pc', capacity: { value: 3, unit: 'm' }, materialKey: 'corner_bead' },
-          { name: 'Primer', price: 1, unit: '€/m²', materialKey: 'penetration_coating' },
-          { name: 'Paint', subtitle: 'wall', price: 1, unit: '€/m²', materialKey: 'painting_wall' },
-          { name: 'Paint', subtitle: 'ceiling', price: 1, unit: '€/m²', materialKey: 'painting_ceiling' },
-          { name: 'Self-levelling compound', price: 18, unit: '€/pkg', capacity: { value: 2, unit: 'm²' }, materialKey: 'levelling' },
-          { name: 'Floating floor', price: 15, unit: '€/m²', materialKey: 'floating_floor' },
-          { name: 'Soklové lišty', price: 3, unit: '€/m', materialKey: 'skirting' },
-          { name: 'Silicone', price: 8, unit: '€/pkg', capacity: { value: 15, unit: 'm' }, materialKey: 'siliconing' },
-          { name: 'Tiles', subtitle: 'ceramic', price: 25, unit: '€/m²', materialKey: 'tiling_under_60' },
-          { name: 'Pavings', subtitle: 'ceramic', price: 25, unit: '€/m²', materialKey: 'paving_under_60' },
-          { name: 'Grout', subtitle: 'tiling and paving', price: 12, unit: '€/pkg', capacity: { value: 5, unit: 'm²' }, materialKey: 'grouting' },
-          { name: 'Auxiliary and fastening material', price: 10, unit: '%' }
-        ],
-        installations: [
-          { name: 'Sanitary installations', subtitle: 'Corner valve', price: 10, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Standing mixer tap', price: 25, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Wall-mounted tap', price: 80, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Flush-mounted tap', price: 120, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Toilet combi', price: 65, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Concealed toilet', price: 120, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Sink', price: 50, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Sink with cabinet', price: 120, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Bathtub', price: 150, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Shower cubicle', price: 220, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Installation of gutter', price: 99, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Urinal', price: 100, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Bath screen', price: 150, unit: '€/pc' },
-          { name: 'Sanitary installations', subtitle: 'Mirror', price: 50, unit: '€/pc' }
-        ],
-        others: [
-          { name: 'Scaffolding', subtitle: 'assembly and disassembly', price: 30, unit: '€/m²' },
-          { name: 'Scaffolding', subtitle: 'rental per day', price: 10, unit: '€/m²/day' },
-          { name: 'Core Drill', price: 25, unit: '€/h' },
-          { name: 'Tool rental', price: 10, unit: '€/h' },
-          { name: 'Commute', price: 1, unit: '€/km' },
-          { name: 'VAT', price: 23, unit: '%' }
-        ]
+      {
+        id: 'houses',
+        name: 'Houses',
+        count: 0,
+        image: housesImage,
+        projects: []
+      },
+      {
+        id: 'companies',
+        name: 'Companies',
+        count: 0,
+        image: companiesImage,
+        projects: []
+      },
+      {
+        id: 'cottages',
+        name: 'Cottages',
+        count: 0,
+        image: cottagesImage,
+        projects: []
       }
-    });
+    ],
+    archivedProjects: [], // Store archived projects
+    projectRoomsData: {}, // Store rooms by project ID
+    projectHistory: {}, // Store history events by project ID: { [projectId]: [{ type, date, ... }] }
+    contractors: [], // Store contractor profiles
+    contractorProjects: {}, // Store projects by contractor ID: { [contractorId]: { categories: [...], archivedProjects: [] } }
+    invoices: [], // Store all invoices
+    priceOfferSettings: {
+      timeLimit: 30, // Days
+      defaultValidityPeriod: 30,
+      archiveRetentionDays: 30 // Default 30 days retention
+    },
+    activeContractorId: null, // Currently selected contractor
+    generalPriceList: {
+      work: [
+        { name: 'Preparatory and demolition works', price: 15, unit: '€/h' },
+        { name: 'Elektroinštalačné práce', subtitle: 'outlet', price: 65, unit: '€/pc' },
+        { name: 'Vodoinštalačné práce', subtitle: 'outlet', price: 45, unit: '€/pc' },
+        { name: 'Brick partitions', subtitle: '75 - 175mm', price: 18, unit: '€/m2' },
+        { name: 'Brick load-bearing wall', subtitle: '200 - 450mm', price: 120, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'partition, simple', price: 50, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'partition, double', price: 70, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'partition, triple', price: 70, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'offset wall, simple', price: 50, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'offset wall, double', price: 70, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'ceiling', price: 100, unit: '€/m2' },
+        { name: 'Netting', subtitle: 'wall', price: 6, unit: '€/m2' },
+        { name: 'Netting', subtitle: 'ceiling', price: 8, unit: '€/m2' },
+        { name: 'Plastering', subtitle: 'wall', price: 7, unit: '€/m2' },
+        { name: 'Plastering', subtitle: 'ceiling', price: 7, unit: '€/m2' },
+        { name: 'Facade Plastering', price: 80, unit: '€/m2' },
+        { name: 'Installation of corner bead', price: 3, unit: '€/m' },
+        { name: 'Plastering of window sash', price: 5, unit: '€/m' },
+        { name: 'Penetration coating', price: 1, unit: '€/m2' },
+        { name: 'Painting', subtitle: 'wall, 2 layers', price: 3, unit: '€/m2' },
+        { name: 'Painting', subtitle: 'ceiling, 2 layers', price: 3, unit: '€/m2' },
+        { name: 'Levelling', price: 7, unit: '€/m2' },
+        { name: 'Floating floor', subtitle: 'laying', price: 7, unit: '€/m2' },
+        { name: 'Lištovanie', subtitle: 'floating floor', price: 4, unit: '€/m' },
+        { name: 'Tiling under 60cm', subtitle: 'ceramic', price: 30, unit: '€/m2' },
+        { name: 'Jolly Edging', price: 25, unit: '€/m' },
+        { name: 'Paving under 60cm', subtitle: 'ceramic', price: 30, unit: '€/m2' },
+        { name: 'Plinth', subtitle: 'cutting and grinding', price: 15, unit: '€/m' },
+        { name: 'Plinth', subtitle: 'bonding', price: 8, unit: '€/m' },
+        { name: 'Large Format', subtitle: 'above 60cm', price: 80, unit: '€/m2' },
+        { name: 'Grouting', subtitle: 'tiling and paving', price: 5, unit: '€/m2' },
+        { name: 'Siliconing', price: 2, unit: '€/m' },
+        { name: 'Window installation', price: 7, unit: '€/m' },
+        { name: 'Installation of door jamb', price: 60, unit: '€/pc' },
+        { name: 'Auxiliary and finishing work', price: 10, unit: '%' }
+      ],
+      material: [
+        { name: 'Partition masonry', subtitle: '75 - 175mm', price: 30, unit: '€/m2', materialKey: 'brick_partitions' },
+        { name: 'Load-bearing masonry', subtitle: '200 - 450mm', price: 160, unit: '€/m2', materialKey: 'brick_load_bearing' },
+        { name: 'Plasterboard', subtitle: 'simple, partition', price: 7, unit: '€/pc', capacity: { value: 1, unit: 'm2' }, materialKey: 'plasterboarding_partition_simple' },
+        { name: 'Plasterboard', subtitle: 'double, partition', price: 99, unit: '€/pc', capacity: { value: 99, unit: 'm2' }, materialKey: 'plasterboarding_partition_double' },
+        { name: 'Plasterboard', subtitle: 'triple, partition', price: 99, unit: '€/pc', capacity: { value: 99, unit: 'm2' }, materialKey: 'plasterboarding_partition_triple' },
+        { name: 'Plasterboard', subtitle: 'simple, offset wall', price: 15, unit: '€/pc', capacity: { value: 10, unit: 'm2' }, materialKey: 'plasterboarding_offset_simple' },
+        { name: 'Plasterboard', subtitle: 'double, offset wall', price: 20, unit: '€/pc', capacity: { value: 15, unit: 'm2' }, materialKey: 'plasterboarding_offset_double' },
+        { name: 'Plasterboard', subtitle: 'ceiling', price: 7, unit: '€/pc', capacity: { value: 3, unit: 'm2' }, materialKey: 'plasterboarding_ceiling' },
+        { name: 'Mesh', price: 2, unit: '€/m2', materialKey: 'netting_wall' },
+        { name: 'Adhesive', subtitle: 'netting', price: 9, unit: '€/pkg', capacity: { value: 6, unit: 'm2' }, materialKey: 'adhesive_netting' },
+        { name: 'Adhesive', subtitle: 'tiling and paving', price: 15, unit: '€/pkg', capacity: { value: 3, unit: 'm2' }, materialKey: 'adhesive_tiling' },
+        { name: 'Plaster', price: 13, unit: '€/pkg', capacity: { value: 8, unit: 'm2' }, materialKey: 'plastering_wall' },
+        { name: 'Facade Plaster', price: 25, unit: '€/pkg', capacity: { value: 10, unit: 'm2' }, materialKey: 'facade_plastering' },
+        { name: 'Corner bead', price: 4, unit: '€/pc', capacity: { value: 3, unit: 'm' }, materialKey: 'corner_bead' },
+        { name: 'Primer', price: 1, unit: '€/m2', materialKey: 'penetration_coating' },
+        { name: 'Paint', subtitle: 'wall', price: 1, unit: '€/m2', materialKey: 'painting_wall' },
+        { name: 'Paint', subtitle: 'ceiling', price: 1, unit: '€/m2', materialKey: 'painting_ceiling' },
+        { name: 'Self-levelling compound', price: 18, unit: '€/pkg', capacity: { value: 2, unit: 'm2' }, materialKey: 'levelling' },
+        { name: 'Floating floor', price: 15, unit: '€/m2', materialKey: 'floating_floor' },
+        { name: 'Soklové lišty', price: 3, unit: '€/m', materialKey: 'skirting' },
+        { name: 'Silicone', price: 8, unit: '€/pkg', capacity: { value: 15, unit: 'm' }, materialKey: 'siliconing' },
+        { name: 'Tiles', subtitle: 'ceramic', price: 25, unit: '€/m2', materialKey: 'tiling_under_60' },
+        { name: 'Pavings', subtitle: 'ceramic', price: 25, unit: '€/m2', materialKey: 'paving_under_60' },
+        { name: 'Auxiliary and fastening material', price: 10, unit: '%' }
+      ],
+      installations: [
+        { name: 'Sanitary installations', subtitle: 'Corner valve', price: 10, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Standing mixer tap', price: 25, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Wall-mounted tap', price: 80, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Flush-mounted tap', price: 120, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Toilet combi', price: 65, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Concealed toilet', price: 120, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Sink', price: 50, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Sink with cabinet', price: 120, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Bathtub', price: 150, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Shower cubicle', price: 220, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Installation of gutter', price: 99, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Urinal', price: 100, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Bath screen', price: 150, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Mirror', price: 50, unit: '€/pc' }
+      ],
+      others: [
+        { name: 'Scaffolding', subtitle: 'assembly and disassembly', price: 30, unit: '€/m2' },
+        { name: 'Scaffolding', subtitle: 'rental per day', price: 10, unit: '€/m2/day' },
+        { name: 'Core Drill', price: 25, unit: '€/h' },
+        { name: 'Tool rental', price: 10, unit: '€/h' },
+        { name: 'Commute', price: 1, unit: '€/km' },
+        { name: 'VAT', price: 23, unit: '%' }
+      ]
+    }
+  });
 
   // Helper function to get default categories structure
   const getDefaultCategories = () => [
@@ -208,226 +286,247 @@ export const AppDataProvider = ({ children }) => {
   ];
 
 
-    
-      // Load initial data from Supabase
-      const loadInitialData = useCallback(async () => {
-        if (!user) {
-          setLoading(false);
-          return getDefaultData();
-        }
-    
-        try {
-          // Load all data from Supabase in parallel
-          const [contractors, clients, projects, invoices, allPriceLists] = await Promise.all([
-            api.contractors.getAll(),
-            api.clients.getAll(null), // We'll filter by contractor later
-            api.projects.getAll(null), // We'll filter by contractor later
-            api.invoices.getAll(null), // We'll filter by contractor later
-            api.priceLists.getAll() // Get all price lists
-          ]);
-    
-          console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
-    
-          // Transform contractors
-          const transformedContractors = (contractors || []).map(transformContractorFromDB);
-    
-          // Transform clients
-          const transformedClients = (clients || []).map(transformClientFromDB);
-    
-          // Transform projects to parse price_list_snapshot and photos from JSON
-          const transformedProjects = (projects || []).map(project => {
-            let priceListSnapshot = null;
-            if (project.price_list_snapshot) {
-              try {
-                priceListSnapshot = typeof project.price_list_snapshot === 'string'
-                  ? JSON.parse(project.price_list_snapshot)
-                  : project.price_list_snapshot;
-              } catch (e) {
-                console.warn('Failed to parse price_list_snapshot for project:', project.id);
-              }
-            }
 
-            // Fallback: If priceListSnapshot is null but project has a price_list_id,
-            // try to build it from the price_lists table (iOS-created projects store prices there)
-            if (!priceListSnapshot && project.price_list_id) {
-              const linkedPriceList = (allPriceLists || []).find(pl => pl.c_id === project.price_list_id);
-              if (linkedPriceList) {
-                try {
-                  priceListSnapshot = dbColumnsToPriceList(linkedPriceList, getDefaultData().generalPriceList);
-                  console.log('[SUPABASE] Built priceListSnapshot from price_lists table for project:', project.id);
-                } catch (e) {
-                  console.warn('Failed to build priceListSnapshot from price_lists for project:', project.id, e);
-                }
-              }
-            }
-            let photos = [];
-            if (project.photos) {
-              try {
-                photos = typeof project.photos === 'string'
-                  ? JSON.parse(project.photos)
-                  : project.photos;
-              } catch (e) {
-                console.warn('Failed to parse photos for project:', project.id);
-              }
-            }
-            
-            let projectHistory = [];
-            if (project.project_history) {
-              try {
-                projectHistory = typeof project.project_history === 'string'
-                  ? JSON.parse(project.project_history)
-                  : project.project_history;
-              } catch (e) {
-                console.warn('Failed to parse project history for project:', project.id);
-              }
-            }
+  // Load initial data from Supabase
+  const loadInitialData = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return getDefaultData();
+    }
 
-            // Find linked invoice to get status
-            // invoices array is raw from DB here, so it uses snake_case keys or camelCase depending on supabase client.
-            // checking useInvoiceManager createInvoice it sends project_id.
-            // checking supabaseApi.js usually returns data as is.
-            // Let's assume snake_case project_id based on DB schema.
-            const linkedInvoice = (invoices || []).find(inv => inv.project_id === project.id);
+    try {
+      // Load all data from Supabase in parallel
+      const [contractors, clients, projects, invoices, allPriceLists] = await Promise.all([
+        api.contractors.getAll(),
+        api.clients.getAll(null), // We'll filter by contractor later
+        api.projects.getAll(null), // We'll filter by contractor later
+        api.invoices.getAll(null), // We'll filter by contractor later
+        api.priceLists.getAll() // Get all price lists
+      ]);
 
-            return {
-              ...project,
-              priceListSnapshot,
-              photos,
-              projectHistory,
-              // Map snake_case to camelCase for frontend usage
-              clientId: project.client_id,
-              hasInvoice: project.has_invoice,
-              invoiceId: project.invoice_id,
-              invoiceStatus: linkedInvoice ? linkedInvoice.status : null,
-              isArchived: project.is_archived
-            };
-          });
-    
-          // Build contractor projects structure
-          const contractorProjects = {};
-          transformedContractors.forEach(contractor => {
-            const contractorProjectsList = transformedProjects.filter(p => p.contractor_id === contractor.id);
-    
-                      // Group projects by category
-                      const categories = getDefaultCategories().map(cat => ({
-                        ...cat,
-                        projects: contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived),
-                        count: contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived).length
-                      }));    
-            contractorProjects[contractor.id] = {
-              categories,
-              archivedProjects: contractorProjectsList.filter(p => p.is_archived)
-            };
-          });
-    
-          // Get active contractor (first one or null)
-          const activeContractorId = transformedContractors.length > 0 ? transformedContractors[0].id : null;
-          const activeContractor = transformedContractors.find(c => c.id === activeContractorId);
+      console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
 
-          // Find the GENERAL price list for this contractor (is_general=true)
-          // This is the iOS-compatible format where general price list has is_general=true
-          const generalPriceListData = (allPriceLists || []).find(
-            pl => pl.contractor_id === activeContractorId && pl.is_general === true
-          );
+      // Transform contractors
+      const transformedContractors = (contractors || []).map(transformContractorFromDB);
 
-          // Fallback: try old format where price list was identified by c_id = activeContractorId
-          const legacyPriceListData = !generalPriceListData
-            ? (allPriceLists || []).find(pl => pl.c_id === activeContractorId)
-            : null;
+      // Transform clients
+      const transformedClients = (clients || []).map(transformClientFromDB);
 
-          const priceListData = generalPriceListData || legacyPriceListData;
-
-          // Load from individual columns (for iOS compatibility)
-          let generalPriceList;
-          if (priceListData) {
-            // Convert database columns to generalPriceList format
-            generalPriceList = dbColumnsToPriceList(priceListData, getDefaultData().generalPriceList);
-          } else {
-            generalPriceList = getDefaultData().generalPriceList;
+      // Transform projects to parse price_list_snapshot and photos from JSON
+      const transformedProjects = (projects || []).map(project => {
+        let priceListSnapshot = null;
+        if (project.price_list_snapshot) {
+          try {
+            priceListSnapshot = typeof project.price_list_snapshot === 'string'
+              ? JSON.parse(project.price_list_snapshot)
+              : project.price_list_snapshot;
+          } catch (e) {
+            console.warn('Failed to parse price_list_snapshot for project:', project.id);
           }
-          
-          // Load price offer settings from active contractor
-          let priceOfferSettings = getDefaultData().priceOfferSettings;
-          if (activeContractor && activeContractor.price_offer_settings) {
-             try {
-                const settings = typeof activeContractor.price_offer_settings === 'string' 
-                  ? JSON.parse(activeContractor.price_offer_settings) 
-                  : activeContractor.price_offer_settings;
-                priceOfferSettings = { ...priceOfferSettings, ...settings };
-             } catch (e) {
-                console.warn('Failed to parse price offer settings', e);
-             }
-          }
-    
-          // Transform invoices from database format to app format
-          const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
-          
-          // Build project history map
-          const projectHistoryMap = {};
-          transformedProjects.forEach(p => {
-            if (p.projectHistory && Array.isArray(p.projectHistory)) {
-              projectHistoryMap[p.id] = p.projectHistory;
-            }
-          });
-    
-          return {
-            clients: transformedClients || [],
-            projectCategories: getDefaultCategories(),
-            archivedProjects: transformedProjects.filter(p => p.is_archived) || [],
-            projectRoomsData: {}, // Initialize empty, will be populated on demand
-            projectHistory: projectHistoryMap, // Populate with loaded history
-            contractors: transformedContractors || [],
-            contractorProjects,
-            invoices: transformedInvoices,
-            priceOfferSettings,
-            activeContractorId,
-            generalPriceList
-          };
-        } catch (error) {
-          console.error('[SUPABASE] Error loading data:', error);
-          return getDefaultData();
-        } finally {
-          setLoading(false);
         }
-      }, [user]); // Only 'user' is needed here, as 'user?.id' is implicitly covered by 'user'
-    const [appData, setAppData] = useState(getDefaultData);
-  
-      // Instantiate Managers
-  
-      const clientManager = useClientManager(appData, setAppData);
-  
-      const contractorManager = useContractorManager(appData, setAppData);
-  
-      // Pass findProjectById to invoiceManager as it needs it
-  
-          const projectManager = useProjectManager(appData, setAppData);
-        
-          const invoiceManager = useInvoiceManager(appData, setAppData, projectManager.addProjectHistoryEntry, projectManager.updateProject);  
-    
-  
-    
-  
-      // Load data from Supabase on mount
-      useEffect(() => {
-        const loadData = async () => {
-          const data = await loadInitialData();
-          setAppData(prev => ({
-            ...data,
-            // Preserve existing room data to prevent wiping it on re-renders/tab switches
-            projectRoomsData: {
-              ...(prev?.projectRoomsData || {}),
-              ...(data.projectRoomsData || {})
+
+        // Fallback: If priceListSnapshot is null but project has a price_list_id,
+        // try to build it from the price_lists table (iOS-created projects store prices there)
+        if (!priceListSnapshot && project.price_list_id) {
+          const linkedPriceList = (allPriceLists || []).find(pl => pl.c_id === project.price_list_id);
+          if (linkedPriceList) {
+            try {
+              priceListSnapshot = dbColumnsToPriceList(linkedPriceList, getDefaultData().generalPriceList);
+              console.log('[SUPABASE] Built priceListSnapshot from price_lists table for project:', project.id);
+            } catch (e) {
+              console.warn('Failed to build priceListSnapshot from price_lists for project:', project.id, e);
             }
-          }));
+          }
+        }
+        let photos = [];
+        if (project.photos) {
+          try {
+            photos = typeof project.photos === 'string'
+              ? JSON.parse(project.photos)
+              : project.photos;
+          } catch (e) {
+            console.warn('Failed to parse photos for project:', project.id);
+          }
+        }
+
+        let projectHistory = [];
+        if (project.project_history) {
+          try {
+            projectHistory = typeof project.project_history === 'string'
+              ? JSON.parse(project.project_history)
+              : project.project_history;
+          } catch (e) {
+            console.warn('Failed to parse project history for project:', project.id);
+          }
+        }
+
+        // Find linked invoice to get status
+        // invoices array is raw from DB here, so it uses snake_case keys or camelCase depending on supabase client.
+        // checking useInvoiceManager createInvoice it sends project_id.
+        // checking supabaseApi.js usually returns data as is.
+        // Let's assume snake_case project_id based on DB schema.
+        const linkedInvoice = (invoices || []).find(inv => inv.project_id === project.id);
+
+        return {
+          ...project,
+          priceListSnapshot,
+          photos,
+          projectHistory,
+          // Map snake_case to camelCase for frontend usage
+          clientId: project.client_id,
+          hasInvoice: project.has_invoice,
+          invoiceId: project.invoice_id,
+          invoiceStatus: linkedInvoice ? linkedInvoice.status : null,
+          isArchived: project.is_archived
         };
-    
-        if (user?.id) {
-          loadData();
-        } else {
-          setLoading(false);
+      });
+
+      // Build contractor projects structure
+      const contractorProjects = {};
+      transformedContractors.forEach(contractor => {
+        const contractorProjectsList = transformedProjects.filter(p => p.contractor_id === contractor.id);
+
+        // Group projects by category
+        const categories = getDefaultCategories().map(cat => ({
+          ...cat,
+          projects: contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived),
+          count: contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived).length
+        }));
+        contractorProjects[contractor.id] = {
+          categories,
+          archivedProjects: contractorProjectsList.filter(p => p.is_archived)
+        };
+      });
+
+      // Get active contractor (first one or null)
+      const activeContractorId = transformedContractors.length > 0 ? transformedContractors[0].id : null;
+      const activeContractor = transformedContractors.find(c => c.id === activeContractorId);
+
+      // Find the GENERAL price list for this contractor (is_general=true)
+      // This is the iOS-compatible format where general price list has is_general=true
+      const generalPriceListData = (allPriceLists || []).find(
+        pl => pl.contractor_id === activeContractorId && pl.is_general === true
+      );
+
+      // Fallback: try old format where price list was identified by c_id = activeContractorId
+      const legacyPriceListData = !generalPriceListData
+        ? (allPriceLists || []).find(pl => pl.c_id === activeContractorId)
+        : null;
+
+      const priceListData = generalPriceListData || legacyPriceListData;
+
+      // Load from individual columns (for iOS compatibility)
+      let generalPriceList;
+      if (priceListData) {
+        // Convert database columns to generalPriceList format
+        generalPriceList = dbColumnsToPriceList(priceListData, getDefaultData().generalPriceList);
+      } else {
+        generalPriceList = getDefaultData().generalPriceList;
+      }
+
+      // Load price offer settings from active contractor
+      let priceOfferSettings = getDefaultData().priceOfferSettings;
+      if (activeContractor && activeContractor.price_offer_settings) {
+        try {
+          const settings = typeof activeContractor.price_offer_settings === 'string'
+            ? JSON.parse(activeContractor.price_offer_settings)
+            : activeContractor.price_offer_settings;
+          priceOfferSettings = { ...priceOfferSettings, ...settings };
+        } catch (e) {
+          console.warn('Failed to parse price offer settings', e);
         }
-      }, [user?.id, loadInitialData]);  
-    
+      }
+
+      // Transform invoices from database format to app format
+      const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
+
+      // Build project history map
+      const projectHistoryMap = {};
+      transformedProjects.forEach(p => {
+        if (p.projectHistory && Array.isArray(p.projectHistory)) {
+          projectHistoryMap[p.id] = p.projectHistory;
+        }
+      });
+
+      return {
+        clients: transformedClients || [],
+        projectCategories: getDefaultCategories(),
+        archivedProjects: transformedProjects.filter(p => p.is_archived) || [],
+        projectRoomsData: {}, // Initialize empty, will be populated on demand
+        projectHistory: projectHistoryMap, // Populate with loaded history
+        contractors: transformedContractors || [],
+        contractorProjects,
+        invoices: transformedInvoices,
+        priceOfferSettings,
+        activeContractorId,
+        generalPriceList
+      };
+    } catch (error) {
+      console.error('[SUPABASE] Error loading data:', error);
+      return getDefaultData();
+    } finally {
+      setLoading(false);
+    }
+  }, [user]); // Only 'user' is needed here, as 'user?.id' is implicitly covered by 'user'
+  const [appData, setAppData] = useState(getDefaultData);
+
+  // Instantiate Managers
+
+  const clientManager = useClientManager(appData, setAppData);
+
+  const contractorManager = useContractorManager(appData, setAppData);
+
+  // Pass findProjectById to invoiceManager as it needs it
+
+  const projectManager = useProjectManager(appData, setAppData);
+
+  const invoiceManager = useInvoiceManager(appData, setAppData, projectManager.addProjectHistoryEntry, projectManager.updateProject);
+
+
+
+
+  // Load data from Supabase on mount
+  useEffect(() => {
+    const loadData = async () => {
+      const data = await loadInitialData();
+      setAppData(prev => ({
+        ...data,
+        // Preserve existing room data to prevent wiping it on re-renders/tab switches
+        projectRoomsData: {
+          ...(prev?.projectRoomsData || {}),
+          ...(data.projectRoomsData || {})
+        }
+      }));
+    };
+
+    if (user?.id) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [user?.id, loadInitialData]);
+
+  // Auto-delete expired archived projects
+  useEffect(() => {
+    if (!loading && appData.archivedProjects && appData.archivedProjects.length > 0) {
+      const archiveRetentionDays = appData.priceOfferSettings?.archiveRetentionDays || 30;
+      const now = new Date();
+
+      appData.archivedProjects.forEach(project => {
+        if (project.archived_date || project.archivedDate) {
+          const archivedAt = new Date(project.archived_date || project.archivedDate);
+          const diffTime = Math.abs(now - archivedAt);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays > archiveRetentionDays) {
+            console.log(`[AutoDelete] Deleting project ${project.id} archived on ${project.archived_date || project.archivedDate} (Age: ${diffDays} days, Limit: ${archiveRetentionDays} days)`);
+            projectManager.deleteArchivedProject(project.id);
+          }
+        }
+      });
+    }
+  }, [loading, appData.priceOfferSettings?.archiveRetentionDays, appData.archivedProjects?.length, projectManager]);
+
 
 
 
@@ -482,11 +581,11 @@ export const AppDataProvider = ({ children }) => {
     let allWorkItems = [];
     let allMaterialItems = [];
     let allOthersItems = [];
-    
+
     // Use provided project or find it
     let project = projectOverride;
     let projectPriceList = null;
-    
+
     if (!project) {
       // Find the project to get its price list snapshot
       const projectResult = projectManager.findProjectById(projectId);
@@ -494,20 +593,20 @@ export const AppDataProvider = ({ children }) => {
         project = projectResult.project;
       }
     }
-    
+
     if (project && project.priceListSnapshot) {
       // Use project's frozen price list
       projectPriceList = project.priceListSnapshot;
     } else {
       projectPriceList = appData.generalPriceList;
     }
-    
+
     rooms.forEach(room => {
       const calculation = calculateRoomPriceWithMaterials(room, projectPriceList);
       totalWorkPrice += calculation.workTotal || 0;
       totalMaterialPrice += calculation.materialTotal || 0;
       totalOthersPrice += calculation.othersTotal || 0;
-      
+
       if (calculation.items) {
         allWorkItems = allWorkItems.concat(calculation.items);
       }
@@ -518,7 +617,7 @@ export const AppDataProvider = ({ children }) => {
         allOthersItems = allOthersItems.concat(calculation.othersItems);
       }
     });
-    
+
     return {
       workTotal: totalWorkPrice,
       materialTotal: totalMaterialPrice,
@@ -532,35 +631,113 @@ export const AppDataProvider = ({ children }) => {
 
   // General price list management functions
   // iOS-compatible: saves to price_lists table with is_general=true and contractor_id
-  const updateGeneralPriceList = (category, itemIndex, newPrice) => {
+  const updateGeneralPriceList = (category, itemIndex, newPrice, newCapacity) => {
     setAppData(prev => {
       const newGeneralPriceList = {
         ...prev.generalPriceList,
-        [category]: prev.generalPriceList[category].map((item, index) =>
-          index === itemIndex ? { ...item, price: parseFloat(newPrice) } : item
-        )
+        [category]: prev.generalPriceList[category].map((item, index) => {
+          if (index !== itemIndex) return item;
+
+          const updatedItem = { ...item };
+          if (newPrice !== undefined) updatedItem.price = parseFloat(newPrice);
+          if (newCapacity !== undefined && updatedItem.capacity) {
+            updatedItem.capacity = { ...updatedItem.capacity, value: parseFloat(newCapacity) };
+          }
+          return updatedItem;
+        })
       };
 
       // Save to Supabase if we have a contractor
       if (prev.activeContractorId) {
-        // Get the database column name for this specific item
-        const columnName = getDbColumnForItem(category, itemIndex);
+        const updateData = {};
+        let hasUpdates = false;
 
-        if (columnName) {
-          // Save individual column value to GENERAL price list (is_general=true)
-          // This is what iOS reads in Settings > Prices
-          const updateData = { [columnName]: parseFloat(newPrice) };
+        // Handle price update
+        if (newPrice !== undefined) {
+          const columnName = getDbColumnForItem(category, itemIndex);
+          if (columnName) {
+            updateData[columnName] = parseFloat(newPrice);
+            hasUpdates = true;
+          }
+        }
+
+        // Handle capacity update
+        if (newCapacity !== undefined) {
+          const capacityColumn = getDbColumnForCapacity(category, itemIndex);
+          if (capacityColumn) {
+            updateData[capacityColumn] = parseFloat(newCapacity);
+            hasUpdates = true;
+          }
+        }
+
+
+        if (hasUpdates) {
           api.priceLists.upsertGeneral(prev.activeContractorId, updateData)
             .catch(err => console.error('Failed to save general price list:', err));
         }
       }
 
-      return {
-        ...prev,
-        generalPriceList: newGeneralPriceList
-      };
+      return { ...prev, generalPriceList: newGeneralPriceList };
     });
   };
+
+  const saveGeneralPriceListBulk = async (updates) => {
+    // updates: { [category]: { [index]: { price: number, capacity: number } } }
+
+    // 1. Update Local State
+    setAppData(prev => {
+      const newGeneralPriceList = { ...prev.generalPriceList };
+
+      Object.entries(updates).forEach(([category, catUpdates]) => {
+        if (newGeneralPriceList[category]) {
+          newGeneralPriceList[category] = newGeneralPriceList[category].map((item, index) => {
+            if (catUpdates[index]) {
+              const updated = { ...item };
+              if (catUpdates[index].price !== undefined) updated.price = catUpdates[index].price;
+              if (catUpdates[index].capacity !== undefined && updated.capacity) {
+                updated.capacity = { ...updated.capacity, value: catUpdates[index].capacity };
+              }
+              return updated;
+            }
+            return item;
+          });
+        }
+      });
+      return { ...prev, generalPriceList: newGeneralPriceList };
+    });
+
+    // 2. Save to Supabase
+    const activeContractorId = appData.activeContractorId;
+    if (activeContractorId) {
+      const dbUpdates = {};
+
+      Object.entries(updates).forEach(([category, catUpdates]) => {
+        Object.entries(catUpdates).forEach(([indexStr, data]) => {
+          const index = parseInt(indexStr);
+          // Map Price
+          if (data.price !== undefined) {
+            const col = getDbColumnForItem(category, index);
+            if (col) dbUpdates[col] = data.price;
+          }
+          // Map Capacity
+          if (data.capacity !== undefined) {
+            const col = getDbColumnForCapacity(category, index);
+            if (col) dbUpdates[col] = data.capacity;
+          }
+        });
+      });
+
+      if (Object.keys(dbUpdates).length > 0) {
+        try {
+          await api.priceLists.upsertGeneral(activeContractorId, dbUpdates);
+        } catch (err) {
+          console.error('Failed to bulk save general price list:', err);
+        }
+      }
+    }
+  };
+
+
 
   const resetGeneralPriceItem = (category, itemIndex) => {
     // Get the original price from defaults (we'll need to store this)
@@ -658,16 +835,16 @@ export const AppDataProvider = ({ children }) => {
     updateProjectRoom: projectManager.updateProjectRoom,
     deleteProjectRoom: projectManager.deleteProjectRoom,
     getProjectRooms: projectManager.getProjectRooms,
-    
+
     // Relationship functions
     assignProjectToClient: clientManager.assignProjectToClient,
     removeProjectFromClient: clientManager.removeProjectFromClient,
-    
+
     // Helper functions
     findProjectById: projectManager.findProjectById,
     findClientById: clientManager.findClientById,
     loadProjectDetails: projectManager.loadProjectDetails,
-    
+
     // Price calculation functions
     calculateRoomPrice,
     calculateRoomPriceWithMaterials,
@@ -675,10 +852,16 @@ export const AppDataProvider = ({ children }) => {
     calculateProjectTotalPriceWithBreakdown,
     calculateWorkItemWithMaterials,
     formatPrice,
-    
+
     // Price list management functions
     updateGeneralPriceList,
-    resetGeneralPriceItem
+    saveGeneralPriceListBulk,
+    resetGeneralPriceItem,
+
+    // Pro Status
+    isPro,
+    grantPromotionalEntitlement,
+    checkProStatus
   };
 
   // Show loading screen while data is being fetched
