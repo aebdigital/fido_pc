@@ -641,9 +641,19 @@ export const workItemsApi = {
       const userId = await getCurrentUserId()
       // c_id should already be set by workItemToDatabase(), but generate if missing
       const c_id = workItem.c_id || crypto.randomUUID()
+      const now = new Date().toISOString()
       const { data, error } = await supabase
         .from(tableName)
-        .upsert([{ ...workItem, c_id, user_id: userId }], { onConflict: 'c_id' })
+        .upsert([{
+          ...workItem,
+          c_id,
+          user_id: userId,
+          // CRITICAL: Set updated_at so iOS sync can detect Desktop changes
+          // iOS uses updated_at to determine if remote data is newer than local
+          updated_at: now,
+          // Also set date_created if this is a new item (will be ignored on update if column doesn't exist)
+          date_created: workItem.date_created || now
+        }], { onConflict: 'c_id' })
         .select()
         .single()
 

@@ -90,12 +90,6 @@ const Settings = () => {
     }
   };
 
-  const handleRestore = async () => {
-    setLoadingPro(true);
-    await checkProStatus();
-    setLoadingPro(false);
-    alert(t("Purchases restored."));
-  };
 
   if (showPriceList) {
     return (
@@ -135,7 +129,7 @@ const Settings = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-3 mb-2">
-                <span className="font-medium text-gray-900 dark:text-white text-lg">{user?.email || 'customer@email.com'}</span>
+                <span className="font-semibold text-gray-900 dark:text-white text-lg">{user?.email || 'customer@email.com'}</span>
                 {isPro && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">{t('PRO ACTIVE')}</span>}
               </div>
 
@@ -153,20 +147,13 @@ const Settings = () => {
                   <button
                     onClick={handleTryPro}
                     disabled={loadingPro}
-                    className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-6 py-3 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md text-lg flex items-center gap-2"
+                    className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md text-lg flex items-center gap-2"
                   >
                     {loadingPro && <Loader2 className="w-4 h-4 animate-spin" />}
                     {t('Try Pro')}
                   </button>
                 )}
 
-                <button
-                  onClick={handleRestore}
-                  disabled={loadingPro}
-                  className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-6 py-3 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md"
-                >
-                  {t('Restore Purchases')}
-                </button>
               </div>
             </div>
           </div>
@@ -185,7 +172,7 @@ const Settings = () => {
             onClick={handleArchiveClick}
           >
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Archive')}</div>
+              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Archive')}</div>
               <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('archived projects, archive duration')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
@@ -196,7 +183,7 @@ const Settings = () => {
             onClick={handlePriceOfferClick}
           >
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Supplier')}</div>
+              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Supplier')}</div>
               <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('supplier information, validity of price offer')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
@@ -207,7 +194,7 @@ const Settings = () => {
             onClick={handlePriceListClick}
           >
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('General price list')}</div>
+              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('General price list')}</div>
               <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('set default price list')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
@@ -224,7 +211,7 @@ const Settings = () => {
               ) : (
                 <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               )}
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Dark Mode')}</div>
+              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Dark Mode')}</div>
             </div>
             <div className={`w-12 h-7 rounded-full p-1 transition-colors ${isDarkMode ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
               <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -238,7 +225,7 @@ const Settings = () => {
           >
             <div className="flex items-center gap-3">
               <Globe className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Language')}</div>
+              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Language')}</div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-base text-gray-600 dark:text-gray-400">
@@ -255,7 +242,7 @@ const Settings = () => {
           >
             <div className="flex items-center gap-3">
               <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
-              <div className="font-medium text-red-600 dark:text-red-400 text-lg">{t('Sign Out')}</div>
+              <div className="font-semibold text-red-600 dark:text-red-400 text-lg">{t('Sign Out')}</div>
             </div>
           </div>
 
@@ -270,7 +257,7 @@ const Settings = () => {
         </div>
         <div className="space-y-3 lg:space-y-4">
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md">
-            <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Tutorial')}</div>
+            <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Tutorial')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
@@ -278,7 +265,7 @@ const Settings = () => {
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handleContactClick}
           >
-            <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Contact')}</div>
+            <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Contact')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
@@ -286,7 +273,7 @@ const Settings = () => {
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handleTermsClick}
           >
-            <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Terms of Use')}</div>
+            <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Terms of Use')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
@@ -294,7 +281,7 @@ const Settings = () => {
             className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handlePrivacyClick}
           >
-            <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Privacy Policy')}</div>
+            <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Privacy Policy')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 

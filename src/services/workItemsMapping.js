@@ -42,13 +42,11 @@ export const PROPERTY_TO_TABLE = {
   [WORK_ITEM_PROPERTY_IDS.PLUMBING]: 'plumbings',
   [WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION]: 'installation_of_sanitaries',
   [WORK_ITEM_PROPERTY_IDS.CORNER_BEAD]: 'installation_of_corner_beads',
-  'door_jamb': 'installation_of_door_jambs', // Legacy or unused?
   [WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION]: 'installation_of_door_jambs',
   [WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION]: 'window_installations',
 
   // Others
   [WORK_ITEM_PROPERTY_IDS.PREPARATORY]: 'demolitions',
-  'demolition': 'demolitions', // Legacy?
   [WORK_ITEM_PROPERTY_IDS.COMMUTE]: 'custom_works', // Map commute to custom_works
   [WORK_ITEM_PROPERTY_IDS.GROUTING]: 'groutings',
   [WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING]: 'penetration_coatings',
@@ -87,9 +85,9 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
   // Fallback for rentals items that might not have propertyId set correctly in older data
   // or if they are sub-items of 'rentals' property
   if (!tableName && workItem.name) {
-     if (workItem.name === 'Scaffolding' || workItem.name === 'Lešenie') {
-       tableName = 'scaffoldings';
-     }
+    if (workItem.name === 'Scaffolding' || workItem.name === 'Lešenie') {
+      tableName = 'scaffoldings';
+    }
   }
 
   if (!tableName) {
@@ -97,8 +95,15 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
     return null;
   }
 
-  // Generate a unique c_id for each work item (iOS compatibility)
-  const workItemCId = crypto.randomUUID();
+  // Preserve existing c_id or generate a new one (iOS compatibility)
+  // IMPORTANT: Must preserve c_id for upsert to work correctly!
+  // Only use workItem.id if it's a valid UUID (not a timestamp-based numeric ID)
+  const isValidUUID = (id) => {
+    if (!id) return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+  };
+  const workItemCId = workItem.c_id || (isValidUUID(workItem.id) ? workItem.id : null) || crypto.randomUUID();
 
   const baseRecord = {
     room_id: roomId,
@@ -134,15 +139,25 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        type: typeMap[workItem.selectedType] || 1
+        type: typeMap[workItem.selectedType] || 1,
+        painting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PAINTING] ? 1 : 0,
+        penetration: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0
       };
 
     case 'netting_walls':
     case 'plastering_walls':
     case 'painting_walls':
     case 'facade_plasterings':
-    case 'penetration_coatings':
       // Wall types use WIDTH x HEIGHT
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
+        painting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PAINTING] ? 1 : 0,
+        penetration: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0
+      };
+
+    case 'penetration_coatings':
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
@@ -156,7 +171,9 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
-        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
+        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        painting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PAINTING] ? 1 : 0,
+        penetration: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0
       };
 
     case 'tile_ceramics':
@@ -187,7 +204,8 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
-        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
+        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        penetration: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0
       };
 
     case 'siliconings':
@@ -238,7 +256,7 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       // Handle both custom work items and commute items
       // Commute items have Distance and Duration fields, custom work items have Quantity field
       const isCommute = workItem.propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE ||
-                        workItem.name === 'Cesta' || workItem.name === 'Commute';
+        workItem.name === 'Cesta' || workItem.name === 'Commute';
       const quantity = isCommute
         ? (workItem.fields?.[WORK_ITEM_NAMES.DISTANCE_EN] || workItem.fields?.[WORK_ITEM_NAMES.DISTANCE_SK] || 0)
         : (workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || workItem.fields?.['Quantity'] || 0);
@@ -307,7 +325,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
   // Special handling for custom_works table - detect commute vs custom work
   if (tableName === 'custom_works') {
     const isCommuteRecord = (dbRecord.title === 'Cesta' || dbRecord.title === 'Commute') &&
-                            dbRecord.unit === 'km';
+      dbRecord.unit === 'km';
     propertyId = isCommuteRecord ? WORK_ITEM_PROPERTY_IDS.COMMUTE : WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK;
   }
 
@@ -327,7 +345,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
   const subtitle = workProperty?.subtitle || '';
 
   const baseItem = {
-    id: dbRecord.id,
+    id: dbRecord.id || dbRecord.c_id,
+    c_id: dbRecord.c_id,  // IMPORTANT: Preserve c_id for proper upsert on save
     propertyId,
     name,
     subtitle,
@@ -369,7 +388,11 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
         },
-        selectedType: plasterboardType
+        selectedType: plasterboardType,
+        complementaryWorks: {
+          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
+          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
+        }
       };
     }
 
@@ -383,7 +406,11 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         },
-        selectedType: offsetType
+        selectedType: offsetType,
+        complementaryWorks: {
+          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
+          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
+        }
       };
     }
 
@@ -391,8 +418,20 @@ export function databaseToWorkItem(dbRecord, tableName) {
     case 'plastering_walls':
     case 'painting_walls':
     case 'facade_plasterings':
-    case 'penetration_coatings':
       // Wall types use WIDTH x HEIGHT
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
+        },
+        complementaryWorks: {
+          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
+          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
+        }
+      };
+
+    case 'penetration_coatings':
       return {
         ...baseItem,
         fields: {
@@ -410,6 +449,10 @@ export function databaseToWorkItem(dbRecord, tableName) {
         fields: {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
+        },
+        complementaryWorks: {
+          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
+          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
         }
       };
 
@@ -447,6 +490,9 @@ export function databaseToWorkItem(dbRecord, tableName) {
         fields: {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
+        },
+        complementaryWorks: {
+          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
         }
       };
 
@@ -503,7 +549,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
       // Commute items have: title 'Cesta' or 'Commute', AND unit 'km', AND number_of_days > 0
       // This distinguishes from custom work items that might also use 'km' unit
       const isCommuteItem = (dbRecord.title === 'Cesta' || dbRecord.title === 'Commute') &&
-                            dbRecord.unit === 'km';
+        dbRecord.unit === 'km';
 
       if (isCommuteItem) {
         return {

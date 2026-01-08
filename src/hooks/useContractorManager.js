@@ -2,16 +2,16 @@ import { useCallback } from 'react';
 import api from '../services/supabaseApi';
 import { transformContractorToDB, transformContractorFromDB } from '../utils/dataTransformers';
 import flatsImage from '../images/flats.jpg';
-import housesImage from '../images/houses.webp';
-import companiesImage from '../images/companies.jpg';
-import cottagesImage from '../images/cottages.webp';
+import housesImage from '../images/houses.jpg';
+import firmsImage from '../images/firms.jpg';
+import cottagesImage from '../images/cottages.jpg';
 
 // Duplicated from AppDataContext to avoid circular dependency or import issues for now
 // Ideally this should be a constant
 const getDefaultCategories = () => [
   { id: 'flats', name: 'Flats', count: 0, image: flatsImage, projects: [] },
   { id: 'houses', name: 'Houses', count: 0, image: housesImage, projects: [] },
-  { id: 'companies', name: 'Companies', count: 0, image: companiesImage, projects: [] },
+  { id: 'companies', name: 'Companies', count: 0, image: firmsImage, projects: [] },
   { id: 'cottages', name: 'Cottages', count: 0, image: cottagesImage, projects: [] }
 ];
 

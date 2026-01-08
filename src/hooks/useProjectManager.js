@@ -5,15 +5,15 @@ import { analyzeReceipt } from '../services/openaiReceiptService';
 import { priceListToDbColumns } from '../services/priceListMapping';
 import { PROJECT_EVENTS } from '../utils/dataTransformers';
 import flatsImage from '../images/flats.jpg';
-import housesImage from '../images/houses.webp';
-import companiesImage from '../images/companies.jpg';
-import cottagesImage from '../images/cottages.webp';
+import housesImage from '../images/houses.jpg';
+import firmsImage from '../images/firms.jpg';
+import cottagesImage from '../images/cottages.jpg';
 
 // Duplicated from AppDataContext
 const getDefaultCategories = () => [
   { id: 'flats', name: 'Flats', count: 0, image: flatsImage, projects: [] },
   { id: 'houses', name: 'Houses', count: 0, image: housesImage, projects: [] },
-  { id: 'companies', name: 'Companies', count: 0, image: companiesImage, projects: [] },
+  { id: 'companies', name: 'Companies', count: 0, image: firmsImage, projects: [] },
   { id: 'cottages', name: 'Cottages', count: 0, image: cottagesImage, projects: [] }
 ];
 

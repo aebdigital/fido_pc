@@ -22,6 +22,12 @@ const evaluateExpression = (str) => {
   }
 };
 
+// Check if device uses touch/coarse pointer (phone, tablet) vs fine pointer (mouse/trackpad)
+const isTouchDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(pointer: coarse)').matches;
+};
+
 const NumberInput = ({
   value,
   onChange,
@@ -36,6 +42,7 @@ const NumberInput = ({
     value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString().replace('.', ',') : ''
   );
   const [isFocused, setIsFocused] = useState(false);
+  const [showMathToolbar, setShowMathToolbar] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -107,7 +114,14 @@ const NumberInput = ({
 
   const handleInputBlur = () => {
     setIsFocused(false);
+    setShowMathToolbar(false);
     processAndSubmit();
+  };
+
+  const handleInputFocus = () => {
+    setIsFocused(true);
+    // Only show math toolbar on touch devices (no hardware keyboard)
+    setShowMathToolbar(isTouchDevice());
   };
 
   const incrementValue = (step) => {
@@ -129,7 +143,7 @@ const NumberInput = ({
   const isSmall = size === "small";
   const inputWidth = isSmall ? "w-24" : "w-32";
   const paddingRight = isSmall ? "pr-10" : "pr-14";
-  const fontSize = isSmall ? "text-xs" : "text-sm";
+  const fontSize = "text-base"; // Use text-base (16px) to prevent iOS auto-zoom
   const borderRadius = isSmall ? "rounded" : "rounded-xl";
 
   const addSymbol = (symbol) => {
@@ -152,8 +166,8 @@ const NumberInput = ({
 
   return (
     <div className="relative inline-block">
-      {/* Math Toolbar - only visible on focus and if not disabled */}
-      {isFocused && !disabled && (
+      {/* Math Toolbar - only visible on touch devices (no hardware keyboard) */}
+      {showMathToolbar && !disabled && (
         <div
           className="absolute bottom-full mb-2 left-0 right-0 flex justify-between bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-xl z-[100] p-1 animate-in fade-in slide-in-from-bottom-2 duration-200"
           onMouseDown={(e) => e.preventDefault()} // Prevent blur when clicking toolbar
@@ -183,7 +197,7 @@ const NumberInput = ({
           inputMode="decimal"
           value={internalValue}
           onChange={handleInputChange}
-          onFocus={() => setIsFocused(true)}
+          onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {

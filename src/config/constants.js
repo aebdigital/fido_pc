@@ -195,7 +195,16 @@ export const DEFAULT_AREAS = {
 
 // Material calculation multipliers
 export const MATERIAL_MULTIPLIERS = {
-  FLOATING_FLOOR_EXTRA: 1.1  // 10% extra for floating floor
+  FLOATING_FLOOR: 1.1,  // 10% extra for floating floor
+  NETTING: 1.1,         // 10% extra for mesh
+  PLASTERBOARDING: {
+    PARTITION_SIMPLE: 2,
+    PARTITION_DOUBLE: 4,
+    PARTITION_TRIPLE: 6,
+    OFFSET_SIMPLE: 1,
+    OFFSET_DOUBLE: 2,
+    CEILING: 1
+  }
 };
 
 // Complementary work names (for database mapping)

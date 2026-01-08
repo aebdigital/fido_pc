@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  button {
+    @apply font-semibold;
+  }
+}
+
 .dark {
   color-scheme: dark;
 }
@@ -313,6 +334,8 @@ input,
 textarea,
 select {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Prevent auto-zoom on mobile/tablet browsers where font-size < 16px triggers zoom */
+  font-size: 16px !important;
 }
 
 :root:not(.dark) input,

@@ -705,12 +705,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           <div className="flex items-center gap-2">
             <span className="text-base lg:text-lg text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || project.id}</span>
             {project.is_archived && (
-              <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs lg:text-sm font-medium rounded-full">
+              <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs lg:text-sm font-semibold rounded-full">
                 {t('Archived')}
               </span>
             )}
             {/* Project Status Badge - Uses same logic as Projects list */}
-            <span className={`px-2 py-1 text-xs lg:text-sm font-medium rounded-full ${project.status === PROJECT_STATUS.FINISHED
+            <span className={`px-2 py-1 text-xs lg:text-sm font-semibold rounded-full ${project.status === PROJECT_STATUS.FINISHED
               ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
               : project.status === PROJECT_STATUS.APPROVED
                 ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
@@ -773,7 +773,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
             >
               <div className="min-w-0 flex-1">
-                <div className="font-medium text-gray-900 dark:text-white text-lg">
+                <div className="font-semibold text-gray-900 dark:text-white text-lg">
                   {selectedClientForProject ? selectedClientForProject.name : t('No client')}
                 </div>
                 <div className="text-base text-gray-600 dark:text-gray-400 truncate">
@@ -829,7 +829,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               {isLoadingDetails ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
-                  <p className="text-gray-500 dark:text-gray-400 font-medium">{t('Loading project details...')}</p>
+                  <p className="text-gray-500 dark:text-gray-400 font-semibold">{t('Loading project details...')}</p>
                 </div>
               ) : (
                 <>
@@ -843,7 +843,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       }}
                     >
                       <div className={`transition-all duration-300 flex-1 min-w-0 ${deleteMode ? 'mr-4' : ''}`}>
-                        <div className="font-medium text-gray-900 dark:text-white text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
+                        <div className="font-semibold text-gray-900 dark:text-white text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
                         <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems?.filter(hasWorkItemInput).length || 0} {t('works')}</div>
                       </div>
 
@@ -911,14 +911,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <div className="flex gap-3 mt-6">
                   <button
                     onClick={handlePreviewPriceOffer}
-                    className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Eye className="w-4 h-4" />
                     <span className="text-sm sm:text-lg">{t('Náhľad')}</span>
                   </button>
                   <button
                     onClick={handleSendPriceOffer}
-                    className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Send className="w-4 h-4" />
                     <span className="text-sm sm:text-lg">{t('Odoslať')}</span>
@@ -935,7 +935,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     if (!isPro) { setShowPaywall(true); return; }
                     setShowInvoiceCreationModal(true);
                   }}
-                  className="w-full bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                  className="w-full bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
@@ -958,12 +958,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <div className="flex items-center gap-3 flex-1">
                       <FileText className="w-5 h-5 text-gray-700 dark:text-gray-300 flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Invoice')} {invoice.invoiceNumber}</div>
+                        <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Invoice')} {invoice.invoiceNumber}</div>
                         <div className="text-base text-gray-600 dark:text-gray-400">{new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${invoice.status === INVOICE_STATUS.PAID
+                      <span className={`px-3 py-1 text-sm font-semibold rounded-full ${invoice.status === INVOICE_STATUS.PAID
                         ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
                         : invoice.status === INVOICE_STATUS.AFTER_MATURITY
                           ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
@@ -994,7 +994,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Project price list')}</div>
+                    <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Project price list')}</div>
                     <div className="text-base text-gray-600 dark:text-gray-400 truncate">{t('last change')}: 31 Oct 2025</div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
@@ -1006,7 +1006,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
                       <div className="text-base text-gray-600 dark:text-gray-400 truncate">
                         {getCurrentContractor()?.name || t('assign contractor to project')}
                       </div>
@@ -1029,7 +1029,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                                 : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
                                 }`}
                             >
-                              <span className="font-medium truncate">{contractor.name}</span>
+                              <span className="font-semibold truncate">{contractor.name}</span>
                               {(project.contractor_id || activeContractorId) === contractor.id && (
                                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                               )}
@@ -1069,7 +1069,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       unarchiveProject(project.id);
                       onBack();
                     }}
-                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Archive className="w-4 h-4 text-yellow-500" />
                     <span className="text-sm sm:text-lg">{t('Unarchive')}</span>
@@ -1079,7 +1079,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       deleteArchivedProject(project.id);
                       onBack();
                     }}
-                    className="flex-1 bg-red-600 text-white py-3 px-4 rounded-2xl font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    className="flex-1 bg-red-600 text-white py-3 px-4 rounded-2xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-sm sm:text-lg">{t('Delete Forever')}</span>
@@ -1089,7 +1089,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <>
                   <button
                     onClick={handleDuplicateProject}
-                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Copy className="w-4 h-4" />
                     <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
@@ -1099,7 +1099,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       archiveProject(project.category, project.id);
                       onBack();
                     }}
-                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Archive className="w-4 h-4 text-yellow-500" />
                     <span className="text-sm sm:text-lg">{t('Archive')}</span>
@@ -1120,7 +1120,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <button
                   onClick={() => receiptInputRef.current?.click()}
                   disabled={isAnalyzingReceipt}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
                 >
                   {isAnalyzingReceipt ? (
                     <>
@@ -1143,7 +1143,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 />
                 <button
                   onClick={() => setShowReceiptsModal(true)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                   <span>{t('View receipts')}</span>
@@ -1180,7 +1180,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   <div key={index} className="flex items-center gap-3">
                     <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
                         {t(event.type)}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -1311,7 +1311,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 {/* Drag overlay hint */}
                 {isDraggingPhoto && (
                   <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-2xl pointer-events-none">
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">{t('Drop photos here')}</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">{t('Drop photos here')}</span>
                   </div>
                 )}
               </div>
@@ -1429,7 +1429,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     )
                     .map(client => (
                       <button key={client.id} onClick={() => handleClientSelect(client)} className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left">
-                        <div className="font-medium">{client.name}</div>
+                        <div className="font-semibold">{client.name}</div>
                         <div className="text-sm text-gray-500">{client.email}</div>
                       </button>
                     ))}
@@ -1566,13 +1566,13 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     {selectedReceipt.merchant_name && (
                       <div>
                         <span className="text-sm text-gray-500 dark:text-gray-400">{t('Vendor')}</span>
-                        <p className="font-medium text-gray-900 dark:text-white">{selectedReceipt.merchant_name}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{selectedReceipt.merchant_name}</p>
                       </div>
                     )}
                     {selectedReceipt.receipt_date && (
                       <div>
                         <span className="text-sm text-gray-500 dark:text-gray-400">{t('Date')}</span>
-                        <p className="font-medium text-gray-900 dark:text-white">
+                        <p className="font-semibold text-gray-900 dark:text-white">
                           {new Date(selectedReceipt.receipt_date).toLocaleDateString('sk-SK')}
                         </p>
                       </div>
@@ -1604,7 +1604,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
                   <button
                     onClick={() => handleDeleteReceipt(selectedReceipt.id)}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl font-medium hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl font-semibold hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     {t('Delete receipt')}
@@ -1627,7 +1627,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 dark:text-white truncate">
+                        <p className="font-semibold text-gray-900 dark:text-white truncate">
                           {receipt.merchant_name || t('Unknown vendor')}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1652,7 +1652,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <button
                   onClick={() => receiptInputRef.current?.click()}
                   disabled={isAnalyzingReceipt}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
                 >
                   {isAnalyzingReceipt ? (
                     <>
@@ -1746,7 +1746,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           </div>
 
           {/* Photo Counter */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 rounded-full text-white text-sm font-medium">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 rounded-full text-white text-sm font-semibold">
             {selectedPhotoIndex + 1} / {projectPhotos.length}
           </div>
         </div>
@@ -1770,7 +1770,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <p className="text-gray-600 dark:text-gray-400 mb-6">{t('Unlock PDF export, unlimited projects, and more.')}</p>
             <div className="flex gap-3">
               <button onClick={() => setShowPaywall(false)} className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-xl">{t('Close')}</button>
-              <Link to="/settings" onClick={() => setShowPaywall(false)} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center font-medium">
+              <Link to="/settings" onClick={() => setShowPaywall(false)} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center font-semibold">
                 {t('Go to Settings')}
               </Link>
             </div>

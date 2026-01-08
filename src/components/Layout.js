@@ -108,7 +108,7 @@ const Layout = ({ children }) => {
                   }`}
               >
                 <item.icon className="w-5 h-5 mr-3" />
-                <span className="text-lg font-medium">{item.name}</span>
+                <span className="text-lg font-semibold">{item.name}</span>
               </a>
             ))}
           </div>
@@ -127,7 +127,7 @@ const Layout = ({ children }) => {
                 </span>
               </div>
               <div className="ml-3 min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                   {user?.email || 'User'}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -176,7 +176,7 @@ const Layout = ({ children }) => {
                       }`}
                   />
                   <span
-                    className={`text-xs font-medium ${isActive
+                    className={`text-xs font-semibold ${isActive
                       ? 'text-blue-500 dark:text-blue-400' // Active text color
                       : 'text-gray-400'
                       }`}

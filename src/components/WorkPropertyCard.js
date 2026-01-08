@@ -140,7 +140,7 @@ const WorkPropertyCard = ({
     return (
       <div className="space-y-3 lg:space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t(typeName)}</span>
+          <span className="text-base lg:text-sm font-semibold text-gray-900 dark:text-white">{t(typeName)}</span>
           <button
             onClick={(e) => onAddDoorWindow(item.id, type, e)}
             className="w-7 h-7 lg:w-6 lg:h-6 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
@@ -152,7 +152,7 @@ const WorkPropertyCard = ({
         {items.map((subItem, index) => (
           <div key={subItem.id} className="bg-gray-200 dark:bg-gray-700 rounded-lg p-3 space-y-3 lg:space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">
+              <span className="text-base lg:text-sm font-semibold text-gray-900 dark:text-white">
                 {t('no.')} {index + 1}
               </span>
               <div className="flex gap-2 lg:gap-1">
@@ -236,7 +236,7 @@ const WorkPropertyCard = ({
       return (
         <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 rounded-xl p-3">
           <div className="flex-1">
-            <div className="font-medium text-gray-900 dark:text-white text-base">{t(field.name)}</div>
+            <div className="font-semibold text-gray-900 dark:text-white text-base">{t(field.name)}</div>
             {field.subtitle && (
               <div className="text-sm text-gray-600 dark:text-gray-400">{t(field.subtitle)}</div>
             )}
@@ -295,7 +295,7 @@ const WorkPropertyCard = ({
           }}
         >
           <div className="flex-1">
-            <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
           </div>
           <div
             className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
@@ -309,7 +309,7 @@ const WorkPropertyCard = ({
         {showingRentalsSelector && (
           <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm" key="rentals-selector">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Select Rental Type')}</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Select Rental Type')}</h4>
               <button
                 onClick={onCloseSelector}
                 className="text-gray-400 hover:text-gray-600"
@@ -341,7 +341,7 @@ const WorkPropertyCard = ({
           return (
             <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in ${newlyAddedItems.has(item.id) ? '' : ''}`}>
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-900 dark:text-white text-lg">
+                <span className="font-semibold text-gray-900 dark:text-white text-lg">
                   {rentalLabel}
                 </span>
                 <button
@@ -423,7 +423,7 @@ const WorkPropertyCard = ({
           }}
         >
           <div className="flex-1">
-            <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
@@ -501,7 +501,7 @@ const WorkPropertyCard = ({
             {property.complementaryWorks && (
               <div className="space-y-3 lg:space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
+                  <span className="text-base lg:text-sm font-semibold text-gray-900 dark:text-white">{t('Complementary works')}</span>
                   {/* Use separate key for complementary works expansion */}
                   <button
                     onClick={(e) => onToggleExpanded(`${existingItem.id}_complementary`, e)}
@@ -570,7 +570,7 @@ const WorkPropertyCard = ({
           }}
         >
           <div className="flex-1">
-            <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
@@ -587,7 +587,7 @@ const WorkPropertyCard = ({
         {showingTypeSelector === property.id && (
           <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm" key="type-selector">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Select Type')}</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Select Type')}</h4>
               <button
                 onClick={onCloseSelector}
                 className="text-gray-400 hover:text-gray-600"
@@ -618,7 +618,7 @@ const WorkPropertyCard = ({
         {expandedItems[property.id] && existingItems.map((item, index) => (
           <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
             <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-900 dark:text-white text-lg">
+              <span className="font-semibold text-gray-900 dark:text-white text-lg">
                 {getItemLabel(property, item, index, t)}
               </span>
               <button
@@ -685,7 +685,7 @@ const WorkPropertyCard = ({
             {property.complementaryWorks && (
               <div className="space-y-3 lg:space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
+                  <span className="text-base lg:text-sm font-semibold text-gray-900 dark:text-white">{t('Complementary works')}</span>
                   <button
                     onClick={(e) => onToggleExpanded(`${item.id}_complementary`, e)}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -744,7 +744,7 @@ const WorkPropertyCard = ({
           onClick={(e) => onAddWorkItem(property.id, e)}
         >
           <div className="flex-1">
-            <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{property.subtitle}</p>
             )}
@@ -758,7 +758,7 @@ const WorkPropertyCard = ({
         {showingSanitarySelector && (
           <div className="bg-white dark:bg-gray-900 rounded-xl p-3 space-y-3 shadow-sm" key="sanitary-selector">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t('Type of Sanitary')}</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Type of Sanitary')}</h4>
               <button
                 onClick={onCloseSelector}
                 className="text-gray-400 hover:text-gray-600"
@@ -784,7 +784,7 @@ const WorkPropertyCard = ({
         {existingItems.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-900 dark:text-white text-lg">
+              <span className="font-semibold text-gray-900 dark:text-white text-lg">
                 {t(item.selectedType)}
               </span>
               <button
@@ -841,7 +841,7 @@ const WorkPropertyCard = ({
         }}
       >
         <div className="flex-1">
-          <h4 className="text-lg font-medium text-gray-900 dark:text-white">{t(property.name)}</h4>
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
           {property.subtitle && (
             <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
           )}
@@ -873,11 +873,11 @@ const WorkPropertyCard = ({
                 />
               </div>
             ) : property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ? (
-              <span className="font-medium text-gray-900 dark:text-white text-lg">
+              <span className="font-semibold text-gray-900 dark:text-white text-lg">
                 {t(property.name)}
               </span>
             ) : (
-              <span className="font-medium text-gray-900 dark:text-white text-lg">
+              <span className="font-semibold text-gray-900 dark:text-white text-lg">
                 {getItemLabel(property, item, index, t)}
               </span>
             )}
@@ -919,7 +919,7 @@ const WorkPropertyCard = ({
           {/* Unit selector for custom work - only show after type is selected but before unit is selected */}
           {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
             <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
-              <span className="text-base font-medium text-gray-900 dark:text-white">{t('Select unit')}</span>
+              <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Select unit')}</span>
               <div className="grid grid-cols-4 gap-2">
                 {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
                   <button
@@ -990,7 +990,7 @@ const WorkPropertyCard = ({
           {property.complementaryWorks && (
             <div className="space-y-3 lg:space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-base lg:text-sm font-medium text-gray-900 dark:text-white">{t('Complementary works')}</span>
+                <span className="text-base lg:text-sm font-semibold text-gray-900 dark:text-white">{t('Complementary works')}</span>
                 <button
                   onClick={(e) => onToggleExpanded(`${item.id}_complementary`, e)}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"

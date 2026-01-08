@@ -155,16 +155,16 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     <>
                       {Object.entries(workGroups).map(([key, group]) => (
                         <div key={`work-group-${key}`} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">
                             {group.name} - {group.totalQuantity.toFixed(group.totalQuantity < 10 ? 1 : 0)}{t(group.unit)}
                           </span>
-                          <span className="text-gray-600 dark:text-gray-400">{formatPrice(group.totalCost)}</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">{formatPrice(group.totalCost)}</span>
                         </div>
                       ))}
                       {nonGroupedItems.map(item => (
                         <div key={`${item.id}-work`} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">{item.description}</span>
-                          <span className="text-gray-600 dark:text-gray-400">{formatPrice(item.cost)}</span>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">{item.description}</span>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(item.cost)}</span>
                         </div>
                       ))}
                     </>
@@ -178,8 +178,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
               {/* Add auxiliary work cost at bottom of work section */}
               {calculation.auxiliaryWorkCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <span className="text-gray-600 dark:text-gray-400">{t(WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK)} ({(calculation.auxiliaryWorkRate * 100).toFixed(0)}%)</span>
-                  <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryWorkCost)}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{t(WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK)} ({(calculation.auxiliaryWorkRate * 100).toFixed(0)}%)</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(calculation.auxiliaryWorkCost)}</span>
                 </div>
               )}
             </div>
@@ -248,8 +248,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                     return (
                       <div key={`material-group-${index}`} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">{materialDescription} - {group.totalQuantity.toFixed(0)}{t(unit)}</span>
-                        <span className="text-gray-600 dark:text-gray-400">{formatPrice(group.totalCost)}</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{materialDescription} - {group.totalQuantity.toFixed(group.totalQuantity < 10 ? 1 : 0)}{t(unit)}</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(group.totalCost)}</span>
                       </div>
                     );
                   });
@@ -262,8 +262,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
               {/* Add auxiliary material cost at bottom of material section */}
               {calculation.auxiliaryMaterialCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <span className="text-gray-600 dark:text-gray-400">{t(MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL)} ({(calculation.auxiliaryMaterialRate * 100).toFixed(0)}%)</span>
-                  <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.auxiliaryMaterialCost)}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{t(MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL)} ({(calculation.auxiliaryMaterialRate * 100).toFixed(0)}%)</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(calculation.auxiliaryMaterialCost)}</span>
                 </div>
               )}
             </div>
@@ -301,8 +301,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                     return (
                       <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">{workDescription}</span>
-                        <span className="text-gray-600 dark:text-gray-400">{formatPrice((item.calculation.workCost || 0) + (item.calculation.materialCost || 0))}</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice((item.calculation.workCost || 0) + (item.calculation.materialCost || 0))}</span>
                       </div>
                     );
                   }
@@ -329,12 +329,12 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
       {/* Totals - Fixed at bottom */}
       <div className="p-4 lg:p-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 space-y-2 flex-shrink-0">
         <div className="flex justify-between items-center">
-          <span className="text-gray-600 dark:text-gray-400">{t('without VAT')}</span>
-          <span className="text-gray-600 dark:text-gray-400">{formatPrice(calculation.total)}</span>
+          <span className="font-semibold text-gray-700 dark:text-gray-300">{t('without VAT')}</span>
+          <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(calculation.total)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-600 dark:text-gray-400">{t('VAT')}</span>
-          <span className="text-gray-600 dark:text-gray-400">{formatPrice(vatAmount)}</span>
+          <span className="font-semibold text-gray-700 dark:text-gray-300">{t('VAT')}</span>
+          <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(vatAmount)}</span>
         </div>
         <div className="flex justify-between items-center text-lg font-bold">
           <span className="text-gray-900 dark:text-white">{t('Total price')}</span>

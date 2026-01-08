@@ -28,33 +28,49 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   // Initialize project price data from general settings or load existing project overrides
   useEffect(() => {
     if (!generalPriceList) return;
-    
-    // If we have saved project data, use it
+
+    // If we have saved project data, use it; otherwise use general prices
     let initialPrices;
     if (initialData) {
-      initialPrices = initialData;
+      initialPrices = JSON.parse(JSON.stringify(initialData)); // Deep clone
     } else {
       // Otherwise initialize with general prices
       initialPrices = JSON.parse(JSON.stringify(generalPriceList)); // Deep clone
-      
-      // Add isOverridden flag and originalPrice for each item
-      Object.keys(initialPrices).forEach(category => {
-        initialPrices[category] = initialPrices[category].map(item => {
-          // Normalize names for old projects to new localized constants
-          let normalizedName = item.name;
-          if (item.name === 'Skirting') normalizedName = 'Lištovanie'; 
-          if (item.name === 'Skirting board') normalizedName = 'Soklové lišty';
-          
-          return {
-            ...item,
-            name: normalizedName,
-            originalPrice: item.price,
-            isOverridden: false
-          };
-        });
-      });
     }
-    
+
+    // ALWAYS ensure originalPrice and isOverridden flags exist for each item
+    // This is needed because:
+    // 1. Projects created on iOS store prices in price_lists table without these flags
+    // 2. Projects loaded from database need the general price as reference for override detection
+    Object.keys(initialPrices).forEach(category => {
+      if (!Array.isArray(initialPrices[category])) return;
+
+      initialPrices[category] = initialPrices[category].map((item, index) => {
+        // Normalize names for old projects to new localized constants
+        let normalizedName = item.name;
+        if (item.name === 'Skirting') normalizedName = 'Lištovanie';
+        if (item.name === 'Skirting board') normalizedName = 'Soklové lišty';
+
+        // Get the original price from general price list for comparison
+        const generalItem = generalPriceList[category]?.[index];
+        const originalPrice = item.originalPrice !== undefined
+          ? item.originalPrice
+          : (generalItem?.price ?? item.price);
+
+        // Determine if this item is overridden (price differs from original)
+        const isOverridden = item.isOverridden !== undefined
+          ? item.isOverridden
+          : (item.price !== originalPrice);
+
+        return {
+          ...item,
+          name: normalizedName,
+          originalPrice,
+          isOverridden
+        };
+      });
+    });
+
     setProjectPriceData(initialPrices);
     lastSavedData.current = JSON.stringify(initialPrices);
   }, [projectId, generalPriceList, initialData]);
@@ -67,18 +83,18 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
     // Only save if data has changed from last save AND lastSavedData is initialized
     if (lastSavedData.current && currentDataString !== lastSavedData.current) {
       setSaveStatus('modified');
-      
+
       const timer = setTimeout(() => {
         if (isUnmounting.current) return;
-        
+
         setSaveStatus('saving');
         onSaveRef.current(projectPriceData);
         lastSavedData.current = currentDataString;
-        
+
         setTimeout(() => {
           if (!isUnmounting.current) setSaveStatus('saved');
         }, 800);
-      }, 1000); 
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
@@ -86,7 +102,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
   const handleClose = () => {
     if (saveStatus === 'modified') {
-       onSaveRef.current(projectPriceData);
+      onSaveRef.current(projectPriceData);
     }
     isUnmounting.current = true;
     onClose();
@@ -94,18 +110,18 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
   const handlePriceChange = (category, itemIndex, newPrice) => {
     const processedPrice = newPrice || 0;
-    
+
     setProjectPriceData(prev => {
       const updated = JSON.parse(JSON.stringify(prev));
       const item = updated[category][itemIndex];
       const isOverride = processedPrice !== item.originalPrice;
-      
+
       updated[category][itemIndex] = {
         ...item,
         price: processedPrice,
         isOverridden: isOverride
       };
-      
+
       return updated;
     });
   };
@@ -149,14 +165,14 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
+    <div className={`${category === 'material' ? 'bg-gray-100 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-900'} border border-gray-200 dark:border-gray-700 rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
       <div className="flex justify-between items-start gap-2">
         <div className="flex-1 min-w-0">
           {category === 'installations' && item.subtitle ? (
-            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.subtitle)}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.subtitle)}</h3>
           ) : (
             <>
-              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
               {item.subtitle && (
                 <p className="text-xs lg:text-sm text-black dark:text-white -mt-0.5 leading-tight">{t(item.subtitle)}</p>
               )}
@@ -229,13 +245,12 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h2>
           <div className="flex items-center gap-3">
             <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
-                saveStatus === 'saved'
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-colors ${saveStatus === 'saved'
                   ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
                   : saveStatus === 'saving'
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                  : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
-              }`}
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
+                }`}
             >
               {saveStatus === 'saving' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -266,7 +281,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           {/* Work Section */}
           <div className="mb-6">
-            <div 
+            <div
               className="flex items-center justify-between mb-4 cursor-pointer"
               onClick={() => toggleSection('work')}
             >
@@ -276,7 +291,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
               </div>
               {expandedSections.work ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
-            
+
             {expandedSections.work && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {projectPriceData.work.map((item, index) => (
@@ -288,7 +303,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
           {/* Material Section */}
           <div className="mb-6">
-            <div 
+            <div
               className="flex items-center justify-between mb-4 cursor-pointer"
               onClick={() => toggleSection('material')}
             >
@@ -298,7 +313,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
               </div>
               {expandedSections.material ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
-            
+
             {expandedSections.material && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {projectPriceData.material.map((item, index) => (
@@ -311,7 +326,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
           {/* Installations Section */}
           {projectPriceData.installations && (
             <div className="mb-6">
-              <div 
+              <div
                 className="flex items-center justify-between mb-4 cursor-pointer"
                 onClick={() => toggleSection('installations')}
               >
@@ -321,7 +336,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
                 </div>
                 {expandedSections.installations ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </div>
-              
+
               {expandedSections.installations && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                   {projectPriceData.installations.map((item, index) => (
@@ -334,7 +349,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
           {/* Others Section */}
           <div className="mb-6">
-            <div 
+            <div
               className="flex items-center justify-between mb-4 cursor-pointer"
               onClick={() => toggleSection('others')}
             >
@@ -344,7 +359,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
               </div>
               {expandedSections.others ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
-            
+
             {expandedSections.others && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {projectPriceData.others.filter(item => item.name !== 'Custom work and material').map((item, index) => (

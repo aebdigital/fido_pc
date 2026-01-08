@@ -21,7 +21,14 @@ export const getMaterialKey = (propertyId, selectedType) => {
   const baseKey = propertyId.toLowerCase();
 
   if (selectedType) {
-    const typeKey = selectedType.toLowerCase().replace(/\s+/g, '_');
+    let typeKey = selectedType.toLowerCase().trim();
+
+    // Normalize Slovak types to English for key consistency
+    if (typeKey === 'jednoduchý' || typeKey === 'jednoduchá') typeKey = 'simple';
+    if (typeKey === 'dvojitý' || typeKey === 'dvojitá') typeKey = 'double';
+    if (typeKey === 'trojitý' || typeKey === 'trojitá') typeKey = 'triple';
+
+    typeKey = typeKey.replace(/\s+/g, '_');
     return `${baseKey}_${typeKey}`;
   }
 
@@ -36,36 +43,51 @@ export const MATERIAL_KEY_MAPPINGS = {
   // Plasterboarding - Partitions
   'plasterboarding_partition_simple': {
     name: 'Plasterboard',
-    namesSk: ['Sádrokartón'],
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton'],
     subtitlePattern: 'simple, partition'
   },
   'plasterboarding_partition_double': {
     name: 'Plasterboard',
-    namesSk: ['Sádrokartón'],
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton'],
     subtitlePattern: 'double, partition'
   },
   'plasterboarding_partition_triple': {
     name: 'Plasterboard',
-    namesSk: ['Sádrokartón'],
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton'],
     subtitlePattern: 'triple, partition'
   },
 
   // Plasterboarding - Offset Walls
   'plasterboarding_offset_simple': {
     name: 'Plasterboard',
-    namesSk: ['Sádrokartón'],
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton'],
     subtitlePattern: 'simple, offset wall'
   },
   'plasterboarding_offset_double': {
     name: 'Plasterboard',
-    namesSk: ['Sádrokartón'],
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton'],
     subtitlePattern: 'double, offset wall'
   },
 
   // Plasterboarding - Ceiling
   'plasterboarding_ceiling': {
     name: 'Plasterboard',
-    namesSk: ['Sádrokartón'],
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton', 'Sádrokartón strop', 'Sadrokartón strop', 'Karton strop'],
+    subtitlePattern: 'ceiling'
+  },
+  'plasterboarding_ceiling_simple': {
+    name: 'Plasterboard',
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton', 'Sádrokartón strop', 'Sadrokartón strop', 'Karton strop'],
+    subtitlePattern: 'ceiling'
+  },
+  'plasterboarding_ceiling_double': {
+    name: 'Plasterboard',
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton', 'Sádrokartón strop', 'Sadrokartón strop', 'Karton strop'],
+    subtitlePattern: 'ceiling'
+  },
+  'plasterboarding_ceiling_triple': {
+    name: 'Plasterboard',
+    namesSk: ['Sádrokartón', 'Sadrokartón', 'Sádrokarton', 'Sadrokarton', 'Karton', 'Sádrokartón strop', 'Sadrokartón strop', 'Karton strop'],
     subtitlePattern: 'ceiling'
   },
 
@@ -206,19 +228,24 @@ export const findMaterialByKey = (materialKey, materials) => {
   // Find by name (English or Slovak) and subtitle pattern
   material = materials.find(m => {
     const nameMatch = m.name.toLowerCase() === mapping.name.toLowerCase() ||
-                     mapping.namesSk.some(sk => m.name.toLowerCase() === sk.toLowerCase());
+      mapping.namesSk.some(sk => m.name.toLowerCase() === sk.toLowerCase());
 
     if (!nameMatch) return false;
 
     // If mapping has a subtitle pattern, check it
     if (mapping.subtitlePattern) {
-      if (!m.subtitle) return false;
-      const subtitleLower = m.subtitle.toLowerCase();
       const patternLower = mapping.subtitlePattern.toLowerCase();
-
-      // Check if subtitle contains all parts of the pattern
       const patternParts = patternLower.split(',').map(p => p.trim());
-      return patternParts.every(part => subtitleLower.includes(part));
+
+      const subtitleLower = (m.subtitle || '').toLowerCase();
+      const nameLower = (m.name || '').toLowerCase();
+
+      // Check if EITHER subtitle OR name contains all parts of the pattern
+      // (Handles cases where subtitle is merged into name like "Sadrokartón strop")
+      const matchesInSubtitle = subtitleLower && patternParts.every(part => subtitleLower.includes(part));
+      const matchesInName = nameLower && patternParts.every(part => nameLower.includes(part));
+
+      return matchesInSubtitle || matchesInName;
     }
 
     // If no subtitle pattern required, match by name only (for materials without subtypes)
@@ -236,13 +263,13 @@ export const findMaterialByKey = (materialKey, materials) => {
 export const getAdhesiveKey = (propertyId) => {
   // Tiling and paving use adhesive
   if (propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60 ||
-      propertyId === WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60) {
+    propertyId === WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60) {
     return 'adhesive_tiling';
   }
 
   // Netting uses adhesive
   if (propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_WALL ||
-      propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING) {
+    propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING) {
     return 'adhesive_netting';
   }
 
@@ -274,7 +301,7 @@ export const findAdhesiveByKey = (adhesiveKey, materials) => {
 
   return materials.find(m => {
     const nameMatch = m.name.toLowerCase() === mapping.name.toLowerCase() ||
-                     mapping.namesSk.some(sk => m.name.toLowerCase() === sk.toLowerCase());
+      mapping.namesSk.some(sk => m.name.toLowerCase() === sk.toLowerCase());
 
     if (!nameMatch) return false;
 

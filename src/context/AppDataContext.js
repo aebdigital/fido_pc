@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/supabaseApi';
+import { subscribeToRealtimeChanges, getRefreshCategories } from '../services/realtimeSync';
 import { useAuth } from './AuthContext';
 import { useLanguage } from './LanguageContext'; // Import useLanguage
 import {
@@ -19,9 +20,9 @@ import { useInvoiceManager } from '../hooks/useInvoiceManager';
 import { useContractorManager } from '../hooks/useContractorManager';
 import { dbColumnsToPriceList, getDbColumnForItem, getDbColumnForCapacity } from '../services/priceListMapping';
 import flatsImage from '../images/flats.jpg';
-import housesImage from '../images/houses.webp';
-import companiesImage from '../images/companies.jpg';
-import cottagesImage from '../images/cottages.webp';
+import housesImage from '../images/houses.jpg';
+import firmsImage from '../images/firms.jpg';
+import cottagesImage from '../images/cottages.jpg';
 import { Loader2 } from 'lucide-react'; // Import Loader2
 
 const AppDataContext = createContext();
@@ -139,7 +140,7 @@ export const AppDataProvider = ({ children }) => {
         id: 'companies',
         name: 'Companies',
         count: 0,
-        image: companiesImage,
+        image: firmsImage,
         projects: []
       },
       {
@@ -273,7 +274,7 @@ export const AppDataProvider = ({ children }) => {
       id: 'companies',
       name: 'Companies',
       count: 0,
-      image: companiesImage,
+      image: firmsImage,
       projects: []
     },
     {
@@ -312,30 +313,35 @@ export const AppDataProvider = ({ children }) => {
       // Transform clients
       const transformedClients = (clients || []).map(transformClientFromDB);
 
-      // Transform projects to parse price_list_snapshot and photos from JSON
+      // Transform projects - ALWAYS prioritize price_lists table (shared with iOS)
+      // Only fall back to price_list_snapshot JSON for old projects without price_list_id
       const transformedProjects = (projects || []).map(project => {
         let priceListSnapshot = null;
-        if (project.price_list_snapshot) {
-          try {
-            priceListSnapshot = typeof project.price_list_snapshot === 'string'
-              ? JSON.parse(project.price_list_snapshot)
-              : project.price_list_snapshot;
-          } catch (e) {
-            console.warn('Failed to parse price_list_snapshot for project:', project.id);
-          }
-        }
 
-        // Fallback: If priceListSnapshot is null but project has a price_list_id,
-        // try to build it from the price_lists table (iOS-created projects store prices there)
-        if (!priceListSnapshot && project.price_list_id) {
+        // PRIORITY 1: Load from price_lists table (iOS-compatible, source of truth)
+        // This ensures Desktop and iOS always see the same prices
+        if (project.price_list_id) {
           const linkedPriceList = (allPriceLists || []).find(pl => pl.c_id === project.price_list_id);
           if (linkedPriceList) {
             try {
               priceListSnapshot = dbColumnsToPriceList(linkedPriceList, getDefaultData().generalPriceList);
-              console.log('[SUPABASE] Built priceListSnapshot from price_lists table for project:', project.id);
+              console.log('[SUPABASE] Loaded priceListSnapshot from price_lists table for project:', project.id);
             } catch (e) {
               console.warn('Failed to build priceListSnapshot from price_lists for project:', project.id, e);
             }
+          }
+        }
+
+        // PRIORITY 2: Fallback to price_list_snapshot JSON for old projects
+        // (projects created before iOS sync was implemented)
+        if (!priceListSnapshot && project.price_list_snapshot) {
+          try {
+            priceListSnapshot = typeof project.price_list_snapshot === 'string'
+              ? JSON.parse(project.price_list_snapshot)
+              : project.price_list_snapshot;
+            console.log('[SUPABASE] Loaded priceListSnapshot from JSON fallback for project:', project.id);
+          } catch (e) {
+            console.warn('Failed to parse price_list_snapshot for project:', project.id);
           }
         }
         let photos = [];
@@ -527,8 +533,96 @@ export const AppDataProvider = ({ children }) => {
     }
   }, [loading, appData.priceOfferSettings?.archiveRetentionDays, appData.archivedProjects, projectManager]);
 
+  // Real-time sync subscription - listen for changes from iOS or other clients
+  const isRefreshingRef = useRef(false);
 
+  useEffect(() => {
+    if (!user?.id || loading) return;
 
+    console.log('[RealtimeSync] Setting up real-time subscriptions');
+
+    const handleRealtimeChange = async (change) => {
+      // Prevent concurrent refreshes
+      if (isRefreshingRef.current) {
+        console.log('[RealtimeSync] Skipping refresh - already in progress');
+        return;
+      }
+
+      const categories = getRefreshCategories(change.table);
+      console.log('[RealtimeSync] Data changed, refreshing categories:', categories);
+
+      if (categories.length === 0) return;
+
+      isRefreshingRef.current = true;
+
+      try {
+        // Refresh specific data based on what changed
+        if (categories.includes('contractors')) {
+          const contractors = await api.contractors.getAll();
+          const transformedContractors = (contractors || []).map(transformContractorFromDB);
+          setAppData(prev => ({ ...prev, contractors: transformedContractors }));
+        }
+
+        if (categories.includes('clients')) {
+          const clients = await api.clients.getAll(null);
+          const transformedClients = (clients || []).map(transformClientFromDB);
+          setAppData(prev => ({ ...prev, clients: transformedClients }));
+        }
+
+        if (categories.includes('projects')) {
+          // Reload full data to ensure project categories are updated correctly
+          const data = await loadInitialData();
+          setAppData(prev => ({
+            ...data,
+            // Preserve existing room data
+            projectRoomsData: {
+              ...(prev?.projectRoomsData || {}),
+              ...(data.projectRoomsData || {})
+            }
+          }));
+        }
+
+        if (categories.includes('invoices')) {
+          const invoices = await api.invoices.getAll(null);
+          const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
+          setAppData(prev => ({ ...prev, invoices: transformedInvoices }));
+        }
+
+        if (categories.includes('rooms') || categories.includes('workItems')) {
+          // Clear room cache to force reload on next access
+          // This ensures fresh data is fetched when user views a project
+          setAppData(prev => ({ ...prev, projectRoomsData: {} }));
+        }
+
+        if (categories.includes('priceLists')) {
+          // Reload price lists
+          const allPriceLists = await api.priceLists.getAll();
+          const generalPriceListData = (allPriceLists || []).find(
+            pl => pl.contractor_id === appData.activeContractorId && pl.is_general === true
+          );
+          if (generalPriceListData) {
+            const generalPriceList = dbColumnsToPriceList(generalPriceListData, getDefaultData().generalPriceList);
+            setAppData(prev => ({ ...prev, generalPriceList }));
+          }
+        }
+
+        console.log('[RealtimeSync] Data refresh complete');
+      } catch (error) {
+        console.error('[RealtimeSync] Error refreshing data:', error);
+      } finally {
+        isRefreshingRef.current = false;
+      }
+    };
+
+    // Subscribe to real-time changes
+    const unsubscribe = subscribeToRealtimeChanges(user.id, handleRealtimeChange);
+
+    // Cleanup on unmount
+    return () => {
+      console.log('[RealtimeSync] Cleaning up subscriptions');
+      unsubscribe();
+    };
+  }, [user?.id, loading, loadInitialData, appData.activeContractorId]);
 
 
 
