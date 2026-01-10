@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { registerActiveInput, unregisterActiveInput } from './MathKeyboardToolbar';
 
 const evaluateExpression = (str) => {
   try {
@@ -115,13 +116,50 @@ const NumberInput = ({
   const handleInputBlur = () => {
     setIsFocused(false);
     setShowMathToolbar(false);
+    // Unregister from global keyboard toolbar
+    unregisterActiveInput(inputRef);
     processAndSubmit();
   };
 
   const handleInputFocus = () => {
     setIsFocused(true);
     // Only show math toolbar on touch devices (no hardware keyboard)
-    setShowMathToolbar(isTouchDevice());
+    const isTouch = isTouchDevice();
+    setShowMathToolbar(isTouch);
+
+    // Register with global keyboard toolbar for touch devices
+    if (isTouch) {
+      registerActiveInput(inputRef, {
+        addSymbol: (symbol) => {
+          if (inputRef.current) {
+            const start = inputRef.current.selectionStart;
+            const end = inputRef.current.selectionEnd;
+            const text = internalValue;
+            const before = text.substring(0, start);
+            const after = text.substring(end);
+            const newValue = before + symbol + after;
+            setInternalValue(newValue);
+
+            // Reset cursor position after state update
+            setTimeout(() => {
+              if (inputRef.current) {
+                inputRef.current.selectionStart = inputRef.current.selectionEnd = start + symbol.length;
+                inputRef.current.focus();
+              }
+            }, 0);
+          }
+        },
+        done: () => {
+          processAndSubmit();
+          if (inputRef.current) {
+            inputRef.current.blur();
+          }
+        },
+        evaluate: () => {
+          processAndSubmit();
+        }
+      });
+    }
   };
 
   const incrementValue = (step) => {
@@ -146,49 +184,9 @@ const NumberInput = ({
   const fontSize = "text-base"; // Use text-base (16px) to prevent iOS auto-zoom
   const borderRadius = isSmall ? "rounded" : "rounded-xl";
 
-  const addSymbol = (symbol) => {
-    if (inputRef.current) {
-      const start = inputRef.current.selectionStart;
-      const end = inputRef.current.selectionEnd;
-      const text = internalValue;
-      const before = text.substring(0, start);
-      const after = text.substring(end);
-      const newValue = before + symbol + after;
-      setInternalValue(newValue);
-
-      // Reset cursor position after state update
-      setTimeout(() => {
-        inputRef.current.selectionStart = inputRef.current.selectionEnd = start + symbol.length;
-        inputRef.current.focus();
-      }, 0);
-    }
-  };
-
   return (
     <div className="relative inline-block">
-      {/* Math Toolbar - only visible on touch devices (no hardware keyboard) */}
-      {showMathToolbar && !disabled && (
-        <div
-          className="absolute bottom-full mb-2 left-0 right-0 flex justify-between bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-xl z-[100] p-1 animate-in fade-in slide-in-from-bottom-2 duration-200"
-          onMouseDown={(e) => e.preventDefault()} // Prevent blur when clicking toolbar
-        >
-          {['+', '-', '*'].map(op => (
-            <button
-              key={op}
-              onClick={() => addSymbol(op)}
-              className="w-7 h-7 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-900 dark:text-white font-bold text-lg transition-colors"
-            >
-              {op === '*' ? '×' : op}
-            </button>
-          ))}
-          <button
-            onClick={processAndSubmit}
-            className="w-7 h-7 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded text-blue-600 dark:text-blue-400 font-bold text-lg transition-colors border border-blue-200 dark:border-blue-800"
-          >
-            =
-          </button>
-        </div>
-      )}
+      {/* Math Toolbar is now handled by the global MathKeyboardToolbar component */}
 
       <div className={`relative inline-flex overflow-hidden ${borderRadius} ${className}`}>
         <input

@@ -12,6 +12,7 @@ import Clients from './pages/Clients';
 import Settings from './pages/Settings';
 import ProjectDetail from './pages/ProjectDetail';
 import Login from './components/Login';
+import MathKeyboardToolbar from './components/MathKeyboardToolbar';
 import './App.css';
 
 function AppContent() {
@@ -49,6 +50,8 @@ function AppContent() {
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </Layout>
+            {/* iOS-style math keyboard toolbar - sits above virtual keyboard on touch devices */}
+            <MathKeyboardToolbar />
           </div>
         </Router>
       </NavigationBlockerProvider>
