@@ -367,6 +367,12 @@ const Invoices = () => {
                   {/* Client name - below project name */}
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     {(() => {
+                      // First check if invoice has a direct clientId
+                      if (invoice.clientId) {
+                        const client = clients.find(c => c.id === invoice.clientId);
+                        if (client?.name) return client.name;
+                      }
+                      // Fallback: check project's clientId
                       const project = findProjectById(invoice.projectId, invoice.categoryId);
                       if (project?.clientId) {
                         const client = clients.find(c => c.id === project.clientId);

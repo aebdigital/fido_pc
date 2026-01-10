@@ -544,8 +544,8 @@ const Projects = () => {
                           <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
                         </div>
                         <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
-                        {/* Client name - only visible on desktop */}
-                        <p className="hidden lg:block text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1">
+                        {/* Client name - visible on all screen sizes */}
+                        <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1 truncate">
                           {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
                         </p>
                       </div>

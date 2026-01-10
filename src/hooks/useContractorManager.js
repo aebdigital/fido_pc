@@ -75,6 +75,10 @@ export const useContractorManager = (appData, setAppData) => {
   }, [setAppData]);
 
   const setActiveContractor = useCallback((contractorId) => {
+    // Save to localStorage for persistence across sessions
+    if (contractorId) {
+      localStorage.setItem('lastActiveContractorId', contractorId);
+    }
     setAppData(prev => ({
       ...prev,
       activeContractorId: contractorId

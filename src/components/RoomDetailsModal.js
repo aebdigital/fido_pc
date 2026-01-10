@@ -154,7 +154,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
         selectedUnit: null,
         doorWindowItems: { doors: [], windows: [] }
       };
-      setWorkData([...workData, newItem]);
+      // Add new custom work items at the TOP of the list
+      setWorkData([newItem, ...workData]);
       setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
       setExpandedItems(prev => ({ ...prev, [newItem.id]: true }));
       return;

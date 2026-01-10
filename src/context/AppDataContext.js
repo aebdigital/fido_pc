@@ -404,8 +404,14 @@ export const AppDataProvider = ({ children }) => {
         };
       });
 
-      // Get active contractor (first one or null)
-      const activeContractorId = transformedContractors.length > 0 ? transformedContractors[0].id : null;
+      // Get active contractor - try to restore from localStorage first, fallback to first one
+      const savedContractorId = localStorage.getItem('lastActiveContractorId');
+      let activeContractorId = null;
+      if (savedContractorId && transformedContractors.some(c => c.id === savedContractorId)) {
+        activeContractorId = savedContractorId;
+      } else if (transformedContractors.length > 0) {
+        activeContractorId = transformedContractors[0].id;
+      }
       const activeContractor = transformedContractors.find(c => c.id === activeContractorId);
 
       // Find the GENERAL price list for this contractor (is_general=true)
