@@ -551,7 +551,15 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
       // On mobile, open directly in browser's native PDF viewer
       if (isMobile) {
-        window.open(result.blobUrl, '_blank');
+        // Create a link with download attribute for proper filename
+        const filename = `${t('Cenová ponuka')} - ${project.name}.pdf`;
+        const link = document.createElement('a');
+        link.href = result.blobUrl;
+        link.target = '_blank';
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       } else {
         setPdfUrl(result.blobUrl);
         setPdfBlob(result.pdfBlob);
