@@ -167,6 +167,9 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     navigate('/profile');
   };
 
+  // Check if mobile device
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   const handlePreview = async () => {
     try {
       const result = await generateInvoicePDF({
@@ -182,9 +185,15 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         formatPrice,
         t
       });
-      setPdfUrl(result.blobUrl);
-      setPdfBlob(result.pdfBlob);
-      setShowPDFPreview(true);
+
+      // On mobile, open directly in browser's native PDF viewer
+      if (isMobile) {
+        window.open(result.blobUrl, '_blank');
+      } else {
+        setPdfUrl(result.blobUrl);
+        setPdfBlob(result.pdfBlob);
+        setShowPDFPreview(true);
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert(t('Unable to generate PDF. Please try again.'));
@@ -212,9 +221,15 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         formatPrice,
         t
       });
-      setCashReceiptUrl(result.blobUrl);
-      setCashReceiptBlob(result.pdfBlob);
-      setShowCashReceiptPreview(true);
+
+      // On mobile, open directly in browser's native PDF viewer
+      if (isMobile) {
+        window.open(result.blobUrl, '_blank');
+      } else {
+        setCashReceiptUrl(result.blobUrl);
+        setCashReceiptBlob(result.pdfBlob);
+        setShowCashReceiptPreview(true);
+      }
     } catch (error) {
       console.error('Error generating cash receipt PDF:', error);
       alert(t('Unable to generate cash receipt. Please try again.'));
