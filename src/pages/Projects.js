@@ -544,7 +544,7 @@ const Projects = () => {
                           <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
                         </div>
                         <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white lg:truncate">
-                          <span className="lg:hidden">{project.name.length > 15 ? `${project.name.substring(0, 15)}...` : project.name}</span>
+                          <span className="lg:hidden">{project.name.length > 17 ? `${project.name.substring(0, 17)}...` : project.name}</span>
                           <span className="hidden lg:inline">{project.name}</span>
                         </h3>
                         {/* Client name - visible on all screen sizes */}
