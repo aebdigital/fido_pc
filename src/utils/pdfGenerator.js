@@ -1048,6 +1048,8 @@ export const generateCashReceiptPDF = async ({
     // Helper to sanitize text
     const sanitizeText = (text) => {
       if (!text) return '';
+      // Remove control characters (C0: 0x00-0x1F, C1: 0x7F-0x9F)
+      // eslint-disable-next-line no-control-regex
       return String(text).replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
     };
 

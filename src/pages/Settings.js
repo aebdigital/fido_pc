@@ -24,7 +24,7 @@ const Settings = () => {
   const { t, language, toggleLanguage } = useLanguage();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { signOut, user } = useAuth(); // Add user
-  const { isPro, grantPromotionalEntitlement, checkProStatus } = useAppData(); // Add Pro context
+  const { isPro, grantPromotionalEntitlement } = useAppData(); // Add Pro context
 
   const [showPriceList, setShowPriceList] = useState(false);
   const [showArchive, setShowArchive] = useState(false);

@@ -199,8 +199,10 @@ export const isRealtimeConnected = () => {
   return activeChannel !== null
 }
 
-export default {
+const realtimeSyncService = {
   subscribeToRealtimeChanges,
   getRefreshCategories,
   isRealtimeConnected
 }
+
+export default realtimeSyncService
