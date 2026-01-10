@@ -491,6 +491,9 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showReceiptsModal, project?.id]);
 
+  // Check if mobile device
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   const handlePreviewPriceOffer = async () => {
     if (!isPro) { setShowPaywall(true); return; }
     // Ensure we have a valid project breakdown
@@ -545,9 +548,15 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         projectNumber: formatProjectNumber(project),
         offerValidityPeriod: priceOfferSettings?.timeLimit || 30
       }, t); // Pass t as the second argument
-      setPdfUrl(result.blobUrl);
-      setPdfBlob(result.pdfBlob);
-      setShowPDFPreview(true);
+
+      // On mobile, open directly in browser's native PDF viewer
+      if (isMobile) {
+        window.open(result.blobUrl, '_blank');
+      } else {
+        setPdfUrl(result.blobUrl);
+        setPdfBlob(result.pdfBlob);
+        setShowPDFPreview(true);
+      }
     } catch (error) {
       console.error('Error generating Price Offer PDF:', error);
       alert(t('Unable to generate PDF. Please try again.'));
