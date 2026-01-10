@@ -59,7 +59,9 @@ const isIBANInSEPACountry = (iban) => {
 // Normalize text for QR code (replace Unicode characters that can break scanning)
 const normalizeForQR = (text) => {
   if (!text) return '';
-  return text
+  // Ensure text is a string
+  const str = String(text);
+  return str
     // Normalize newlines
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
