@@ -43,21 +43,8 @@ const PaywallModal = ({ isOpen, onClose }) => {
   const handleSubscribe = async () => {
     setLoading(true);
 
-    // Open Stripe Payment Link in new tab
-    // You'll need to create a Payment Link in Stripe Dashboard and put the URL here
-    // For now, we'll use a placeholder that you can replace with your actual Payment Link
-    const stripePaymentLink = 'https://buy.stripe.com/test_YOUR_PAYMENT_LINK_ID';
-
-    // Note: For production, you should:
-    // 1. Create a Stripe Payment Link in your Stripe Dashboard
-    // 2. Configure it to redirect to your success URL with the user ID
-    // 3. Set up a webhook to grant RevenueCat entitlement after successful payment
-
-    if (stripePaymentLink.includes('YOUR_PAYMENT_LINK_ID')) {
-      alert(t('Stripe payment link not configured yet. Please contact support.'));
-      setLoading(false);
-      return;
-    }
+    // Stripe Payment Link
+    const stripePaymentLink = 'https://buy.stripe.com/dRmbJ20AuaiK9Xd2qd5kk00';
 
     window.open(stripePaymentLink, '_blank');
     setLoading(false);
