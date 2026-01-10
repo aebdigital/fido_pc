@@ -91,9 +91,22 @@ export const formatProjectNumber = (project) => {
 export const transformInvoiceFromDB = (dbInvoice) => {
   if (!dbInvoice) return null;
 
-  // Determine Issue Date (Datum vystavenia) - prefer date_created, fallback to created_at
+  // Determine Issue Date (Datum vystavenia) - use date_created field
+  // date_created stores the invoice issue date as YYYY-MM-DD string (from both iOS and Desktop)
+  // Falls back to created_at for backward compatibility with old data
   const issueDateRaw = dbInvoice.date_created || dbInvoice.created_at;
-  const issueDate = issueDateRaw ? new Date(issueDateRaw).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+  // Parse date string directly to avoid timezone conversion issues
+  // If it's a YYYY-MM-DD string, use it directly; otherwise parse as ISO date
+  let issueDate;
+  if (typeof issueDateRaw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(issueDateRaw)) {
+    // Already in YYYY-MM-DD format, use directly
+    issueDate = issueDateRaw;
+  } else if (issueDateRaw) {
+    // Full ISO timestamp - extract date part
+    issueDate = new Date(issueDateRaw).toISOString().split('T')[0];
+  } else {
+    issueDate = new Date().toISOString().split('T')[0];
+  }
 
   // Determine Dispatch Date (Datum dodania) - use date_of_dispatch
   const dispatchDate = dbInvoice.date_of_dispatch || issueDate;
@@ -102,13 +115,64 @@ export const transformInvoiceFromDB = (dbInvoice) => {
   const maturityDays = dbInvoice.maturity_days || 14;
   const dueDate = new Date(new Date(issueDate).getTime() + maturityDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+  // Parse invoice items from JSON if present
+  let invoiceItems = null;
+  if (dbInvoice.invoice_items_data) {
+    try {
+      const rawItems = typeof dbInvoice.invoice_items_data === 'string'
+        ? JSON.parse(dbInvoice.invoice_items_data)
+        : dbInvoice.invoice_items_data;
+
+      // Transform iOS invoice items to Desktop format
+      // iOS encodes: titleKey (string), pieces, pricePerPiece, price, vat, unit (enum string), category (enum string), active, taxObligationTransfer
+      // Desktop uses: title, pieces, pricePerPiece, price, vat, unit (string), category (string), active, taxObligationTransfer
+      invoiceItems = (rawItems || []).map((item) => ({
+        id: item.id || crypto.randomUUID(), // Use proper UUID for iOS compatibility
+        // iOS uses 'titleKey' when encoding, Desktop uses 'title'
+        title: item.title || item.titleKey || item.name || '',
+        pieces: item.pieces !== undefined ? item.pieces : (item.count || 0),
+        pricePerPiece: item.pricePerPiece || 0,
+        price: item.price !== undefined ? item.price : (item.totalPrice || 0),
+        vat: item.vat !== undefined ? item.vat : (item.vatPercentage || 23),
+        // iOS unit is an enum string like "squareMeter", convert to display format
+        unit: convertIOSUnitToDisplay(item.unit) || 'm²',
+        // iOS active is a boolean
+        active: item.active !== undefined ? item.active : (item.isActive !== false),
+        taxObligationTransfer: item.taxObligationTransfer !== undefined ? item.taxObligationTransfer : (item.isTaxObligationTransfer || false),
+        // iOS category is an enum string like "work", "material", "other"
+        category: item.category || 'work',
+        originalItem: item.originalItem
+      }));
+    } catch (e) {
+      console.error('Error parsing invoice_items_data:', e);
+    }
+  }
+
+  // Helper to convert iOS unit enum values to display symbols
+  function convertIOSUnitToDisplay(unit) {
+    if (!unit) return null;
+    const unitMap = {
+      'squareMeter': 'm²',
+      'meter': 'm',
+      'piece': 'ks',
+      'hour': 'h',
+      'kilometer': 'km',
+      'kilogram': 'kg',
+      'liter': 'l',
+      'cubicMeter': 'm³',
+      'runningMeter': 'bm'
+    };
+    return unitMap[unit] || unit;
+  }
+
   return {
     id: dbInvoice.id,
     invoiceNumber: dbInvoice.number,
     issueDate: issueDate,
     dispatchDate: dispatchDate, // New field
     dueDate: dueDate,
-    paymentMethod: dbInvoice.payment_type,
+    // iOS uses 'cash'/'bankTransfer', Desktop uses 'cash'/'transfer'
+    paymentMethod: dbInvoice.payment_type === 'bankTransfer' ? 'transfer' : (dbInvoice.payment_type || 'transfer'),
     paymentDays: maturityDays,
     notes: dbInvoice.note,
     status: invoiceStatusFromDatabase(dbInvoice.status), // Convert DB status to iOS-compatible status
@@ -117,7 +181,11 @@ export const transformInvoiceFromDB = (dbInvoice) => {
     categoryId: dbInvoice.projects?.category || '',
     clientId: dbInvoice.client_id,
     contractorId: dbInvoice.contractor_id || dbInvoice.c_id,
-    createdDate: dbInvoice.created_at
+    createdDate: dbInvoice.created_at,
+    // Invoice items data (matching iOS invoiceItemsData)
+    invoiceItems: invoiceItems,
+    priceWithoutVat: dbInvoice.price_without_vat || 0,
+    cumulativeVat: dbInvoice.cumulative_vat || 0
   };
 };
 

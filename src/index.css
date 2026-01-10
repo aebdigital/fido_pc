@@ -590,3 +590,68 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding-right: 8px;
   }
 }
+
+/* Invoice modal inputs - ensure white text in dark mode */
+.dark .invoice-input-dark {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color-scheme: dark !important;
+}
+
+.dark .invoice-input-dark::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Light mode invoice inputs */
+.invoice-input-dark {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Invoice modal active button states - white bg with dark text in dark mode */
+.dark button.invoice-btn-active,
+.dark div.invoice-btn-active,
+.dark .invoice-btn-active {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+.dark button.invoice-btn-active span,
+.dark div.invoice-btn-active span,
+.dark .invoice-btn-active span {
+  color: #111827 !important;
+}
+
+.dark button.invoice-btn-active input,
+.dark div.invoice-btn-active input {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Invoice modal inactive button states in dark mode */
+.dark button.invoice-btn-inactive,
+.dark div.invoice-btn-inactive,
+.dark .invoice-btn-inactive {
+  background: #4b5563 !important;
+  background-color: #4b5563 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border-top: none !important;
+}
+
+.dark button.invoice-btn-inactive span,
+.dark div.invoice-btn-inactive span,
+.dark .invoice-btn-inactive span {
+  color: #ffffff !important;
+}
+
+.dark button.invoice-btn-inactive input,
+.dark div.invoice-btn-inactive input {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}

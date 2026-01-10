@@ -1,35 +1,103 @@
 import React, { useState } from 'react';
-import { X, Eye, Send, FileText, User, Calendar, DollarSign, Edit3, Trash2 } from 'lucide-react';
+import { X, Eye, Send, FileText, User, Calendar, DollarSign, Edit3, Trash2, ChevronRight, Building, Briefcase, Receipt } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
-import { generateInvoicePDF } from '../utils/pdfGenerator';
+import { generateInvoicePDF, generateCashReceiptPDF } from '../utils/pdfGenerator';
 import { PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS } from '../utils/dataTransformers';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import PDFPreviewModal from './PDFPreviewModal';
 
+/**
+ * InvoiceDetailModal - iOS-aligned invoice detail view
+ *
+ * Structure (matching iOS InvoiceDetailView):
+ * 1. Large invoice number at top
+ * 2. Status badge with mark-as-paid button
+ * 3. Clickable cards (Client, Project, Contractor)
+ * 4. PDF section with 3-button row (Preview, Send, Edit)
+ * 5. Cash receipt section (if cash payment)
+ */
 const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewProject = false }) => {
   const { t } = useLanguage();
   const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
   const navigate = useNavigate();
 
-  // Edit mode state - now opens a modal instead of inline editing
+  // Edit mode state
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
 
-  // Use live invoice data from global state to reflect real-time updates
+  // Cash receipt state
+  const [showCashReceiptPreview, setShowCashReceiptPreview] = useState(false);
+  const [cashReceiptUrl, setCashReceiptUrl] = useState(null);
+  const [cashReceiptBlob, setCashReceiptBlob] = useState(null);
+
+  // Use live invoice data from global state
   const invoice = invoices?.find(inv => inv.id === invoiceProp?.id) || invoiceProp;
 
   if (!isOpen || !invoice) return null;
 
   const contractor = contractors.find(c => c.id === invoice.contractorId);
   const project = findProjectById(invoice.projectId, invoice.categoryId);
-  const projectBreakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
-  // Find client by ID from the invoice
+  const rawProjectBreakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
   const client = clients.find(c => c.id === invoice.clientId);
+
+  // Build projectBreakdown for PDF - filter out inactive items if invoice has saved items
+  // This ensures excluded items don't appear in the PDF
+  const getFilteredProjectBreakdown = () => {
+    if (!rawProjectBreakdown) return null;
+
+    // If the invoice has saved invoice items, filter the breakdown to only include active items
+    if (invoice.invoiceItems && invoice.invoiceItems.length > 0) {
+      // Get IDs of active items from saved invoice items
+      const activeItemIds = new Set(
+        invoice.invoiceItems
+          .filter(item => item.active !== false)
+          .map(item => item.id)
+      );
+
+      // Filter each category based on active items
+      const filteredBreakdown = {
+        ...rawProjectBreakdown,
+        items: (rawProjectBreakdown.items || []).filter(item =>
+          activeItemIds.has(item.id) || activeItemIds.has(`work_${rawProjectBreakdown.items.indexOf(item)}`)
+        ),
+        materialItems: (rawProjectBreakdown.materialItems || []).filter(item =>
+          activeItemIds.has(item.id) || activeItemIds.has(`material_${rawProjectBreakdown.materialItems.indexOf(item)}`)
+        ),
+        othersItems: (rawProjectBreakdown.othersItems || []).filter(item =>
+          activeItemIds.has(item.id) || activeItemIds.has(`other_${rawProjectBreakdown.othersItems.indexOf(item)}`)
+        )
+      };
+
+      // Recalculate totals based on filtered items
+      let workTotal = 0;
+      let materialTotal = 0;
+      let othersTotal = 0;
+
+      filteredBreakdown.items.forEach(item => {
+        workTotal += (item.calculation?.workCost || 0);
+      });
+      filteredBreakdown.materialItems.forEach(item => {
+        materialTotal += (item.calculation?.materialCost || 0);
+      });
+      filteredBreakdown.othersItems.forEach(item => {
+        othersTotal += (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
+      });
+
+      filteredBreakdown.total = workTotal + materialTotal + othersTotal;
+
+      return filteredBreakdown;
+    }
+
+    // No saved invoice items, use full project breakdown
+    return rawProjectBreakdown;
+  };
+
+  const projectBreakdown = getFilteredProjectBreakdown();
 
   // Get VAT rate
   const getVATRate = () => {
@@ -38,8 +106,10 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   };
 
   const vatRate = getVATRate();
-  const totalWithoutVAT = projectBreakdown?.total || 0;
-  const vat = totalWithoutVAT * vatRate;
+  // Use invoice's saved values if available (they reflect active items only)
+  // Otherwise calculate from the filtered project breakdown
+  const totalWithoutVAT = invoice.priceWithoutVat || projectBreakdown?.total || 0;
+  const vat = invoice.cumulativeVat !== undefined ? invoice.cumulativeVat : (totalWithoutVAT * vatRate);
   const totalWithVAT = totalWithoutVAT + vat;
 
   const formatDate = (dateString) => {
@@ -54,7 +124,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const handleEditModalClose = (updated) => {
     setShowEditModal(false);
     if (updated) {
-      onClose(true); // Refresh the list
+      onClose(true);
     }
   };
 
@@ -62,7 +132,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     try {
       await deleteInvoice(invoice.id);
       setShowDeleteConfirm(false);
-      onClose(true); // Refresh the list
+      onClose(true);
     } catch (error) {
       console.error('Error deleting invoice:', error);
       alert(t('Failed to delete invoice'));
@@ -71,7 +141,6 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
 
   const handleMarkAsPaid = () => {
     updateInvoice(invoice.id, { status: 'paid' });
-    onClose(true); // Pass true to indicate the invoice was updated
   };
 
   const handleViewProject = () => {
@@ -82,6 +151,20 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         selectedProjectId: invoice.projectId
       }
     });
+  };
+
+  const handleViewClient = () => {
+    onClose();
+    navigate('/clients', {
+      state: {
+        selectedClientId: invoice.clientId
+      }
+    });
+  };
+
+  const handleViewContractor = () => {
+    onClose();
+    navigate('/profile');
   };
 
   const handlePreview = async () => {
@@ -97,7 +180,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         totalWithVAT,
         formatDate,
         formatPrice,
-        t // Pass the t function
+        t
       });
       setPdfUrl(result.blobUrl);
       setPdfBlob(result.pdfBlob);
@@ -117,24 +200,117 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     }
   };
 
+  // Cash Receipt handlers
+  const handleCashReceiptPreview = async () => {
+    try {
+      const result = await generateCashReceiptPDF({
+        invoice,
+        contractor,
+        client,
+        totalWithVAT,
+        formatDate,
+        formatPrice,
+        t
+      });
+      setCashReceiptUrl(result.blobUrl);
+      setCashReceiptBlob(result.pdfBlob);
+      setShowCashReceiptPreview(true);
+    } catch (error) {
+      console.error('Error generating cash receipt PDF:', error);
+      alert(t('Unable to generate cash receipt. Please try again.'));
+    }
+  };
+
+  const handleCloseCashReceiptPreview = () => {
+    setShowCashReceiptPreview(false);
+    if (cashReceiptUrl) {
+      URL.revokeObjectURL(cashReceiptUrl);
+      setCashReceiptUrl(null);
+      setCashReceiptBlob(null);
+    }
+  };
+
+  const handleCashReceiptSend = async () => {
+    // Generate cash receipt text to share
+    const receiptText = `
+${t('Cash Receipt')} ${invoice.invoiceNumber}
+${t('Payment for Invoice')} ${invoice.invoiceNumber}
+
+${t('Customer')}: ${client?.name || '-'}
+${t('Made by')}: ${contractor?.name || '-'}
+
+${t('Date of Issue')}: ${formatDate(invoice.issueDate)}
+${t('Total price')}: ${formatPrice(totalWithVAT)}
+    `.trim();
+
+    if (navigator.share) {
+      try {
+        let currentBlob = cashReceiptBlob;
+
+        if (!currentBlob) {
+          const result = await generateCashReceiptPDF({
+            invoice,
+            contractor,
+            client,
+            totalWithVAT,
+            formatDate,
+            formatPrice,
+            t
+          });
+          currentBlob = result.pdfBlob;
+        }
+
+        const pdfFile = new File([currentBlob], `${t('Cash Receipt')}_${invoice.invoiceNumber}.pdf`, { type: 'application/pdf' });
+
+        await navigator.share({
+          title: `${t('Cash Receipt')} ${invoice.invoiceNumber}`,
+          text: receiptText,
+          files: [pdfFile]
+        });
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing cash receipt:', error);
+          // Fallback to text share
+          try {
+            await navigator.share({
+              title: `${t('Cash Receipt')} ${invoice.invoiceNumber}`,
+              text: receiptText
+            });
+          } catch (textError) {
+            if (textError.name !== 'AbortError') {
+              console.error('Error sharing text:', textError);
+            }
+          }
+        }
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      try {
+        await navigator.clipboard.writeText(receiptText);
+        alert(t('Cash receipt details copied to clipboard'));
+      } catch (error) {
+        console.error('Error copying to clipboard:', error);
+      }
+    }
+  };
+
   const handleSend = async () => {
-    // Record history - use iOS-compatible events
-    // iOS adds both 'invoiceSent' and 'finished' events when sending invoice
+    // Record history events (iOS compatible)
     addProjectHistoryEntry(invoice.projectId, {
-      type: PROJECT_EVENTS.INVOICE_SENT, // iOS compatible: 'invoiceSent'
+      type: PROJECT_EVENTS.INVOICE_SENT,
       invoiceNumber: invoice.invoiceNumber,
       date: new Date().toISOString()
     });
     addProjectHistoryEntry(invoice.projectId, {
-      type: PROJECT_EVENTS.FINISHED, // iOS compatible: 'finished'
+      type: PROJECT_EVENTS.FINISHED,
       invoiceNumber: invoice.invoiceNumber,
       date: new Date().toISOString()
     });
 
-    // Update project status to FINISHED (3) - iOS compatible
+    // Update project status to FINISHED
     if (updateProject && invoice.categoryId && invoice.projectId) {
       updateProject(invoice.categoryId, invoice.projectId, {
-        status: PROJECT_STATUS.FINISHED // iOS: 3
+        status: PROJECT_STATUS.FINISHED
       });
     }
 
@@ -156,12 +332,10 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
 ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
     `.trim();
 
-    // Check if Web Share API is supported
     if (navigator.share) {
       try {
         let currentBlob = pdfBlob;
 
-        // If we don't have a blob (e.g. user clicked Send without Preview), generate it now
         if (!currentBlob) {
           const result = await generateInvoicePDF({
             invoice,
@@ -174,7 +348,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             totalWithVAT,
             formatDate,
             formatPrice,
-            t // Pass the t function
+            t
           });
           currentBlob = result.pdfBlob;
           setPdfBlob(currentBlob);
@@ -185,31 +359,26 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           title: `${t('Invoice')} ${invoice.invoiceNumber}`,
         };
 
-        // If we have a PDF blob, try to share it as a file
         if (currentBlob && navigator.canShare && navigator.canShare({ files: [new File([currentBlob], 'test.pdf', { type: 'application/pdf' })] })) {
           const file = new File([currentBlob], `${t('Invoice')} ${invoice.invoiceNumber}.pdf`, { type: 'application/pdf' });
           shareData.files = [file];
         } else {
-          // Fallback to text if file sharing not supported
           shareData.text = invoiceText;
         }
 
         await navigator.share(shareData);
       } catch (error) {
-        // User cancelled or share failed
         if (error.name !== 'AbortError') {
           console.error('Error sharing:', error);
           fallbackShare(invoiceText);
         }
       }
     } else {
-      // Fallback for browsers that don't support Web Share API
       fallbackShare(invoiceText);
     }
   };
 
   const fallbackShare = (text) => {
-    // Copy to clipboard as fallback
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text)
         .then(() => {
@@ -261,31 +430,19 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[75vh] lg:max-h-[85vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FileText className="w-6 h-6 text-gray-900 dark:text-white" />
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[90vh] lg:h-auto lg:max-h-[90vh] flex flex-col">
+        {/* Header - iOS style with large invoice number */}
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0 rounded-t-2xl">
+          <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Invoice')} {invoice.invoiceNumber}</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{invoice.projectName}</p>
+              {/* Large Invoice Number - iOS style (40pt equivalent) */}
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-1">
+                {invoice.invoiceNumber}
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {project?.number || invoice.projectName}
+              </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleStartEdit}
-              className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              title={t('Edit')}
-            >
-              <Edit3 className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              title={t('Delete')}
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
             <button
               onClick={() => onClose()}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -293,17 +450,14 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               <X className="w-6 h-6" />
             </button>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Status Badge - iOS compatible statuses: unpaid, paid, afterMaturity */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`px-4 py-2 text-sm font-medium rounded-full ${invoice.status === INVOICE_STATUS.PAID
-              ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+          {/* Status Badge with Mark as Paid - iOS style */}
+          <div className="flex items-center gap-3 mt-4">
+            <span className={`px-4 py-2 text-sm font-semibold rounded-full ${invoice.status === INVOICE_STATUS.PAID
+              ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
               : invoice.status === INVOICE_STATUS.AFTER_MATURITY
-                ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
+                : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
               }`}>
               {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
                 : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
@@ -313,153 +467,194 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             {invoice.status !== INVOICE_STATUS.PAID && (
               <button
                 onClick={handleMarkAsPaid}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-full text-sm font-semibold transition-colors"
               >
                 <DollarSign className="w-4 h-4" />
                 {t('Mark as Paid')}
               </button>
             )}
           </div>
+        </div>
 
-          {/* Invoice Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-4">
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  {t('Contractor')}
-                </h3>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('Name')}</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{contractor?.name || '-'}</p>
-                  </div>
-                  {contractor?.email && (
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('Email')}</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{contractor.email}</p>
-                    </div>
-                  )}
-                  {contractor?.phone && (
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('Phone')}</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{contractor.phone}</p>
-                    </div>
-                  )}
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Clickable Client Card - iOS style */}
+          {client && (
+            <button
+              onClick={handleViewClient}
+              className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('Client')}</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.name}</p>
                 </div>
               </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
+          )}
 
-              {client && (
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    {t('Client')}
-                  </h3>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('Name')}</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{client.name}</p>
-                    </div>
-                  </div>
+          {/* Clickable Project Card - iOS style */}
+          {!hideViewProject && project && (
+            <button
+              onClick={handleViewProject}
+              className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-full flex items-center justify-center">
+                  <Briefcase className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
-              )}
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('Project')}</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{project.name}</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
+          )}
+
+          {/* Clickable Contractor Card - iOS style */}
+          {contractor && (
+            <button
+              onClick={handleViewContractor}
+              className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/50 rounded-full flex items-center justify-center">
+                  <Building className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('Contractor')}</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{contractor.name}</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
+          )}
+
+          {/* PDF Section - iOS style with 3 buttons */}
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Invoice PDF')}</span>
             </div>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={handlePreview}
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Eye className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Preview')}</span>
+              </button>
+              <button
+                onClick={handleSend}
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Send className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Send')}</span>
+              </button>
+              <button
+                onClick={handleStartEdit}
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                <Edit3 className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Edit')}</span>
+              </button>
+            </div>
+          </div>
 
-            {/* Right Column - Invoice Settings */}
-            <div className="space-y-4">
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  {t('Invoice Settings')}
-                </h3>
-                <div className="space-y-3">
-                  {/* Invoice Number */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('Invoice Number')}</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{invoice.invoiceNumber}</span>
-                  </div>
+          {/* Cash Receipt Section - iOS style (only if cash payment) */}
+          {invoice.paymentMethod === 'cash' && (
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Receipt className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Cash Receipt')}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleCashReceiptPreview}
+                  className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Eye className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Preview')}</span>
+                </button>
+                <button
+                  onClick={handleCashReceiptSend}
+                  className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Send className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Send')}</span>
+                </button>
+              </div>
+            </div>
+          )}
 
-                  {/* Issue Date */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('Issue Date')}</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{formatDate(invoice.issueDate)}</span>
-                  </div>
-
-                  {/* Due Date */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('Due Date')}</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{formatDate(invoice.dueDate)}</span>
-                  </div>
-
-                  {/* Payment Method */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{t('Payment Method')}</span>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {t(invoice.paymentMethod === 'cash' ? 'Cash' : 'Transfer')}
-                    </span>
-                  </div>
-                </div>
+          {/* Invoice Details Card */}
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Invoice Details')}</span>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Invoice Number')}</span>
+                <span className="text-base font-medium text-gray-900 dark:text-white">{invoice.invoiceNumber}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Issue Date')}</span>
+                <span className="text-base font-medium text-gray-900 dark:text-white">{formatDate(invoice.issueDate)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Due Date')}</span>
+                <span className="text-base font-medium text-gray-900 dark:text-white">{formatDate(invoice.dueDate)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Payment Method')}</span>
+                <span className="text-base font-medium text-gray-900 dark:text-white">
+                  {t(invoice.paymentMethod === 'cash' ? 'Cash' : 'Bank transfer')}
+                </span>
               </div>
             </div>
           </div>
 
           {/* Notes Section */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('Notes')}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-              {invoice.notes || <span className="italic text-gray-400">{t('No notes')}</span>}
-            </p>
-          </div>
-
-          {/* Project Summary */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('Project')}</h3>
-              {!hideViewProject && (
-                <button
-                  onClick={handleViewProject}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {t('View Project')}
-                </button>
-              )}
+          {invoice.notes && (
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
+              <span className="text-base font-semibold text-gray-900 dark:text-white block mb-2">{t('Notes')}</span>
+              <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{invoice.notes}</p>
             </div>
-            <p className="text-lg font-medium text-gray-900 dark:text-white mb-4">{project?.name}</p>
-            <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">{t('without VAT')}</span>
-                <span className="font-medium text-gray-900 dark:text-white">{formatPrice(totalWithoutVAT)}</span>
+          )}
+
+          {/* Price Summary */}
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
+            <span className="text-base font-semibold text-gray-900 dark:text-white block mb-3">{t('Price Summary')}</span>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('without VAT')}</span>
+                <span className="text-base font-medium text-gray-900 dark:text-white">{formatPrice(totalWithoutVAT)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">{t('VAT (23%)')}</span>
-                <span className="font-medium text-gray-900 dark:text-white">{formatPrice(vat)}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t('VAT (23%)')}</span>
+                <span className="text-base font-medium text-gray-900 dark:text-white">{formatPrice(vat)}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">{t('Total price')}</span>
-                <span className="text-lg font-bold text-gray-900 dark:text-white">{formatPrice(totalWithVAT)}</span>
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{t('Total price')}</span>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">{formatPrice(totalWithVAT)}</span>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer Actions */}
-        <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
-          <div className="flex gap-3">
-            <button
-              onClick={handlePreview}
-              className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <Eye className="w-5 h-5" />
-              {t('Preview Invoice')}
-            </button>
-            <button
-              onClick={handleSend}
-              className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
-            >
-              <Send className="w-5 h-5" />
-              {t('Send Invoice')}
-            </button>
-          </div>
+          {/* Delete Button - iOS style at bottom */}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-4 rounded-2xl font-semibold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
+          >
+            <Trash2 className="w-5 h-5" />
+            {t('Delete Invoice')}
+          </button>
         </div>
       </div>
 
@@ -483,6 +678,18 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           handleSend();
         }}
         title={`${t('Invoice')} ${invoice.invoiceNumber}`}
+      />
+
+      {/* Cash Receipt Preview Modal */}
+      <PDFPreviewModal
+        isOpen={showCashReceiptPreview}
+        onClose={handleCloseCashReceiptPreview}
+        pdfUrl={cashReceiptUrl}
+        onSend={() => {
+          handleCloseCashReceiptPreview();
+          handleCashReceiptSend();
+        }}
+        title={`${t('Cash Receipt')} ${invoice.invoiceNumber}`}
       />
     </div>
   );

@@ -6,6 +6,38 @@
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, COMPLEMENTARY_WORK_NAMES } from '../config/constants';
 import { workProperties } from '../config/workProperties';
 
+// Map iOS unit enum values to display symbols
+// iOS stores: "basicMeter", "squareMeter", etc.
+// Desktop displays: "bm", "m²", etc.
+const IOS_UNIT_TO_DISPLAY = {
+  'basicMeter': 'bm',
+  'squareMeter': 'm²',
+  'cubicMeter': 'm³',
+  'piece': 'ks',
+  'package': 'bal',
+  'hour': 'hod',
+  'kilometer': 'km',
+  'day': 'deň',
+  'kilogram': 'kg',
+  'ton': 't',
+  'percentage': '%'
+};
+
+/**
+ * Convert iOS unit value to display symbol
+ * @param {string} unit - Unit value (may be iOS enum value or already a display symbol)
+ * @returns {string} Display symbol
+ */
+export function unitToDisplaySymbol(unit) {
+  if (!unit) return '';
+  // Check if it's an iOS enum value that needs conversion
+  if (IOS_UNIT_TO_DISPLAY[unit]) {
+    return IOS_UNIT_TO_DISPLAY[unit];
+  }
+  // Already a display symbol or unknown, return as-is
+  return unit;
+}
+
 // Map propertyId to database table name
 export const PROPERTY_TO_TABLE = {
   // Brick works
@@ -198,9 +230,23 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       };
 
     case 'laying_floating_floors':
-    case 'levellings':
+      // Floating floor uses WIDTH x LENGTH (no penetration column)
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
+      };
+
     case 'groutings':
-      // Floor types use WIDTH x LENGTH
+      // Groutings uses WIDTH x LENGTH (no penetration column)
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0
+      };
+
+    case 'levellings':
+      // Levelling uses WIDTH x LENGTH with penetration
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
@@ -252,9 +298,10 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         price_per_door_jamb: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
       };
 
-    case 'custom_works':
+    case 'custom_works': {
       // Handle both custom work items and commute items
       // Commute items have Distance and Duration fields, custom work items have Quantity field
+      // Note: custom_works table doesn't have linked_to_parent/linked_work_key columns
       const isCommute = workItem.propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE ||
         workItem.name === 'Cesta' || workItem.name === 'Commute';
       const quantity = isCommute
@@ -267,17 +314,21 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         : 0;
 
       return {
-        ...baseRecord,
+        room_id: roomId,
+        c_id: workItemCId,
         title: title,
         unit: unit,
         number_of_units: quantity,
         price_per_unit: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0,
         number_of_days: numberOfDays
       };
+    }
 
     case 'custom_materials':
+      // Note: custom_materials table doesn't have linked_to_parent/linked_work_key columns
       return {
-        ...baseRecord,
+        room_id: roomId,
+        c_id: workItemCId,
         title: workItem.fields?.[WORK_ITEM_NAMES.NAME] || workItem.name || '',
         unit: workItem.selectedUnit || '',
         number_of_units: workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || 0,
@@ -482,9 +533,27 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'laying_floating_floors':
-    case 'levellings':
+      // Floating floor uses WIDTH x LENGTH (no penetration column)
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
+        }
+      };
+
     case 'groutings':
-      // Floor types use WIDTH x LENGTH
+      // Groutings uses WIDTH x LENGTH (no penetration column)
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
+        }
+      };
+
+    case 'levellings':
+      // Levelling uses WIDTH x LENGTH with penetration
       return {
         ...baseItem,
         fields: {
@@ -675,9 +744,18 @@ export function databaseToWorkItem(dbRecord, tableName) {
 /**
  * Get table name for a work item
  * @param {string} propertyId - Work item propertyId
+ * @param {Object} workItem - Optional work item to check selectedType for custom work/material
  * @returns {string|null} Database table name
  */
-export function getTableName(propertyId) {
+export function getTableName(propertyId, workItem = null) {
+  // Handle custom work/material - route to correct table based on selectedType
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && workItem) {
+    if (workItem.selectedType === 'Material') {
+      return 'custom_materials';
+    } else {
+      return 'custom_works';
+    }
+  }
   return PROPERTY_TO_TABLE[propertyId] || null;
 }
 

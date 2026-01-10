@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { InterRegular } from './fonts/InterRegular';
 import { InterBold } from './fonts/InterBold';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/constants';
+import { unitToDisplaySymbol } from '../services/workItemsMapping';
 
 // SEPA countries list (European Payments Council members)
 const SEPA_COUNTRIES = new Set([
@@ -130,14 +131,17 @@ const generatePaymentQRCode = async (iban, bic, amount, invoiceNumber, recipient
 const getWorkItemUnit = (item) => {
   // If already has unit in calculation, extract just the unit part
   if (item.calculation?.unit) {
-    const unit = item.calculation.unit;
+    let unit = item.calculation.unit;
     // Remove €/ prefix if present
-    if (unit.startsWith('€/')) return unit.substring(2);
-    return unit;
+    if (unit.startsWith('€/')) unit = unit.substring(2);
+    // Convert iOS unit values to display symbols
+    return unitToDisplaySymbol(unit);
   }
   if (item.unit) {
-    if (item.unit.startsWith('€/')) return item.unit.substring(2);
-    return item.unit;
+    let unit = item.unit;
+    if (unit.startsWith('€/')) unit = unit.substring(2);
+    // Convert iOS unit values to display symbols
+    return unitToDisplaySymbol(unit);
   }
 
   const propertyId = item.propertyId;
@@ -155,7 +159,8 @@ const getWorkItemUnit = (item) => {
   if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) return 'm';
   if (propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) return 'pc';
   if (propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-    return item.selectedUnit || UNIT_TYPES.METER_SQUARE;
+    // Convert iOS unit values (e.g., "squareMeter") to display symbols (e.g., "m²")
+    return unitToDisplaySymbol(item.selectedUnit) || UNIT_TYPES.METER_SQUARE;
   }
 
   // Check based on fields to determine unit
@@ -1010,4 +1015,416 @@ export const generatePriceOfferPDF = (params, t) => {
       offerValidityPeriod: params.offerValidityPeriod
     }
   });
+};
+
+/**
+ * Generate Cash Receipt PDF (Príjmový doklad)
+ * Matches iOS InvoicePDFCreator.renderCashReceipt()
+ * Simpler document for cash payments - proof of payment received
+ */
+export const generateCashReceiptPDF = async ({
+  invoice,
+  contractor,
+  client,
+  totalWithVAT,
+  formatDate,
+  formatPrice,
+  t
+}) => {
+  try {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Register custom fonts
+    doc.addFileToVFS('Inter-Regular.ttf', InterRegular);
+    doc.addFileToVFS('Inter-Bold.ttf', InterBold);
+    doc.addFont('Inter-Regular.ttf', 'Inter', 'normal');
+    doc.addFont('Inter-Bold.ttf', 'Inter', 'bold');
+    doc.setFont('Inter', 'normal');
+
+    // Helper to sanitize text
+    const sanitizeText = (text) => {
+      if (!text) return '';
+      return String(text).replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    };
+
+    // Helper to format currency
+    const formatCurrency = (amount) => {
+      if (formatPrice) return formatPrice(amount);
+      return new Intl.NumberFormat('sk-SK', { style: 'currency', currency: 'EUR' }).format(amount || 0);
+    };
+
+    const pageWidth = 210;
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+    let currentY = 25;
+
+    // === TITLE ===
+    doc.setFontSize(20);
+    doc.setFont('Inter', 'bold');
+    const title = `${t('Cash Receipt')} ${invoice.invoiceNumber}`;
+    doc.text(sanitizeText(title), margin, currentY);
+    currentY += 15;
+
+    // === THREE INFO BOXES ===
+    const boxWidth = contentWidth / 3 - 3;
+    const boxHeight = 18;
+    const boxY = currentY;
+    const borderRadius = 2;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.setFontSize(8);
+
+    // Box 1: Purpose
+    const box1X = margin;
+    doc.roundedRect(box1X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+    doc.setFont('Inter', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(sanitizeText(t('Purpose')), box1X + 3, boxY + 5);
+    doc.setFont('Inter', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9);
+    const purposeText = `${t('Payment for Invoice')} ${invoice.invoiceNumber}`;
+    const purposeLines = doc.splitTextToSize(sanitizeText(purposeText), boxWidth - 6);
+    doc.text(purposeLines, box1X + 3, boxY + 11);
+
+    // Box 2: Date of Issue
+    const box2X = margin + boxWidth + 4;
+    doc.setFontSize(8);
+    doc.roundedRect(box2X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+    doc.setFont('Inter', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(sanitizeText(t('Date of Issue')), box2X + 3, boxY + 5);
+    doc.setFont('Inter', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text(sanitizeText(formatDate(invoice.issueDate)), box2X + 3, boxY + 11);
+
+    // Box 3: Total Price
+    const box3X = margin + (boxWidth + 4) * 2;
+    doc.setFontSize(8);
+    doc.roundedRect(box3X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+    doc.setFont('Inter', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(sanitizeText(t('Total price')), box3X + 3, boxY + 5);
+    doc.setFont('Inter', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(sanitizeText(formatCurrency(totalWithVAT)), box3X + 3, boxY + 12);
+
+    currentY = boxY + boxHeight + 15;
+
+    // === TWO COLUMN LAYOUT: Customer (left) | Made by + Signature (right) ===
+    const leftColX = margin;
+    const rightColX = margin + contentWidth / 2 + 10;
+    const rightColWidth = contentWidth / 2 - 10;
+
+    // LEFT COLUMN: Customer info
+    doc.setFontSize(11);
+    doc.setFont('Inter', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(sanitizeText(t('Customer')), leftColX, currentY);
+    currentY += 6;
+
+    doc.setFontSize(9);
+    doc.setFont('Inter', 'normal');
+    let clientY = currentY;
+
+    if (client) {
+      if (client.name) {
+        doc.setFont('Inter', 'bold');
+        doc.text(sanitizeText(client.name), leftColX, clientY);
+        doc.setFont('Inter', 'normal');
+        clientY += 4;
+      }
+      const street = client.street || client.address;
+      if (street) {
+        doc.text(sanitizeText(street), leftColX, clientY);
+        clientY += 4;
+      }
+      const secondRow = client.second_row_street || client.secondRowStreet;
+      if (secondRow) {
+        doc.text(sanitizeText(secondRow), leftColX, clientY);
+        clientY += 4;
+      }
+      const postal = client.postal_code || client.postalCode;
+      const city = client.city;
+      if (postal || city) {
+        doc.text(sanitizeText([postal, city].filter(Boolean).join(' ')), leftColX, clientY);
+        clientY += 4;
+      }
+      const country = client.country;
+      if (country) {
+        doc.text(sanitizeText(country), leftColX, clientY);
+        clientY += 4;
+      }
+      // Business IDs
+      clientY += 2;
+      const businessId = client.business_id || client.businessId;
+      const taxId = client.tax_id || client.taxId;
+      const vatId = client.vat_registration_number || client.vatId || client.vatNumber;
+      if (businessId) {
+        doc.text(sanitizeText(`IČO: ${businessId}`), leftColX, clientY);
+        clientY += 4;
+      }
+      if (taxId) {
+        doc.text(sanitizeText(`DIČ: ${taxId}`), leftColX, clientY);
+        clientY += 4;
+      }
+      if (vatId) {
+        doc.text(sanitizeText(`IČ DPH: ${vatId}`), leftColX, clientY);
+        clientY += 4;
+      }
+    } else {
+      doc.text('-', leftColX, clientY);
+    }
+
+    // RIGHT COLUMN: Made by + Total + Signature
+    let rightY = currentY;
+
+    // Made by
+    if (contractor?.name) {
+      doc.setFontSize(9);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText(t('Made by')), rightColX, rightY);
+      doc.setFont('Inter', 'bold');
+      doc.text(sanitizeText(contractor.name), rightColX + rightColWidth, rightY, { align: 'right' });
+      rightY += 8;
+    }
+
+    // Divider line
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.line(rightColX, rightY, rightColX + rightColWidth, rightY);
+    rightY += 8;
+
+    // Total prices summary
+    doc.setFontSize(10);
+    doc.setFont('Inter', 'normal');
+
+    // Calculate VAT (assuming 23%)
+    const vatRate = 0.23;
+    const totalWithoutVAT = totalWithVAT / (1 + vatRate);
+    const vatAmount = totalWithVAT - totalWithoutVAT;
+
+    doc.text(sanitizeText(t('without VAT')), rightColX, rightY);
+    doc.text(sanitizeText(formatCurrency(totalWithoutVAT)), rightColX + rightColWidth, rightY, { align: 'right' });
+    rightY += 5;
+
+    doc.text(sanitizeText(t('VAT (23%)')), rightColX, rightY);
+    doc.text(sanitizeText(formatCurrency(vatAmount)), rightColX + rightColWidth, rightY, { align: 'right' });
+    rightY += 5;
+
+    doc.setFont('Inter', 'bold');
+    doc.setFontSize(11);
+    doc.text(sanitizeText(t('Total price')), rightColX, rightY);
+    doc.text(sanitizeText(formatCurrency(totalWithVAT)), rightColX + rightColWidth, rightY, { align: 'right' });
+    rightY += 12;
+
+    // Signature
+    doc.setFontSize(8);
+    doc.setFont('Inter', 'normal');
+    doc.text(sanitizeText(t('Issued by:')), rightColX, rightY);
+    rightY += 3;
+
+    if (contractor?.signature) {
+      try {
+        let format = 'PNG';
+        if (typeof contractor.signature === 'string' && contractor.signature.startsWith('data:image/')) {
+          if (contractor.signature.includes('jpeg') || contractor.signature.includes('jpg')) format = 'JPEG';
+        }
+        doc.addImage(contractor.signature, format, rightColX, rightY, 40, 20);
+        rightY += 25;
+      } catch (e) {
+        console.warn('Failed to add signature:', e);
+        doc.line(rightColX, rightY + 15, rightColX + 40, rightY + 15);
+        rightY += 20;
+      }
+    } else {
+      doc.line(rightColX, rightY + 15, rightColX + 40, rightY + 15);
+      rightY += 20;
+    }
+
+    // === FOOTER SECTION - Same as invoice (4 icons + 3 columns) ===
+    // Top row ABOVE divider: Name | Phone | Web | Email (equally spaced with icons)
+    const topRowY = 252;
+    const footerPageWidth = 170; // usable width (20 to 190)
+    const startX = 20;
+
+    // Helper function to draw simple icons using only supported jsPDF methods
+    const drawIcon = (type, x, y, size = 3) => {
+      doc.setDrawColor(80, 80, 80);
+      doc.setFillColor(80, 80, 80);
+      doc.setLineWidth(0.2);
+
+      if (type === 'user') {
+        // Simple user icon - circle head + shoulders (two circles)
+        doc.circle(x + size / 2, y - size * 0.6, size / 4, 'S');
+        doc.circle(x + size / 2, y - size * 0.1, size / 3, 'S');
+      } else if (type === 'phone') {
+        // Simple phone icon - rectangle
+        doc.roundedRect(x, y - size, size * 0.6, size, 0.3, 0.3, 'S');
+      } else if (type === 'web') {
+        // Simple globe icon - circle with cross lines
+        doc.circle(x + size / 2, y - size / 2, size / 2, 'S');
+        doc.line(x, y - size / 2, x + size, y - size / 2);
+        doc.line(x + size / 2, y - size, x + size / 2, y);
+      } else if (type === 'email') {
+        // Simple envelope icon - rectangle with V
+        doc.rect(x, y - size * 0.7, size, size * 0.7, 'S');
+        doc.line(x, y - size * 0.7, x + size / 2, y - size * 0.3);
+        doc.line(x + size, y - size * 0.7, x + size / 2, y - size * 0.3);
+      }
+    };
+
+    // Calculate positions for 4 equal columns
+    const colWidth = footerPageWidth / 4;
+    const col1 = startX;
+    const col2 = startX + colWidth;
+    const col3 = startX + colWidth * 2;
+    const col4 = startX + colWidth * 3;
+    const iconOffset = 5; // Space after icon for text
+    const textMaxWidth = colWidth - iconOffset - 2; // Available width for text (with small margin)
+    const iconLineHeight = 2.5; // Line height for wrapped text
+
+    doc.setFontSize(7);
+    doc.setTextColor(0, 0, 0);
+
+    // Helper to draw wrapped text for footer icons
+    const drawWrappedIconText = (text, x, y, maxWidth, bold = false) => {
+      if (!text) return 0;
+      doc.setFont('Inter', bold ? 'bold' : 'normal');
+      const lines = doc.splitTextToSize(sanitizeText(text), maxWidth);
+
+      // Vertical centering adjustment
+      const adjustment = (lines.length - 1) * iconLineHeight / 2;
+      const startY = y - adjustment;
+
+      lines.forEach((line, i) => {
+        doc.text(line, x, startY + (i * iconLineHeight));
+      });
+      return lines.length;
+    };
+
+    // Column 1: Contact Person with user icon
+    const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
+    if (contactPerson) {
+      drawIcon('user', col1, topRowY, 3);
+      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, true);
+    }
+
+    // Column 2: Phone with phone icon
+    doc.setFont('Inter', 'normal');
+    if (contractor?.phone) {
+      drawIcon('phone', col2, topRowY, 3);
+      drawWrappedIconText(contractor.phone, col2 + iconOffset, topRowY, textMaxWidth);
+    }
+
+    // Column 3: Web with globe icon
+    if (contractor?.website) {
+      drawIcon('web', col3, topRowY, 3);
+      drawWrappedIconText(contractor.website, col3 + iconOffset, topRowY, textMaxWidth);
+    }
+
+    // Column 4: Email with envelope icon
+    if (contractor?.email) {
+      drawIcon('email', col4, topRowY, 3);
+      drawWrappedIconText(contractor.email, col4 + iconOffset, topRowY, textMaxWidth);
+    }
+
+    // Divider line - equal spacing above and below
+    const dividerY = 256;
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(0, 0, 0);
+    doc.line(20, dividerY, 190, dividerY);
+
+    // Three columns BELOW divider
+    const col1X = 20;      // Left column - Address
+    const col2X = 80;      // Middle column - Business IDs
+    const col3X = 140;     // Right column - Bank info
+    let colY = dividerY + 4; // Equal gap below divider
+
+    doc.setFontSize(7);
+    doc.setFont('Inter', 'normal');
+
+    // Collect all column data first to calculate heights
+    const contractorStreet = contractor?.street;
+    const contractorAdditional = contractor?.second_row_street || contractor?.additionalInfo;
+    const contractorCity = contractor?.city;
+    const contractorPostal = contractor?.postal_code || contractor?.postalCode;
+    const contractorCountry = contractor?.country;
+    const contractorBusinessId = contractor?.business_id || contractor?.businessId;
+    const contractorTaxId = contractor?.tax_id || contractor?.taxId;
+    const contractorVatId = contractor?.vat_registration_number || contractor?.vatNumber;
+    const legalNotice = contractor?.legal_notice || contractor?.legalAppendix;
+    const bankAccount = contractor?.bank_account_number || contractor?.bankAccount;
+    const swiftCode = contractor?.swift_code || contractor?.bankCode;
+
+    // Build column 1 lines (Address)
+    const footerCol1Lines = [];
+    if (contractor?.name) footerCol1Lines.push({ text: contractor.name, bold: true });
+    if (contractorStreet) footerCol1Lines.push({ text: contractorStreet });
+    if (contractorAdditional) footerCol1Lines.push({ text: contractorAdditional });
+    const cityLine = [contractorPostal, contractorCity].filter(Boolean).join(' ');
+    if (cityLine) footerCol1Lines.push({ text: cityLine });
+    if (contractorCountry) footerCol1Lines.push({ text: contractorCountry });
+
+    // Build column 2 lines (Business IDs)
+    const footerCol2Lines = [];
+    if (contractorBusinessId) footerCol2Lines.push({ text: `IČO: ${contractorBusinessId}` });
+    if (contractorTaxId) footerCol2Lines.push({ text: `DIČ: ${contractorTaxId}` });
+    if (contractorVatId) footerCol2Lines.push({ text: `IČ DPH: ${contractorVatId}` });
+
+    // Build column 3 lines (Bank info)
+    const footerCol3Lines = [];
+    if (legalNotice) footerCol3Lines.push({ text: `${t('Legal File Ref')}: ${legalNotice}` });
+    if (bankAccount) footerCol3Lines.push({ text: `IBAN: ${bankAccount}` });
+    if (swiftCode) footerCol3Lines.push({ text: `SWIFT kód: ${swiftCode}` });
+
+    // Calculate max lines and bottom Y position
+    const footerLineHeight = 3.5;
+    const maxLines = Math.max(footerCol1Lines.length, footerCol2Lines.length, footerCol3Lines.length);
+    const bottomY = colY + (maxLines * footerLineHeight);
+
+    // Draw column 1 (bottom-aligned)
+    const col1StartY = bottomY - (footerCol1Lines.length * footerLineHeight);
+    footerCol1Lines.forEach((line, i) => {
+      if (line.bold) {
+        doc.setFont('Inter', 'bold');
+      } else {
+        doc.setFont('Inter', 'normal');
+      }
+      doc.text(sanitizeText(line.text), col1X, col1StartY + (i * footerLineHeight));
+    });
+    doc.setFont('Inter', 'normal');
+
+    // Draw column 2 (bottom-aligned)
+    const col2StartY = bottomY - (footerCol2Lines.length * footerLineHeight);
+    footerCol2Lines.forEach((line, i) => {
+      doc.text(sanitizeText(line.text), col2X, col2StartY + (i * footerLineHeight));
+    });
+
+    // Draw column 3 (bottom-aligned)
+    const col3StartY = bottomY - (footerCol3Lines.length * footerLineHeight);
+    footerCol3Lines.forEach((line, i) => {
+      doc.text(sanitizeText(line.text), col3X, col3StartY + (i * footerLineHeight));
+    });
+
+    // App attribution - bottom center
+    doc.setFontSize(6);
+    doc.text(sanitizeText(t('Generated by Fido Building Calcul app.')), 105, 290, { align: 'center' });
+
+    // Generate PDF blob and URL
+    const pdfBlob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(pdfBlob);
+
+    return { doc, blobUrl, pdfBlob };
+  } catch (error) {
+    console.error('Error generating cash receipt PDF:', error);
+    throw error;
+  }
 };

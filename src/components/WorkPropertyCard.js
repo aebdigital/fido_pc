@@ -13,6 +13,7 @@ import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 import { SimpleLayerIcon, DoubleLayerIcon, TripleLayerIcon, ActiveLayersIcon } from './LayerIcons';
+import { unitToDisplaySymbol } from '../services/workItemsMapping';
 
 // Helper to get the item label based on property type
 const getItemLabel = (property, item, index, t) => {
@@ -222,12 +223,14 @@ const WorkPropertyCard = ({
     }
 
     // For custom work, show selected unit for Quantity and Price fields
+    // Convert iOS unit values (e.g., "squareMeter") to display symbols (e.g., "m²")
     let unitDisplay = field.unit;
     if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit) {
+      const displayUnit = unitToDisplaySymbol(item.selectedUnit);
       if (field.name === WORK_ITEM_NAMES.QUANTITY) {
-        unitDisplay = item.selectedUnit;
+        unitDisplay = displayUnit;
       } else if (field.name === WORK_ITEM_NAMES.PRICE) {
-        unitDisplay = `€/${item.selectedUnit}`;
+        unitDisplay = `€/${displayUnit}`;
       }
     }
 

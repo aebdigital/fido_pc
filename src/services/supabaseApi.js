@@ -514,16 +514,40 @@ export const invoicesApi = {
   // Update invoice
   update: async (id, updates) => {
     try {
+      console.log('[SUPABASE invoicesApi.update] Updating invoice with c_id:', id);
+      console.log('[SUPABASE invoicesApi.update] Updates:', JSON.stringify(updates).slice(0, 1000));
+
+      // First, verify the invoice exists before updating
+      const { data: existingInvoice, error: fetchError } = await supabase
+        .from('invoices')
+        .select('c_id, number')
+        .eq('c_id', id)
+        .single()
+
+      console.log('[SUPABASE invoicesApi.update] Existing invoice check:', existingInvoice, 'fetchError:', fetchError);
+
+      if (fetchError || !existingInvoice) {
+        console.error('[SUPABASE invoicesApi.update] Invoice not found before update! c_id:', id);
+        return null
+      }
+
       const { data, error } = await supabase
         .from('invoices')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('c_id', id)
         .select()
-        .single()
+
+      console.log('[SUPABASE invoicesApi.update] Response - data:', data, 'error:', error);
 
       if (error) throw error
+      // Handle case where invoice doesn't exist (returns empty array)
+      if (!data || data.length === 0) {
+        console.warn(`[SUPABASE] Invoice with c_id ${id} not found after update`)
+        return null
+      }
       // Map c_id to id for app compatibility
-      return data ? { ...data, id: data.c_id } : null
+      console.log('[SUPABASE invoicesApi.update] Update successful, returning:', data[0].c_id);
+      return { ...data[0], id: data[0].c_id }
     } catch (error) {
       handleError('invoicesApi.update', error)
     }
@@ -803,22 +827,34 @@ export const priceListsApi = {
       const c_id = crypto.randomUUID()
       const now = new Date().toISOString()
 
+      console.log('[SUPABASE createForProject] Creating price list for project:', projectId);
+      console.log('[SUPABASE createForProject] contractor_id:', contractorId);
+      console.log('[SUPABASE createForProject] c_id:', c_id);
+      console.log('[SUPABASE createForProject] Sample prices:', {
+        work_demolition_price: generalPriceData.work_demolition_price,
+        work_plastering_wall_price: generalPriceData.work_plastering_wall_price
+      });
+
+      const insertData = {
+        ...generalPriceData,
+        c_id,
+        user_id: userId,
+        contractor_id: contractorId,
+        project_id: projectId,
+        is_general: false,
+        date_created: now,
+        date_edited: now,
+        created_at: now,
+        updated_at: now
+      };
+
       const { data, error } = await supabase
         .from('price_lists')
-        .insert([{
-          ...generalPriceData,
-          c_id,
-          user_id: userId,
-          contractor_id: contractorId,
-          project_id: projectId,
-          is_general: false,
-          date_created: now,
-          date_edited: now,
-          created_at: now,
-          updated_at: now
-        }])
+        .insert([insertData])
         .select()
         .single()
+
+      console.log('[SUPABASE createForProject] Response - data:', data?.c_id, 'error:', error);
 
       if (error) throw error
       return data ? { ...data, id: data.c_id } : null

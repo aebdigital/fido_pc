@@ -2,6 +2,52 @@ import { useCallback } from 'react';
 import api from '../services/supabaseApi';
 import { transformInvoiceFromDB, invoiceStatusToDatabase, INVOICE_STATUS, PROJECT_EVENTS } from '../utils/dataTransformers';
 
+// Transform desktop invoice items to iOS-compatible format for sync
+const transformItemsForIOS = (items) => {
+  if (!items) return null;
+
+  // Map display units to iOS enum values
+  const displayToIOSUnit = {
+    'm²': 'squareMeter',
+    'm2': 'squareMeter',
+    'm': 'meter',
+    'ks': 'piece',
+    'pc': 'piece',
+    'h': 'hour',
+    'km': 'kilometer',
+    'kg': 'kilogram',
+    'l': 'liter',
+    'm³': 'cubicMeter',
+    'm3': 'cubicMeter',
+    'bm': 'runningMeter',
+    '%': 'percentage',
+    'percent': 'percentage',
+    'percentage': 'percentage'
+  };
+
+  return items.map(item => ({
+    id: item.id,
+    // iOS uses 'titleKey' for the localized string key
+    titleKey: item.title || '',
+    pieces: item.pieces || 0,
+    pricePerPiece: item.pricePerPiece || 0,
+    price: item.price || 0,
+    vat: item.vat || 23,
+    // Convert display unit to iOS enum
+    unit: displayToIOSUnit[item.unit] || item.unit || 'squareMeter',
+    category: item.category || 'work',
+    active: item.active !== false,
+    taxObligationTransfer: item.taxObligationTransfer || false
+  }));
+};
+
+// Map desktop payment method to iOS value
+const paymentMethodToIOS = (method) => {
+  // iOS uses 'bankTransfer', Desktop uses 'transfer'
+  if (method === 'transfer') return 'bankTransfer';
+  return method || 'bankTransfer';
+};
+
 export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, updateProject) => {
   const createInvoice = useCallback(async (projectId, categoryId, invoiceData, findProjectById) => {
     try {
@@ -11,21 +57,33 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
       if (!project) return null;
 
+      // Transform invoice items to iOS-compatible format
+      const iosItems = transformItemsForIOS(invoiceData.invoiceItems);
+
       const mappedInvoiceData = {
-        number: 0, // Set to 0 to trigger database auto-assignment
-        date_created: new Date(invoiceData.issueDate).toISOString(),
+        // Use user's invoice number if provided, otherwise use 0 for auto-assignment
+        number: invoiceData.invoiceNumber ? parseInt(invoiceData.invoiceNumber) : 0,
+        // Store date_created as YYYY-MM-DD string to avoid timezone conversion issues
+        date_created: invoiceData.issueDate, // Already in YYYY-MM-DD format from the date picker
         date_of_dispatch: invoiceData.dispatchDate,
-        payment_type: invoiceData.paymentMethod || 'transfer',
+        // Use iOS-compatible payment type (bankTransfer instead of transfer)
+        payment_type: paymentMethodToIOS(invoiceData.paymentMethod),
         maturity_days: invoiceData.paymentDays || 30,
         note: invoiceData.notes || null,
         project_id: projectId,
         // c_id will be auto-generated as UUID in supabaseApi.js
         client_id: project.clientId,
         contractor_id: appData.activeContractorId,
-        status: 'unsent'
+        status: 'unsent',
+        // Invoice items data in iOS-compatible format
+        invoice_items_data: iosItems ? JSON.stringify(iosItems) : null,
+        // Price data
+        price_without_vat: invoiceData.priceWithoutVat || 0,
+        cumulative_vat: invoiceData.cumulativeVat || 0
       };
 
       console.log('[DEBUG] Creating invoice with data:', mappedInvoiceData);
+      console.log('[DEBUG] date_created being sent:', mappedInvoiceData.date_created, 'issueDate from invoiceData:', invoiceData.issueDate);
       const dbInvoice = await api.invoices.create(mappedInvoiceData);
       console.log('[DEBUG] Invoice created from DB:', dbInvoice);
 
@@ -63,7 +121,11 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
   const updateInvoice = useCallback(async (invoiceId, updates) => {
     try {
+      console.log('[DEBUG updateInvoice] Starting update for invoiceId:', invoiceId);
+      console.log('[DEBUG updateInvoice] Updates received:', updates);
+
       const invoice = appData.invoices.find(inv => inv.id === invoiceId);
+      console.log('[DEBUG updateInvoice] Found existing invoice:', invoice?.id, 'number:', invoice?.invoiceNumber);
 
       // Map app camelCase fields to DB snake_case fields
       const dbUpdates = {};
@@ -71,15 +133,33 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       if (updates.invoiceNumber !== undefined) dbUpdates.number = updates.invoiceNumber;
       if (updates.issueDate !== undefined) dbUpdates.date_created = updates.issueDate;
       if (updates.dispatchDate !== undefined) dbUpdates.date_of_dispatch = updates.dispatchDate;
-      if (updates.paymentMethod !== undefined) dbUpdates.payment_type = updates.paymentMethod;
+      // Use iOS-compatible payment type (bankTransfer instead of transfer)
+      if (updates.paymentMethod !== undefined) dbUpdates.payment_type = paymentMethodToIOS(updates.paymentMethod);
       if (updates.paymentDays !== undefined) dbUpdates.maturity_days = updates.paymentDays;
       if (updates.notes !== undefined) dbUpdates.note = updates.notes;
       // Convert iOS-compatible status to database status
       if (updates.status !== undefined) dbUpdates.status = invoiceStatusToDatabase(updates.status);
+      // Invoice items data in iOS-compatible format
+      if (updates.invoiceItems !== undefined) {
+        const iosItems = transformItemsForIOS(updates.invoiceItems);
+        dbUpdates.invoice_items_data = JSON.stringify(iosItems);
+      }
+      // Price data
+      if (updates.priceWithoutVat !== undefined) dbUpdates.price_without_vat = updates.priceWithoutVat;
+      if (updates.cumulativeVat !== undefined) dbUpdates.cumulative_vat = updates.cumulativeVat;
+
+      console.log('[DEBUG updateInvoice] Mapped dbUpdates:', dbUpdates);
 
       // Only call API if there are mappable updates
       if (Object.keys(dbUpdates).length > 0) {
-        await api.invoices.update(invoiceId, dbUpdates);
+        console.log('[DEBUG updateInvoice] Calling api.invoices.update with id:', invoiceId);
+        const result = await api.invoices.update(invoiceId, dbUpdates);
+        console.log('[DEBUG updateInvoice] API result:', result);
+
+        if (!result) {
+          console.error('[DEBUG updateInvoice] API returned null - invoice may not exist in DB');
+          throw new Error('Invoice not found in database');
+        }
       }
 
       setAppData(prev => {

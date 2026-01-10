@@ -176,7 +176,9 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   // --- Handlers ---
 
   const getVATRate = () => {
-    const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
+    // Use project's price list first, fall back to general price list
+    const activePriceList = project?.priceListSnapshot || generalPriceList;
+    const vatItem = activePriceList?.others?.find(item => item.name === 'VAT');
     return vatItem ? vatItem.price / 100 : 0.23;
   };
 
@@ -1152,8 +1154,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             </div>
           </div>
 
-          {/* History */}
-          <div className="space-y-4">
+          {/* History - Hidden on mobile, shown on desktop */}
+          <div className="space-y-4 hidden lg:block">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
@@ -1233,13 +1235,23 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                 <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fotografie')}</h2>
               </div>
-              {!project.is_archived && projectPhotos.length > 0 && (
-                <button
-                  className="p-3 rounded-2xl flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
-                  onClick={() => setPhotoDeleteMode(!photoDeleteMode)}
-                >
-                  <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
-                </button>
+              {!project.is_archived && (
+                <div className="flex items-center gap-2">
+                  {projectPhotos.length > 0 && (
+                    <button
+                      className="p-3 rounded-2xl flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
+                      onClick={() => setPhotoDeleteMode(!photoDeleteMode)}
+                    >
+                      <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                    </button>
+                  )}
+                  <button
+                    className="p-3 rounded-2xl flex items-center justify-center bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                    onClick={() => photoInputRef.current?.click()}
+                  >
+                    <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
+                  </button>
+                </div>
               )}
             </div>
             <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
@@ -1330,6 +1342,47 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 </span>
               </div>
             )}
+          </div>
+
+          {/* History - Mobile only, shown after Photos */}
+          <div className="space-y-4 lg:hidden">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
+            </div>
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
+              {(() => {
+                const history = getProjectHistory(project.id) || [];
+
+                // Check if history already has a "created" event (case-insensitive)
+                const hasCreatedEvent = history.some(e =>
+                  e.type && e.type.toLowerCase() === 'created'
+                );
+
+                // Only add synthetic "Created" if not already in history (for backwards compatibility)
+                let allEvents = [...history];
+                if (!hasCreatedEvent && project.created_at) {
+                  allEvents.push({ type: 'Created', date: project.created_at });
+                }
+
+                // Sort newest first
+                allEvents = allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                return allEvents.map((event, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {t(event.type)}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {event.date ? new Date(event.date).toLocaleString('sk-SK', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </span>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
           </div>
         </div>
       </div>

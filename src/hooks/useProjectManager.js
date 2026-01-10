@@ -98,14 +98,21 @@ export const useProjectManager = (appData, setAppData) => {
       // This mimics iOS behavior: copy general price list values to a new row with is_general=false
       try {
         const dbPriceData = priceListToDbColumns(priceListSnapshot);
+        console.log('[addProject] Creating price list with data:', JSON.stringify(dbPriceData).slice(0, 500));
+
         const createdPriceList = await api.priceLists.createForProject(projectCId, activeContractorId, dbPriceData);
-        console.log('[addProject] Created project price list for iOS compatibility');
+        console.log('[addProject] Created project price list:', createdPriceList?.c_id, 'for iOS compatibility');
 
         // CRITICAL: Update the project with the price_list_id so iOS can link them
         // Without this, iOS will create a new default price list with default values (15€ etc.)
         if (createdPriceList && createdPriceList.c_id) {
           await api.projects.update(projectCId, { price_list_id: createdPriceList.c_id });
           console.log('[addProject] Linked price_list_id to project:', createdPriceList.c_id);
+
+          // Also update the newProject object so it has the price_list_id
+          newProject.price_list_id = createdPriceList.c_id;
+        } else {
+          console.warn('[addProject] Price list created but no c_id returned');
         }
       } catch (priceListError) {
         console.error('[addProject] Failed to create project price list:', priceListError);
@@ -829,7 +836,7 @@ export const useProjectManager = (appData, setAppData) => {
     const savedParentItems = []; // Track saved items with their doors/windows
 
     await Promise.all(parentItems.map(async (workItem) => {
-      const tableName = getTableName(workItem.propertyId);
+      const tableName = getTableName(workItem.propertyId, workItem);
       if (!tableName) {
         console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
         return;
@@ -893,7 +900,7 @@ export const useProjectManager = (appData, setAppData) => {
 
     // Second pass: Save linked items with updated linkedToParent
     await Promise.all(linkedItems.map(async (workItem) => {
-      const tableName = getTableName(workItem.propertyId);
+      const tableName = getTableName(workItem.propertyId, workItem);
       if (!tableName) {
         console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
         return;

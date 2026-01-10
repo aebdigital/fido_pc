@@ -8,6 +8,7 @@ import {
   MATERIAL_MULTIPLIERS
 } from '../config/constants';
 import { getMaterialKey, findMaterialByKey, getAdhesiveKey, findAdhesiveByKey } from '../config/materialKeys';
+import { unitToDisplaySymbol } from '../services/workItemsMapping';
 
 /**
  * Check if a subtitle contains a subtype (handles both English and Slovak)
@@ -587,7 +588,9 @@ export const calculateWorkItemWithMaterials = (
   if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
     const totalCost = calculateWorkItemPrice(workItem, null);
     const quantity = parseFloat(values[WORK_ITEM_NAMES.QUANTITY] || 0);
-    const unit = workItem.selectedUnit || values[WORK_ITEM_NAMES.UNIT] || values.Unit || UNIT_TYPES.METER_SQUARE;
+    // Convert iOS unit values (e.g., "squareMeter") to display symbols (e.g., "m²")
+    const rawUnit = workItem.selectedUnit || values[WORK_ITEM_NAMES.UNIT] || values.Unit || UNIT_TYPES.METER_SQUARE;
+    const unit = unitToDisplaySymbol(rawUnit);
 
     if (workItem.selectedType === 'Material') {
       return { workCost: 0, materialCost: totalCost, quantity, unit };
