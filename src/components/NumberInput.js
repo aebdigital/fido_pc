@@ -43,7 +43,6 @@ const NumberInput = ({
     value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString().replace('.', ',') : ''
   );
   const [isFocused, setIsFocused] = useState(false);
-  const [showMathToolbar, setShowMathToolbar] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -115,7 +114,6 @@ const NumberInput = ({
 
   const handleInputBlur = () => {
     setIsFocused(false);
-    setShowMathToolbar(false);
     // Unregister from global keyboard toolbar
     unregisterActiveInput(inputRef);
     processAndSubmit();
@@ -123,9 +121,8 @@ const NumberInput = ({
 
   const handleInputFocus = () => {
     setIsFocused(true);
-    // Only show math toolbar on touch devices (no hardware keyboard)
+    // Only register with math toolbar on touch devices (no hardware keyboard)
     const isTouch = isTouchDevice();
-    setShowMathToolbar(isTouch);
 
     // Register with global keyboard toolbar for touch devices
     if (isTouch) {
