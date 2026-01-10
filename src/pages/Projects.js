@@ -543,7 +543,10 @@ const Projects = () => {
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
                         </div>
-                        <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white truncate max-w-[18ch] lg:max-w-none">{project.name}</h3>
+                        <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white lg:truncate">
+                          <span className="lg:hidden">{project.name.length > 15 ? `${project.name.substring(0, 15)}...` : project.name}</span>
+                          <span className="hidden lg:inline">{project.name}</span>
+                        </h3>
                         {/* Client name - visible on all screen sizes */}
                         <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1 truncate">
                           {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
