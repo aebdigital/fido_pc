@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import {
   User,
   ClipboardList,
@@ -36,6 +35,7 @@ import InvoiceCreationModal from './InvoiceCreationModal';
 import InvoiceDetailModal from './InvoiceDetailModal';
 import PDFPreviewModal from './PDFPreviewModal';
 import ClientForm from './ClientForm';
+import PaywallModal from './PaywallModal';
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t } = useLanguage();
@@ -1833,20 +1833,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         title={`${t('Cenová ponuka')} - ${project.name}`}
       />
 
-      {showPaywall && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md text-center">
-            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{t('Become Pro!')}</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">{t('Unlock PDF export, unlimited projects, and more.')}</p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowPaywall(false)} className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-xl">{t('Close')}</button>
-              <Link to="/settings" onClick={() => setShowPaywall(false)} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center font-semibold">
-                {t('Go to Settings')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Paywall Modal with Stripe integration */}
+      <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
     </div>
   );
 };

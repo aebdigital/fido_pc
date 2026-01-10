@@ -41,7 +41,11 @@ export const AppDataProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false); // Pro status
 
+  // RevenueCat API Key - use secret key for server-side operations
   const RC_API_KEY = "sk_puuududJBAxTZDOuimFLoJJgqORLv";
+
+  // Stripe publishable key for client-side
+  const STRIPE_PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
 
   const checkProStatus = useCallback(async () => {
     if (!user?.id) return;
@@ -110,6 +114,39 @@ export const AppDataProvider = ({ children }) => {
       console.error("Failed to grant promotional entitlement:", error);
       return false;
     }
+  };
+
+  // Stripe checkout for Pro subscription
+  const initiateStripeCheckout = async (priceId) => {
+    if (!user?.id || !STRIPE_PUBLISHABLE_KEY) {
+      console.error("Missing user ID or Stripe key");
+      return { success: false, error: "Configuration error" };
+    }
+
+    try {
+      // Load Stripe
+      const { loadStripe } = await import('@stripe/stripe-js');
+      const stripe = await loadStripe(STRIPE_PUBLISHABLE_KEY);
+
+      if (!stripe) {
+        return { success: false, error: "Failed to load Stripe" };
+      }
+
+      // For a complete implementation, you would create a checkout session
+      // via your backend (Supabase Edge Function) and redirect to Stripe Checkout.
+      // This is a simplified client-side approach using Stripe Payment Links.
+
+      // Return stripe instance for use with payment links or embedded checkout
+      return { success: true, stripe };
+    } catch (error) {
+      console.error("Failed to initiate Stripe checkout:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Refresh pro status (useful after successful payment)
+  const refreshProStatus = async () => {
+    await checkProStatus();
   };
 
   useEffect(() => {
@@ -961,7 +998,10 @@ export const AppDataProvider = ({ children }) => {
     // Pro Status
     isPro,
     grantPromotionalEntitlement,
-    checkProStatus
+    checkProStatus,
+    refreshProStatus,
+    initiateStripeCheckout,
+    stripePublishableKey: STRIPE_PUBLISHABLE_KEY
   };
 
   // Show loading screen while data is being fetched
