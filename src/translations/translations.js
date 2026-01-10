@@ -659,6 +659,8 @@ export const translations = {
     "Cash": "Hotovosť",
     "Transfer": "Prevodom",
     "Preview Invoice": "Náhľad faktúry",
+    "Open in new tab": "Otvoriť v novom okne",
+    "Pinch to zoom": "Prstami priblížte",
     "Send Invoice": "Poslať",
     "Generate Invoice": "Vygenerovať faktúru",
     "Invoice Settings": "Nastavenia",
