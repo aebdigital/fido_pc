@@ -19,6 +19,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const lastSavedData = useRef(null);
   const onSaveRef = useRef(onSave);
   const isUnmounting = useRef(false);
+  const saveTimerRef = useRef(null);
 
   // Update ref when prop changes
   useEffect(() => {
@@ -75,7 +76,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
     lastSavedData.current = JSON.stringify(initialPrices);
   }, [projectId, generalPriceList, initialData]);
 
-  // Autosave Logic
+  // Autosave Logic with proper debouncing
   useEffect(() => {
     if (!projectPriceData || isUnmounting.current) return;
 
@@ -84,20 +85,31 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
     if (lastSavedData.current && currentDataString !== lastSavedData.current) {
       setSaveStatus('modified');
 
-      const timer = setTimeout(() => {
+      // Clear any existing timer before setting a new one
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+
+      saveTimerRef.current = setTimeout(() => {
         if (isUnmounting.current) return;
 
         setSaveStatus('saving');
         onSaveRef.current(projectPriceData);
         lastSavedData.current = currentDataString;
+        saveTimerRef.current = null;
 
         setTimeout(() => {
           if (!isUnmounting.current) setSaveStatus('saved');
         }, 800);
-      }, 1000);
-
-      return () => clearTimeout(timer);
+      }, 1500); // 1.5 second debounce for more buffer while typing
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
   }, [projectPriceData]);
 
   const handleClose = () => {

@@ -23,6 +23,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
   const lastSavedData = useRef(JSON.stringify(room.workItems || []));
   const onSaveRef = useRef(onSave);
   const isUnmounting = useRef(false);
+  const saveTimerRef = useRef(null);
 
   // Update ref when prop changes
   useEffect(() => {
@@ -77,29 +78,40 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     }
   }, [room.workItems]);
 
-  // Autosave Logic
+  // Autosave Logic with proper debouncing
   useEffect(() => {
     if (isUnmounting.current) return;
 
     const currentDataString = JSON.stringify(workData);
     if (currentDataString !== lastSavedData.current) {
       setSaveStatus('modified');
-      
-      const timer = setTimeout(() => {
+
+      // Clear any existing timer before setting a new one
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+
+      saveTimerRef.current = setTimeout(() => {
         if (isUnmounting.current) return;
-        
+
         setSaveStatus('saving');
         onSaveRef.current(workData);
         lastSavedData.current = currentDataString;
-        
+        saveTimerRef.current = null;
+
         // Short delay to show "Saving" state before switching to "Saved"
         setTimeout(() => {
           if (!isUnmounting.current) setSaveStatus('saved');
         }, 800);
-      }, 1000); // 1 second debounce
-
-      return () => clearTimeout(timer);
+      }, 1500); // 1.5 second debounce for more buffer while typing
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
   }, [workData]);
 
   const handleClose = () => {

@@ -15,6 +15,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
   const lastSavedData = useRef(null);
   const isUnmounting = useRef(false);
+  const saveTimerRef = useRef(null);
 
   // Initialize local state with data from context
   useEffect(() => {
@@ -36,7 +37,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     }
   }, [generalPriceList, localPriceList]);
 
-  // Autosave Logic
+  // Autosave Logic with proper debouncing
   useEffect(() => {
     if (!localPriceList || isUnmounting.current) return;
 
@@ -45,7 +46,12 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     if (lastSavedData.current && currentDataString !== lastSavedData.current) {
       setSaveStatus('modified');
 
-      const timer = setTimeout(() => {
+      // Clear any existing timer before setting a new one
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+
+      saveTimerRef.current = setTimeout(() => {
         if (isUnmounting.current) return;
 
         setSaveStatus('saving');
@@ -72,14 +78,20 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
         setOriginalPrices(JSON.parse(currentDataString));
         lastSavedData.current = currentDataString;
+        saveTimerRef.current = null;
 
         setTimeout(() => {
           if (!isUnmounting.current) setSaveStatus('saved');
         }, 800);
-      }, 1000);
-
-      return () => clearTimeout(timer);
+      }, 1500); // 1.5 second debounce for more buffer while typing
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
   }, [localPriceList, originalPrices, updateGeneralPriceList]);
 
   const handlePriceChange = (category, itemIndex, newPrice) => {
