@@ -189,6 +189,8 @@ export const translations = {
     "Delete receipt": "Vymazať účtenku",
     "Unknown vendor": "Neznámy predajca",
     "No date": "Bez dátumu",
+    "Total": "Celkom",
+    "Date": "Dátum",
     "Failed to analyze receipt. Please try again.": "Nepodarilo sa analyzovať účtenku. Skúste to znova.",
 
     // ========== PDF ABBREVIATIONS ==========
