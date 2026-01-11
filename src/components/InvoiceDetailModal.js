@@ -45,55 +45,67 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const rawProjectBreakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
   const client = clients.find(c => c.id === invoice.clientId);
 
-  // Build projectBreakdown for PDF - filter out inactive items if invoice has saved items
-  // This ensures excluded items don't appear in the PDF
+  // Build projectBreakdown for PDF - reconstruct from saved invoice items if available
+  // This ensures we use the exact items, quantities and prices from the invoice
   const getFilteredProjectBreakdown = () => {
-    if (!rawProjectBreakdown) return null;
-
-    // If the invoice has saved invoice items, filter the breakdown to only include active items
+    // If the invoice has saved invoice items, use them to build the breakdown
     if (invoice.invoiceItems && invoice.invoiceItems.length > 0) {
-      // Get IDs of active items from saved invoice items
-      const activeItemIds = new Set(
-        invoice.invoiceItems
-          .filter(item => item.active !== false)
-          .map(item => item.id)
-      );
-
-      // Filter each category based on active items
-      const filteredBreakdown = {
-        ...rawProjectBreakdown,
-        items: (rawProjectBreakdown.items || []).filter(item =>
-          activeItemIds.has(item.id) || activeItemIds.has(`work_${rawProjectBreakdown.items.indexOf(item)}`)
-        ),
-        materialItems: (rawProjectBreakdown.materialItems || []).filter(item =>
-          activeItemIds.has(item.id) || activeItemIds.has(`material_${rawProjectBreakdown.materialItems.indexOf(item)}`)
-        ),
-        othersItems: (rawProjectBreakdown.othersItems || []).filter(item =>
-          activeItemIds.has(item.id) || activeItemIds.has(`other_${rawProjectBreakdown.othersItems.indexOf(item)}`)
-        )
+      const activeItems = invoice.invoiceItems.filter(item => item.active !== false);
+      
+      const breakdown = {
+        items: [],
+        materialItems: [],
+        othersItems: [],
+        total: 0
       };
 
-      // Recalculate totals based on filtered items
-      let workTotal = 0;
-      let materialTotal = 0;
-      let othersTotal = 0;
+      activeItems.forEach(item => {
+        // Reconstruct item structure expected by generator
+        // Use originalItem properties if available to preserve metadata like propertyId, fields, etc.
+        const original = item.originalItem || {};
+        
+        const reconstructedItem = {
+          ...original, // Keep original props
+          id: item.id, // Use the invoice item ID
+          name: item.title, // Use title from invoice (editable)
+          
+          // Reconstruct calculation object
+          calculation: {
+            quantity: item.pieces,
+            unit: item.unit,
+            // Assign cost to appropriate field based on category
+            workCost: item.category === 'material' ? 0 : item.price,
+            materialCost: item.category === 'material' ? item.price : 0,
+            pricePerUnit: item.pricePerPiece,
+            ...original.calculation // Keep other original calc props if any
+          },
+          
+          unit: item.unit,
+          vatRate: (item.vat !== undefined) ? item.vat / 100 : (original.vatRate || 0.23),
+          
+          // Ensure propertyId is preserved for grouping logic in PDF generator
+          propertyId: original.propertyId || (item.category === 'work' ? 'custom_work' : undefined),
+          
+          // Ensure fields are preserved for specific logic (e.g. scaffolding)
+          fields: original.fields || {},
+          subtitle: original.subtitle
+        };
 
-      filteredBreakdown.items.forEach(item => {
-        workTotal += (item.calculation?.workCost || 0);
-      });
-      filteredBreakdown.materialItems.forEach(item => {
-        materialTotal += (item.calculation?.materialCost || 0);
-      });
-      filteredBreakdown.othersItems.forEach(item => {
-        othersTotal += (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
+        if (item.category === 'work') {
+          breakdown.items.push(reconstructedItem);
+        } else if (item.category === 'material') {
+          breakdown.materialItems.push(reconstructedItem);
+        } else { // 'other'
+          breakdown.othersItems.push(reconstructedItem);
+        }
+        
+        breakdown.total += item.price;
       });
 
-      filteredBreakdown.total = workTotal + materialTotal + othersTotal;
-
-      return filteredBreakdown;
+      return breakdown;
     }
 
-    // No saved invoice items, use full project breakdown
+    // Fallback to raw project breakdown if no saved invoice items (legacy behavior)
     return rawProjectBreakdown;
   };
 
