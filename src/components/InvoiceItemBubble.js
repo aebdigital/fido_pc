@@ -31,6 +31,7 @@ const InvoiceItemBubble = ({
   const [active, setActive] = useState(item.active !== false);
   const [taxObligationTransfer, setTaxObligationTransfer] = useState(item.taxObligationTransfer || false);
   const [unit, setUnit] = useState(item.unit || 'm²');
+  const [vatInputString, setVatInputString] = useState(item.vat !== undefined ? String(item.vat) : '23');
 
   // Sync with parent item changes
   useEffect(() => {
@@ -42,6 +43,7 @@ const InvoiceItemBubble = ({
     setActive(item.active !== false);
     setTaxObligationTransfer(item.taxObligationTransfer || false);
     setUnit(item.unit || 'm²');
+    setVatInputString(item.vat !== undefined ? String(item.vat) : '23'); // Sync vatInputString
   }, [item]);
 
   // Calculate price when pieces or pricePerPiece changes
@@ -97,8 +99,9 @@ const InvoiceItemBubble = ({
     notifyUpdate({ price: numValue, pricePerPiece: newPricePerPiece });
   };
 
-  const handleVatChange = (value) => {
-    const numValue = parseFloat(value) || 0;
+  const handleVatInputStringChange = (value) => {
+    setVatInputString(value);
+    const numValue = value === '' ? 0 : parseFloat(value) || 0;
     setVat(numValue);
     notifyUpdate({ vat: numValue });
   };
@@ -264,8 +267,8 @@ const InvoiceItemBubble = ({
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    value={vat}
-                    onChange={(e) => handleVatChange(e.target.value)}
+                    value={vatInputString}
+                    onChange={(e) => handleVatInputStringChange(e.target.value)}
                     min={0}
                     max={100}
                     step={1}
