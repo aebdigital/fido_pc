@@ -215,7 +215,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       {item.capacity && (
         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
           <div className="flex justify-between items-center gap-2">
-            <span className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">
+            <span className="text-sm lg:text-base text-black dark:text-white">
               {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
                 ? t('capacity per 25kg package')
                 : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`

@@ -124,6 +124,16 @@ const NumberInput = ({
     // Only register with math toolbar on touch devices (no hardware keyboard)
     const isTouch = isTouchDevice();
 
+    // Always move cursor to end of text so user can see what they're typing
+    if (inputRef.current) {
+      setTimeout(() => {
+        if (inputRef.current) {
+          const len = inputRef.current.value.length;
+          inputRef.current.setSelectionRange(len, len);
+        }
+      }, 0);
+    }
+
     // Register with global keyboard toolbar for touch devices
     if (isTouch) {
       registerActiveInput(inputRef, {

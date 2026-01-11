@@ -177,7 +177,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   };
 
   const PriceCard = ({ item, category, itemIndex }) => (
-    <div className={`${category === 'material' ? 'bg-gray-100 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-900'} border border-gray-200 dark:border-gray-700 rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
+    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
       <div className="flex justify-between items-start gap-2">
         <div className="flex-1 min-w-0">
           {category === 'installations' && item.subtitle ? (
@@ -217,7 +217,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
       {item.capacity && (
         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
           <div className="flex justify-between items-center gap-2">
-            <span className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">
+            <span className="text-sm lg:text-base text-black dark:text-white">
               {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
                 ? t('capacity per 25kg package')
                 : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`

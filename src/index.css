@@ -3,10 +3,18 @@
 @tailwind utilities;
 
 @layer base {
+  /* Handle iPad/tablet virtual keyboard - ensure modals stay visible */
+  html {
+    height: 100%;
+    height: -webkit-fill-available;
+  }
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 
   h1,
@@ -654,4 +662,43 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .dark div.invoice-btn-inactive input {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
+}
+
+/* iPad/Tablet virtual keyboard handling - ensure modals don't get hidden */
+@supports (height: 100dvh) {
+  .fixed.inset-0 {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
+/* When virtual keyboard is open, adjust modal positioning */
+@media (max-height: 600px) and (orientation: landscape),
+       (max-height: 500px) {
+  .fixed.inset-0 {
+    align-items: flex-start !important;
+    padding-top: 1rem !important;
+  }
+
+  .fixed.inset-0 > div {
+    max-height: calc(100vh - 2rem) !important;
+    max-height: calc(100dvh - 2rem) !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* iPad-specific: when keyboard shows, use dynamic viewport */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .fixed.inset-0 {
+    height: 100dvh;
+    height: -webkit-fill-available;
+  }
+
+  /* Ensure modal content scrolls when keyboard is visible */
+  .fixed.inset-0 > div[class*="rounded-2xl"],
+  .fixed.inset-0 > div[class*="rounded-xl"] {
+    max-height: calc(100dvh - 2rem);
+    max-height: calc(-webkit-fill-available - 2rem);
+    overflow-y: auto;
+  }
 }
