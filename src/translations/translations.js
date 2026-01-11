@@ -572,6 +572,7 @@ export const translations = {
     "Customise prices in the entire app and export projects to PDF. Try Pro For Free!": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF. Vyskúšajte Pro zadarmo!",
     "Customise prices in the entire app and export projects to PDF. Vyskúšajte Pro zadarmo!": "Prispôsobte ceny v celej aplikácii a exportujte projekty do PDF. Vyskúšajte Pro zadarmo!",
     "Try Pro": "Vyskúšať Pro",
+    "Get Pro": "Získať Pro",
     "Restore Purchases": "Obnoviť nákupy",
     "Become Pro!": "Staňte sa Pro!",
     "Unlock PDF export, unlimited projects, and more.": "Odomknite export PDF, neobmedzené projekty a ďalšie funkcie.",

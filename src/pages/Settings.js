@@ -13,6 +13,7 @@ import {
 import PriceList from './PriceList';
 import Archive from './Archive';
 import PriceOfferSettings from './PriceOfferSettings';
+import PaywallModal from '../components/PaywallModal';
 import { useLanguage } from '../context/LanguageContext';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useAppData } from '../context/AppDataContext';
@@ -24,12 +25,12 @@ const Settings = () => {
   const { t, language, toggleLanguage } = useLanguage();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { signOut, user } = useAuth(); // Add user
-  const { isPro, grantPromotionalEntitlement } = useAppData(); // Add Pro context
+  const { isPro } = useAppData(); // Add Pro context
 
   const [showPriceList, setShowPriceList] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [showPriceOffer, setShowPriceOffer] = useState(false);
-  const [loadingPro, setLoadingPro] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Handle navigation reset when clicking on Settings in navigation
   useEffect(() => {
@@ -79,15 +80,8 @@ const Settings = () => {
     window.open('https://fido.sk', '_blank');
   };
 
-  const handleTryPro = async () => {
-    setLoadingPro(true);
-    const success = await grantPromotionalEntitlement();
-    setLoadingPro(false);
-    if (success) {
-      alert(t("Pro activated successfully!"));
-    } else {
-      alert(t("Failed to activate Pro."));
-    }
+  const handleTryPro = () => {
+    setShowPaywall(true);
   };
 
 
@@ -146,11 +140,9 @@ const Settings = () => {
                 {!isPro && (
                   <button
                     onClick={handleTryPro}
-                    disabled={loadingPro}
                     className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md text-lg flex items-center gap-2"
                   >
-                    {loadingPro && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {t('Try Pro')}
+                    {t('Get Pro')}
                   </button>
                 )}
 
@@ -294,6 +286,9 @@ const Settings = () => {
         <div className="text-base lg:text-lg">v1.4.7</div>
         <div className="text-sm lg:text-base leading-relaxed">©Fido, s.r.o. {t('All rights reserved')}.</div>
       </div>
+
+      {/* Paywall Modal */}
+      <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
     </div>
   );
 };
