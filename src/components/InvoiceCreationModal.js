@@ -624,8 +624,12 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                           value={maturityOptions.includes(paymentDays) ? '' : paymentDays}
                           onChange={(e) => setPaymentDays(parseInt(e.target.value) || 0)}
                           placeholder="XY"
-                          className="w-full text-center text-lg font-semibold bg-transparent focus:outline-none rounded-lg placeholder-gray-500"
-                          style={{ color: !maturityOptions.includes(paymentDays) ? (isDarkMode ? '#111827' : '#ffffff') : (isDarkMode ? '#ffffff' : '#111827') }}
+                          className={`w-full text-center text-lg font-semibold focus:outline-none rounded-lg placeholder-gray-500 ${!maturityOptions.includes(paymentDays) && !isDarkMode ? 'bg-white' : 'bg-transparent'}`}
+                          style={{ 
+                            color: !maturityOptions.includes(paymentDays) 
+                              ? (isDarkMode ? '#111827' : '#111827') // Active: Black text (on White input BG for light mode, or White container for dark mode? Wait. Dark mode active is White BG. So Black text is correct. Light mode active is Black Container -> White Input BG -> Black Text.)
+                              : (isDarkMode ? '#ffffff' : '#111827') // Inactive
+                          }}
                         />
                         <span
                           className="text-xs font-medium"

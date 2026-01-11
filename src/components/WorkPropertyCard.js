@@ -16,8 +16,9 @@ import { SimpleLayerIcon, DoubleLayerIcon, TripleLayerIcon, ActiveLayersIcon } f
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
 
 // Helper to get the item label based on property type
-const getItemLabel = (property, item, index, t) => {
-  const itemNumber = index + 1;
+const getItemLabel = (property, item, index, totalCount, t) => {
+  // Reverse numbering: newest item (index 0) gets highest number
+  const itemNumber = totalCount - index;
 
   // For brick partitions: "Priečka č. 1"
   if (property.id === WORK_ITEM_PROPERTY_IDS.BRICK_PARTITIONS) {
@@ -622,7 +623,7 @@ const WorkPropertyCard = ({
           <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
             <div className="flex items-center justify-between">
               <span className="font-semibold text-gray-900 dark:text-white text-lg">
-                {getItemLabel(property, item, index, t)}
+                {getItemLabel(property, item, index, existingItems.length, t)}
               </span>
               <button
                 onClick={(e) => onRemoveWorkItem(item.id, e)}
@@ -881,7 +882,7 @@ const WorkPropertyCard = ({
               </span>
             ) : (
               <span className="font-semibold text-gray-900 dark:text-white text-lg">
-                {getItemLabel(property, item, index, t)}
+                {getItemLabel(property, item, index, existingItems.length, t)}
               </span>
             )}
             <button
