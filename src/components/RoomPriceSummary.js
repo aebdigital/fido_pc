@@ -275,39 +275,94 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                 <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.othersTotal || 0)}</span>
               </div>
               {calculation.othersItems && calculation.othersItems.length > 0 ? (
-                calculation.othersItems.map(item => {
-                  if (item.calculation?.workCost > 0) {
-                    // Determine the correct unit based on work type using shared utility
-                    let { unit, quantity } = determineUnitAndQuantity(item, item.calculation.quantity);
+                (() => {
+                  const othersGroups = {};
+                  const nonGroupedOthers = [];
 
-                    // Fall back to looking up name from propertyId if item.name is undefined
-                    // For custom work items, use the user-entered name and selected unit
-                    // For scaffolding items, use subtitle which contains the full name (e.g., "Lešenie - montáž a demontáž")
-                    let itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                  // Helper to check for scaffolding keywords
+                  const checkText = (text) => text && (
+                    text.includes('montáž a demontáž') || text.includes('prenájom') ||
+                    text.includes('assembly and disassembly') || text.includes('rental')
+                  );
 
-                    // For scaffolding items, use subtitle as name
-                    if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('prenájom') ||
-                      item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
-                      itemNameOthers = item.subtitle;
+                  calculation.othersItems.forEach(item => {
+                    if (!item.calculation?.workCost && !item.calculation?.materialCost) return;
+
+                    const isScaffolding = checkText(item.subtitle) || checkText(item.name);
+
+                    if (isScaffolding) {
+                      // Determine group key - prefer the one with the keywords
+                      const groupKey = checkText(item.name) ? item.name : item.subtitle;
+                      const { unit: rawUnit, quantity: rawQuantity } = determineUnitAndQuantity(item, item.calculation.quantity);
+                      
+                      let quantity = rawQuantity;
+                      let unit = rawUnit;
+                      const values = item.fields || {};
+
+                      // Determine unit and quantity for scaffolding based on groupKey
+                      if (groupKey.includes('- prenájom') || groupKey.includes('rental') || groupKey.includes('prenájom')) {
+                        quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || quantity);
+                        unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
+                      } else {
+                        unit = UNIT_TYPES.METER_SQUARE;
+                      }
+
+                      if (!othersGroups[groupKey]) {
+                        othersGroups[groupKey] = {
+                          name: groupKey,
+                          unit: unit,
+                          totalQuantity: 0,
+                          totalCost: 0
+                        };
+                      }
+                      othersGroups[groupKey].totalQuantity += quantity;
+                      othersGroups[groupKey].totalCost += (item.calculation.workCost || 0) + (item.calculation.materialCost || 0);
+                    } else {
+                      nonGroupedOthers.push(item);
                     }
+                  });
 
-                    const workName = t(itemNameOthers);
-                    // Format quantity: for days show as integer with space, otherwise use existing format
-                    const translatedUnit = t(unit);
-                    const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
-                      ? `${Math.round(quantity)} ${translatedUnit}`
-                      : `${quantity.toFixed(quantity < 10 ? 1 : 0)}${translatedUnit}`;
-                    const workDescription = `${workName} - ${formattedQuantity}`;
+                  return (
+                    <>
+                      {/* Render grouped items */}
+                      {Object.values(othersGroups).map((group, index) => {
+                        const workName = t(group.name);
+                        const translatedUnit = t(group.unit);
+                        const formattedQuantity = (group.unit === UNIT_TYPES.DAY || group.unit === UNIT_TYPES.DAYS)
+                          ? `${Math.round(group.totalQuantity)} ${translatedUnit}`
+                          : `${group.totalQuantity.toFixed(group.totalQuantity < 10 ? 1 : 0)}${translatedUnit}`;
+                        const workDescription = `${workName} - ${formattedQuantity}`;
 
-                    return (
-                      <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice((item.calculation.workCost || 0) + (item.calculation.materialCost || 0))}</span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })
+                        return (
+                          <div key={`others-group-${index}`} className="flex justify-between items-center text-sm">
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(group.totalCost)}</span>
+                          </div>
+                        );
+                      })}
+
+                      {/* Render non-grouped items */}
+                      {nonGroupedOthers.map(item => {
+                        let { unit, quantity } = determineUnitAndQuantity(item, item.calculation.quantity);
+                        let itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
+
+                        const workName = t(itemNameOthers);
+                        const translatedUnit = t(unit);
+                        const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
+                          ? `${Math.round(quantity)} ${translatedUnit}`
+                          : `${quantity.toFixed(quantity < 10 ? 1 : 0)}${translatedUnit}`;
+                        const workDescription = `${workName} - ${formattedQuantity}`;
+
+                        return (
+                          <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice((item.calculation.workCost || 0) + (item.calculation.materialCost || 0))}</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()
               ) : (
                 <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
                   {t('No other items added')}
