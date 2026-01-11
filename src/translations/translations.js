@@ -189,7 +189,7 @@ export const translations = {
     "Delete receipt": "Vymazať účtenku",
     "Unknown vendor": "Neznámy predajca",
     "No date": "Bez dátumu",
-    "Total": "Celkom",
+    "Total": "Spolu",
     "Date": "Dátum",
     "Failed to analyze receipt. Please try again.": "Nepodarilo sa analyzovať účtenku. Skúste to znova.",
 
@@ -206,7 +206,7 @@ export const translations = {
     "Clients": "Klienti",
     "Settings": "Nastavenia",
     "Contact": "Kontakt",
-    "Archive": "Archív",
+    "Archive": "Archivovať",
     "No Archived Projects": "Žiadne archivované projekty",
     "Archived projects will appear here": "Archivované projekty sa zobrazia tu",
     "Archived on": "Archivované",
