@@ -38,7 +38,7 @@ const InvoiceItemBubble = ({
     setTitle(item.title || '');
     setPieces(item.pieces || 0);
     setPricePerPiece(item.pricePerPiece || 0);
-    setVat(item.vat || 23);
+    setVat(item.vat !== undefined ? item.vat : 23);
     setPrice(item.price || 0);
     setActive(item.active !== false);
     setTaxObligationTransfer(item.taxObligationTransfer || false);
