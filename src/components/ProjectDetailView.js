@@ -101,7 +101,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [projectPhotos, setProjectPhotos] = useState([]);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
   const [projectDetailNotes, setProjectDetailNotes] = useState('');
-  const [isEditingDetailNotes, setIsEditingDetailNotes] = useState(false);
+  const notesAutosaveRef = useRef(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
@@ -401,9 +401,17 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     updateProject(project.category, project.id, { photos: updatedPhotos });
   };
 
-  const handleSaveDetailNotes = () => {
-    updateProject(project.category, project.id, { detailNotes: projectDetailNotes });
-    setIsEditingDetailNotes(false);
+  const handleNotesChange = (e) => {
+    const newValue = e.target.value;
+    setProjectDetailNotes(newValue);
+
+    // Debounced autosave
+    if (notesAutosaveRef.current) {
+      clearTimeout(notesAutosaveRef.current);
+    }
+    notesAutosaveRef.current = setTimeout(() => {
+      updateProject(project.category, project.id, { detailNotes: newValue });
+    }, 1000);
   };
 
   // === RECEIPT HANDLERS ===
@@ -1223,28 +1231,13 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <StickyNote className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Notes_Project')}</h2>
             </div>
-            {isEditingDetailNotes ? (
-              <div className="space-y-3">
-                <textarea
-                  value={projectDetailNotes}
-                  onChange={(e) => setProjectDetailNotes(e.target.value)}
-                  placeholder={t('Add project notes...')}
-                  className="w-full h-40 p-3 bg-white dark:bg-gray-900 rounded-xl text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  autoFocus
-                />
-                <div className="flex gap-2">
-                  <button onClick={() => setIsEditingDetailNotes(false)} className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>
-                  <button onClick={handleSaveDetailNotes} className="flex-1 px-3 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl">{t('Save')}</button>
-                </div>
-              </div>
-            ) : (
-              <div
-                className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 overflow-auto"
-                onClick={() => !project.is_archived && setIsEditingDetailNotes(true)}
-              >
-                {projectDetailNotes || <span className="text-gray-400 dark:text-gray-500">{t('Click to add project notes')}</span>}
-              </div>
-            )}
+            <textarea
+              value={projectDetailNotes}
+              onChange={handleNotesChange}
+              placeholder={t('Add project notes...')}
+              className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+              disabled={project.is_archived}
+            />
           </div>
 
           {/* Photos */}
