@@ -441,8 +441,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[75vh] lg:h-auto lg:max-h-[90vh] flex flex-col">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[75vh] lg:h-auto lg:max-h-[90vh] flex flex-col my-auto md:my-0">
           {/* Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between flex-shrink-0 rounded-t-2xl">
             <div className="flex items-center gap-3">

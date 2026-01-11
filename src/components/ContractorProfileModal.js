@@ -154,11 +154,11 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
   return (
     <div
-      className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      className={`fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
       onClick={handleClose}
     >
       <div
-        className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl h-[75vh] lg:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
+        className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl h-[75vh] lg:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col my-auto md:my-0 ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
         onClick={(e) => e.stopPropagation()}
       >
         

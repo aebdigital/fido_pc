@@ -131,11 +131,14 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
       setIsLoadingDetails(true);
       await loadProjectDetails(project.id);
+      // Load receipts for total display in header
+      const projectReceipts = await getProjectReceipts(project.id);
+      setReceipts(projectReceipts);
       setIsLoadingDetails(false);
     };
 
     initializeData();
-  }, [project.id, loadProjectDetails]);
+  }, [project.id, loadProjectDetails, getProjectReceipts]);
 
   // Sync local state with project data
   useEffect(() => {
@@ -1042,8 +1045,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   </div>
 
                   {showContractorSelector && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto">
+                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0">
                         <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
 
                         <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
@@ -1425,8 +1428,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       )}
 
       {showCustomRoomModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative my-auto md:my-0">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
               <button
@@ -1457,8 +1460,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       )}
 
       {showClientSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all`}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto">
+          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
               {showCreateClientInModal && (

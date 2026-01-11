@@ -165,11 +165,11 @@ const Clients = () => {
       {/* Client Modal - Used for both Create and Edit */}
       {showClientModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-8 md:pt-4 overflow-y-auto animate-fade-in"
           onClick={handleCloseModal}
         >
           <div
-            className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto animate-slide-in"
+            className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-center items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">

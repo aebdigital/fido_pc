@@ -356,8 +356,8 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
       {/* Percentage Increase Modal */}
       {showPercentageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md animate-slide-in">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md animate-slide-in my-auto md:my-0">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Increase All Prices')}</h3>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">

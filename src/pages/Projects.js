@@ -610,8 +610,8 @@ const Projects = () => {
 
         {/* New Project Modal */}
         {showNewProjectModal && (
-          <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
-            <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
+          <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
+            <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md my-auto md:my-0 ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
               <div className="space-y-4">
                 <div>
