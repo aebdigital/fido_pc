@@ -613,7 +613,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         style={!maturityOptions.includes(paymentDays)
                           ? (isDarkMode
                             ? { background: '#ffffff', color: '#111827', border: 'none', boxShadow: 'none' }
-                            : { background: '#ffffff', color: '#111827', border: 'none', boxShadow: 'inset 0 0 0 2px #111827' })
+                            : { background: '#111827', color: '#ffffff', border: 'none', boxShadow: 'none' })
                           : (isDarkMode
                             ? { background: '#4b5563', color: '#ffffff' }
                             : { background: '#f3f4f6', color: '#111827' })
@@ -625,11 +625,11 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                           onChange={(e) => setPaymentDays(parseInt(e.target.value) || 0)}
                           placeholder="XY"
                           className="w-full text-center text-lg font-semibold bg-transparent focus:outline-none rounded-lg placeholder-gray-500"
-                          style={{ color: !maturityOptions.includes(paymentDays) ? '#111827' : (isDarkMode ? '#ffffff' : '#111827') }}
+                          style={{ color: !maturityOptions.includes(paymentDays) ? (isDarkMode ? '#111827' : '#ffffff') : (isDarkMode ? '#ffffff' : '#111827') }}
                         />
                         <span
                           className="text-xs font-medium"
-                          style={{ color: !maturityOptions.includes(paymentDays) ? '#111827' : (isDarkMode ? '#ffffff' : '#111827') }}
+                          style={{ color: !maturityOptions.includes(paymentDays) ? (isDarkMode ? '#111827' : '#ffffff') : (isDarkMode ? '#ffffff' : '#111827') }}
                         >
                           {t('days')}
                         </span>

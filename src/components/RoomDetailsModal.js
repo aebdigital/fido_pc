@@ -189,7 +189,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       selectedType: property.types ? property.types[0] : null,
       doorWindowItems: { doors: [], windows: [] }
     };
-    setWorkData([...workData, newItem]);
+    setWorkData([newItem, ...workData]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setExpandedItems(prev => ({ ...prev, [newItem.id]: true }));
   };
@@ -218,7 +218,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       complementaryWorks: {},
       selectedType: sanitaryType
     };
-    setWorkData([...workData, newItem]);
+    setWorkData([newItem, ...workData]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingSanitarySelector(false);
   };
@@ -252,7 +252,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       newItem.fields[field.name] = field.type === 'text' ? '' : 0;
     });
     
-    setWorkData([...workData, newItem]);
+    setWorkData([newItem, ...workData]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingTypeSelector(null);
     setExpandedItems(prev => ({ ...prev, [property.id]: true }));
@@ -307,12 +307,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       rentalFields: rentalItem.fields
     };
 
-    // Initialize fields based on rental type
+    // Initialize fields
     rentalItem.fields.forEach(field => {
       newItem.fields[field.name] = 0;
     });
 
-    setWorkData([...workData, newItem]);
+    setWorkData([newItem, ...workData]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingRentalsSelector(false);
     setExpandedItems(prev => ({ ...prev, [WORK_ITEM_PROPERTY_IDS.RENTALS]: true }));
