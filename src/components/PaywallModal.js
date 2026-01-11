@@ -1,21 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check, Loader2, CreditCard, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 
 /**
- * PaywallModal - Stripe-integrated paywall for Pro subscription
+ * PaywallModal - RevenueCat Web Billing paywall for Pro subscription
  *
  * Features:
  * - Shows Pro benefits
- * - Stripe Payment Link integration
+ * - RevenueCat offerings integration
+ * - Stripe checkout via RevenueCat
  * - Try Pro (promotional) option
  */
 const PaywallModal = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
-  const { grantPromotionalEntitlement, refreshProStatus, stripePublishableKey } = useAppData();
+  const {
+    grantPromotionalEntitlement,
+    refreshProStatus,
+    rcOfferings,
+    purchasePackage
+  } = useAppData();
   const [loading, setLoading] = useState(false);
   const [loadingTrial, setLoadingTrial] = useState(false);
+  const [currentPackage, setCurrentPackage] = useState(null);
+
+  // Get the current offering package when offerings are loaded
+  useEffect(() => {
+    if (rcOfferings?.current?.availablePackages?.length > 0) {
+      // Get the first available package (usually monthly)
+      setCurrentPackage(rcOfferings.current.availablePackages[0]);
+      console.log('[Paywall] Available packages:', rcOfferings.current.availablePackages);
+    }
+  }, [rcOfferings]);
 
   if (!isOpen) return null;
 
@@ -43,11 +59,34 @@ const PaywallModal = ({ isOpen, onClose }) => {
   const handleSubscribe = async () => {
     setLoading(true);
 
-    // Stripe Payment Link
-    const stripePaymentLink = 'https://buy.stripe.com/dRmbJ20AuaiK9Xd2qd5kk00';
+    // Try RevenueCat purchase first if package is available
+    if (currentPackage) {
+      try {
+        const result = await purchasePackage(currentPackage);
+        if (result.success) {
+          setLoading(false);
+          onClose();
+          return;
+        }
+        // If RevenueCat purchase fails, fall through to payment link
+        console.log('[Paywall] RevenueCat purchase failed, using payment link');
+      } catch (error) {
+        console.error('[Paywall] Purchase error:', error);
+      }
+    }
 
+    // Fallback to Stripe Payment Link
+    const stripePaymentLink = 'https://buy.stripe.com/dRmbJ20AuaiK9Xd2qd5kk00';
     window.open(stripePaymentLink, '_blank');
     setLoading(false);
+  };
+
+  // Get price from RevenueCat package or use default
+  const getPrice = () => {
+    if (currentPackage?.webBillingProduct?.normalPeriodDuration === 'P1M') {
+      return currentPackage.webBillingProduct.pricePerMonth?.formattedPrice || '€4.99';
+    }
+    return currentPackage?.webBillingProduct?.price?.formattedPrice || '€4.99';
   };
 
   return (
@@ -85,7 +124,7 @@ const PaywallModal = ({ isOpen, onClose }) => {
           {/* Pricing */}
           <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 mb-6">
             <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-3xl font-bold text-gray-900 dark:text-white">€4.99</span>
+              <span className="text-3xl font-bold text-gray-900 dark:text-white">{getPrice()}</span>
               <span className="text-gray-600 dark:text-gray-400">/ {t('month')}</span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">{t('Cancel anytime')}</p>

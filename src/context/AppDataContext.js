@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { Purchases } from '@revenuecat/purchases-js';
 import api from '../services/supabaseApi';
 import { subscribeToRealtimeChanges, getRefreshCategories } from '../services/realtimeSync';
 import { useAuth } from './AuthContext';
@@ -41,15 +42,50 @@ export const AppDataProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false); // Pro status
 
-  // RevenueCat API Key - use secret key for server-side operations
-  const RC_API_KEY = "sk_puuududJBAxTZDOuimFLoJJgqORLv";
+  // RevenueCat API Keys
+  const RC_API_KEY = "sk_puuududJBAxTZDOuimFLoJJgqORLv"; // Secret key for REST API
+  const RC_PUBLIC_API_KEY = process.env.REACT_APP_REVENUECAT_API_KEY || "appl_eEsIiyWisjWbLTkyAMcqCCFUDaB"; // Public key for Web SDK
 
   // Stripe publishable key for client-side
   const STRIPE_PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
 
+  // RevenueCat Web SDK instance
+  const rcInstanceRef = useRef(null);
+  const [rcOfferings, setRcOfferings] = useState(null);
+
+  // Initialize RevenueCat Web SDK
+  const initializeRevenueCat = useCallback(async () => {
+    if (!user?.id || rcInstanceRef.current) return;
+
+    try {
+      // Configure and initialize RevenueCat
+      rcInstanceRef.current = Purchases.configure(RC_PUBLIC_API_KEY, user.id);
+      console.log('[RevenueCat] Initialized for user:', user.id);
+
+      // Fetch offerings
+      const offerings = await rcInstanceRef.current.getOfferings();
+      setRcOfferings(offerings);
+      console.log('[RevenueCat] Offerings loaded:', offerings);
+    } catch (error) {
+      console.error('[RevenueCat] Failed to initialize:', error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   const checkProStatus = useCallback(async () => {
     if (!user?.id) return;
+
     try {
+      // Try Web SDK first if initialized
+      if (rcInstanceRef.current) {
+        const customerInfo = await rcInstanceRef.current.getCustomerInfo();
+        const hasProEntitlement = customerInfo?.entitlements?.active?.Pro !== undefined;
+        setIsPro(hasProEntitlement);
+        console.log('[RevenueCat] Pro status from SDK:', hasProEntitlement);
+        return;
+      }
+
+      // Fallback to REST API
       const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${user.id}`, {
         headers: {
           'Authorization': `Bearer ${RC_API_KEY}`,
@@ -61,21 +97,13 @@ export const AppDataProvider = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         const entitlements = data?.subscriber?.entitlements;
-        // Check for "Pro" entitlement
-        // RevenueCat returns expires_date. If null, it might be lifetime, need to check structure carefuly. 
-        // iOS checks: if customerInfo?.entitlements.all["Pro"]?.isActive == true
-        // REST API returns object. 
 
         if (entitlements?.Pro) {
-          // Check if active
           const expiresDate = entitlements.Pro.expires_date;
           if (expiresDate) {
             const isExpired = new Date(expiresDate) < new Date();
             setIsPro(!isExpired);
           } else {
-            // No expiration date usually means lifetime or active without expiration? 
-            // Actually for subscription it should have date. 
-            // Assuming active if present and no expiry implies lifetime or valid.
             setIsPro(true);
           }
         } else {
@@ -116,7 +144,26 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
-  // Stripe checkout for Pro subscription
+  // Purchase using RevenueCat Web SDK
+  const purchasePackage = async (packageToPurchase) => {
+    if (!rcInstanceRef.current) {
+      console.error('[RevenueCat] SDK not initialized');
+      return { success: false, error: 'SDK not initialized' };
+    }
+
+    try {
+      const { customerInfo } = await rcInstanceRef.current.purchase({ rcPackage: packageToPurchase });
+      const hasProEntitlement = customerInfo?.entitlements?.active?.Pro !== undefined;
+      setIsPro(hasProEntitlement);
+      console.log('[RevenueCat] Purchase successful, Pro status:', hasProEntitlement);
+      return { success: true, customerInfo };
+    } catch (error) {
+      console.error('[RevenueCat] Purchase failed:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Stripe checkout for Pro subscription (fallback/direct link)
   const initiateStripeCheckout = async (priceId) => {
     if (!user?.id || !STRIPE_PUBLISHABLE_KEY) {
       console.error("Missing user ID or Stripe key");
@@ -132,11 +179,6 @@ export const AppDataProvider = ({ children }) => {
         return { success: false, error: "Failed to load Stripe" };
       }
 
-      // For a complete implementation, you would create a checkout session
-      // via your backend (Supabase Edge Function) and redirect to Stripe Checkout.
-      // This is a simplified client-side approach using Stripe Payment Links.
-
-      // Return stripe instance for use with payment links or embedded checkout
       return { success: true, stripe };
     } catch (error) {
       console.error("Failed to initiate Stripe checkout:", error);
@@ -151,9 +193,10 @@ export const AppDataProvider = ({ children }) => {
 
   useEffect(() => {
     if (user?.id) {
+      initializeRevenueCat();
       checkProStatus();
     }
-  }, [user, checkProStatus]);
+  }, [user, checkProStatus, initializeRevenueCat]);
 
   // Default data structure
   const getDefaultData = () => ({
@@ -995,12 +1038,14 @@ export const AppDataProvider = ({ children }) => {
     saveGeneralPriceListBulk,
     resetGeneralPriceItem,
 
-    // Pro Status
+    // Pro Status & RevenueCat
     isPro,
     grantPromotionalEntitlement,
     checkProStatus,
     refreshProStatus,
     initiateStripeCheckout,
+    purchasePackage,
+    rcOfferings,
     stripePublishableKey: STRIPE_PUBLISHABLE_KEY
   };
 
