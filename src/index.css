@@ -698,7 +698,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .fixed.inset-0 > div[class*="rounded-2xl"],
   .fixed.inset-0 > div[class*="rounded-xl"] {
     max-height: calc(100dvh - 2rem);
-    max-height: calc(-webkit-fill-available - 2rem);
     overflow-y: auto;
   }
 }

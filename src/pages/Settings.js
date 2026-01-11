@@ -18,7 +18,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
-import { Loader2 } from 'lucide-react';
 
 const Settings = () => {
   const location = useLocation();
