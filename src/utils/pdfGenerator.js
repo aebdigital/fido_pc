@@ -581,7 +581,74 @@ export const generateInvoicePDF = async ({
         { content: sanitizeText(t('Others (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
+      // Group scaffolding items by their type (montáž/prenájom)
+      const othersGroups = {};
+      const nonGroupedOthers = [];
+
+      const checkText = (text) => text && (
+        text.includes('montáž a demontáž') || text.includes('prenájom') ||
+        text.includes('assembly and disassembly') || text.includes('rental')
+      );
+
       projectBreakdown.othersItems.forEach(item => {
+        const isScaffolding = checkText(item.subtitle) || checkText(item.name);
+
+        if (isScaffolding) {
+          // Determine group key - prefer the one with the keywords
+          const groupKey = checkText(item.name) ? item.name : item.subtitle;
+          
+          let quantity = item.calculation?.quantity || 0;
+          let unit = item.calculation?.unit || '';
+          if (unit.startsWith('€/')) unit = unit.substring(2);
+          const values = item.fields || {};
+
+          // Determine unit and quantity for scaffolding based on groupKey
+          if (groupKey.includes('- prenájom') || groupKey.includes('rental') || groupKey.includes('prenájom')) {
+            quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || quantity);
+            unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
+          } else {
+            unit = UNIT_TYPES.METER_SQUARE;
+          }
+
+          const itemCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
+
+          if (!othersGroups[groupKey]) {
+            othersGroups[groupKey] = {
+              name: groupKey, // Use normalized group key as name
+              unit: unit,
+              totalQuantity: 0,
+              totalCost: 0,
+              vatRate: (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate
+            };
+          }
+          othersGroups[groupKey].totalQuantity += quantity;
+          othersGroups[groupKey].totalCost += itemCost;
+        } else {
+          nonGroupedOthers.push(item);
+        }
+      });
+
+      // Print grouped scaffolding items
+      Object.values(othersGroups).forEach(group => {
+        const pricePerUnit = group.totalQuantity > 0 ? group.totalCost / group.totalQuantity : 0;
+        const vatAmount = group.totalCost * group.vatRate;
+        const translatedUnit = t(group.unit);
+        const formattedQuantity = (group.unit === UNIT_TYPES.DAY || group.unit === UNIT_TYPES.DAYS)
+          ? `${Math.round(group.totalQuantity)} ${translatedUnit}`
+          : `${group.totalQuantity.toFixed(2)}${translatedUnit}`;
+
+        tableData.push([
+          sanitizeText(t(group.name) || ''),
+          sanitizeText(formattedQuantity),
+          sanitizeText(formatCurrency(pricePerUnit)),
+          sanitizeText(`${Math.round(group.vatRate * 100)} %`),
+          sanitizeText(formatCurrency(vatAmount)),
+          sanitizeText(formatCurrency(group.totalCost))
+        ]);
+      });
+
+      // Print non-grouped items
+      nonGroupedOthers.forEach(item => {
         let quantity = item.calculation?.quantity || 0;
         const othersCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
         let unit = item.calculation?.unit || item.unit || '';
@@ -592,7 +659,7 @@ export const generateInvoicePDF = async ({
 
         // Determine unit and quantity based on item type (same logic as RoomPriceSummary)
         if (!item.calculation?.unit) {
-          // Check for scaffolding rental
+          // Check for scaffolding rental (fallback for non-grouped)
           if (item.subtitle && item.subtitle.includes('- prenájom') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
             quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
             unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
