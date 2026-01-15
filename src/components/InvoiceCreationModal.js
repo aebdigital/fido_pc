@@ -6,6 +6,7 @@ import UncompletedFieldsModal from './UncompletedFieldsModal';
 import InvoiceItemBubble from './InvoiceItemBubble';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/constants';
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
+import { sortItemsByMasterList } from '../utils/itemSorting';
 
 // Helper to determine work item unit based on propertyId and fields
 const getWorkItemUnit = (item) => {
@@ -110,7 +111,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
         // Process work items
         if (projectBreakdown.items) {
-          projectBreakdown.items.forEach((item, index) => {
+          const sortedWorkItems = sortItemsByMasterList(projectBreakdown.items, project.priceListSnapshot, 'work');
+          sortedWorkItems.forEach((item, index) => {
             const calculation = item.calculation || {};
             // Use helper to determine correct unit based on propertyId and fields
             const unit = getWorkItemUnit(item);
@@ -132,7 +134,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
         // Process material items
         if (projectBreakdown.materialItems) {
-          projectBreakdown.materialItems.forEach((item, index) => {
+          const sortedMaterialItems = sortItemsByMasterList(projectBreakdown.materialItems, project.priceListSnapshot, 'material');
+          sortedMaterialItems.forEach((item, index) => {
             const calculation = item.calculation || {};
             // Material items use their calculation unit or default to 'ks'
             const materialUnit = calculation.unit ? unitToDisplaySymbol(calculation.unit) : 'ks';
@@ -154,7 +157,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
         // Process others items
         if (projectBreakdown.othersItems) {
-          projectBreakdown.othersItems.forEach((item, index) => {
+          const sortedOthersItems = sortItemsByMasterList(projectBreakdown.othersItems, project.priceListSnapshot, 'others');
+          sortedOthersItems.forEach((item, index) => {
             const calculation = item.calculation || {};
             // Use helper to determine correct unit for others items
             const otherUnit = getWorkItemUnit(item);
@@ -441,8 +445,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[75vh] lg:h-auto lg:max-h-[90vh] flex flex-col my-auto md:my-0">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => onClose()}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[75vh] lg:h-auto lg:max-h-[90vh] flex flex-col my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between flex-shrink-0 rounded-t-2xl">
             <div className="flex items-center gap-3">
@@ -625,8 +629,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                           onChange={(e) => setPaymentDays(parseInt(e.target.value) || 0)}
                           placeholder="XY"
                           className={`w-full text-center text-lg font-semibold focus:outline-none rounded-lg placeholder-gray-500 ${!maturityOptions.includes(paymentDays) && !isDarkMode ? 'bg-white' : 'bg-transparent'}`}
-                          style={{ 
-                            color: !maturityOptions.includes(paymentDays) 
+                          style={{
+                            color: !maturityOptions.includes(paymentDays)
                               ? (isDarkMode ? '#111827' : '#111827') // Active: Black text (on White input BG for light mode, or White container for dark mode? Wait. Dark mode active is White BG. So Black text is correct. Light mode active is Black Container -> White Input BG -> Black Text.)
                               : (isDarkMode ? '#ffffff' : '#111827') // Inactive
                           }}
@@ -737,8 +741,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
       {/* Duplicate Invoice Number Warning Modal */}
       {showDuplicateNumberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
                 <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

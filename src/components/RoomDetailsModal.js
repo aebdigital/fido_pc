@@ -114,10 +114,14 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     };
   }, [workData]);
 
-  const handleClose = () => {
+  const handleClose = async () => {
     // If pending changes, save immediately before closing
     if (saveStatus === 'modified') {
-       onSaveRef.current(workData);
+      try {
+        await onSaveRef.current(workData);
+      } catch (error) {
+        console.error('Auto-save failed on close:', error);
+      }
     }
     isUnmounting.current = true;
     onClose();
@@ -134,17 +138,17 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
-    
+
     // Ensure the group is expanded when adding an item
     setExpandedItems(prev => ({ ...prev, [propertyId]: true }));
-    
+
     if (propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) {
       setShowingSanitarySelector(true);
       return;
     }
-    
+
     if (propertyId === WORK_ITEM_PROPERTY_IDS.RENTALS) {
       setShowingRentalsSelector(true);
       return;
@@ -199,7 +203,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
 
     // Price defaults to 0 - user will enter the actual product price
@@ -222,18 +226,18 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingSanitarySelector(false);
   };
-  
+
   const handleTypeSelect = (type, e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
-    
+
     const property = workProperties.find(p => p.id === showingTypeSelector);
     if (!property) return;
-    
+
     const newItem = {
       id: Date.now(),
       propertyId: property.id,
@@ -246,12 +250,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       selectedUnit: null,
       doorWindowItems: { doors: [], windows: [] }
     };
-    
+
     // Initialize fields
     property.fields?.forEach(field => {
       newItem.fields[field.name] = field.type === 'text' ? '' : 0;
     });
-    
+
     setWorkData([newItem, ...workData]);
     setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
     setShowingTypeSelector(null);
@@ -263,9 +267,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
-    
+
     setWorkData(items =>
       items.map(item =>
         item.id === itemId
@@ -329,18 +333,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
           return { ...item, fields: { ...item.fields, [field]: processedValue } };
         }
 
-        // Also update linked complementary work items if this is a dimension field
-        if (item.linkedToParent === itemId &&
-            (field === WORK_ITEM_NAMES.WIDTH || field === WORK_ITEM_NAMES.HEIGHT || field === WORK_ITEM_NAMES.LENGTH)) {
-          // Only update if the complementary item has this field
-          const complementaryProperty = workProperties.find(p => p.id === item.propertyId);
-          const hasField = complementaryProperty?.fields?.some(f => f.name === field);
-
-          if (hasField) {
-            return { ...item, fields: { ...item.fields, [field]: processedValue } };
-          }
-        }
-
         return item;
       })
     );
@@ -381,20 +373,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
           };
         }
 
-        // Also add to linked complementary items
-        if (item.linkedToParent === itemId) {
-          return {
-            ...item,
-            doorWindowItems: {
-              ...item.doorWindowItems,
-              [type]: [
-                ...(item.doorWindowItems?.[type] || []),
-                { ...newDoorWindow }
-              ]
-            }
-          };
-        }
-
         return item;
       })
     );
@@ -407,21 +385,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     setWorkData(items =>
       items.map(item => {
         if (item.id === itemId) {
-          return {
-            ...item,
-            doorWindowItems: {
-              ...item.doorWindowItems,
-              [type]: item.doorWindowItems?.[type]?.map(subItem =>
-                subItem.id === subItemId
-                  ? { ...subItem, [field]: processedValue }
-                  : subItem
-              ) || []
-            }
-          };
-        }
-
-        // Also update linked complementary items
-        if (item.linkedToParent === itemId) {
           return {
             ...item,
             doorWindowItems: {
@@ -449,17 +412,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     setWorkData(items =>
       items.map(item => {
         if (item.id === itemId) {
-          return {
-            ...item,
-            doorWindowItems: {
-              ...item.doorWindowItems,
-              [type]: item.doorWindowItems?.[type]?.filter(subItem => subItem.id !== subItemId) || []
-            }
-          };
-        }
-
-        // Also remove from linked complementary items
-        if (item.linkedToParent === itemId) {
           return {
             ...item,
             doorWindowItems: {
@@ -501,27 +453,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
           };
         }
 
-        // Also copy to linked complementary items
-        if (item.linkedToParent === itemId) {
-          const parentItem = items.find(i => i.id === itemId);
-          const copiedItem = parentItem?.doorWindowItems?.[type]?.find(subItem => subItem.id === subItemId);
-          if (copiedItem) {
-            return {
-              ...item,
-              doorWindowItems: {
-                ...item.doorWindowItems,
-                [type]: [
-                  ...(item.doorWindowItems?.[type] || []),
-                  {
-                    ...copiedItem,
-                    id: newId
-                  }
-                ]
-              }
-            };
-          }
-        }
-
         return item;
       })
     );
@@ -541,49 +472,52 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     const parentProperty = workProperties.find(p => p.id === parentItem.propertyId);
     if (!parentProperty?.complementaryWorks) return;
 
-    // Get the minimum count across all complementary works
-    const counts = parentProperty.complementaryWorks.map((work, index) => {
-      const uniqueKey = `${work}_${index}`;
-      const count = workData.filter(item =>
-        item.linkedToParent === itemId && item.linkedWorkKey === uniqueKey
-      ).length;
-      return count;
+    // Check if parent work type supports double (both sides) complementary works
+    // Only Brick Partitions and Brick Load-bearing Wall support values up to 2
+    const maxValue = parentProperty?.supportsDoubleComplementary ? 2 : 1;
+
+    // Get the maximum value across all complementary works flags
+    // Use occurrence-based indexing (count of same work type before this index)
+    const values = parentProperty.complementaryWorks.map((work, index) => {
+      const occurrenceIndex = parentProperty.complementaryWorks.slice(0, index).filter(w => w === work).length;
+      const uniqueKey = `${work}_${occurrenceIndex}`;
+      return parentItem.complementaryWorks?.[uniqueKey] || 0;
     });
 
-    const minCount = Math.min(...counts);
+    const maxCurrentValue = Math.max(...values);
 
-    // If all are at 2 or higher, remove all and reset to 0
-    if (minCount >= 2) {
-      setWorkData(items =>
-        items.filter(item => item.linkedToParent !== itemId).map(item =>
-          item.id === itemId
-            ? {
-                ...item,
-                complementaryWorks: Object.fromEntries(
-                  parentProperty.complementaryWorks.map((work, index) => [
-                    `${work}_${index}`,
-                    0
-                  ])
-                )
-              }
-            : item
-        )
-      );
-      return;
+    // Cycle through states: 0 -> 1 -> 2 (if supported) -> 0
+    // Next state is based on the highest current value
+    let newValue;
+    if (maxCurrentValue === 0) {
+      newValue = 1; // All off -> all single layer
+    } else if (maxCurrentValue === 1 && maxValue === 2) {
+      newValue = 2; // All single -> all double (if supported)
+    } else {
+      newValue = 0; // All double (or single if max=1) -> all off
     }
 
-    // Otherwise, increment all to the next level (all go to minCount + 1)
+    // Update all complementary work flags on the parent item
+    const newComplementaryWorks = {};
     parentProperty.complementaryWorks.forEach((work, index) => {
-      const uniqueKey = `${work}_${index}`;
-      const currentCount = workData.filter(item =>
-        item.linkedToParent === itemId && item.linkedWorkKey === uniqueKey
-      ).length;
-
-      // If this work is at the minimum count, increment it
-      if (currentCount === minCount) {
-        handleToggleComplementaryWork(itemId, uniqueKey, null);
-      }
+      const occurrenceIndex = parentProperty.complementaryWorks.slice(0, index).filter(w => w === work).length;
+      const uniqueKey = `${work}_${occurrenceIndex}`;
+      newComplementaryWorks[uniqueKey] = newValue;
     });
+
+    setWorkData(items =>
+      items.map(item =>
+        item.id === itemId
+          ? {
+            ...item,
+            complementaryWorks: {
+              ...item.complementaryWorks,
+              ...newComplementaryWorks
+            }
+          }
+          : item
+      )
+    );
   };
 
   const handleToggleComplementaryWork = (itemId, workKey, e) => {
@@ -598,141 +532,31 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     const parentItem = workData.find(item => item.id === itemId);
     if (!parentItem) return;
 
-    // Extract work name from key (e.g., "Plastering_0" -> "Plastering")
-    const workName = workKey.replace(/_\d+$/, '');
+    // Get current flag value (0, 1, or 2)
+    const currentValue = parentItem.complementaryWorks?.[workKey] || 0;
 
-    // Count current instances
-    const currentCount = workData.filter(item =>
-      item.linkedToParent === itemId && item.linkedWorkKey === workKey
-    ).length;
+    // Check if parent work type supports double (both sides) complementary works
+    // Only Brick Partitions and Brick Load-bearing Wall support values up to 2
+    const parentProperty = workProperties.find(p => p.id === parentItem.propertyId);
+    const maxValue = parentProperty?.supportsDoubleComplementary ? 2 : 1;
 
-    // If count >= 2, remove all and reset to 0
-    if (currentCount >= 2) {
-      setWorkData(items =>
-        items.filter(item =>
-          !(item.linkedToParent === itemId && item.linkedWorkKey === workKey)
-        ).map(item =>
-          item.id === itemId
-            ? {
-                ...item,
-                complementaryWorks: {
-                  ...item.complementaryWorks,
-                  [workKey]: 0
-                }
-              }
-            : item
-        )
-      );
-      return;
-    }
+    // Toggle: 0 → 1 → 2 → 0 (for brick) or 0 → 1 → 0 (for others)
+    const newValue = currentValue >= maxValue ? 0 : currentValue + 1;
 
-    // Otherwise, create a new item and increment count
-    {
-      // Checking: Create a new complementary work item
-      const parentProperty = workProperties.find(p => p.id === parentItem.propertyId);
-
-      // Find matching complementary work property
-      let complementaryProperty = null;
-
-      // Determine which variant to use based on parent's field structure
-      const hasHeightField = parentProperty?.fields?.some(f => f.name === WORK_ITEM_NAMES.HEIGHT);
-
-      // Check if parent is a partition or offset wall (these are walls even though they don't have HEIGHT field)
-      const isPartitionOrOffsetWall = parentProperty?.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION ||
-                                       parentProperty?.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET;
-
-      // Wall type: has HEIGHT field OR is a partition/offset wall
-      const isWallType = hasHeightField || isPartitionOrOffsetWall;
-
-      if (workName === WORK_ITEM_NAMES.PLASTERING) {
-        complementaryProperty = workProperties.find(p =>
-          isWallType ? p.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING
-        );
-      } else if (workName === WORK_ITEM_NAMES.PAINTING) {
-        complementaryProperty = workProperties.find(p =>
-          isWallType ? p.id === WORK_ITEM_PROPERTY_IDS.PAINTING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING
-        );
-      } else if (workName === WORK_ITEM_NAMES.NETTING) {
-        complementaryProperty = workProperties.find(p =>
-          isWallType ? p.id === WORK_ITEM_PROPERTY_IDS.NETTING_WALL : p.id === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING
-        );
-      } else if (workName === WORK_ITEM_NAMES.PENETRATION_COATING) {
-        complementaryProperty = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING);
-      } else if (workName === WORK_ITEM_NAMES.TILING_UNDER_60CM) {
-        complementaryProperty = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60);
-      }
-
-      if (!complementaryProperty) {
-        return;
-      }
-
-      // Create new complementary work item with copied dimensions
-      const newItem = {
-        id: Date.now(),
-        propertyId: complementaryProperty.id,
-        // Store English keys - display code will translate
-        name: complementaryProperty.name,
-        subtitle: complementaryProperty.subtitle,
-        fields: {},
-        complementaryWorks: {},
-        selectedType: complementaryProperty.types ? complementaryProperty.types[0] : null,
-        doorWindowItems: { doors: [], windows: [] },
-        linkedToParent: itemId, // Track which item this is linked to
-        linkedWorkKey: workKey // Track the specific work key
-      };
-
-      // Copy dimensions from parent to complementary item
-      if (parentItem.fields) {
-        // Copy Width
-        if (parentItem.fields[WORK_ITEM_NAMES.WIDTH] !== undefined) {
-          newItem.fields[WORK_ITEM_NAMES.WIDTH] = parentItem.fields[WORK_ITEM_NAMES.WIDTH];
-        } else if (parentItem.fields.Šírka !== undefined) {
-          newItem.fields[WORK_ITEM_NAMES.WIDTH] = parentItem.fields.Šírka;
-        }
-
-        // Determine what field the complementary item needs
-        const complementaryNeedsHeight = complementaryProperty.fields?.some(f => f.name === WORK_ITEM_NAMES.HEIGHT);
-        const complementaryNeedsLength = complementaryProperty.fields?.some(f => f.name === WORK_ITEM_NAMES.LENGTH);
-
-        // Get the second dimension from parent (could be HEIGHT or LENGTH)
-        const parentSecondDim = parentItem.fields[WORK_ITEM_NAMES.HEIGHT] ??
-                                parentItem.fields.Výška ??
-                                parentItem.fields[WORK_ITEM_NAMES.LENGTH] ??
-                                parentItem.fields.Dĺžka;
-
-        // Copy to the field that the complementary work needs
-        if (complementaryNeedsHeight && parentSecondDim !== undefined) {
-          newItem.fields[WORK_ITEM_NAMES.HEIGHT] = parentSecondDim;
-        } else if (complementaryNeedsLength && parentSecondDim !== undefined) {
-          newItem.fields[WORK_ITEM_NAMES.LENGTH] = parentSecondDim;
-        }
-
-        // Copy doors and windows if present
-        if (parentItem.doorWindowItems) {
-          newItem.doorWindowItems = {
-            doors: [...(parentItem.doorWindowItems.doors || [])],
-            windows: [...(parentItem.doorWindowItems.windows || [])]
-          };
-        }
-      }
-
-      // Update state: increment count and add new item
-      const newCount = currentCount + 1;
-      setWorkData(items => [
-        ...items.map(item =>
-          item.id === itemId
-            ? {
-                ...item,
-                complementaryWorks: {
-                  ...item.complementaryWorks,
-                  [workKey]: newCount
-                }
-              }
-            : item
-        ),
-        newItem
-      ]);
-    }
+    // Update only the flag on the parent item - no linked items created
+    setWorkData(items =>
+      items.map(item =>
+        item.id === itemId
+          ? {
+            ...item,
+            complementaryWorks: {
+              ...item.complementaryWorks,
+              [workKey]: newValue
+            }
+          }
+          : item
+      )
+    );
   };
 
   const handleRemoveWorkItem = (itemId, e) => {
@@ -750,14 +574,12 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       const itemsOfThisProp = workData.filter(i => i.propertyId === propId);
       // If this is the last item (or somehow we have 0), collapse the group
       if (itemsOfThisProp.length <= 1) {
-         setExpandedItems(prev => ({ ...prev, [propId]: false }));
+        setExpandedItems(prev => ({ ...prev, [propId]: false }));
       }
     }
 
-    // When removing an item, also remove all complementary work items linked to it
-    setWorkData(items => items.filter(item =>
-      item.id !== itemId && item.linkedToParent !== itemId
-    ));
+    // Remove the item (no linked items to worry about - we only use flags now)
+    setWorkData(items => items.filter(item => item.id !== itemId));
   };
 
   const toggleExpanded = (itemId, e) => {
@@ -765,9 +587,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     saveScrollPosition();
-    
+
     setExpandedItems(prev => ({
       ...prev,
       [itemId]: !prev[itemId]
@@ -782,8 +604,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
 
   // Helper to render work property cards with props passed down
   const renderWorkPropertyCard = (property) => (
-    <WorkPropertyCard 
-      key={property.id} 
+    <WorkPropertyCard
+      key={property.id}
       property={property}
       workData={workData}
       expandedItems={expandedItems}
@@ -812,26 +634,25 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
 
   return (
     <>
-      <div 
+      <div
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 animate-fade-in"
         onClick={handleClose}
       >
-        <div 
+        <div
           className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[75vh] lg:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in"
           onClick={(e) => e.stopPropagation()}
-        >        
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t(room.name) !== room.name ? t(room.name) : room.name}</h2>
             <div className="flex items-center gap-3">
               <div
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
-                  saveStatus === 'saved'
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${saveStatus === 'saved'
                     ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
                     : saveStatus === 'saving'
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                    : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
-                }`}
+                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                      : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
+                  }`}
               >
                 {saveStatus === 'saving' ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -856,7 +677,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
           {/* Content */}
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
             {/* Main Content Area - Scrollable */}
-            <div 
+            <div
               ref={scrollContainerRef}
               className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar"
               style={{
@@ -870,7 +691,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
                   <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                   <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h3>
                 </div>
-                
+
                 {/* Main properties - Single column on mobile, 3 columns on desktop */}
                 <div className="space-y-3 lg:space-y-0 lg:flex lg:gap-2">
                   <div className="lg:hidden space-y-3">
@@ -894,7 +715,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
                         startIndex = 18;
                         endIndex = mainProperties.length;
                       }
-                      
+
                       return (
                         <div key={colIndex} className="flex-1 space-y-2">
                           {mainProperties
@@ -905,7 +726,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
                     })}
                   </div>
                 </div>
-                
+
                 {/* Others section */}
                 {othersProperties.length > 0 && (
                   <div className="space-y-3 lg:space-y-2">
@@ -924,7 +745,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
                           const itemsPerColumn = Math.ceil(othersProperties.length / 3);
                           const startIndex = colIndex * itemsPerColumn;
                           const endIndex = Math.min(startIndex + itemsPerColumn, othersProperties.length);
-                          
+
                           return (
                             <div key={colIndex} className="flex-1 space-y-2">
                               {othersProperties

@@ -118,33 +118,34 @@ const Settings = () => {
           <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Access')}</h2>
         </div>
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-[25px] p-4 lg:p-5 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-3 mb-2">
-                <span className="font-semibold text-gray-900 dark:text-white text-lg">{user?.email || 'customer@email.com'}</span>
-                {isPro && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">{t('PRO ACTIVE')}</span>}
+              {/* Email Section */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 lg:gap-3 mb-2 px-1">
+                <span className="font-semibold text-gray-900 dark:text-white text-2xl">{user?.email || 'customer@email.com'}</span>
+
               </div>
 
-              {isPro ? (
-                <div className="text-base lg:text-lg text-green-600 mb-1">{t('You have full access to all features.')}</div>
-              ) : (
-                <>
-                  <div className="text-base lg:text-lg text-gray-600 dark:text-gray-400 mb-1">{t('Restricted Access')}</div>
-                  <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">{t('Customise prices in the entire app and export projects to PDF. Try Pro For Free!')}</div>
-                </>
-              )}
+              {/* Status Section */}
+              <div className="px-1">
+                {isPro ? (
+                  <div className="text-xl font-semibold text-green-600 mb-1">{t('Pro User')}</div>
+                ) : (
+                  <>
+                    <div className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('Restricted Access')}</div>
+                    <div className="text-xs font-medium text-gray-900 dark:text-white mb-4 leading-relaxed max-w-xl opacity-90">
+                      {t('Customise prices in the entire app and export projects to PDF. Try Pro For Free!')}
+                    </div>
 
-              <div className="flex gap-3 mt-4">
-                {!isPro && (
-                  <button
-                    onClick={handleTryPro}
-                    className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-6 py-3 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md text-lg flex items-center gap-2"
-                  >
-                    {t('Get Pro')}
-                  </button>
+                    <button
+                      onClick={handleTryPro}
+                      className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2 rounded-[13px] font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm hover:shadow-md text-lg inline-flex items-center gap-2 mt-1"
+                    >
+                      {t('Try Pro')}
+                    </button>
+                  </>
                 )}
-
               </div>
             </div>
           </div>

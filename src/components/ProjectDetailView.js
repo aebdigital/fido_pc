@@ -47,6 +47,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     setActiveContractor,
     addContractor,
     addClient, // Add this
+    updateClient, // Add this for fixing the lint error
     projectCategories,
     updateProject,
     archiveProject,
@@ -77,6 +78,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   } = useAppData();
 
   // Local state
+  const clientFormRef = useRef(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
@@ -96,12 +98,15 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [isEditingProjectNotes, setIsEditingProjectNotes] = useState(false);
   const [editingProjectNotes, setEditingProjectNotes] = useState('');
   const [showContractorWarning, setShowContractorWarning] = useState(false);
+  const [showEditClientModal, setShowEditClientModal] = useState(false);
   const [showInvoiceCreationModal, setShowInvoiceCreationModal] = useState(false);
   const [showInvoiceDetailModal, setShowInvoiceDetailModal] = useState(false);
   const [projectPhotos, setProjectPhotos] = useState([]);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
   const [projectDetailNotes, setProjectDetailNotes] = useState('');
-  const notesAutosaveRef = useRef(null);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isNoteFocused, setIsNoteFocused] = useState(false);
+  const notesSaveTimeoutRef = useRef(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
@@ -269,6 +274,17 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     // Modal will close when user clicks the X button
   };
 
+  const handleUpdateClient = async (clientData) => {
+    if (!selectedClientForProject) return;
+    try {
+      await updateClient(selectedClientForProject.id, clientData);
+      setShowEditClientModal(false);
+    } catch (error) {
+      console.error('Error updating client:', error);
+      alert(t('Failed to update client'));
+    }
+  };
+
   const handleDuplicateProject = async () => {
     if (!activeContractorId) {
       setShowContractorWarning(true);
@@ -405,16 +421,48 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const handleNotesChange = (e) => {
-    const newValue = e.target.value;
-    setProjectDetailNotes(newValue);
+    setProjectDetailNotes(e.target.value);
+  };
 
-    // Debounced autosave
-    if (notesAutosaveRef.current) {
-      clearTimeout(notesAutosaveRef.current);
+  const handleSaveNotes = async () => {
+    if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
+
+    setIsSavingNotes(true);
+    try {
+      await updateProject(project.category, project.id, { detailNotes: projectDetailNotes });
+    } catch (error) {
+      console.error('Error saving notes:', error);
+      alert(t('Failed to save notes'));
+    } finally {
+      setIsSavingNotes(false);
     }
-    notesAutosaveRef.current = setTimeout(() => {
-      updateProject(project.category, project.id, { detailNotes: newValue });
-    }, 1000);
+  };
+
+  const handleCancelNotes = () => {
+    if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
+    setProjectDetailNotes(project.detailNotes || '');
+  };
+
+  const handleNotesBlur = (e) => {
+    // If we're clicking the cancel button, don't save. 
+    // We use a small timeout to allow the Cancel button's onClick to fire first/concurrently
+    // or to be checked if we could inspect relatedTarget (though touch events can be tricky)
+
+    // Check if the related target (where focus went) is the cancel button
+    // But relatedTarget isn't always reliable (e.g. clicking iframe or non-focusable).
+    // The robust way: delay the save. If Cancel is clicked, it clears the timeout.
+
+    notesSaveTimeoutRef.current = setTimeout(() => {
+      // If content changed, save
+      if (projectDetailNotes !== (project.detailNotes || '')) {
+        handleSaveNotes();
+      }
+      setIsNoteFocused(false);
+    }, 200);
+  };
+
+  const handleNotesFocus = () => {
+    setIsNoteFocused(true);
   };
 
   // === RECEIPT HANDLERS ===
@@ -557,7 +605,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         formatPrice,
         projectNotes: project.notes,
         projectNumber: formatProjectNumber(project),
-        offerValidityPeriod: priceOfferSettings?.timeLimit || 30
+        offerValidityPeriod: priceOfferSettings?.timeLimit || 30,
+        priceList: project.priceListSnapshot
       }, t); // Pass t as the second argument
 
       // On mobile, open directly in browser's native PDF viewer
@@ -654,7 +703,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             formatPrice,
             projectNotes: project.notes,
             projectNumber: formatProjectNumber(project),
-            offerValidityPeriod: priceOfferSettings?.timeLimit || 30
+            offerValidityPeriod: priceOfferSettings?.timeLimit || 30,
+            priceList: project.priceListSnapshot
           }, t);
           currentBlob = result.pdfBlob;
           setPdfBlob(currentBlob);
@@ -799,7 +849,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Klient')}</h2>
             </div>
             <div
-              onClick={() => !project.is_archived && setShowClientSelector(true)}
+              onClick={() => {
+                if (!project.is_archived) {
+                  if (selectedClientForProject) {
+                    setShowEditClientModal(true);
+                  } else {
+                    setShowClientSelector(true);
+                  }
+                }
+              }}
               className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
             >
               <div className="min-w-0 flex-1">
@@ -977,8 +1035,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           {/* Invoices List (if exists) */}
           {getInvoiceForProject(project.id) && (
             <div className="space-y-3">
-              {getInvoicesForContractor(activeContractorId)
-                .filter(inv => inv.projectId === project.id)
+              {[getInvoiceForProject(project.id)] // Show the invoice regardless of active contractor
+                .filter(Boolean) // Safety check
                 .map(invoice => (
                   <div
                     key={invoice.id}
@@ -1045,8 +1103,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   </div>
 
                   {showContractorSelector && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto">
-                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowContractorSelector(false)}>
+                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
 
                         <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
@@ -1234,13 +1292,44 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <StickyNote className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Notes_Project')}</h2>
             </div>
-            <textarea
-              value={projectDetailNotes}
-              onChange={handleNotesChange}
-              placeholder={t('Add project notes...')}
-              className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-              disabled={project.is_archived}
-            />
+            <div onBlur={handleNotesBlur} onFocus={handleNotesFocus}>
+              <textarea
+                value={projectDetailNotes}
+                onChange={handleNotesChange}
+                placeholder={t('Add project notes...')}
+                className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none mb-2"
+                disabled={project.is_archived}
+              />
+              {!project.is_archived && isNoteFocused && (
+                <div className="flex gap-2 animate-fade-in">
+                  <button
+                    onClick={handleCancelNotes}
+                    onMouseDown={() => {
+                      // Prevent blur from firing immediately on mousedown
+                      if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
+                    }}
+                    className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    {t('Zrušiť')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
+                      handleSaveNotes();
+                      setIsNoteFocused(false);
+                    }}
+                    onMouseDown={() => {
+                      if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
+                    }}
+                    disabled={isSavingNotes}
+                    className="flex-1 py-2 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSavingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    {t('Uložiť')}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Photos */}
@@ -1404,8 +1493,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {/* Modals */}
       {showNewRoomModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto relative">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowNewRoomModal(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('New room')}</h3>
               <button
@@ -1428,8 +1517,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       )}
 
       {showCustomRoomModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative my-auto md:my-0">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowCustomRoomModal(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
               <button
@@ -1459,9 +1548,28 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         </div>
       )}
 
+      {showEditClientModal && selectedClientForProject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => clientFormRef.current?.submit()}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full max-w-7xl h-[85vh] lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">{t('Edit Client')}</h3>
+              <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <ClientForm
+              ref={clientFormRef}
+              initialData={selectedClientForProject}
+              onSave={handleUpdateClient}
+              onCancel={() => setShowEditClientModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {showClientSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto">
-          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0`}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => setShowClientSelector(false)}>
+          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0`} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
               {showCreateClientInModal && (
@@ -1546,8 +1654,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       )}
 
       {showContractorWarning && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowContractorWarning(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-5 h-5 text-amber-600" />
               <h3 className="text-xl font-semibold">{t('Contractor Required')}</h3>
@@ -1578,8 +1686,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {/* Receipts Modal */}
       {showReceiptsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[75vh] lg:max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4" onClick={() => setShowReceiptsModal(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[75vh] lg:max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
               <div>
@@ -1798,7 +1906,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               ? 'scale-100 opacity-100'
               : 'scale-95 opacity-0'
               }`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              // Click on image to go to next photo (looping to start if at end)
+              setLightboxDirection(1);
+              setSelectedPhotoIndex(prev => (prev < projectPhotos.length - 1 ? prev + 1 : 0));
+            }}
           >
             <img
               key={selectedPhotoIndex}

@@ -10,7 +10,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
   const [showIcoSearch, setShowIcoSearch] = useState(false);
   const logoInputRef = useRef(null);
   const signatureInputRef = useRef(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     // Contact details
@@ -19,24 +19,24 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
     email: editingContractor?.email || '',
     phone: editingContractor?.phone || '',
     website: editingContractor?.website || editingContractor?.web || '',
-    
+
     // Address
     street: editingContractor?.street || '',
     additionalInfo: editingContractor?.additionalInfo || editingContractor?.second_row_street || '',
     city: editingContractor?.city || '',
     postalCode: editingContractor?.postalCode || editingContractor?.postal_code || '',
     country: editingContractor?.country || '',
-    
+
     // Business information
     businessId: editingContractor?.businessId || editingContractor?.business_id || '',
     taxId: editingContractor?.taxId || editingContractor?.tax_id || '',
     vatNumber: editingContractor?.vatNumber || editingContractor?.vat_registration_number || '',
-    
+
     // Banking details
     bankAccount: editingContractor?.bankAccount || editingContractor?.bank_account_number || '',
     bankCode: editingContractor?.bankCode || editingContractor?.swift_code || '',
     legalAppendix: editingContractor?.legalAppendix || editingContractor?.legal_notice || '',
-    
+
     // Images
     logo: editingContractor?.logo || editingContractor?.logo_url || null,
     signature: editingContractor?.signature || editingContractor?.signature_url || null
@@ -155,13 +155,18 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
   return (
     <div
       className={`fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
-      onClick={handleClose}
+      onClick={(e) => {
+        // Only trigger if clicking the backdrop directly
+        if (e.target === e.currentTarget) {
+          handleSave();
+        }
+      }}
     >
       <div
         className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl h-[75vh] lg:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col my-auto md:my-0 ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
         onClick={(e) => e.stopPropagation()}
       >
-        
+
         {/* Header */}
         <div className="flex items-center justify-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
@@ -171,10 +176,10 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-          
+
           {/* Profile Image Section */}
           <div className="flex flex-col items-center mb-8">
-            <div 
+            <div
               className="w-24 h-24 lg:w-32 lg:h-32 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 overflow-hidden relative cursor-pointer group border-2 border-gray-200 dark:border-gray-600"
               onClick={() => logoInputRef.current?.click()}
             >
@@ -189,22 +194,22 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
                 <Building2 className="w-8 h-8 lg:w-12 lg:h-12 text-gray-600 dark:text-gray-400" />
               )}
             </div>
-            <input 
-              type="file" 
+            <input
+              type="file"
               ref={logoInputRef}
               onChange={(e) => handleImageUpload(e, 'logo')}
-              className="hidden" 
+              className="hidden"
               accept="image/*"
             />
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => logoInputRef.current?.click()}
                 className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 {formData.logo ? t('Change logo') : t('Upload logo')}
               </button>
               {formData.logo && (
-                <button 
+                <button
                   onClick={() => removeImage('logo')}
                   className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-2 rounded-full text-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                 >
@@ -321,7 +326,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Location')}</h3>
             <div className="space-y-4">
-              
+
               {/* Street */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -399,7 +404,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Business information')}</h3>
             <div className="space-y-4">
-              
+
               {/* Business ID */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -449,7 +454,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Banking and legal')}</h3>
             <div className="space-y-4">
-              
+
               {/* Bank Account Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -559,7 +564,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

@@ -3,7 +3,7 @@
  * Maps between app's dynamic work item structure and database tables
  */
 
-import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, COMPLEMENTARY_WORK_NAMES } from '../config/constants';
+import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 import { workProperties } from '../config/workProperties';
 
 // Map iOS unit enum values to display symbols
@@ -149,17 +149,19 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
   switch (tableName) {
     case 'brick_partitions':
     case 'brick_load_bearing_walls':
+      // Use keys with _0/_1/_2 suffix to match how RoomDetailsModal stores them
+      // Values can be 0, 1, or 2 (for double/both sides)
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
-        netting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.NETTING] ? 1 : 0,
-        painting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PAINTING] ? 1 : 0,
-        plastering: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PLASTERING] ? 1 : 0,
-        tiling: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.TILING_UNDER_60CM] ? 1 : 0,
-        penetration_one: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0,
-        penetration_two: 0,
-        penetration_three: 0
+        netting: workItem.complementaryWorks?.['Netting_0'] || 0,
+        painting: workItem.complementaryWorks?.['Painting_0'] || 0,
+        plastering: workItem.complementaryWorks?.['Plastering_0'] || 0,
+        tiling: workItem.complementaryWorks?.['Tiling under 60cm_0'] || 0,
+        penetration_one: workItem.complementaryWorks?.['Penetration coating_0'] || 0,
+        penetration_two: workItem.complementaryWorks?.['Penetration coating_1'] || 0,
+        penetration_three: workItem.complementaryWorks?.['Penetration coating_2'] || 0
       };
 
     case 'plasterboarding_partitions':
@@ -172,21 +174,33 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         type: typeMap[workItem.selectedType] || 1,
-        painting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PAINTING] ? 1 : 0,
-        penetration: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0
+        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
+        penetration: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0
       };
 
     case 'netting_walls':
-    case 'plastering_walls':
-    case 'painting_walls':
-    case 'facade_plasterings':
-      // Wall types use WIDTH x HEIGHT
+      // Netting walls have: painting, plastering, tiling, penetration_one, penetration_two
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
-        painting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PAINTING] ? 1 : 0,
-        penetration: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0
+        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
+        plastering: workItem.complementaryWorks?.['Plastering_0'] ? 1 : 0,
+        tiling: workItem.complementaryWorks?.['Tiling under 60cm_0'] ? 1 : 0,
+        penetration_one: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0,
+        penetration_two: workItem.complementaryWorks?.['Penetration coating_1'] ? 1 : 0
+      };
+
+    case 'plastering_walls':
+    case 'painting_walls':
+    case 'facade_plasterings':
+      // Wall types use WIDTH x HEIGHT with painting and penetration
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
+        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
+        penetration: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0
       };
 
     case 'penetration_coatings':
@@ -197,15 +211,26 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       };
 
     case 'netting_ceilings':
-    case 'plastering_ceilings':
-    case 'painting_ceilings':
-      // Ceiling types use WIDTH x LENGTH
+      // Netting ceilings have: painting, plastering, penetration_one, penetration_two
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        painting: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PAINTING] ? 1 : 0,
-        penetration: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0
+        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
+        plastering: workItem.complementaryWorks?.['Plastering_0'] ? 1 : 0,
+        penetration_one: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0,
+        penetration_two: workItem.complementaryWorks?.['Penetration coating_1'] ? 1 : 0
+      };
+
+    case 'plastering_ceilings':
+    case 'painting_ceilings':
+      // Ceiling types use WIDTH x LENGTH with painting and penetration
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
+        penetration: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0
       };
 
     case 'tile_ceramics':
@@ -251,7 +276,7 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        penetration: workItem.complementaryWorks?.[COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING] ? 1 : 0
+        penetration: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0
       };
 
     case 'siliconings':
@@ -413,6 +438,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
   switch (tableName) {
     case 'brick_partitions':
     case 'brick_load_bearing_walls':
+      // Load complementary works as numbers (0, 1, or 2) with _0/_1/_2 suffix keys
       return {
         ...baseItem,
         fields: {
@@ -420,10 +446,13 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          [COMPLEMENTARY_WORK_NAMES.NETTING]: dbRecord.netting === 1,
-          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
-          [COMPLEMENTARY_WORK_NAMES.PLASTERING]: dbRecord.plastering === 1,
-          [COMPLEMENTARY_WORK_NAMES.TILING_UNDER_60CM]: dbRecord.tiling === 1
+          'Netting_0': dbRecord.netting || 0,
+          'Painting_0': dbRecord.painting || 0,
+          'Plastering_0': dbRecord.plastering || 0,
+          'Tiling under 60cm_0': dbRecord.tiling || 0,
+          'Penetration coating_0': dbRecord.penetration_one || 0,
+          'Penetration coating_1': dbRecord.penetration_two || 0,
+          'Penetration coating_2': dbRecord.penetration_three || 0
         }
       };
 
@@ -441,8 +470,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
         },
         selectedType: plasterboardType,
         complementaryWorks: {
-          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
-          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
+          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
     }
@@ -459,17 +488,14 @@ export function databaseToWorkItem(dbRecord, tableName) {
         },
         selectedType: offsetType,
         complementaryWorks: {
-          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
-          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
+          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
     }
 
     case 'netting_walls':
-    case 'plastering_walls':
-    case 'painting_walls':
-    case 'facade_plasterings':
-      // Wall types use WIDTH x HEIGHT
+      // Netting walls have: painting, plastering, tiling, penetration_one, penetration_two
       return {
         ...baseItem,
         fields: {
@@ -477,8 +503,27 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
-          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
+          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Plastering_0': dbRecord.plastering ? 1 : 0,
+          'Tiling under 60cm_0': dbRecord.tiling ? 1 : 0,
+          'Penetration coating_0': dbRecord.penetration_one ? 1 : 0,
+          'Penetration coating_1': dbRecord.penetration_two ? 1 : 0
+        }
+      };
+
+    case 'plastering_walls':
+    case 'painting_walls':
+    case 'facade_plasterings':
+      // Wall types use WIDTH x HEIGHT with painting and penetration
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
+        },
+        complementaryWorks: {
+          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
 
@@ -492,9 +537,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'netting_ceilings':
-    case 'plastering_ceilings':
-    case 'painting_ceilings':
-      // Ceiling types use WIDTH x LENGTH
+      // Netting ceilings have: painting, plastering, penetration_one, penetration_two
       return {
         ...baseItem,
         fields: {
@@ -502,8 +545,25 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          [COMPLEMENTARY_WORK_NAMES.PAINTING]: dbRecord.painting === 1,
-          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
+          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Plastering_0': dbRecord.plastering ? 1 : 0,
+          'Penetration coating_0': dbRecord.penetration_one ? 1 : 0,
+          'Penetration coating_1': dbRecord.penetration_two ? 1 : 0
+        }
+      };
+
+    case 'plastering_ceilings':
+    case 'painting_ceilings':
+      // Ceiling types use WIDTH x LENGTH with painting and penetration
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
+        },
+        complementaryWorks: {
+          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
 
@@ -561,7 +621,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          [COMPLEMENTARY_WORK_NAMES.PENETRATION_COATING]: dbRecord.penetration === 1
+          'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
 

@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Hammer, Package, Info, Menu, Loader2, Check, TrendingUp, Wrench } from 'lucide-react';
+import { ArrowLeft, Hammer, Package, Info, Menu, Loader2, Check, TrendingUp, Wrench, Lock } from 'lucide-react';
+import PaywallModal from '../components/PaywallModal';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from '../components/NumberInput';
 
+import { useScrollLock } from '../hooks/useScrollLock';
+
 const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   const { t } = useLanguage();
-  const { generalPriceList, updateGeneralPriceList, saveGeneralPriceListBulk } = useAppData();
+  const { generalPriceList, updateGeneralPriceList, saveGeneralPriceListBulk, resetGeneralPriceItem, isPro } = useAppData();
   const [localPriceList, setLocalPriceList] = useState(null);
   const [originalPrices, setOriginalPrices] = useState({});
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [percentageIncrease, setPercentageIncrease] = useState('');
   const [showPercentageModal, setShowPercentageModal] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false); // Add Paywall State
 
   const lastSavedData = useRef(null);
   const isUnmounting = useRef(false);
@@ -36,6 +40,10 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       }
     }
   }, [generalPriceList, localPriceList]);
+
+  // Disable scrolling for non-Pro users using the smart hook
+  // This prevents the "blank right side" issue on iPad by detecting iOS
+  useScrollLock(!isPro);
 
   // Autosave Logic with proper debouncing
   useEffect(() => {
@@ -297,58 +305,81 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         </div>
 
         {/* Content */}
-        <div>
-          {/* Work Section */}
-          <div className="mb-8 lg:mb-10 pt-4 lg:pt-6">
-            <div className="flex items-center gap-2 mb-4 lg:mb-6">
-              <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
+        <div className="relative">
+          {!isPro && (
+            <div className="absolute inset-0 z-10 flex justify-center pt-32">
+              <div className="relative z-20 bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl max-w-md text-center border border-gray-100 dark:border-gray-700 h-fit">
+                <div className="w-16 h-16 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <Lock className="w-8 h-8 text-white dark:text-gray-900" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                  {t('Pro Features')}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-8 text-lg">
+                  {t('Unlock unlimited access to price lists, invoices, and PDF exports.')}
+                </p>
+                <button
+                  onClick={() => setShowPaywall(true)}
+                  className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-8 rounded-2xl font-bold text-lg hover:scale-105 transition-transform shadow-xl"
+                >
+                  {t('Unlock')}
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-              {localPriceList.work?.map((item, index) => (
-                <PriceCard key={index} item={item} category="work" itemIndex={index} />
-              ))}
+          )}
+          <div className={!isPro ? "filter blur-sm pointer-events-none select-none opacity-50 transition-all duration-300" : ""}>
+            {/* Work Section */}
+            <div className="mb-8 lg:mb-10 pt-4 lg:pt-6">
+              <div className="flex items-center gap-2 mb-4 lg:mb-6">
+                <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
+                {localPriceList.work?.map((item, index) => (
+                  <PriceCard key={index} item={item} category="work" itemIndex={index} />
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Material Section */}
-          <div className="mb-8 lg:mb-10">
-            <div className="flex items-center gap-2 mb-4 lg:mb-6">
-              <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
+            {/* Material Section */}
+            <div className="mb-8 lg:mb-10">
+              <div className="flex items-center gap-2 mb-4 lg:mb-6">
+                <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
+                {localPriceList.material?.map((item, index) => (
+                  <PriceCard key={index} item={item} category="material" itemIndex={index} />
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-              {localPriceList.material?.map((item, index) => (
-                <PriceCard key={index} item={item} category="material" itemIndex={index} />
-              ))}
-            </div>
-          </div>
 
-          {/* Installations Section */}
-          <div className="mb-8 lg:mb-10">
-            <div className="flex items-center gap-2 mb-4 lg:mb-6">
-              <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
+            {/* Installations Section */}
+            <div className="mb-8 lg:mb-10">
+              <div className="flex items-center gap-2 mb-4 lg:mb-6">
+                <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
+                {localPriceList.installations?.map((item, index) => (
+                  <PriceCard key={index} item={item} category="installations" itemIndex={index} />
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-              {localPriceList.installations?.map((item, index) => (
-                <PriceCard key={index} item={item} category="installations" itemIndex={index} />
-              ))}
-            </div>
-          </div>
 
-          {/* Others Section */}
-          <div className="mb-8 lg:mb-10">
-            <div className="flex items-center gap-2 mb-4 lg:mb-6">
-              <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-              {localPriceList.others?.map((item, index) => (
-                item.name !== 'Custom work and material' && (
-                  <PriceCard key={index} item={item} category="others" itemIndex={index} />
-                )
-              ))}
+            {/* Others Section */}
+            <div className="mb-8 lg:mb-10">
+              <div className="flex items-center gap-2 mb-4 lg:mb-6">
+                <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
+                {localPriceList.others?.map((item, index) => (
+                  item.name !== 'Custom work and material' && (
+                    <PriceCard key={index} item={item} category="others" itemIndex={index} />
+                  )
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -356,8 +387,8 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
       {/* Percentage Increase Modal */}
       {showPercentageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md animate-slide-in my-auto md:my-0">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto animate-fade-in" onClick={handleCancelPercentageIncrease}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md animate-slide-in my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Increase All Prices')}</h3>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -405,6 +436,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         </div>
       )}
 
+      <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
     </>
   );
 };

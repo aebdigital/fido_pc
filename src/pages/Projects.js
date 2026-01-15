@@ -47,7 +47,10 @@ const Projects = () => {
   const [projectDeleteMode, setProjectDeleteMode] = useState(false);
   const [isClosingModal, setIsClosingModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
+
   const [showContractorSelector, setShowContractorSelector] = useState(false);
+  const [filterYear, setFilterYear] = useState('all'); // 'all' or specific year string
+  const [showYearSelector, setShowYearSelector] = useState(false);
 
   // Ref for dropdown (used in header)
   const dropdownRef = useRef(null);
@@ -247,6 +250,7 @@ const Projects = () => {
     setActiveCategory(categoryId);
     setSelectedProject(null);
     setCurrentView('projects');
+    setFilterYear('all'); // Reset filter when changing category
   };
 
   const handleProjectSelect = async (project) => {
@@ -383,8 +387,8 @@ const Projects = () => {
                         <div
                           key={contractor.id}
                           className={`p-3 rounded-xl cursor-pointer transition-colors ${activeContractorId === contractor.id && !viewingOrphanProjects
-                              ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
-                              : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                            ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
+                            : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
                             }`}
                           onClick={() => handleContractorSelect(contractor.id)}
                         >
@@ -406,8 +410,8 @@ const Projects = () => {
                     <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
                       <div
                         className={`p-3 rounded-xl cursor-pointer transition-colors ${viewingOrphanProjects
-                            ? 'bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-600'
-                            : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                          ? 'bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-600'
+                          : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
                           }`}
                         onClick={handleViewOrphanProjects}
                       >
@@ -435,8 +439,8 @@ const Projects = () => {
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
                   className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-2xl overflow-hidden transition-all duration-200 ${activeCategory === category.id
-                      ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg transform scale-105'
-                      : 'hover:shadow-md'
+                    ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg transform scale-105'
+                    : 'hover:shadow-md'
                     }`}
                 >
                   <div className="h-24 lg:h-32 relative shadow-lg">
@@ -509,8 +513,8 @@ const Projects = () => {
                           <button
                             onClick={toggleProjectDeleteMode}
                             className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${projectDeleteMode
-                                ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                                : 'bg-gray-500 text-white hover:bg-gray-600'
+                              ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                              : 'bg-gray-500 text-white hover:bg-gray-600'
                               }`}
                           >
                             <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -529,64 +533,135 @@ const Projects = () => {
                 </div>
 
                 {/* Projects List */}
-                <div className="space-y-3 min-w-0 w-full">
-                  {activeProjects.map(project => (
-                    <div
-                      key={project.id}
-                      className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
-                          ? 'justify-between'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
-                        }`}
-                      onClick={(projectDeleteMode && !viewingOrphanProjects) ? undefined : () => handleProjectSelect(project)}
-                    >
-                      <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
-                        </div>
-                        <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white lg:truncate">
-                          <span className="lg:hidden">{project.name.length > 17 ? `${project.name.substring(0, 17)}...` : project.name}</span>
-                          <span className="hidden lg:inline">{project.name}</span>
-                        </h3>
-                        {/* Client name - visible on all screen sizes */}
-                        <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1 truncate">
-                          {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
-                        </p>
-                      </div>
+                <div className="space-y-3 min-w-0 w-full relative">
+                  {/* Year Filter Dropdown acting as Section Header */}
+                  <div className="flex items-center gap-4 mb-4 relative z-20">
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowYearSelector(!showYearSelector)}
+                        className="flex items-center gap-2 text-xl lg:text-2xl font-bold text-gray-900 dark:text-white hover:opacity-70 transition-opacity"
+                      >
+                        <span>{filterYear === 'all' ? t('Whenever') : filterYear}</span>
+                        <ChevronDown className="w-5 h-5 lg:w-6 lg:h-6" />
+                      </button>
 
-                      {projectDeleteMode && !viewingOrphanProjects ? (
-                        <button
-                          onClick={() => handleArchiveProject(project.id)}
-                          className="bg-amber-100 hover:bg-amber-200 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
-                        >
-                          <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
-                          <div className="text-right">
-                            {/* Status Badge - iOS compatible: status is integer 0-3 */}
-                            <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${project.status === PROJECT_STATUS.FINISHED
-                                ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                                : project.status === PROJECT_STATUS.APPROVED
-                                  ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                                  : project.status === PROJECT_STATUS.SENT
-                                    ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                                    : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                              }`}>
-                              {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
-                                : project.status === PROJECT_STATUS.APPROVED ? 'approved'
-                                  : project.status === PROJECT_STATUS.SENT ? 'sent'
-                                    : 'not sent')}
-                            </span>
-                            {/* Price */}
-                            <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
-                            {/* VAT not included - below price */}
-                            <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
+                      {showYearSelector && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowYearSelector(false)}></div>
+                          <div className="absolute top-full left-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-30 overflow-hidden animate-slide-in-top">
+                            <div className="py-1">
+                              <button
+                                onClick={() => { setFilterYear('all'); setShowYearSelector(false); }}
+                                className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${filterYear === 'all' ? 'font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50' : 'text-gray-700 dark:text-gray-300'}`}
+                              >
+                                {t('Whenever')}
+                              </button>
+                              {(() => {
+                                const years = [...new Set(activeProjects.map(p => {
+                                  const date = new Date(p.created_at || p.createdAt || Date.now());
+                                  return date.getFullYear();
+                                }))].sort((a, b) => b - a);
+
+                                return years.map(year => (
+                                  <button
+                                    key={year}
+                                    onClick={() => { setFilterYear(year.toString()); setShowYearSelector(false); }}
+                                    className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${filterYear === year.toString() ? 'font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50' : 'text-gray-700 dark:text-gray-300'}`}
+                                  >
+                                    {year}
+                                  </button>
+                                ));
+                              })()}
+                            </div>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                        </div>
+                        </>
                       )}
                     </div>
-                  ))}
+                    <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
+                  </div>
+                  {(() => {
+                    const sortedProjects = [...activeProjects].sort((a, b) => {
+                      const dateA = new Date(a.created_at || a.createdAt || 0);
+                      const dateB = new Date(b.created_at || b.createdAt || 0);
+                      return dateB - dateA;
+                    });
+
+                    const filteredProjects = sortedProjects.filter(project => {
+                      if (filterYear === 'all') return true;
+                      const date = new Date(project.created_at || project.createdAt || Date.now());
+                      return date.getFullYear().toString() === filterYear;
+                    });
+
+                    return (
+                      <div className="space-y-3">
+                        {filteredProjects.map(project => (
+                          <div
+                            key={project.id}
+                            className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
+                              ? 'justify-between'
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
+                              }`}
+                            onClick={(projectDeleteMode && !viewingOrphanProjects) ? undefined : () => handleProjectSelect(project)}
+                          >
+                            <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
+                              </div>
+                              <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white lg:truncate">
+                                <span className="lg:hidden">{project.name.length > 17 ? `${project.name.substring(0, 17)}...` : project.name}</span>
+                                <span className="hidden lg:inline">{project.name}</span>
+                              </h3>
+                              {/* Client name - visible on all screen sizes */}
+                              <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1 truncate">
+                                {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
+                              </p>
+                            </div>
+
+                            {projectDeleteMode && !viewingOrphanProjects ? (
+                              <button
+                                onClick={() => handleArchiveProject(project.id)}
+                                className="bg-amber-100 hover:bg-amber-200 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
+                              >
+                                <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
+                              </button>
+                            ) : (
+                              <div className="flex-shrink-0 ml-3">
+                                {project.is_archived && (
+                                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 block"></span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Status and Price - Only show if NOT deleting */}
+                            {!projectDeleteMode && (
+                              <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
+                                <div className="text-right">
+                                  {/* Status Badge */}
+                                  <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${project.status === PROJECT_STATUS.FINISHED
+                                    ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                                    : project.status === PROJECT_STATUS.APPROVED
+                                      ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                                      : project.status === PROJECT_STATUS.SENT
+                                        ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                                        : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                                    }`}>
+                                    {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
+                                      : project.status === PROJECT_STATUS.APPROVED ? 'approved'
+                                        : project.status === PROJECT_STATUS.SENT ? 'sent'
+                                          : 'not sent')}
+                                  </span>
+                                  {/* Price */}
+                                  <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                                  <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
+                                </div>
+                                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {activeProjects.length === 0 && (
@@ -594,67 +669,73 @@ const Projects = () => {
                     <p>{t('No projects in this category yet.')}</p>
                   </div>
                 )}
-              </div>
+              </div >
             )}
 
             {/* Project Details View */}
-            {currentView === 'details' && currentProject && (
-              <ProjectDetailView
-                project={currentProject}
-                onBack={handleBackToProjects}
-                viewSource={viewSource}
-              />
-            )}
-          </div>
-        </div>
+            {
+              currentView === 'details' && currentProject && (
+                <ProjectDetailView
+                  project={currentProject}
+                  onBack={handleBackToProjects}
+                  viewSource={viewSource}
+                />
+              )
+            }
+          </div >
+        </div >
 
         {/* New Project Modal */}
-        {showNewProjectModal && (
-          <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
-            <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md my-auto md:my-0 ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-base font-medium text-gray-900 dark:text-white mb-2">{t('Project Name')}</label>
-                  <input
-                    type="text"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                    placeholder={t('Enter project name')}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
-                    autoFocus
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <button
-                    onClick={handleCloseNewProjectModal}
-                    className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
-                  >
-                    {t('Cancel')}
-                  </button>
-                  <button
-                    onClick={handleNewProject}
-                    disabled={!newProjectName.trim()}
-                    className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-                  >
-                    {t('Create')}
-                  </button>
+        {
+          showNewProjectModal && (
+            <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
+              <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md my-auto md:my-0 ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-base font-medium text-gray-900 dark:text-white mb-2">{t('Project Name')}</label>
+                    <input
+                      type="text"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      placeholder={t('Enter project name')}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <button
+                      onClick={handleCloseNewProjectModal}
+                      className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"
+                    >
+                      {t('Cancel')}
+                    </button>
+                    <button
+                      onClick={handleNewProject}
+                      disabled={!newProjectName.trim()}
+                      className="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                    >
+                      {t('Create')}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         {/* Modals specific to Project Details are now handled within ProjectDetailView */}
 
         {/* Contractor Profile Modal */}
-        {showContractorModal && (
-          <ContractorProfileModal
-            onClose={() => setShowContractorModal(false)}
-            onSave={handleSaveContractor}
-          />
-        )}
-      </div>
+        {
+          showContractorModal && (
+            <ContractorProfileModal
+              onClose={() => setShowContractorModal(false)}
+              onSave={handleSaveContractor}
+            />
+          )
+        }
+      </div >
     </>
   );
 };

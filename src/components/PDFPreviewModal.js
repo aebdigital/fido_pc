@@ -3,8 +3,12 @@ import { X, Send, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, RotateCc
 import { useLanguage } from '../context/LanguageContext';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set up the worker from public folder
+// Set up the worker and other options globally
 pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.mjs`;
+
+// Fix for some characters not rendering correctly and potential orientation issues
+const CMAP_URL = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`;
+const STANDARD_FONT_DATA_URL = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`;
 
 const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
   const { t } = useLanguage();
@@ -63,7 +67,12 @@ const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
 
     const loadPdf = async () => {
       try {
-        const loadingTask = pdfjsLib.getDocument(pdfUrl);
+        const loadingTask = pdfjsLib.getDocument({
+          url: pdfUrl,
+          cMapUrl: CMAP_URL,
+          cMapPacked: true,
+          standardFontDataUrl: STANDARD_FONT_DATA_URL,
+        });
         const pdf = await loadingTask.promise;
         setPdfDoc(pdf);
         setTotalPages(pdf.numPages);
@@ -215,13 +224,12 @@ const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
   if (!isOpen || !pdfUrl) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
       {/* Modal - fullscreen on mobile, centered on desktop */}
-      <div className={`bg-white dark:bg-gray-900 flex flex-col overflow-hidden ${
-        isMobile
-          ? 'w-full h-full rounded-none'
-          : 'rounded-2xl w-full max-w-4xl max-h-[90vh] m-4'
-      }`}>
+      <div className={`bg-white dark:bg-gray-900 flex flex-col overflow-hidden ${isMobile
+        ? 'w-full h-full rounded-none'
+        : 'rounded-2xl w-full max-w-4xl max-h-[90vh] m-4'
+        }`} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-3 lg:px-6 py-2 lg:py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <h2 className="text-base lg:text-xl font-bold text-gray-900 dark:text-white truncate flex-1 mr-2">

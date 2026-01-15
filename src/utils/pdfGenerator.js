@@ -5,6 +5,7 @@ import { InterRegular } from './fonts/InterRegular';
 import { InterBold } from './fonts/InterBold';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/constants';
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
+import { sortItemsByMasterList } from './itemSorting';
 
 // SEPA countries list (European Payments Council members)
 const SEPA_COUNTRIES = new Set([
@@ -487,7 +488,9 @@ export const generateInvoicePDF = async ({
         { content: sanitizeText(t('Work (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
-      projectBreakdown.items.forEach(item => {
+      const sortedItems = sortItemsByMasterList(projectBreakdown.items, options.priceList, 'work');
+
+      sortedItems.forEach(item => {
         const quantity = item.calculation?.quantity || 0;
         const workCost = item.calculation?.workCost || 0;
         const pricePerUnit = quantity > 0 ? workCost / quantity : 0;
@@ -539,7 +542,9 @@ export const generateInvoicePDF = async ({
         { content: sanitizeText(t('Material (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
       ]);
 
-      projectBreakdown.materialItems.forEach(item => {
+      const sortedMaterials = sortItemsByMasterList(projectBreakdown.materialItems, options.priceList, 'material');
+
+      sortedMaterials.forEach(item => {
         const quantity = item.calculation?.quantity || 0;
         const materialCost = item.calculation?.materialCost || 0;
         const pricePerUnit = quantity > 0 ? materialCost / quantity : 0;
@@ -596,7 +601,7 @@ export const generateInvoicePDF = async ({
         if (isScaffolding) {
           // Determine group key - prefer the one with the keywords
           const groupKey = checkText(item.name) ? item.name : item.subtitle;
-          
+
           let quantity = item.calculation?.quantity || 0;
           let unit = item.calculation?.unit || '';
           if (unit.startsWith('€/')) unit = unit.substring(2);
@@ -647,8 +652,9 @@ export const generateInvoicePDF = async ({
         ]);
       });
 
-      // Print non-grouped items
-      nonGroupedOthers.forEach(item => {
+      // Sort and print non-grouped items
+      const sortedNonGroupedOthers = sortItemsByMasterList(nonGroupedOthers, options.priceList, 'others');
+      sortedNonGroupedOthers.forEach(item => {
         let quantity = item.calculation?.quantity || 0;
         const othersCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
         let unit = item.calculation?.unit || item.unit || '';
@@ -1081,7 +1087,8 @@ export const generatePriceOfferPDF = (params, t) => {
       isPriceOffer: true,
       projectNotes: params.projectNotes || '',
       projectNumber: params.projectNumber,
-      offerValidityPeriod: params.offerValidityPeriod
+      offerValidityPeriod: params.offerValidityPeriod,
+      priceList: params.priceList
     }
   });
 };

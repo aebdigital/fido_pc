@@ -51,7 +51,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     // If the invoice has saved invoice items, use them to build the breakdown
     if (invoice.invoiceItems && invoice.invoiceItems.length > 0) {
       const activeItems = invoice.invoiceItems.filter(item => item.active !== false);
-      
+
       const breakdown = {
         items: [],
         materialItems: [],
@@ -63,12 +63,12 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         // Reconstruct item structure expected by generator
         // Use originalItem properties if available to preserve metadata like propertyId, fields, etc.
         const original = item.originalItem || {};
-        
+
         const reconstructedItem = {
           ...original, // Keep original props
           id: item.id, // Use the invoice item ID
           name: item.title, // Use title from invoice (editable)
-          
+
           // Reconstruct calculation object
           calculation: {
             quantity: item.pieces,
@@ -79,13 +79,13 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
             pricePerUnit: item.pricePerPiece,
             ...original.calculation // Keep other original calc props if any
           },
-          
+
           unit: item.unit,
           vatRate: (item.vat !== undefined) ? item.vat / 100 : (original.vatRate || 0.23),
-          
+
           // Ensure propertyId is preserved for grouping logic in PDF generator
           propertyId: original.propertyId || (item.category === 'work' ? 'custom_work' : undefined),
-          
+
           // Ensure fields are preserved for specific logic (e.g. scaffolding)
           fields: original.fields || {},
           subtitle: original.subtitle
@@ -98,7 +98,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         } else { // 'other'
           breakdown.othersItems.push(reconstructedItem);
         }
-        
+
         breakdown.total += item.price;
       });
 
@@ -195,7 +195,10 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         totalWithVAT,
         formatDate,
         formatPrice,
-        t
+        t,
+        options: {
+          priceList: generalPriceList
+        }
       });
 
       // On mobile, open directly in browser's native PDF viewer
@@ -391,7 +394,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             totalWithVAT,
             formatDate,
             formatPrice,
-            t
+            t,
+            options: {
+              priceList: generalPriceList
+            }
           });
           currentBlob = result.pdfBlob;
           setPdfBlob(currentBlob);
@@ -438,8 +444,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
   // Delete confirmation dialog
   if (showDeleteConfirm) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteConfirm(false)}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
               <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -472,8 +478,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[75vh] lg:h-auto lg:max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4" onClick={() => onClose()}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl h-[75vh] lg:h-auto lg:max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header - iOS style with large invoice number */}
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0 rounded-t-2xl">
           <div className="flex items-start justify-between">

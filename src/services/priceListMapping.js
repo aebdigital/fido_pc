@@ -79,8 +79,9 @@ const MATERIAL_COLUMN_MAPPING = {
   'material_20_capacity': 'material_silicone_capacity',
   'material_21': 'material_tiles_price', // Tiles ceramic
   'material_22': 'material_pavings_price', // Pavings ceramic
-  // material_23 (Grout) removed from UI, so Auxiliary shifts to index 23
-  'material_23': 'material_auxiliary_and_fastening_price', // Auxiliary and fastening material
+  'material_23': 'material_tiles_large_format_price', // Tiles large format
+  'material_24': 'material_pavings_large_format_price', // Pavings large format
+  'material_25': 'material_auxiliary_and_fastening_price', // Auxiliary and fastening material
 };
 
 // Sanitary installations mapping

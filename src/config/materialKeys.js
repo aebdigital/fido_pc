@@ -200,6 +200,20 @@ export const MATERIAL_KEY_MAPPINGS = {
     subtitlePattern: null
   },
 
+  // Tiling - Large Format
+  'tiling_large_format': {
+    name: 'Tiles',
+    namesSk: ['Obklad, veľkoformát', 'Obklad veľkoformát'],
+    subtitlePattern: 'large format'
+  },
+
+  // Paving - Large Format
+  'paving_large_format': {
+    name: 'Pavings',
+    namesSk: ['Dlažba, veľkoformát', 'Dlažba veľkoformát'],
+    subtitlePattern: 'large format'
+  },
+
   // Siliconing
   'siliconing': {
     name: 'Silicone',

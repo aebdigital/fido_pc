@@ -3,7 +3,7 @@ import { User, Building2, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import RpoAutocomplete from './RpoAutocomplete';
 
-const ClientForm = ({ onSave, onCancel, initialData = null }) => {
+const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, ref) => {
   const { t, isSlovak } = useLanguage();
   const isEditing = !!initialData;
   // iOS uses 'personal' and 'corporation', desktop used to use 'private' and 'business'
@@ -108,6 +108,10 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
     }
   };
 
+  React.useImperativeHandle(ref, () => ({
+    submit: handleSubmit
+  }));
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
       {/* Client Type Selection */}
@@ -116,8 +120,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
         <div className="flex sm:flex-col gap-3 mb-6 lg:mb-8">
           <button
             className={`py-3 px-4 lg:px-6 rounded-2xl font-semibold transition-all text-left flex-1 sm:flex-none flex items-center gap-3 shadow-sm ${clientType === 'personal'
-                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02]'
-                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02]'
+              : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             onClick={() => setClientType('personal')}
           >
@@ -126,8 +130,8 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
           </button>
           <button
             className={`py-3 px-4 lg:px-6 rounded-2xl font-semibold transition-all text-left flex-1 sm:flex-none flex items-center gap-3 shadow-sm ${clientType === 'corporation'
-                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02]'
-                : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02]'
+              : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             onClick={() => setClientType('corporation')}
           >
@@ -329,6 +333,6 @@ const ClientForm = ({ onSave, onCancel, initialData = null }) => {
       </div>
     </div>
   );
-};
+});
 
 export default ClientForm;

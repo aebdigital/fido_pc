@@ -9,6 +9,7 @@ import {
 } from '../config/constants';
 import { workProperties } from '../config/workProperties';
 import { determineUnitAndQuantity } from '../utils/priceCalculations';
+import { sortItemsByMasterList } from '../utils/itemSorting';
 
 // Helper to get work item name from propertyId
 const getWorkItemNameByPropertyId = (propertyId) => {
@@ -89,7 +90,10 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           }
 
                           workGroups[groupKey] = {
-                            name: workName,
+                            isGroup: true,
+                            propertyId: item.propertyId, // Keep for sorting
+                            name: itemName, // Keep original name for sorting lookup
+                            displayName: workName,
                             unit: unit,
                             totalQuantity: 0,
                             totalCost: 0
@@ -143,6 +147,10 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                         nonGroupedItems.push({
                           id: item.id,
+                          propertyId: item.propertyId, // Keep for sorting
+                          name: item.name, // Keep for sorting
+                          subtitle: item.subtitle, // Added for sorting
+                          selectedType: item.selectedType, // Added for sorting
                           description: workDescription,
                           cost: item.calculation.workCost
                         });
@@ -150,23 +158,35 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     }
                   });
 
-                  // Render grouped items first, then non-grouped items
+                  // Combine and Sort
+                  const allWorkItems = [
+                    ...Object.values(workGroups),
+                    ...nonGroupedItems
+                  ];
+
+                  const sortedWorkItems = sortItemsByMasterList(allWorkItems, activePriceList, 'work');
+
                   return (
                     <>
-                      {Object.entries(workGroups).map(([key, group]) => (
-                        <div key={`work-group-${key}`} className="flex justify-between items-center text-sm">
-                          <span className="font-semibold text-gray-700 dark:text-gray-300">
-                            {group.name} - {group.totalQuantity.toFixed(group.totalQuantity < 10 ? 1 : 0)}{t(group.unit)}
-                          </span>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">{formatPrice(group.totalCost)}</span>
-                        </div>
-                      ))}
-                      {nonGroupedItems.map(item => (
-                        <div key={`${item.id}-work`} className="flex justify-between items-center text-sm">
-                          <span className="font-semibold text-gray-700 dark:text-gray-300">{item.description}</span>
-                          <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(item.cost)}</span>
-                        </div>
-                      ))}
+                      {sortedWorkItems.map((item, index) => {
+                        if (item.isGroup) {
+                          return (
+                            <div key={`work-group-${index}`} className="flex justify-between items-center text-sm">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                {item.displayName} - {item.totalQuantity.toFixed(item.totalQuantity < 10 ? 1 : 0)}{t(item.unit)}
+                              </span>
+                              <span className="font-medium text-gray-700 dark:text-gray-300">{formatPrice(item.totalCost)}</span>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div key={`work-item-${index}`} className="flex justify-between items-center text-sm">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">{item.description}</span>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(item.cost)}</span>
+                            </div>
+                          );
+                        }
+                      })}
                     </>
                   );
                 })()
@@ -206,7 +226,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                     if (!materialGroups[materialKey]) {
                       materialGroups[materialKey] = {
-                        name: displayName,
+                        name: displayName, // Display name
+                        originalName: item.name, // For sorting
                         subtitle: item.subtitle,
                         propertyId: item.propertyId,
                         unit: item.calculation.unit,
@@ -219,8 +240,18 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     materialGroups[materialKey].totalCost += item.calculation.materialCost;
                   });
 
+                  // Convert to array and sort
+                  const sortedMaterialGroups = sortItemsByMasterList(
+                    Object.values(materialGroups).map(group => ({
+                      ...group,
+                      name: group.originalName // Map originalName to name for sorting utility
+                    })),
+                    activePriceList,
+                    'material'
+                  );
+
                   // Render grouped materials
-                  return Object.values(materialGroups).map((group, index) => {
+                  return sortedMaterialGroups.map((group, index) => {
                     // Handle ceramic subtitle translation with correct gender based on propertyId
                     let translatedSubtitle = '';
                     if (group.subtitle) {
@@ -294,7 +325,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                       // Determine group key - prefer the one with the keywords
                       const groupKey = checkText(item.name) ? item.name : item.subtitle;
                       const { unit: rawUnit, quantity: rawQuantity } = determineUnitAndQuantity(item, item.calculation.quantity);
-                      
+
                       let quantity = rawQuantity;
                       let unit = rawUnit;
                       const values = item.fields || {};
@@ -309,6 +340,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                       if (!othersGroups[groupKey]) {
                         othersGroups[groupKey] = {
+                          isGroup: true,
                           name: groupKey,
                           unit: unit,
                           totalQuantity: 0,
@@ -322,43 +354,50 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     }
                   });
 
+                  // Combine and Sort
+                  const allOthersItems = [
+                    ...Object.values(othersGroups),
+                    ...nonGroupedOthers
+                  ];
+
+                  // For others we might not have propertyIds, but we try sort by name
+                  const sortedOthersItems = sortItemsByMasterList(allOthersItems, activePriceList, 'others');
+
                   return (
                     <>
-                      {/* Render grouped items */}
-                      {Object.values(othersGroups).map((group, index) => {
-                        const workName = t(group.name);
-                        const translatedUnit = t(group.unit);
-                        const formattedQuantity = (group.unit === UNIT_TYPES.DAY || group.unit === UNIT_TYPES.DAYS)
-                          ? `${Math.round(group.totalQuantity)} ${translatedUnit}`
-                          : `${group.totalQuantity.toFixed(group.totalQuantity < 10 ? 1 : 0)}${translatedUnit}`;
-                        const workDescription = `${workName} - ${formattedQuantity}`;
+                      {sortedOthersItems.map((item, index) => {
+                        if (item.isGroup) {
+                          const workName = t(item.name);
+                          const translatedUnit = t(item.unit);
+                          const formattedQuantity = (item.unit === UNIT_TYPES.DAY || item.unit === UNIT_TYPES.DAYS)
+                            ? `${Math.round(item.totalQuantity)} ${translatedUnit}`
+                            : `${item.totalQuantity.toFixed(item.totalQuantity < 10 ? 1 : 0)}${translatedUnit}`;
+                          const workDescription = `${workName} - ${formattedQuantity}`;
 
-                        return (
-                          <div key={`others-group-${index}`} className="flex justify-between items-center text-sm">
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(group.totalCost)}</span>
-                          </div>
-                        );
-                      })}
+                          return (
+                            <div key={`others-group-${index}`} className="flex justify-between items-center text-sm">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(item.totalCost)}</span>
+                            </div>
+                          );
+                        } else {
+                          let { unit, quantity } = determineUnitAndQuantity(item, item.calculation.quantity);
+                          let itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
 
-                      {/* Render non-grouped items */}
-                      {nonGroupedOthers.map(item => {
-                        let { unit, quantity } = determineUnitAndQuantity(item, item.calculation.quantity);
-                        let itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
+                          const workName = t(itemNameOthers);
+                          const translatedUnit = t(unit);
+                          const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
+                            ? `${Math.round(quantity)} ${translatedUnit}`
+                            : `${quantity.toFixed(quantity < 10 ? 1 : 0)}${translatedUnit}`;
+                          const workDescription = `${workName} - ${formattedQuantity}`;
 
-                        const workName = t(itemNameOthers);
-                        const translatedUnit = t(unit);
-                        const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
-                          ? `${Math.round(quantity)} ${translatedUnit}`
-                          : `${quantity.toFixed(quantity < 10 ? 1 : 0)}${translatedUnit}`;
-                        const workDescription = `${workName} - ${formattedQuantity}`;
-
-                        return (
-                          <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice((item.calculation.workCost || 0) + (item.calculation.materialCost || 0))}</span>
-                          </div>
-                        );
+                          return (
+                            <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice((item.calculation.workCost || 0) + (item.calculation.materialCost || 0))}</span>
+                            </div>
+                          );
+                        }
                       })}
                     </>
                   );

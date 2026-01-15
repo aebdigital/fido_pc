@@ -827,15 +827,10 @@ export const useProjectManager = (appData, setAppData) => {
 
     await Promise.all(deletePromises);
 
-    // Separate parent items (no linkedToParent) from linked/complementary items
-    const parentItems = workItems.filter(item => !item.linkedToParent);
-    const linkedItems = workItems.filter(item => item.linkedToParent);
-
-    // First pass: Save parent items and build ID mapping
-    const idMapping = {}; // old app ID -> new database UUID
+    // Save work items and track saved items with their doors/windows
     const savedParentItems = []; // Track saved items with their doors/windows
 
-    await Promise.all(parentItems.map(async (workItem) => {
+    await Promise.all(workItems.map(async (workItem) => {
       const tableName = getTableName(workItem.propertyId, workItem);
       if (!tableName) {
         console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
@@ -847,10 +842,8 @@ export const useProjectManager = (appData, setAppData) => {
         try {
           const result = await api.workItems.upsert(tableName, dbRecord);
           console.log(`[saveWorkItems] Saved to ${tableName}, result:`, result);
-          // Store mapping from old ID to new database UUID
+          // Track this item for door/window saving
           if (result && result.id) {
-            idMapping[workItem.id] = result.id;
-            // Track this item for door/window saving
             savedParentItems.push({
               workItem,
               tableName,
@@ -895,31 +888,6 @@ export const useProjectManager = (appData, setAppData) => {
             console.error(`Error saving window for ${tableName}:`, error);
           }
         }));
-      }
-    }));
-
-    // Second pass: Save linked items with updated linkedToParent
-    await Promise.all(linkedItems.map(async (workItem) => {
-      const tableName = getTableName(workItem.propertyId, workItem);
-      if (!tableName) {
-        console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
-        return;
-      }
-
-      // Update linkedToParent to use the new database UUID
-      const updatedWorkItem = {
-        ...workItem,
-        linkedToParent: idMapping[workItem.linkedToParent] || workItem.linkedToParent
-      };
-
-      const dbRecord = workItemToDatabase(updatedWorkItem, roomId, appData.activeContractorId);
-      if (dbRecord) {
-        try {
-          await api.workItems.upsert(tableName, dbRecord);
-        } catch (error) {
-          console.error(`Error saving linked work item to ${tableName}:`, error);
-          throw error;
-        }
       }
     }));
   }, [appData.activeContractorId]);

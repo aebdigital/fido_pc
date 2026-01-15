@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Purchases } from '@revenuecat/purchases-js';
+import { supabase } from '../lib/supabase';
 import api from '../services/supabaseApi';
 import { subscribeToRealtimeChanges, getRefreshCategories } from '../services/realtimeSync';
 import { useAuth } from './AuthContext';
@@ -43,8 +44,7 @@ export const AppDataProvider = ({ children }) => {
   const [isPro, setIsPro] = useState(false); // Pro status
 
   // RevenueCat API Keys
-  const RC_API_KEY = "sk_puuududJBAxTZDOuimFLoJJgqORLv"; // Secret key for REST API
-  const RC_PUBLIC_API_KEY = process.env.REACT_APP_REVENUECAT_API_KEY || "appl_eEsIiyWisjWbLTkyAMcqCCFUDaB"; // Public key for Web SDK
+  const RC_PUBLIC_API_KEY = process.env.REACT_APP_REVENUECAT_API_KEY || "strp_KfdxAGeUmSoFxUhzXUWDuxDxTMh"; // Public key for Web SDK
 
   // Stripe publishable key for client-side
   const STRIPE_PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
@@ -56,6 +56,12 @@ export const AppDataProvider = ({ children }) => {
   // Initialize RevenueCat Web SDK
   const initializeRevenueCat = useCallback(async () => {
     if (!user?.id || rcInstanceRef.current) return;
+
+    // Skip if using a Stripe key (SDK requires 'rcb_' billing key)
+    if (RC_PUBLIC_API_KEY?.startsWith('strp_')) {
+      console.warn('[RevenueCat] Skipping SDK init: Key is for Stripe, not Web Billing. Using Edge Function for status checks.');
+      return;
+    }
 
     try {
       // Configure and initialize RevenueCat
@@ -76,73 +82,31 @@ export const AppDataProvider = ({ children }) => {
     if (!user?.id) return;
 
     try {
-      // Try Web SDK first if initialized
-      if (rcInstanceRef.current) {
-        const customerInfo = await rcInstanceRef.current.getCustomerInfo();
-        const hasProEntitlement = customerInfo?.entitlements?.active?.Pro !== undefined;
-        setIsPro(hasProEntitlement);
-        console.log('[RevenueCat] Pro status from SDK:', hasProEntitlement);
+      console.log('[ProCheck] Invoking secure check-subscription function...');
+
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+
+      if (error) {
+        console.error('[ProCheck] Function error:', error);
+        setIsPro(false);
         return;
       }
 
-      // Fallback to REST API
-      const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${RC_API_KEY}`,
-          'Content-Type': 'application/json',
-          'X-Platform': 'web'
-        }
-      });
+      console.log('[ProCheck] Result:', data);
 
-      if (response.ok) {
-        const data = await response.json();
-        const entitlements = data?.subscriber?.entitlements;
-
-        if (entitlements?.Pro) {
-          const expiresDate = entitlements.Pro.expires_date;
-          if (expiresDate) {
-            const isExpired = new Date(expiresDate) < new Date();
-            setIsPro(!isExpired);
-          } else {
-            setIsPro(true);
-          }
-        } else {
-          setIsPro(false);
-        }
+      if (data && typeof data.isPro === 'boolean') {
+        setIsPro(data.isPro);
+      } else {
+        setIsPro(false);
       }
-    } catch (error) {
-      console.error("Failed to check Pro status:", error);
+
+    } catch (err) {
+      console.error('[ProCheck] Invocation failed:', err);
+      setIsPro(false);
     }
   }, [user]);
 
-  const grantPromotionalEntitlement = async () => {
-    if (!user?.id) return false;
-    try {
-      const startTime = Math.floor(Date.now());
-      const endTime = Math.floor(new Date().setMonth(new Date().getMonth() + 6)); // 6 months
-
-      const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${user.id}/entitlements/Pro/promotional`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${RC_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          start_time_ms: startTime,
-          end_time_ms: endTime
-        })
-      });
-
-      if (response.ok) {
-        await checkProStatus();
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Failed to grant promotional entitlement:", error);
-      return false;
-    }
-  };
+  // grantPromotionalEntitlement REMOVED - Insecure usage of Secret Key in client side
 
   // Purchase using RevenueCat Web SDK
   const purchasePackage = async (packageToPurchase) => {
@@ -305,6 +269,8 @@ export const AppDataProvider = ({ children }) => {
         { name: 'Silicone', price: 8, unit: '€/pkg', capacity: { value: 15, unit: 'm' }, materialKey: 'siliconing' },
         { name: 'Tiles', subtitle: 'ceramic', price: 25, unit: '€/m2', materialKey: 'tiling_under_60' },
         { name: 'Pavings', subtitle: 'ceramic', price: 25, unit: '€/m2', materialKey: 'paving_under_60' },
+        { name: 'Tiles', subtitle: 'large format', price: 150, unit: '€/m2', materialKey: 'tiling_large_format' },
+        { name: 'Pavings', subtitle: 'large format', price: 150, unit: '€/m2', materialKey: 'paving_large_format' },
         { name: 'Auxiliary and fastening material', price: 10, unit: '%' }
       ],
       installations: [
@@ -1040,7 +1006,7 @@ export const AppDataProvider = ({ children }) => {
 
     // Pro Status & RevenueCat
     isPro,
-    grantPromotionalEntitlement,
+    // grantPromotionalEntitlement removed
     checkProStatus,
     refreshProStatus,
     initiateStripeCheckout,

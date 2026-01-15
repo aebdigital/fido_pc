@@ -135,6 +135,34 @@ const WorkPropertyCard = ({
     return item.propertyId === property.id;
   });
 
+  // Helper to get the toggle-all icon state for complementary works
+  // Returns the icon that represents what clicking will do (next state)
+  const getToggleAllIconState = (item, complementaryWorks, supportsDouble) => {
+    if (!complementaryWorks || complementaryWorks.length === 0) return 0;
+
+    // Get max value across all complementary works
+    const values = complementaryWorks.map((work, index) => {
+      const occurrenceIndex = complementaryWorks.slice(0, index).filter(w => w === work).length;
+      const uniqueKey = `${work}_${occurrenceIndex}`;
+      return item.complementaryWorks?.[uniqueKey] || 0;
+    });
+
+    const maxValue = Math.max(...values);
+    const maxAllowed = supportsDouble ? 2 : 1;
+
+    // Return the NEXT state (what clicking will do)
+    // Icon shows: single layer -> will set all to 1
+    //             double layer -> will set all to 2 (if supported)
+    //             empty/none -> will set all to 0
+    if (maxValue === 0) {
+      return 1; // Show single layer icon (clicking sets all to 1)
+    } else if (maxValue === 1 && maxAllowed === 2) {
+      return 2; // Show double layer icon (clicking sets all to 2)
+    } else {
+      return 0; // Show empty icon (clicking sets all to 0)
+    }
+  };
+
   const renderDoorWindowSection = (item, type) => {
     const items = item.doorWindowItems?.[type] || [];
     const typeName = type.charAt(0).toUpperCase() + type.slice(1);
@@ -520,22 +548,21 @@ const WorkPropertyCard = ({
                     <div className="flex justify-end">
                       <button
                         onClick={(e) => onToggleAllComplementaryWorks(existingItem.id, e)}
-                        className="w-8 h-8 lg:w-7 lg:h-7 rounded-full bg-gray-400 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 flex items-center justify-center transition-colors"
+                        className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
                         title="Toggle all complementary works"
                       >
-                        <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white" />
+                        <ActiveLayersIcon activeLayers={getToggleAllIconState(existingItem, property.complementaryWorks, property.supportsDoubleComplementary)} className="w-full h-full" />
                       </button>
                     </div>
                     {property.complementaryWorks.map((work, index) => {
-                      const uniqueKey = `${work}_${index}`;
-                      // Count how many instances of this complementary work exist for this parent
-                      const instanceCount = workData.filter(item =>
-                        item.linkedToParent === existingItem.id &&
-                        item.linkedWorkKey === uniqueKey
-                      ).length;
+                      // Count occurrences of this work type before current index
+                      const occurrenceIndex = property.complementaryWorks.slice(0, index).filter(w => w === work).length;
+                      const uniqueKey = `${work}_${occurrenceIndex}`;
+                      // Read the flag value from complementaryWorks (0, 1, or 2)
+                      const instanceCount = existingItem.complementaryWorks?.[uniqueKey] || 0;
 
                       return (
-                        <div key={uniqueKey} className="flex items-center justify-between gap-3">
+                        <div key={`${work}_${index}`} className="flex items-center justify-between gap-3">
                           <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                           <button
                             onClick={(e) => onToggleComplementaryWork(existingItem.id, uniqueKey, e)}
@@ -703,22 +730,21 @@ const WorkPropertyCard = ({
                     <div className="flex justify-end">
                       <button
                         onClick={(e) => onToggleAllComplementaryWorks(item.id, e)}
-                        className="w-8 h-8 lg:w-7 lg:h-7 rounded-full bg-gray-400 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 flex items-center justify-center transition-colors"
+                        className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
                         title="Toggle all complementary works"
                       >
-                        <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white" />
+                        <ActiveLayersIcon activeLayers={getToggleAllIconState(item, property.complementaryWorks, property.supportsDoubleComplementary)} className="w-full h-full" />
                       </button>
                     </div>
                     {property.complementaryWorks.map((work, index) => {
-                      const uniqueKey = `${work}_${index}`;
-                      // Count how many instances exist
-                      const instanceCount = workData.filter(itm =>
-                        itm.linkedToParent === item.id &&
-                        itm.linkedWorkKey === uniqueKey
-                      ).length;
+                      // Count occurrences of this work type before current index
+                      const occurrenceIndex = property.complementaryWorks.slice(0, index).filter(w => w === work).length;
+                      const uniqueKey = `${work}_${occurrenceIndex}`;
+                      // Read the flag value from complementaryWorks (0, 1, or 2)
+                      const instanceCount = item.complementaryWorks?.[uniqueKey] || 0;
 
                       return (
-                        <div key={uniqueKey} className="flex items-center justify-between gap-3">
+                        <div key={`${work}_${index}`} className="flex items-center justify-between gap-3">
                           <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                           <button
                             onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
@@ -802,7 +828,10 @@ const WorkPropertyCard = ({
             {/* Count and Price fields */}
             <div className="space-y-3 lg:space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(WORK_ITEM_NAMES.COUNT)}</span>
+                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0 flex items-center gap-2">
+                  {t(WORK_ITEM_NAMES.COUNT)}
+                  <Hammer className="w-3 h-3" />
+                </span>
                 <div className="flex items-center gap-2 justify-end w-full">
                   <NumberInput
                     value={item.fields[WORK_ITEM_NAMES.COUNT] || 0}
@@ -814,7 +843,10 @@ const WorkPropertyCard = ({
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(WORK_ITEM_NAMES.PRICE)}</span>
+                <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0 flex items-center gap-2">
+                  {t(WORK_ITEM_NAMES.PRICE)}
+                  <Package className="w-3 h-3" />
+                </span>
                 <div className="flex items-center gap-2 justify-end w-full">
                   <NumberInput
                     value={item.fields[WORK_ITEM_NAMES.PRICE] || 0}
@@ -1008,22 +1040,21 @@ const WorkPropertyCard = ({
                   <div className="flex justify-end">
                     <button
                       onClick={(e) => onToggleAllComplementaryWorks(item.id, e)}
-                      className="w-8 h-8 lg:w-7 lg:h-7 rounded-full bg-gray-400 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 flex items-center justify-center transition-colors"
+                      className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
                       title="Toggle all complementary works"
                     >
-                      <Check className="w-4 h-4 lg:w-3 lg:h-3 text-white" />
+                      <ActiveLayersIcon activeLayers={getToggleAllIconState(item, property.complementaryWorks, property.supportsDoubleComplementary)} className="w-full h-full" />
                     </button>
                   </div>
                   {property.complementaryWorks.map((work, index) => {
-                    const uniqueKey = `${work}_${index}`;
-                    // Count how many instances exist
-                    const instanceCount = workData.filter(itm =>
-                      itm.linkedToParent === item.id &&
-                      itm.linkedWorkKey === uniqueKey
-                    ).length;
+                    // Count occurrences of this work type before current index
+                    const occurrenceIndex = property.complementaryWorks.slice(0, index).filter(w => w === work).length;
+                    const uniqueKey = `${work}_${occurrenceIndex}`;
+                    // Read the flag value from complementaryWorks (0, 1, or 2)
+                    const instanceCount = item.complementaryWorks?.[uniqueKey] || 0;
 
                     return (
-                      <div key={uniqueKey} className="flex items-center justify-between gap-3">
+                      <div key={`${work}_${index}`} className="flex items-center justify-between gap-3">
                         <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
                         <button
                           onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
