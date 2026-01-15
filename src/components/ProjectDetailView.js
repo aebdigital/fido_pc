@@ -62,7 +62,6 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     calculateProjectTotalPriceWithBreakdown,
     formatPrice,
     getInvoiceForProject,
-    getInvoicesForContractor,
     loadProjectDetails,
     getProjectHistory,
     addProjectHistoryEntry,

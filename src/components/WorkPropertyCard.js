@@ -6,7 +6,6 @@ import {
   Hammer,
   Package,
   ChevronDown,
-  Check,
   Copy
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';

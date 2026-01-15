@@ -9,7 +9,7 @@ import { useScrollLock } from '../hooks/useScrollLock';
 
 const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   const { t } = useLanguage();
-  const { generalPriceList, updateGeneralPriceList, saveGeneralPriceListBulk, resetGeneralPriceItem, isPro } = useAppData();
+  const { generalPriceList, updateGeneralPriceList, saveGeneralPriceListBulk, isPro } = useAppData();
   const [localPriceList, setLocalPriceList] = useState(null);
   const [originalPrices, setOriginalPrices] = useState({});
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'

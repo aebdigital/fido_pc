@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Check, Star, Zap } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
