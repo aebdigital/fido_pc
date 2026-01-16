@@ -109,7 +109,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         clearTimeout(saveTimerRef.current);
       }
     };
-  }, [localPriceList, originalPrices, updateGeneralPriceList]);
+  }, [localPriceList, originalPrices, updateGeneralPriceList, saveGeneralPriceListBulk]);
 
   const handlePriceChange = (category, itemIndex, newPrice) => {
     const processedPrice = newPrice || 0;
