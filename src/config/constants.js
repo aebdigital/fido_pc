@@ -172,6 +172,7 @@ export const WORK_ITEM_PROPERTY_IDS = {
   WINDOW_INSTALLATION: 'window_installation',
   DOOR_JAMB_INSTALLATION: 'door_jamb_installation',
   CUSTOM_WORK: 'custom_work',
+  CUSTOM_MATERIAL: 'custom_materials',
   COMMUTE: 'commute',
   RENTALS: 'rentals'
 };
