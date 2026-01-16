@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
 import { generateInvoicePDF, generateCashReceiptPDF } from '../utils/pdfGenerator';
-import { PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS } from '../utils/dataTransformers';
+import { PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS, formatProjectNumber } from '../utils/dataTransformers';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import PDFPreviewModal from './PDFPreviewModal';
 
@@ -197,7 +197,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         formatPrice,
         t,
         options: {
-          priceList: generalPriceList
+          priceList: generalPriceList,
+          projectNumber: formatProjectNumber(project)
         }
       });
 
@@ -479,7 +480,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={() => onClose()}>
-      <div className="bg-white dark:bg-gray-900 rounded-t-3xl lg:rounded-2xl w-full max-w-3xl h-[85vh] lg:h-auto lg:max-h-[90vh] flex flex-col animate-slide-in-bottom lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-900 rounded-t-3xl lg:rounded-2xl w-full max-w-3xl h-[85dvh] lg:h-auto lg:max-h-[90dvh] flex flex-col animate-slide-in-bottom lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
         {/* Header - iOS style with large invoice number */}
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0 rounded-t-2xl">
           <div className="flex items-start justify-between">

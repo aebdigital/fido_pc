@@ -65,6 +65,10 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         setSaveStatus('saving');
 
         // Perform save
+        // Perform save
+        const updates = {};
+        let hasUpdates = false;
+
         Object.keys(localPriceList).forEach(category => {
           localPriceList[category].forEach((item, index) => {
             if (originalPrices[category] && originalPrices[category][index]) {
@@ -73,16 +77,21 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               const capacityChanged = item.capacity && originalItem.capacity && item.capacity.value !== originalItem.capacity.value;
 
               if (priceChanged || capacityChanged) {
-                updateGeneralPriceList(
-                  category,
-                  index,
-                  priceChanged ? item.price : undefined,
-                  capacityChanged ? item.capacity.value : undefined
-                );
+                if (!updates[category]) updates[category] = {};
+                updates[category][index] = {};
+
+                if (priceChanged) updates[category][index].price = item.price;
+                if (capacityChanged) updates[category][index].capacity = item.capacity.value;
+
+                hasUpdates = true;
               }
             }
           });
         });
+
+        if (hasUpdates) {
+          saveGeneralPriceListBulk(updates);
+        }
 
         setOriginalPrices(JSON.parse(currentDataString));
         lastSavedData.current = currentDataString;

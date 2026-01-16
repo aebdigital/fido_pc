@@ -228,7 +228,7 @@ const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
       {/* Modal - fullscreen on mobile, centered on desktop */}
       <div className={`bg-white dark:bg-gray-900 flex flex-col overflow-hidden ${isMobile
         ? 'w-full h-full rounded-none'
-        : 'rounded-2xl w-full max-w-4xl max-h-[90vh] m-4'
+        : 'rounded-2xl w-full max-w-4xl max-h-[90dvh] m-4'
         }`} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-3 lg:px-6 py-2 lg:py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">

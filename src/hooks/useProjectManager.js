@@ -133,11 +133,34 @@ export const useProjectManager = (appData, setAppData) => {
       }
 
       // Add the price list snapshot and history to the project object
-      const projectWithSnapshot = {
+      let projectWithSnapshot = {
         ...newProject,
         priceListSnapshot,
         projectHistory: initialHistory
       };
+
+      // CRITICAL FIX: If number is 0, it means the DB trigger (likely AFTER INSERT) hasn't updated it yet in our return value.
+      // We need to re-fetch to get the actual assigned number (e.g., 2026049).
+      if (projectWithSnapshot.number === 0 || projectWithSnapshot.number === '0') {
+        try {
+          // Small delay to ensure trigger has completed
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          const refetchedProject = await api.projects.getById(projectCId);
+          if (refetchedProject && refetchedProject.number !== 0) {
+            console.log('[addProject] Refetched project to get assigned number:', refetchedProject.number);
+            projectWithSnapshot = {
+              ...projectWithSnapshot,
+              ...refetchedProject,
+              // Restore calculated/snapshot fields which might be lost in raw fetch
+              priceListSnapshot,
+              projectHistory: initialHistory
+            };
+          }
+        } catch (refetchError) {
+          console.warn('[addProject] Failed to refetch project number:', refetchError);
+        }
+      }
 
       setAppData(prev => {
         const currentActiveContractorId = prev.activeContractorId;

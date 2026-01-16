@@ -381,8 +381,13 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     const numToCheck = parseInt(invoiceNumber);
     if (isNaN(numToCheck)) return false;
 
-    // Find any existing invoice with the same number
+    // Find any existing invoice with the same number AND same contractor
     const duplicate = invoices.find(inv => {
+      // Must be same contractor
+      if (inv.contractorId !== activeContractorId) {
+        return false;
+      }
+
       // Skip the current invoice if editing
       if (editMode && existingInvoice && inv.id === existingInvoice.id) {
         return false;
@@ -446,7 +451,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => onClose()}>
-        <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-3xl h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col animate-slide-in-bottom sm:animate-slide-in" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-3xl h-[85dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in-bottom sm:animate-slide-in" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between flex-shrink-0 rounded-t-2xl">
             <div className="flex items-center gap-3">

@@ -175,10 +175,29 @@ const Archive = ({ onBack }) => {
               <div className="flex-1">
                 <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('Archived on')} {project.archivedDate ? new Date(project.archivedDate).toLocaleDateString() : '-'}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('From')} {t(project.originalCategoryId || 'Unknown')}
+                  {(() => {
+                    if (!project.archivedDate) return '-';
+                    const archived = new Date(project.archivedDate);
+                    const deletionDate = new Date(archived);
+                    // Use the state but ensure it's a number
+                    const retention = parseInt(archiveRetentionDays) || 30;
+
+                    if (retention >= 9999) {
+                      return t('Forever');
+                    }
+
+                    deletionDate.setDate(archived.getDate() + retention);
+                    const now = new Date();
+                    const diffTime = deletionDate - now;
+                    // Provide 0 if over time, ensure at least 0
+                    const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+                    let dayString = t('days'); // default 'dní' (5+)
+                    if (daysLeft === 1) dayString = t('day'); // 'deň'
+                    else if (daysLeft >= 2 && daysLeft <= 4) dayString = t('days_2_4'); // 'dni'
+
+                    return `${daysLeft} ${dayString} ${t('until deletion')}`;
+                  })()}
                 </div>
               </div>
 

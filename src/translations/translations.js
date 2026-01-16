@@ -53,6 +53,9 @@ export const translations = {
     "Legal File Ref": "Legal File Ref",
     "Hotovosť": "Cash",
     "Prevodom": "Transfer",
+    "Kópia": "Copy of",
+    "Duplikované do": "Duplicated to",
+    "Duplikované z": "Duplicated from",
 
     // iOS-compatible project status translations
     "not sent": "Not sent",
@@ -650,6 +653,7 @@ export const translations = {
     "Apply": "Použiť",
     "Unarchive": "Obnoviť z archívu",
     "Delete Forever": "Natrvalo odstrániť",
+    "until deletion": "do vymazania",
 
     // ========== STATUS MESSAGES ==========
     "Loading...": "Načítava...",

@@ -310,7 +310,7 @@ export const generateInvoicePDF = async ({
       doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 20, 20);
       doc.setFontSize(11);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText(`${t('Price offer')} ${invoice.projectName || ''}`), 20, 24);
+      doc.text(sanitizeText(`${t('Price offer')} ${projectNumber || invoice.invoiceNumber}`), 20, 24);
     }
 
     // === CLIENT SECTION (Odberatel) - Left side under header ===

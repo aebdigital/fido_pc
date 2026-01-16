@@ -299,7 +299,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       // 1. Create the new project structure (Basic info)
       // Name it "Copy of [Name]"
       const newProjectData = {
-        name: `${t('Copy of')} ${project.name}`,
+        name: `${t('Kópia')} ${project.name}`,
         category: project.category,
         clientId: project.clientId,
         // Exclude invoice_id/has_invoice
@@ -408,12 +408,12 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       // 5. Add 'Duplicated' history event to both projects
       await addProjectHistoryEntry(project.id, {
         type: PROJECT_EVENTS.DUPLICATED,
-        description: `${t('Duplicated to')} ${newProject.name}`
+        description: `${t('Duplikované do')} ${newProject.name}`
       });
 
       await addProjectHistoryEntry(newProject.id, {
         type: PROJECT_EVENTS.CREATED,
-        description: `${t('Duplicated from')} ${project.name}`
+        description: `${t('Duplikované z')} ${project.name}`
       });
 
       alert(t('Project duplicated successfully.'));

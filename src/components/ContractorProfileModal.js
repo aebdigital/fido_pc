@@ -163,7 +163,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
       }}
     >
       <div
-        className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-4xl h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
+        className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-4xl h-[85dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
         onClick={(e) => e.stopPropagation()}
       >
 
