@@ -67,7 +67,16 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                       const shouldGroup = groupablePropertyIds.includes(item.propertyId);
 
                       // Determine the correct unit based on work type using shared utility
-                      const { unit, quantity } = determineUnitAndQuantity(item, item.calculation.quantity);
+                      let { unit, quantity } = determineUnitAndQuantity(item, item.calculation.quantity);
+
+                      // For Custom Work, use the selected unit if available, and ensure unit symbol is displayed
+                      if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit) {
+                        // Import unitToDisplaySymbol if needed, but for now we'll assume the text is fine or map manually if simple
+                        // Actually better to rely on `t(unit)` handling it if it's a key like 'squareMeter'
+                        // If it's a direct symbol like 'm²', t() usually returns it as is.
+                        // Let's use the raw selectedUnit which usually matches keys like 'squareMeter', 'piece' etc.
+                        unit = item.selectedUnit;
+                      }
 
                       if (shouldGroup) {
                         // Group by propertyId (which includes wall/ceiling distinction)
@@ -219,7 +228,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     // Skip auxiliary material items as they are rendered separately at the bottom
                     if (item.name === MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL) return;
 
-                    const displayName = item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK
+                    const displayName = (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_MATERIAL)
                       ? (item.fields?.[WORK_ITEM_NAMES.NAME] || item.name)
                       : item.name;
                     const materialKey = `${displayName}-${item.subtitle || 'no-subtitle'}`;

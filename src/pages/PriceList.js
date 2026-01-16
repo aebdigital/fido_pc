@@ -387,8 +387,8 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
       {/* Percentage Increase Modal */}
       {showPercentageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto animate-fade-in" onClick={handleCancelPercentageIncrease}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md animate-slide-in my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={handleCancelPercentageIncrease}>
+          <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md animate-slide-in" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Increase All Prices')}</h3>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -417,7 +417,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
                 {t('Example: Enter 10 for 10% increase. All prices will be updated.')}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 mb-4 sm:mb-0">
               <button
                 onClick={handleCancelPercentageIncrease}
                 className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-lg"

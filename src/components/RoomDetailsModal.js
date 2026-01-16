@@ -635,11 +635,11 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
   return (
     <>
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 animate-fade-in"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in"
         onClick={handleClose}
       >
         <div
-          className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[75vh] lg:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in"
+          className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-[95vw] h-[85vh] sm:h-[75vh] lg:h-[85vh] max-h-[90vh] sm:max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -648,10 +648,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
             <div className="flex items-center gap-3">
               <div
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${saveStatus === 'saved'
-                    ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-                    : saveStatus === 'saving'
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                      : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
+                  ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                  : saveStatus === 'saving'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
                   }`}
               >
                 {saveStatus === 'saving' ? (

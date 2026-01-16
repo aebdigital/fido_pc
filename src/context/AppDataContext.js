@@ -435,6 +435,13 @@ export const AppDataProvider = ({ children }) => {
 
       // Build contractor projects structure
       const contractorProjects = {};
+
+      // RE-ASSOCIATE PROJECTS TO CLIENTS FOR ACCURATE COUNTS
+      // The initial transformClientFromDB might have empty or stale projects
+      transformedClients.forEach(client => {
+        client.projects = transformedProjects.filter(p => p.clientId === client.id && !p.isArchived);
+      });
+
       transformedContractors.forEach(contractor => {
         const contractorProjectsList = transformedProjects.filter(p => p.contractor_id === contractor.id);
 

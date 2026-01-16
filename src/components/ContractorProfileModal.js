@@ -154,7 +154,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
   return (
     <div
-      className={`fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+      className={`fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
       onClick={(e) => {
         // Only trigger if clicking the backdrop directly
         if (e.target === e.currentTarget) {
@@ -163,7 +163,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
       }}
     >
       <div
-        className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-4xl h-[75vh] lg:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col my-auto md:my-0 ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
+        className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-4xl h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
         onClick={(e) => e.stopPropagation()}
       >
 

@@ -57,6 +57,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     updateProjectRoom,
     deleteProjectRoom,
     getProjectRooms,
+    projectRoomsData,
     calculateRoomPriceWithMaterials,
     calculateProjectTotalPrice,
     calculateProjectTotalPriceWithBreakdown,
@@ -290,19 +291,141 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       return;
     }
 
+    // Show loading state
+    const originalLoadingState = isLoadingDetails;
+    setIsLoadingDetails(true);
+
     try {
-      const duplicatedProject = {
-        ...project,
-        id: `${new Date().getFullYear()}${String(Date.now()).slice(-3)}`,
-        name: `${project.name} Copy`,
-        createdDate: new Date().toISOString()
+      // 1. Create the new project structure (Basic info)
+      // Name it "Copy of [Name]"
+      const newProjectData = {
+        name: `${t('Copy of')} ${project.name}`,
+        category: project.category,
+        clientId: project.clientId,
+        // Exclude invoice_id/has_invoice
+        hasInvoice: false,
+        invoiceId: null,
+        invoiceStatus: null,
+        // Copy notes
+        notes: project.notes,
+        detailNotes: project.detailNotes,
+        // Copy photos (will need to be treated as new entries ideally, but sharing URL is fine for now)
+        // If we want true deep copy of photos, we'd re-upload, but usually same URL is fine for Supabase storage if file isn't deleted individually
+        photos: project.photos ? JSON.parse(JSON.stringify(project.photos)).map(p => ({ ...p, id: crypto.randomUUID() })) : []
       };
-      await addProject(project.category, duplicatedProject);
-      // Removed onBack() to stay on the current project detail page
+
+      // Create project
+      const newProject = await addProject(project.category, newProjectData);
+
+      if (!newProject) throw new Error("Failed to create new project");
+
+      // CRITICAL: Explicitly update the new project with the rich data (notes, photos, detailNotes) 
+      // because addProject only sets basic fields initially.
+      // Also re-assert clientId to be safe.
+      await updateProject(project.category, newProject.id, {
+        notes: project.notes,
+        detailNotes: project.detailNotes,
+        clientId: project.clientId, // Ensure client is linked
+        photos: project.photos ? JSON.parse(JSON.stringify(project.photos)).map(p => ({ ...p, id: crypto.randomUUID() })) : [],
+        // Explicitly set invoice related fields to null/false
+        hasInvoice: false,
+        invoiceId: null,
+        invoiceStatus: null
+      });
+
+      // 2. Fetch all rooms and work items from the ORIGINAL project
+      // We need to ensure we have the full details loaded
+      let sourceRooms = projectRoomsData[project.id];
+      if (!sourceRooms) {
+        // Force load if not available
+        await loadProjectDetails(project.id);
+        sourceRooms = projectRoomsData[project.id] || [];
+      }
+
+      // 3. Duplicate Rooms and Work Items
+      for (const room of sourceRooms) {
+        // Create new room
+        const newRoomData = {
+          name: room.name,
+          roomType: room.room_type,
+          floorLength: room.floor_length,
+          floorWidth: room.floor_width,
+          wallHeight: room.wall_height,
+          commuteLength: room.commute_length,
+          daysInWork: room.days_in_work,
+          toolRental: room.tool_rental
+        };
+        const createdRoom = await addRoomToProject(newProject.id, newRoomData);
+
+        // Process work items for this room
+        if (room.workItems && room.workItems.length > 0) {
+          // Prepare items for the new room - STRIP IDs to ensure creation and prevent stealing of items
+          const itemsToDuplicate = room.workItems.map(item => {
+            const { id, cId, c_id, ...rest } = item; // Strip ALL identifiers
+
+            // Deep copy fields/calculation to avoid reference issues
+            const newItem = {
+              ...rest,
+              // Also handle nested objects like doorWindowItems
+              // Ensure we strip IDs from nested items too
+              doorWindowItems: item.doorWindowItems ? {
+                doors: (item.doorWindowItems.doors || []).map(({ id, cId, c_id, ...d }) => d),
+                windows: (item.doorWindowItems.windows || []).map(({ id, cId, c_id, ...w }) => w)
+              } : undefined
+            };
+
+            return newItem;
+          });
+
+          // Save items to the new room
+          await updateProjectRoom(newProject.id, createdRoom.id, { workItems: itemsToDuplicate });
+        }
+      }
+
+      // 4. Duplicate Receipts
+      try {
+        const sourceReceipts = await getProjectReceipts(project.id);
+        if (sourceReceipts && sourceReceipts.length > 0) {
+          for (const receipt of sourceReceipts) {
+            // Prepare duplicate receipt data
+            const receiptData = {
+              totalAmount: receipt.amount,
+              vendorName: receipt.merchant_name,
+              date: receipt.receipt_date, // Keeping original date as per copy logic
+              imageUrl: receipt.image_url,
+              rawText: receipt.raw_ocr_text,
+              items: receipt.items ? (typeof receipt.items === 'string' ? JSON.parse(receipt.items) : receipt.items) : []
+            };
+
+            await addReceipt(newProject.id, receiptData);
+          }
+        }
+      } catch (receiptError) {
+        console.error('Error duplicating receipts:', receiptError);
+        // Continue event if receipts fail
+      }
+
+      // 5. Add 'Duplicated' history event to both projects
+      await addProjectHistoryEntry(project.id, {
+        type: PROJECT_EVENTS.DUPLICATED,
+        description: `${t('Duplicated to')} ${newProject.name}`
+      });
+
+      await addProjectHistoryEntry(newProject.id, {
+        type: PROJECT_EVENTS.CREATED,
+        description: `${t('Duplicated from')} ${project.name}`
+      });
+
       alert(t('Project duplicated successfully.'));
+
+      // Optional: Navigate to the new project? 
+      // For now, stay here as per previous logic, or maybe refresh?
+
     } catch (error) {
-      console.error('Error duplicating:', error);
-      alert('Failed to duplicate project.');
+      console.error('Error duplicating project:', error);
+      alert(t('Failed to duplicate project.'));
+    } finally {
+      setIsLoadingDetails(originalLoadingState);
     }
   };
 

@@ -769,8 +769,19 @@ const WorkPropertyCard = ({
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Always show header with plus button */}
         <div
-          className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={(e) => onAddWorkItem(property.id, e)}
+          className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : 'cursor-pointer hover:opacity-80'}`}
+          onClick={(e) => {
+            if (existingItems.length > 0) {
+              e.preventDefault();
+              onToggleExpanded(property.id, e);
+            } else {
+              if (showingSanitarySelector) {
+                onCloseSelector();
+              } else {
+                onAddWorkItem(property.id, e);
+              }
+            }
+          }}
         >
           <div className="flex-1">
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
@@ -778,7 +789,14 @@ const WorkPropertyCard = ({
               <p className="text-base text-gray-600 dark:text-gray-400">{property.subtitle}</p>
             )}
           </div>
-          <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+          <div
+            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            onClick={(e) => {
+              // Ensure we don't trigger the parent click which might toggle instead of add
+              e.stopPropagation();
+              onAddWorkItem(property.id, e);
+            }}
+          >
             <Plus className="w-4 h-4" />
           </div>
         </div>
@@ -810,7 +828,7 @@ const WorkPropertyCard = ({
         )}
 
         {/* Existing sanitary items */}
-        {existingItems.map(item => (
+        {expandedItems[property.id] && existingItems.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <span className="font-semibold text-gray-900 dark:text-white text-lg">

@@ -64,10 +64,20 @@ const Clients = () => {
     }
   };
 
+  const clientFormRef = React.useRef(null);
 
-  const filteredClients = clients.filter(client =>
-    (client.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleOverlayClick = () => {
+    if (clientFormRef.current) {
+      // Trigger save which will also close the modal upon success
+      clientFormRef.current.submit();
+    } else {
+      handleCloseModal();
+    }
+  };
+
+  const filteredClients = clients
+    .filter(client => (client.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   const getClientAddress = (client) => {
     const parts = [client.street, client.city].filter(Boolean);
@@ -165,11 +175,11 @@ const Clients = () => {
       {/* Client Modal - Used for both Create and Edit */}
       {showClientModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-8 md:pt-4 overflow-y-auto animate-fade-in"
-          onClick={handleCloseModal}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in"
+          onClick={handleOverlayClick}
         >
           <div
-            className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0"
+            className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[85vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-center items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
@@ -177,8 +187,9 @@ const Clients = () => {
                 {selectedClient ? t('Edit client') : t('New client')}
               </h2>
             </div>
-            <div className="p-4 lg:p-6">
+            <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
               <ClientForm
+                ref={clientFormRef}
                 onSave={handleSaveClient}
                 onCancel={handleCloseModal}
                 initialData={selectedClient}
