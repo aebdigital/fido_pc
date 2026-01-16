@@ -61,6 +61,7 @@ const getWorkItemUnit = (item) => {
  * 4. Items section grouped by category (Work, Material, Other)
  */
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null }) => {
+  useScrollLock(true);
   const { t } = useLanguage();
   const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices } = useAppData();
 
