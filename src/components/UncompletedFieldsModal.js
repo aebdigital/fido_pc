@@ -1,8 +1,10 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const UncompletedFieldsModal = ({ isOpen, onClose, onContinue, missingFields }) => {
+  useScrollLock(true);
   const { t } = useLanguage();
 
   if (!isOpen) return null;

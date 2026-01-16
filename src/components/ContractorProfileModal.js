@@ -3,8 +3,10 @@ import { Building2, Upload, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { compressImage } from '../utils/imageCompression';
 import RpoAutocomplete from './RpoAutocomplete';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) => {
+  useScrollLock(true);
   const { t, isSlovak } = useLanguage();
   const [isClosing, setIsClosing] = useState(false);
   const [showIcoSearch, setShowIcoSearch] = useState(false);

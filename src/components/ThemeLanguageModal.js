@@ -2,8 +2,10 @@ import React from 'react';
 import { X, Sun, Moon, Globe } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const ThemeLanguageModal = ({ isOpen, onClose }) => {
+  useScrollLock(true);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { language, toggleLanguage, t } = useLanguage();
 
@@ -37,8 +39,8 @@ const ThemeLanguageModal = ({ isOpen, onClose }) => {
               <button
                 onClick={() => !isDarkMode && toggleDarkMode()}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${!isDarkMode
-                    ? 'border-gray-900 bg-gray-50'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  ? 'border-gray-900 bg-gray-50'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
               >
                 <Sun className="w-8 h-8 text-gray-700 dark:text-gray-300" />
@@ -49,8 +51,8 @@ const ThemeLanguageModal = ({ isOpen, onClose }) => {
               <button
                 onClick={() => isDarkMode && toggleDarkMode()}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${isDarkMode
-                    ? 'border-gray-900 dark:border-white bg-gray-800'
-                    : 'border-gray-300 hover:border-gray-400'
+                  ? 'border-gray-900 dark:border-white bg-gray-800'
+                  : 'border-gray-300 hover:border-gray-400'
                   }`}
               >
                 <Moon className="w-8 h-8 text-gray-700 dark:text-gray-300" />
@@ -71,8 +73,8 @@ const ThemeLanguageModal = ({ isOpen, onClose }) => {
               <button
                 onClick={() => language !== 'en' && toggleLanguage()}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${language === 'en'
-                    ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
               >
                 <span className="text-3xl">🇺🇸</span>
@@ -83,8 +85,8 @@ const ThemeLanguageModal = ({ isOpen, onClose }) => {
               <button
                 onClick={() => language !== 'sk' && toggleLanguage()}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${language === 'sk'
-                    ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  ? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
               >
                 <span className="text-3xl">🇸🇰</span>

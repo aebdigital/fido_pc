@@ -3,6 +3,7 @@ import { X, Check } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 /**
  * PaywallModal - Web Paywall with Direct Stripe Links
@@ -13,6 +14,7 @@ import { supabase } from '../lib/supabase';
  * - User ID synchronization via client_reference_id
  */
 const PaywallModal = ({ isOpen, onClose }) => {
+  useScrollLock(true);
   const { t } = useLanguage();
   const { user } = useAuth();
 

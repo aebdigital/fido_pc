@@ -1,5 +1,6 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { X, Hammer, Menu, Loader2, Check } from 'lucide-react';
+import { useScrollLock } from '../hooks/useScrollLock';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import WorkPropertyCard from './WorkPropertyCard';
@@ -7,6 +8,7 @@ import RoomPriceSummary from './RoomPriceSummary';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 
 const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) => {
+  useScrollLock(true);
   const { t } = useLanguage();
   useAppData(); // No destructuring needed here
   const [workData, setWorkData] = useState(room.workItems || []);

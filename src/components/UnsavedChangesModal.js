@@ -1,8 +1,10 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const UnsavedChangesModal = ({ isOpen, onSaveAndProceed, onDiscardAndProceed, onCancel }) => {
+  useScrollLock(true);
   const { t } = useLanguage();
 
   if (!isOpen) return null;

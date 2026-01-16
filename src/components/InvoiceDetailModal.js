@@ -8,6 +8,8 @@ import { PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS, formatProjectNumber } f
 import InvoiceCreationModal from './InvoiceCreationModal';
 import PDFPreviewModal from './PDFPreviewModal';
 
+import { useScrollLock } from '../hooks/useScrollLock';
+
 /**
  * InvoiceDetailModal - iOS-aligned invoice detail view
  *
@@ -19,6 +21,7 @@ import PDFPreviewModal from './PDFPreviewModal';
  * 5. Cash receipt section (if cash payment)
  */
 const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewProject = false }) => {
+  useScrollLock(true);
   const { t } = useLanguage();
   const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
   const navigate = useNavigate();

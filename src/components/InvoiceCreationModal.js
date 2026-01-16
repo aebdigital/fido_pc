@@ -7,6 +7,7 @@ import InvoiceItemBubble from './InvoiceItemBubble';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/constants';
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
 import { sortItemsByMasterList } from '../utils/itemSorting';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 // Helper to determine work item unit based on propertyId and fields
 const getWorkItemUnit = (item) => {

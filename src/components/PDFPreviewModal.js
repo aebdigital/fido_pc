@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { X, Send, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, RotateCcw, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import * as pdfjsLib from 'pdfjs-dist';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 // Set up the worker and other options globally
 pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.min.mjs`;
@@ -11,6 +12,7 @@ const CMAP_URL = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`;
 const STANDARD_FONT_DATA_URL = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`;
 
 const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
+  useScrollLock(true);
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(true);
   const [pdfDoc, setPdfDoc] = useState(null);
