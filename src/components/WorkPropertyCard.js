@@ -881,7 +881,156 @@ const WorkPropertyCard = ({
     );
   }
 
-  // 5. Regular property card for other properties (default)
+  // 5. Special handling for Custom Work (Grouped by Type)
+  if (property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+    const unclassifiedItems = existingItems.filter(item => !item.selectedUnit);
+    const workItems = existingItems.filter(item => item.selectedType === 'Work' && item.selectedUnit);
+    const materialItems = existingItems.filter(item => item.selectedType === 'Material' && item.selectedUnit);
+
+    const renderCustomItem = (item, index, totalCount) => (
+      <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          {item.selectedUnit ? (
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <input
+                id={`custom-work-name-${item.id}`}
+                type="text"
+                defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
+                onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
+                className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 font-semibold"
+                placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
+              />
+            </div>
+          ) : (
+            <span className="font-semibold text-gray-900 dark:text-white text-lg">
+              {t(property.name)}
+            </span>
+          )}
+          <button
+            onClick={(e) => onRemoveWorkItem(item.id, e)}
+            className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+          >
+            <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+          </button>
+        </div>
+
+        {/* Property type selection - only show if unit not yet selected */}
+        {property.types && !item.selectedUnit && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {property.types.map(type => (
+              <button
+                key={type}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onUpdateItemState(item.id, { selectedType: type });
+                }}
+                className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex flex-col items-center justify-center gap-1 ${item.selectedType === type
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+              >
+                {type === 'Work' && <Hammer className="w-4 h-4" />}
+                {type === 'Material' && <Package className="w-4 h-4" />}
+                {t(type)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Unit selector - only show after type is selected but before unit is selected */}
+        {property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
+            <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Select unit')}</span>
+            <div className="grid grid-cols-4 gap-2">
+              {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
+                <button
+                  key={unit}
+                  onClick={(e) => onUnitSelect(item.id, unit, e)}
+                  className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  {unit}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Property fields - only show if unit is selected */}
+        {property.fields && item.selectedUnit && (
+          <div className="space-y-3 lg:space-y-2">
+            {property.fields.map(field => (
+              <div key={field.name}>
+                {renderField(item, field)}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+    return (
+      <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
+        <div
+          className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
+          onClick={(e) => {
+            if (existingItems.length > 0) {
+              e.preventDefault();
+              onToggleExpanded(property.id, e);
+            }
+          }}
+        >
+          <div className="flex-1">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
+            {property.subtitle && (
+              <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
+            )}
+          </div>
+          <div
+            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            onClick={(e) => onAddWorkItem(property.id, e)}
+          >
+            <Plus className="w-4 h-4" />
+          </div>
+        </div>
+
+        {expandedItems[property.id] && (
+          <div className="space-y-4 animate-slide-in">
+            {/* 1. Unclassified Items (sorting/unit selection) */}
+            {unclassifiedItems.length > 0 && (
+              <div className="space-y-3">
+                {unclassifiedItems.map((item, index) => renderCustomItem(item, index))}
+              </div>
+            )}
+
+            {/* 2. Work Items */}
+            {workItems.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-1">
+                  <Hammer className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                  <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('Work')}</h5>
+                </div>
+                {workItems.map((item, index) => renderCustomItem(item, index))}
+              </div>
+            )}
+
+            {/* 3. Material Items */}
+            {materialItems.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-1">
+                  <Package className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                  <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('Material')}</h5>
+                </div>
+                {materialItems.map((item, index) => renderCustomItem(item, index))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 6. Regular property card for other properties (default)
   return (
     <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
       <div
@@ -913,9 +1062,6 @@ const WorkPropertyCard = ({
           <div className="flex items-center justify-between">
             {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
-                  {item.selectedType === 'Work' ? t('Work name') : t('Material name')}:
-                </span>
                 <input
                   id={`custom-work-name-${item.id}`}
                   type="text"

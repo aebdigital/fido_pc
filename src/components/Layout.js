@@ -102,9 +102,9 @@ const Layout = ({ children }) => {
                 key={item.path}
                 href={item.path}
                 onClick={(e) => handleNavigation(item.path, e)}
-                className={`w-full flex items-center px-4 py-3 rounded-xl text-left transition-all duration-200 ${location.pathname === item.path
-                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all duration-200 mb-1 no-gradient no-border ${location.pathname === item.path
+                  ? 'bg-gray-900 dark:bg-gray-700 text-white shadow-lg shadow-gray-200/50 dark:shadow-none translate-x-1'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-transparent hover:text-gray-900 dark:hover:text-white hover:translate-x-1'
                   }`}
               >
                 <item.icon className="w-5 h-5 mr-3" />
@@ -118,7 +118,7 @@ const Layout = ({ children }) => {
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={signOut}
-            className="w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl group"
+            className="w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl group no-scale"
           >
             <div className="flex items-center min-w-0 flex-1">
               <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">

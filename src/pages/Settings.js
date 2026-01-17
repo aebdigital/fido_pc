@@ -14,6 +14,7 @@ import PriceList from './PriceList';
 import Archive from './Archive';
 import PriceOfferSettings from './PriceOfferSettings';
 import PaywallModal from '../components/PaywallModal';
+import TutorialModal from '../components/TutorialModal';
 import { useLanguage } from '../context/LanguageContext';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useAppData } from '../context/AppDataContext';
@@ -30,6 +31,7 @@ const Settings = () => {
   const [showArchive, setShowArchive] = useState(false);
   const [showPriceOffer, setShowPriceOffer] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // Handle navigation reset when clicking on Settings in navigation
   useEffect(() => {
@@ -68,7 +70,7 @@ const Settings = () => {
   };
 
   const handleContactClick = () => {
-    window.open('mailto:fidopo@gmail.com', '_blank');
+    window.location.href = 'mailto:fidopo@gmail.com';
   };
 
   const handleTermsClick = () => {
@@ -248,7 +250,10 @@ const Settings = () => {
           <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
         </div>
         <div className="space-y-3 lg:space-y-4">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md">
+          <div
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            onClick={() => setShowTutorial(true)}
+          >
             <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Tutorial')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
@@ -282,13 +287,16 @@ const Settings = () => {
 
       {/* App Info */}
       <div className="text-center text-gray-500 dark:text-gray-400 space-y-2 px-4">
-        <div className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fido Building Calculator')}</div>
+        <div className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fido Building Calcul')}</div>
         <div className="text-base lg:text-lg">v1.4.7</div>
         <div className="text-sm lg:text-base leading-relaxed">©Fido, s.r.o. {t('All rights reserved')}.</div>
       </div>
 
       {/* Paywall Modal */}
       <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
+
+      {/* Tutorial Modal */}
+      <TutorialModal isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
     </div>
   );
 };

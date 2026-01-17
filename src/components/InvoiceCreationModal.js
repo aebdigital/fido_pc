@@ -84,6 +84,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [dispatchDate, setDispatchDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('transfer');
   const [paymentDays, setPaymentDays] = useState(30);
+  const [customInputValue, setCustomInputValue] = useState(''); // Text state for custom input to allow typing "0" freely
   const [notes, setNotes] = useState('');
   const [showUncompletedModal, setShowUncompletedModal] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
@@ -200,9 +201,17 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           const issue = new Date(existingInvoice.issueDate);
           const due = new Date(existingInvoice.dueDate);
           const diffDays = Math.round((due - issue) / (1000 * 60 * 60 * 24));
-          setPaymentDays(diffDays > 0 ? diffDays : 30);
+          const days = diffDays > 0 ? diffDays : 30;
+          setPaymentDays(days);
+          // If days is not one of the presets, set it as custom value
+          if (!maturityOptions.includes(days)) {
+            setCustomInputValue(String(days));
+          } else {
+            setCustomInputValue('');
+          }
         } else {
           setPaymentDays(30);
+          setCustomInputValue('');
         }
         setNotes(existingInvoice.notes || '');
       } else {
@@ -236,8 +245,11 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         const issueDateStr = today.toISOString().split('T')[0];
         setIssueDate(issueDateStr);
         setDispatchDate(issueDateStr);
+        setIssueDate(issueDateStr);
+        setDispatchDate(issueDateStr);
         setPaymentMethod('transfer');
         setPaymentDays(30);
+        setCustomInputValue('');
         setNotes('');
       }
     }
@@ -563,33 +575,25 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 {/* Payment Type */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
                   <span className="text-base font-medium text-gray-900 dark:text-white">{t('Payment type')}</span>
-                  <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+                  <div className="flex gap-2">
                     <button
                       onClick={() => setPaymentMethod('cash')}
-                      className="px-4 py-2 text-sm font-medium transition-colors"
-                      style={paymentMethod === 'cash'
-                        ? (isDarkMode
-                          ? { background: '#ffffff', color: '#111827', border: 'none', boxShadow: 'none' }
-                          : { background: '#111827', color: '#ffffff', border: 'none', boxShadow: 'none' })
-                        : (isDarkMode
-                          ? { background: '#4b5563', color: '#ffffff' }
-                          : { background: '#ffffff', color: '#4b5563' })
-                      }
+                      className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'cash'
+                        ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
+                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        }`}
                     >
+                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'cash' ? 'bg-blue-400' : 'bg-transparent'}`} />
                       {t('Cash')}
                     </button>
                     <button
                       onClick={() => setPaymentMethod('transfer')}
-                      className="px-4 py-2 text-sm font-medium transition-colors"
-                      style={paymentMethod === 'transfer'
-                        ? (isDarkMode
-                          ? { background: '#ffffff', color: '#111827', border: 'none', boxShadow: 'none' }
-                          : { background: '#111827', color: '#ffffff', border: 'none', boxShadow: 'none' })
-                        : (isDarkMode
-                          ? { background: '#4b5563', color: '#ffffff' }
-                          : { background: '#ffffff', color: '#4b5563' })
-                      }
+                      className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'transfer'
+                        ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
+                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        }`}
                     >
+                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'transfer' ? 'bg-blue-400' : 'bg-transparent'}`} />
                       {t('Bank transfer')}
                     </button>
                   </div>
@@ -603,52 +607,57 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                       {maturityOptions.map(days => (
                         <button
                           key={days}
-                          onClick={() => setPaymentDays(days)}
-                          className="flex flex-col items-center justify-center py-3 rounded-xl transition-colors"
-                          style={paymentDays === days
-                            ? (isDarkMode
-                              ? { background: '#ffffff', color: '#111827', border: 'none', boxShadow: 'none' }
-                              : { background: '#111827', color: '#ffffff', border: 'none', boxShadow: 'none' })
-                            : (isDarkMode
-                              ? { background: '#4b5563', color: '#ffffff' }
-                              : { background: '#f3f4f6', color: '#111827' })
-                          }
+                          onClick={() => {
+                            setPaymentDays(days);
+                            setCustomInputValue(''); // Clear custom input when preset is selected
+                          }}
+                          className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${paymentDays === days && customInputValue === ''
+                            ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
+                            : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
                         >
-                          <span className="text-lg font-semibold">{days}</span>
-                          <span className="text-xs font-medium">{t('days')}</span>
+                          <div className={`w-1.5 h-1.5 rounded-full mb-1 ${paymentDays === days && customInputValue === '' ? 'bg-blue-400' : 'bg-transparent'}`} />
+                          <span className="text-lg font-semibold leading-none">{days}</span>
+                          <span className="text-[10px] font-medium opacity-80">{t('days')}</span>
                         </button>
                       ))}
                       {/* Custom input */}
                       <div
-                        className="flex flex-col items-center justify-center py-3 px-2 rounded-xl"
-                        style={!maturityOptions.includes(paymentDays)
-                          ? (isDarkMode
-                            ? { background: '#ffffff', color: '#111827', border: 'none', boxShadow: 'none' }
-                            : { background: '#111827', color: '#ffffff', border: 'none', boxShadow: 'none' })
-                          : (isDarkMode
-                            ? { background: '#4b5563', color: '#ffffff' }
-                            : { background: '#f3f4f6', color: '#111827' })
-                        }
+                        className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative ${!maturityOptions.includes(paymentDays) || customInputValue !== ''
+                          ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
+                          : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300'
+                          }`}
                       >
+                        <div className={`w-1.5 h-1.5 rounded-full mb-1 ${!maturityOptions.includes(paymentDays) || customInputValue !== '' ? 'bg-blue-400' : 'bg-transparent'}`} />
                         <input
+                          id="custom-maturity-input"
                           type="number"
-                          value={maturityOptions.includes(paymentDays) ? '' : paymentDays}
-                          onChange={(e) => setPaymentDays(parseInt(e.target.value) || 0)}
-                          placeholder="XY"
-                          className={`w-full text-center text-lg font-semibold focus:outline-none rounded-lg placeholder-gray-500 ${!maturityOptions.includes(paymentDays) && !isDarkMode ? 'bg-white' : 'bg-transparent'}`}
-                          style={{
-                            color: !maturityOptions.includes(paymentDays)
-                              ? (isDarkMode ? '#111827' : '#111827') // Active: Black text (on White input BG for light mode, or White container for dark mode? Wait. Dark mode active is White BG. So Black text is correct. Light mode active is Black Container -> White Input BG -> Black Text.)
-                              : (isDarkMode ? '#ffffff' : '#111827') // Inactive
+                          value={customInputValue}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCustomInputValue(val);
+                            // Only update paymentDays if val is valid
+                            const num = parseInt(val);
+                            if (!isNaN(num)) {
+                              setPaymentDays(num);
+                            } else if (val === '') {
+                              // Optional: decide if paymentDays should be 0 or keep last valid?
+                              // For valid date calculation, 0 is safer fallback
+                              setPaymentDays(0);
+                            }
                           }}
+                          placeholder="XY"
+                          className={`w-full text-center text-lg font-semibold focus:outline-none bg-transparent ${!maturityOptions.includes(paymentDays) || customInputValue !== ''
+                            ? 'text-white dark:text-white placeholder-gray-400 dark:placeholder-gray-400'
+                            : 'text-gray-900 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-500'
+                            }`}
                         />
-                        <span
-                          className="text-xs font-medium"
-                          style={{ color: !maturityOptions.includes(paymentDays) ? (isDarkMode ? '#111827' : '#ffffff') : (isDarkMode ? '#ffffff' : '#111827') }}
-                        >
+                        <span className={`text-[10px] font-medium leading-none ${!maturityOptions.includes(paymentDays) || customInputValue !== '' ? 'opacity-80' : 'opacity-60'
+                          }`}>
                           {t('days')}
                         </span>
                       </div>
+
                     </div>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-right">
@@ -660,6 +669,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
                   <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Note')}</span>
                   <textarea
+                    id="invoice-note"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
@@ -734,7 +744,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             </div>
           </div>
         </div>
-      </div>
+      </div >
 
       <UncompletedFieldsModal
         isOpen={showUncompletedModal}
@@ -747,43 +757,45 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       />
 
       {/* Duplicate Invoice Number Warning Modal */}
-      {showDuplicateNumberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+      {
+        showDuplicateNumberModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {t('Duplicate Invoice Number')}
+                  </h3>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('Duplicate Invoice Number')}
-                </h3>
+
+              <p className="text-gray-600 dark:text-gray-300">
+                {t('Invoice number')} <span className="font-bold">{invoiceNumber}</span> {t('is already used by another invoice. Do you want to continue anyway?')}
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowDuplicateNumberModal(false)}
+                  className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  onClick={handleConfirmDuplicateNumber}
+                  className="flex-1 px-4 py-3 bg-yellow-500 text-white rounded-xl font-semibold hover:bg-yellow-600 transition-colors"
+                >
+                  {t('Continue Anyway')}
+                </button>
               </div>
-            </div>
-
-            <p className="text-gray-600 dark:text-gray-300">
-              {t('Invoice number')} <span className="font-bold">{invoiceNumber}</span> {t('is already used by another invoice. Do you want to continue anyway?')}
-            </p>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setShowDuplicateNumberModal(false)}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-              >
-                {t('Cancel')}
-              </button>
-              <button
-                onClick={handleConfirmDuplicateNumber}
-                className="flex-1 px-4 py-3 bg-yellow-500 text-white rounded-xl font-semibold hover:bg-yellow-600 transition-colors"
-              >
-                {t('Continue Anyway')}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </>
   );
 };

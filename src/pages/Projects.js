@@ -539,20 +539,20 @@ const Projects = () => {
                     <div className="relative">
                       <button
                         onClick={() => setShowYearSelector(!showYearSelector)}
-                        className="flex items-center gap-2 text-xl lg:text-2xl font-bold text-gray-900 dark:text-white hover:opacity-70 transition-opacity"
+                        className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white hover:opacity-70 transition-opacity border border-gray-900 dark:border-white rounded-xl px-3 py-1.5 no-gradient"
                       >
                         <span>{filterYear === 'all' ? t('Whenever') : filterYear}</span>
-                        <ChevronDown className="w-5 h-5 lg:w-6 lg:h-6" />
+                        <ChevronDown className="w-4 h-4" />
                       </button>
 
                       {showYearSelector && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setShowYearSelector(false)}></div>
-                          <div className="absolute top-full left-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg z-30 overflow-hidden animate-slide-in-top">
-                            <div className="py-1">
+                          <div className="absolute top-full left-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-30 overflow-hidden animate-slide-in-top p-1 no-gradient">
+                            <div className="space-y-0.5">
                               <button
                                 onClick={() => { setFilterYear('all'); setShowYearSelector(false); }}
-                                className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${filterYear === 'all' ? 'font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50' : 'text-gray-700 dark:text-gray-300'}`}
+                                className={`w-full text-left px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterYear === 'all' ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                               >
                                 {t('Whenever')}
                               </button>
@@ -566,7 +566,7 @@ const Projects = () => {
                                   <button
                                     key={year}
                                     onClick={() => { setFilterYear(year.toString()); setShowYearSelector(false); }}
-                                    className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${filterYear === year.toString() ? 'font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50' : 'text-gray-700 dark:text-gray-300'}`}
+                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterYear === year.toString() ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                                   >
                                     {year}
                                   </button>
@@ -577,7 +577,6 @@ const Projects = () => {
                         </>
                       )}
                     </div>
-                    <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
                   </div>
                   {(() => {
                     const sortedProjects = [...activeProjects].sort((a, b) => {

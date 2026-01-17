@@ -235,8 +235,9 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                     if (!materialGroups[materialKey]) {
                       materialGroups[materialKey] = {
-                        name: displayName, // Display name
-                        originalName: item.name, // For sorting
+                        name: displayName, // Display name (will be overwritten by originalName for sorting)
+                        rawDisplayName: displayName, // Preserve raw display name for rendering
+                        originalName: item.name, // For sorting lookup
                         subtitle: item.subtitle,
                         propertyId: item.propertyId,
                         unit: item.calculation.unit,
@@ -283,7 +284,10 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                         translatedSubtitle = t('offset wall');
                       }
                     }
-                    const materialDescription = `${t(group.name)}${translatedSubtitle ? `, ${translatedSubtitle}` : ''}`;
+
+                    // Use rawDisplayName if available (custom name), otherwise translate generic name
+                    const nameToDisplay = group.rawDisplayName || t(group.name);
+                    const materialDescription = `${nameToDisplay}${translatedSubtitle ? `, ${translatedSubtitle}` : ''}`;
                     const unit = group.unit && group.unit.includes(UNIT_TYPES.PIECE) ? UNIT_TYPES.PIECE : (group.unit ? group.unit.replace('€/', '') : UNIT_TYPES.METER_SQUARE);
 
                     return (

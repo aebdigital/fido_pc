@@ -283,7 +283,7 @@ const Invoices = () => {
       </div>
 
       <div className="mb-6 lg:mb-8 w-[calc(100vw-2rem)] lg:w-auto -ml-4 lg:ml-0 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-4 pb-2 px-4 lg:px-0">
+        <div className="flex gap-4 py-2 px-4 lg:px-0">
           {/* Year dropdown */}
           <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button
@@ -319,9 +319,9 @@ const Invoices = () => {
           {statusFilters.map(filter => (
             <button
               key={filter}
-              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap bg-transparent ${selectedStatus === filter
-                ? 'text-gray-900 dark:text-white'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap bg-transparent px-3 py-1 rounded-full border no-global-border ${selectedStatus === filter
+                ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               onClick={() => setSelectedStatus(filter)}
             >
@@ -466,6 +466,12 @@ const Invoices = () => {
             <div className="p-4 lg:p-6">
               {/* Year Label */}
               <div className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{stats.year}</div>
+
+              {/* Status Filters */}
+              <div className="flex gap-2 overflow-x-auto pb-4 pt-1 px-1 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 py-2">
+                {/* Assuming there will be buttons or other elements here for status filters */}
+                {/* This section seems incomplete in the provided instruction, but I'm inserting the container as requested. */}
+              </div>
 
               {/* Total Card */}
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 mb-6">

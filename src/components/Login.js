@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
-// import { useDarkMode } from '../context/DarkModeContext'
+import logo from '../logo.png' // Import logo
 
 const Login = () => {
   const { t } = useLanguage()
@@ -52,49 +52,22 @@ const Login = () => {
     }
   }
 
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp)
+    setError(null)
+    setMessage(null)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full mx-4 p-8 rounded-2xl border bg-white border-gray-200 shadow-sm">
-        {/* Logo/Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            FIDO
-          </h1>
-          <p className="mt-2 text-gray-600">
-            {t('Construction Cost Calculator')}
-          </p>
-        </div>
-
-        {/* Toggle Sign In / Sign Up */}
-        <div className="flex rounded-lg p-1 mb-6 bg-gray-100">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(false)
-              setError(null)
-              setMessage(null)
-            }}
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${!isSignUp
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-              }`}
-          >
-            {t('Sign In')}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(true)
-              setError(null)
-              setMessage(null)
-            }}
-            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${isSignUp
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-              }`}
-          >
-            {t('Sign Up')}
-          </button>
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img
+            src={logo}
+            alt="Fido"
+            className="h-20 w-auto" // Adjusted styling for logo image
+          />
         </div>
 
         {/* Form */}
@@ -168,14 +141,18 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Footer */}
+        {/* Footer Toggle */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <button
+            type="button"
+            onClick={toggleMode}
+            className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+          >
             {isSignUp
-              ? t('By signing up, you agree to our terms of service')
-              : t('Forgot your password?')
+              ? t('Already have an account? Sign in')
+              : t("Don't have an account? Sign up")
             }
-          </p>
+          </button>
         </div>
       </div>
     </div>

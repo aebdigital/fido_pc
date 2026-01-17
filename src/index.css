@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+
   /* Handle iPad/tablet virtual keyboard - ensure modals stay visible */
   html {
     height: 100%;
@@ -26,8 +27,8 @@
     @apply font-bold tracking-tight;
   }
 
-  button {
-    @apply font-semibold;
+  button:not(.no-scale) {
+    @apply font-semibold transition-transform duration-200 hover:scale-[1.03];
   }
 }
 
@@ -260,13 +261,13 @@
 
 /* Light mode shadow for cards, containers, and buttons */
 /* Using :not(.dark) to target light mode only */
-:root:not(.dark) .rounded-xl:not(input):not(textarea):not(select):not([class*="bg-transparent"]),
-:root:not(.dark) .rounded-2xl:not(input):not(textarea):not(select):not([class*="bg-transparent"]),
-:root:not(.dark) .rounded-lg:not(input):not(textarea):not(select):not([class*="bg-transparent"]),
-:root:not(.dark) button:not([class*="bg-transparent"]):not([class*="text-gray-900"]):not([class*="font-bold"]),
-:root:not(.dark) [class*="bg-white"]:not(button):not(input):not(textarea),
-:root:not(.dark) [class*="bg-gray-100"]:not(button),
-:root:not(.dark) [class*="bg-gray-200"]:not(button) {
+:root:not(.dark) .rounded-xl:not(input):not(textarea):not(select):not([class*="bg-transparent"]):not(.no-border),
+:root:not(.dark) .rounded-2xl:not(input):not(textarea):not(select):not([class*="bg-transparent"]):not(.no-border),
+:root:not(.dark) .rounded-lg:not(input):not(textarea):not(select):not([class*="bg-transparent"]):not(.no-border),
+:root:not(.dark) button:not([class*="bg-transparent"]):not([class*="text-gray-900"]):not([class*="font-bold"]):not(.no-border),
+:root:not(.dark) [class*="bg-white"]:not(button):not(input):not(textarea):not(.no-border),
+:root:not(.dark) [class*="bg-gray-100"]:not(button):not(.no-border),
+:root:not(.dark) [class*="bg-gray-200"]:not(button):not(.no-border) {
   border: 1px solid rgb(229, 231, 235);
   box-shadow: rgba(255, 255, 255, 0.19) 0px 1px 2px inset, rgba(0, 0, 0, 0.19) 0px 1px 2px, rgba(0, 0, 0, 0.082) 0px 2px 4px;
 }
@@ -290,9 +291,9 @@
 }
 
 /* Cards and containers in dark mode - gradient background with top light effect */
-.dark .rounded-xl:not(input):not(textarea):not(select),
-.dark .rounded-2xl:not(input):not(textarea):not(select),
-.dark .rounded-lg:not(input):not(textarea):not(select) {
+.dark .rounded-xl:not(input):not(textarea):not(select):not(.no-gradient),
+.dark .rounded-2xl:not(input):not(textarea):not(select):not(.no-gradient),
+.dark .rounded-lg:not(input):not(textarea):not(select):not(.no-gradient) {
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%) !important;
   border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow:
@@ -302,14 +303,14 @@
 }
 
 /* Allow borders to show on buttons in dark mode if explicitly defined */
-.dark button.border,
-.dark button[class*="border-"],
-.dark button.border-2 {
+.dark button.border:not(.no-global-border),
+.dark button[class*="border-"]:not(.no-global-border),
+.dark button.border-2:not(.no-global-border) {
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Buttons in dark mode */
-.dark button:not([class*="bg-transparent"]):not(.rounded-xl):not(.rounded-2xl):not(.rounded-lg) {
+.dark button:not([class*="bg-transparent"]):not(.rounded-xl):not(.rounded-2xl):not(.rounded-lg):not(.no-global-border) {
   background: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-top-color: rgba(255, 255, 255, 0.15) !important;
@@ -335,6 +336,13 @@
 .dark aside,
 .dark nav {
   background-color: #0a0a0a !important;
+}
+
+/* Explicitly remove gradient/border/shadow for elements with no-gradient class in dark mode */
+.dark .no-gradient {
+  background-image: none !important;
+  box-shadow: none !important;
+  border-top: none !important;
 }
 
 /* Input fields - regular flat look, no gradient/shadow */
@@ -590,13 +598,61 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0;
 }
 
+/* Fix Date Picker Icon in Dark Mode */
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  /* Slight opacity to match design, can be 1 */
+  filter: none !important;
+  /* Ensure no inversion happens */
+}
+
+/* Force dark text for active states in dark mode (e.g. white background buttons) */
+.dark .force-text-dark span {
+  color: #111827 !important;
+}
+
+/* Force white background and dark text for active buttons in dark mode */
+.dark .active-white-bg {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure children inherit the dark text */
+.dark .active-white-bg * {
+  color: #111827 !important;
+}
+
+/* Specific override for Invoice Modal Note */
+.dark #invoice-note {
+  color: #ffffff !important;
+  background-color: #374151 !important;
+  /* gray-700 */
+}
+
 /* Mobile-specific date input styling */
 @media (max-width: 640px) {
   input[type="date"] {
+    min-width: 95%;
+    /* Make date inputs nearly full width on mobile */
     font-size: 16px;
-    /* Prevents iOS zoom on focus */
-    padding-right: 8px;
+    /* Prevent zoom */
   }
+}
+
+/* Force transparent background for Custom Maturity Input to avoid global override */
+#custom-maturity-input {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* Invoice modal inputs - ensure white text in dark mode */
@@ -674,13 +730,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* When virtual keyboard is open, adjust modal positioning */
 @media (max-height: 600px) and (orientation: landscape),
-       (max-height: 500px) {
+(max-height: 500px) {
   .fixed.inset-0 {
     align-items: flex-start !important;
     padding-top: 1rem !important;
   }
 
-  .fixed.inset-0 > div {
+  .fixed.inset-0>div {
     max-height: calc(100vh - 2rem) !important;
     max-height: calc(100dvh - 2rem) !important;
     overflow-y: auto !important;
@@ -695,8 +751,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   /* Ensure modal content scrolls when keyboard is visible */
-  .fixed.inset-0 > div[class*="rounded-2xl"],
-  .fixed.inset-0 > div[class*="rounded-xl"] {
+  .fixed.inset-0>div[class*="rounded-2xl"],
+  .fixed.inset-0>div[class*="rounded-xl"] {
     max-height: calc(100dvh - 2rem);
     overflow-y: auto;
   }
