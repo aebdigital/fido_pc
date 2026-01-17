@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const TutorialModal = ({ isOpen, onClose }) => {
@@ -120,7 +120,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
                                 <img
                                     key={index}
                                     src={img}
-                                    alt={`Step ${currentIndex + 1} image ${index + 1}`}
+                                    alt={`Step ${currentIndex + 1} visual ${index + 1}`}
                                     className="rounded-xl shadow-md max-h-[200px] w-auto object-contain"
                                 />
                             ))}
@@ -137,8 +137,8 @@ const TutorialModal = ({ isOpen, onClose }) => {
                                 <div
                                     key={idx}
                                     className={`w-2 h-2 rounded-full transition-all ${idx === currentIndex
-                                            ? 'bg-gray-900 dark:bg-white w-4'
-                                            : 'bg-gray-300 dark:bg-gray-600'
+                                        ? 'bg-gray-900 dark:bg-white w-4'
+                                        : 'bg-gray-300 dark:bg-gray-600'
                                         }`}
                                 />
                             ))}

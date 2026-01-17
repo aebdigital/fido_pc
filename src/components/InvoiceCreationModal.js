@@ -60,22 +60,13 @@ const getWorkItemUnit = (item) => {
  * 3. Settings section (number, dates, payment, maturity, notes)
  * 4. Items section grouped by category (Work, Material, Other)
  */
+// Maturity quick-select options (matching iOS MaturityDuration)
+const maturityOptions = [7, 15, 30, 60, 90];
+
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null }) => {
   useScrollLock(true);
   const { t } = useLanguage();
   const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices } = useAppData();
-
-  // Detect dark mode
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  useEffect(() => {
-    const checkDarkMode = () => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
 
   // Invoice settings state
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -92,9 +83,6 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   // Invoice items state
   const [invoiceItems, setInvoiceItems] = useState([]);
-
-  // Maturity quick-select options (matching iOS MaturityDuration)
-  const maturityOptions = [7, 15, 30, 60, 90];
 
   // Get project breakdown with work items
   const projectBreakdown = useMemo(() => {
@@ -253,7 +241,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setNotes('');
       }
     }
-  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId]);
+  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, maturityOptions]);
 
   // Calculate totals from invoice items
   const calculateTotals = useMemo(() => {
