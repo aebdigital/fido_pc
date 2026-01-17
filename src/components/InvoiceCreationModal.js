@@ -241,7 +241,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setNotes('');
       }
     }
-  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, maturityOptions]);
+  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId]);
 
   // Calculate totals from invoice items
   const calculateTotals = useMemo(() => {
