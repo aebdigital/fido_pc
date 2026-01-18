@@ -349,13 +349,13 @@ export const AppDataProvider = ({ children }) => {
         api.clients.getAll(null), // We'll filter by contractor later
         api.projects.getAll(null), // We'll filter by contractor later
         api.invoices.getAll(null), // We'll filter by contractor later
-        api.invoices.getAll(null), // We'll filter by contractor later
         api.priceLists.getAll(), // Get all price lists
-        supabase.from('profiles').select('project_filter_year').eq('id', user.id).single()
+        api.profiles.getFilterYear()
       ]);
 
-      const profileData = profileResult.data;
+      const projectFilterYear = profileResult;
       console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
+      console.log('[DEBUG FILTER] Filter Year:', projectFilterYear);
 
       // Transform contractors
       const transformedContractors = (contractors || []).map(transformContractorFromDB);
@@ -528,7 +528,7 @@ export const AppDataProvider = ({ children }) => {
         invoices: transformedInvoices,
         priceOfferSettings,
         activeContractorId,
-        projectFilterYear: profileData?.project_filter_year || 'all',
+        projectFilterYear: projectFilterYear,
         generalPriceList
       };
     } catch (error) {
@@ -938,7 +938,8 @@ export const AppDataProvider = ({ children }) => {
     setAppData(prev => ({ ...prev, projectFilterYear: year }));
     if (user?.id) {
       try {
-        await supabase.from('profiles').update({ project_filter_year: year }).eq('id', user.id);
+        console.log('[DEBUG FILTER] Saving filter year:', year);
+        await api.profiles.upsertFilterYear(year);
       } catch (err) {
         console.error("Error saving filter year preference:", err);
       }

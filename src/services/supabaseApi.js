@@ -1436,6 +1436,43 @@ export const historyEventsApi = {
   }
 }
 
+
+// ========== PROFILES ==========
+
+export const profilesApi = {
+  getFilterYear: async () => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('project_filter_year')
+        .eq('id', userId)
+        .single()
+
+      if (error && error.code !== 'PGRST116') throw error
+      return data?.project_filter_year || 'all'
+    } catch (error) {
+      // Don't throw, just return default
+      // handleError('profilesApi.getFilterYear', error)
+      return 'all'
+    }
+  },
+
+  upsertFilterYear: async (year) => {
+    try {
+      const userId = await getCurrentUserId()
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: userId, project_filter_year: year }, { onConflict: 'id' })
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('profilesApi.upsertFilterYear', error)
+    }
+  }
+}
+
 // Export all APIs
 const api = {
   contractors: contractorsApi,
@@ -1450,6 +1487,7 @@ const api = {
   doors: doorsApi,
   windows: windowsApi,
   historyEvents: historyEventsApi,
+  profiles: profilesApi,
 }
 
 export default api
