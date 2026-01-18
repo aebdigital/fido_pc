@@ -112,7 +112,8 @@ const Projects = () => {
       try {
         await supabase
           .from('profiles')
-          .upsert({ id: user.id, project_filter_year: year });
+          .update({ project_filter_year: year })
+          .eq('id', user.id);
       } catch (err) {
         console.error("Error saving filter year preference:", err);
       }
