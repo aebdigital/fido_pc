@@ -179,7 +179,7 @@ const Clients = () => {
           onClick={handleOverlayClick}
         >
           <div
-            className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[85vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col"
+            className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-center items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">

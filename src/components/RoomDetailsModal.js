@@ -674,7 +674,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
         onClick={handleClose}
       >
         <div
-          className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-3xl lg:max-w-5xl h-[95dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[95dvh] sm:max-h-[calc(100dvh-6rem)] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto"
+          className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-3xl lg:max-w-5xl h-[100dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[100dvh] sm:max-h-[calc(100dvh-6rem)] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

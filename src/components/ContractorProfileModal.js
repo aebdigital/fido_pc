@@ -165,15 +165,21 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
       }}
     >
       <div
-        className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-4xl h-[85dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'}`}
+        className={`bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col ${isClosing ? 'animate-slide-out' : 'animate-slide-in'} my-0 sm:my-auto`}
         onClick={(e) => e.stopPropagation()}
       >
 
         {/* Header */}
-        <div className="flex items-center justify-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
             {editingContractor ? t('Edit contractor') : t('Create contractor')}
           </h2>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
         {/* Content */}
