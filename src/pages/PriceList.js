@@ -29,7 +29,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       Object.keys(generalPriceList).forEach(category => {
         clonedPriceList[category] = generalPriceList[category].map(item => ({
           ...item,
-          price: item.price ? Math.round(item.price * 10) / 10 : 0
+          price: item.price ? Math.round(item.price * 100) / 100 : 0
         }));
       });
 
@@ -149,7 +149,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       Object.keys(updatedPrices).forEach(category => {
         updatedPrices[category] = updatedPrices[category].map(item => ({
           ...item,
-          price: item.name === 'VAT' ? item.price : Math.round(item.price * multiplier * 10) / 10
+          price: item.name === 'VAT' ? item.price : Math.round(item.price * multiplier * 100) / 100
         }));
       });
       return updatedPrices;
@@ -228,6 +228,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
                 : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
               }
               min={0}
+              forceDecimal={2}
             />
           </div>
           <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>

@@ -136,8 +136,8 @@ const InvoiceItemBubble = ({
   };
 
   // Format currency
-  const formatCurrency = (value) => {
-    return `${value.toFixed(1)} €`;
+  const formatCurrency = (amount) => {
+    return (amount || 0).toFixed(2).replace('.', ',') + ' €';
   };
 
   return (
@@ -254,6 +254,7 @@ const InvoiceItemBubble = ({
                     className="flex-1"
                     min={0}
                     step={0.01}
+                    forceDecimal={2}
                   />
                   <span className="text-sm text-gray-600">€</span>
                 </div>

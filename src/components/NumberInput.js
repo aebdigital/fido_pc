@@ -37,10 +37,20 @@ const NumberInput = ({
   disabled = false,
   size = "normal", // "small" or "normal"
   placeholder = "0",
+  forceDecimal = null, // New prop: number of decimal places to enforce (e.g., 2)
   ...props
 }) => {
+  // Helper to format value according to props
+  const formatValue = (val) => {
+    if (val === '' || val === null || val === undefined) return '';
+    if (forceDecimal !== null && typeof val === 'number') {
+      return val.toFixed(forceDecimal).replace('.', ',');
+    }
+    return val.toString().replace('.', ',');
+  };
+
   const [internalValue, setInternalValue] = useState(
-    value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString().replace('.', ',') : ''
+    value !== undefined && value !== null && value !== '' ? formatValue(value) : ''
   );
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef(null);
@@ -61,10 +71,10 @@ const NumberInput = ({
     // Only update if not currently focused to avoid jumping while typing
     if (!isFocused) {
       setInternalValue(
-        value !== undefined && value !== null && value !== '' && value !== 0 ? value.toString().replace('.', ',') : ''
+        value !== undefined && value !== null && value !== '' ? formatValue(value) : ''
       );
     }
-  }, [value, isFocused]);
+  }, [value, isFocused, forceDecimal]);
 
   // Cleanup debounce timeout on unmount
   useEffect(() => {
@@ -94,19 +104,19 @@ const NumberInput = ({
     const evaluatedValue = evaluateExpression(internalValue);
 
     if (evaluatedValue !== null) {
-      const roundedValue = Math.round(evaluatedValue * 10) / 10;
+      const roundedValue = Math.round(evaluatedValue * 100) / 100;
       const finalValue = Math.max(min, roundedValue);
-      setInternalValue(finalValue.toString().replace('.', ','));
+      setInternalValue(formatValue(finalValue));
       onChange(finalValue);
     } else {
       // Fallback to simple parse if expression evaluation failed
       const numericValue = parseFloat(internalValue.replace(',', '.'));
       if (!isNaN(numericValue)) {
-        const finalValue = Math.max(min, Math.round(numericValue * 10) / 10);
-        setInternalValue(finalValue.toString().replace('.', ','));
+        let finalValue = Math.max(min, Math.round(numericValue * 100) / 100);
+        setInternalValue(formatValue(finalValue));
         onChange(finalValue);
       } else {
-        setInternalValue(value !== 0 ? value.toString().replace('.', ',') : '');
+        setInternalValue(value !== 0 ? formatValue(value) : '');
         onChange(value || 0);
       }
     }
@@ -172,22 +182,22 @@ const NumberInput = ({
   const incrementValue = (step) => {
     const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
     const newValue = Math.max(min, currentValue + step);
-    const roundedValue = Math.round(newValue * 10) / 10;
-    setInternalValue(roundedValue.toString().replace('.', ','));
+    const roundedValue = Math.round(newValue * 100) / 100;
+    setInternalValue(formatValue(roundedValue));
     debouncedOnChange(roundedValue);
   };
 
   const decrementValue = (step) => {
     const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
     const newValue = Math.max(min, currentValue - step);
-    const roundedValue = Math.round(newValue * 10) / 10;
-    setInternalValue(roundedValue.toString().replace('.', ','));
+    const roundedValue = Math.round(newValue * 100) / 100;
+    setInternalValue(formatValue(roundedValue));
     debouncedOnChange(roundedValue);
   };
 
   const isSmall = size === "small";
   const inputWidth = isSmall ? "w-full sm:w-24" : "w-full sm:w-32";
-  const paddingRight = isSmall ? "pr-10" : "pr-14";
+  const paddingRight = isSmall ? "pr-9" : "pr-12";
   const fontSize = "text-base"; // Use text-base (16px) to prevent iOS auto-zoom
   const borderRadius = isSmall ? "rounded" : "rounded-xl";
 
@@ -212,7 +222,7 @@ const NumberInput = ({
           }}
           disabled={disabled}
           placeholder={placeholder}
-          className={`hide-number-arrows ${inputWidth} pl-3 py-2 ${paddingRight} ${borderRadius} text-right font-semibold border-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fontSize}`}
+          className={`hide-number-arrows ${inputWidth} pl-2 py-2 ${paddingRight} ${borderRadius} text-right font-semibold border-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fontSize}`}
           {...props}
         />
 

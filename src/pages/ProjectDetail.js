@@ -150,7 +150,7 @@ const ProjectDetail = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-gray-500 mb-1">{t('VAT not included')}</div>
-                  <div className="font-semibold text-gray-900">{price.toFixed(1)} €</div>
+                  <div className="font-semibold text-gray-900">{price.toFixed(2)} €</div>
                   <span className="text-gray-400 ml-2">›</span>
                 </div>
               </Link>

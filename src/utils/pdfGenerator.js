@@ -246,7 +246,7 @@ export const generateInvoicePDF = async ({
 
   // Internal helper for PDF currency formatting (7,00 €)
   const formatCurrency = (amount) => {
-    return (amount || 0).toFixed(1).replace('.', ',') + ' €';
+    return (amount || 0).toFixed(2).replace('.', ',') + ' €';
   };
 
   // Helper to remove trailing zeros (12.00 -> 12, 12.10 -> 12.1)
