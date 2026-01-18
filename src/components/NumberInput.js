@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+
 
 const evaluateExpression = (str) => {
   try {
