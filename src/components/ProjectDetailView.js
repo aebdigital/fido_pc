@@ -1714,7 +1714,6 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               value={customRoomName}
               onChange={(e) => setCustomRoomName(e.target.value)}
               className="w-full p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') handleCustomRoomCreate(); }}
               placeholder={t('Enter room name')}
             />
@@ -1729,20 +1728,22 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       )}
 
       {showEditClientModal && selectedClientForProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => clientFormRef.current?.submit()}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full max-w-7xl h-[85vh] lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">{t('Edit Client')}</h3>
-              <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
+          <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
+              <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Edit client')}</h3>
+              <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <X className="w-6 h-6" />
               </button>
             </div>
-            <ClientForm
-              ref={clientFormRef}
-              initialData={selectedClientForProject}
-              onSave={handleUpdateClient}
-              onCancel={() => setShowEditClientModal(false)}
-            />
+            <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
+              <ClientForm
+                ref={clientFormRef}
+                initialData={selectedClientForProject}
+                onSave={handleUpdateClient}
+                onCancel={() => setShowEditClientModal(false)}
+              />
+            </div>
           </div>
         </div>
       )}

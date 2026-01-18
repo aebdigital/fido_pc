@@ -184,10 +184,10 @@ const Archive = ({ onBack }) => {
           {allArchivedProjects.map((project) => (
             <div
               key={project.id}
-              className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center transition-all duration-300 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer"
+              className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-row items-center justify-between transition-all duration-300 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer gap-3"
               onClick={() => handleProjectClick(project)}
             >
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   {(() => {
@@ -216,7 +216,7 @@ const Archive = ({ onBack }) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 mt-3 sm:mt-0">
+              <div className="flex items-center gap-4 flex-shrink-0">
                 <div className="text-left sm:text-right">
                   <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                   <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</div>

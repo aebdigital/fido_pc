@@ -710,7 +710,7 @@ const Projects = () => {
                       onChange={(e) => setNewProjectName(e.target.value)}
                       placeholder={t('Enter project name')}
                       className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
-                      autoFocus
+
                     />
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
