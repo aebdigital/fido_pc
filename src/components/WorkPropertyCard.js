@@ -133,7 +133,13 @@ const WorkPropertyCard = ({
     }
     // Handle split Custom Work/Material: Both map to custom_work items
     if (property.id === 'custom_work_material_only') {
-      return item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK;
+      // Only show items that are explicitly Materials
+      return item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedType === 'Material';
+    }
+    if (property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+      // Show items for standard Custom Work card (Type 'Work' or undefined/legacy)
+      // Exclude 'Material' type which belongs to the other card
+      return item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedType !== 'Material';
     }
     return item.propertyId === property.id;
   });
