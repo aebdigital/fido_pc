@@ -86,7 +86,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex h-screen lg:h-[100dvh] bg-gray-50 dark:bg-gray-950 overflow-hidden">
       {/* Desktop Sidebar - Hidden on Mobile */}
       <div className="hidden lg:flex lg:flex-col lg:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
         {/* Logo */}

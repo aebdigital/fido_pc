@@ -291,8 +291,8 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4 animate-fade-in" onClick={handleClose}>
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-[95vw] h-[75vh] lg:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={handleClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full sm:max-w-[95vw] h-[95dvh] sm:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-2xl">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h2>
