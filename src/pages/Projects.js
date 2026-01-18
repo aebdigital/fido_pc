@@ -63,7 +63,7 @@ const Projects = () => {
       if (!user?.id) return;
 
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('profiles')
           .select('project_filter_year')
           .eq('id', user.id)
