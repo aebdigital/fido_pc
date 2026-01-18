@@ -42,7 +42,7 @@ const NumberInput = ({
 }) => {
   // Helper to format value according to props
   const formatValue = useCallback((val) => {
-    if (val === '' || val === null || val === undefined) return '';
+    if (val === '' || val === null || val === undefined || val === 0) return '';
     if (forceDecimal !== null && typeof val === 'number') {
       return val.toFixed(forceDecimal).replace('.', ',');
     }
