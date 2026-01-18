@@ -55,7 +55,9 @@ const Projects = () => {
   const [showContractorModal, setShowContractorModal] = useState(false);
 
   const [showContractorSelector, setShowContractorSelector] = useState(false);
-  const [filterYear, setFilterYear] = useState('all'); // 'all' or specific year string
+  const [filterYear, setFilterYear] = useState(() => {
+    return localStorage.getItem('project_filter_year') || 'all';
+  });
 
   // Load saved filter year from Supabase
   useEffect(() => {
@@ -71,6 +73,7 @@ const Projects = () => {
 
         if (data && data.project_filter_year) {
           setFilterYear(data.project_filter_year);
+          localStorage.setItem('project_filter_year', data.project_filter_year);
         }
       } catch (error) {
         console.error('Error loading filter year:', error);
@@ -82,6 +85,7 @@ const Projects = () => {
 
   const handleYearChange = async (year) => {
     setFilterYear(year);
+    localStorage.setItem('project_filter_year', year);
     setShowYearSelector(false);
 
     if (user?.id) {
