@@ -23,11 +23,7 @@ const evaluateExpression = (str) => {
   }
 };
 
-// Check if device uses touch/coarse pointer (phone, tablet) vs fine pointer (mouse/trackpad)
-const isTouchDevice = () => {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(pointer: coarse)').matches;
-};
+
 
 const NumberInput = ({
   value,
