@@ -10,8 +10,7 @@ import ContractorProfileModal from '../components/ContractorProfileModal';
 import ProjectDetailView from '../components/ProjectDetailView';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { useScrollLock } from '../hooks/useScrollLock';
@@ -20,7 +19,7 @@ const Projects = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { user } = useAuth();
+
   const {
     projectCategories,
     contractors,
