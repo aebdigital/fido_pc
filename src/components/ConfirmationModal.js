@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, AlertTriangle, AlertCircle } from 'lucide-react';
+import { AlertTriangle, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const ConfirmationModal = ({
@@ -26,8 +26,8 @@ const ConfirmationModal = ({
                 <div className="p-6 flex flex-col items-center text-center">
                     {/* Icon */}
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isDestructive
-                            ? 'bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400'
-                            : 'bg-blue-100 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400'
+                        ? 'bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400'
+                        : 'bg-blue-100 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}>
                         {icon === 'warning' || isDestructive ? (
                             <AlertTriangle className="w-8 h-8" strokeWidth={2.5} />
@@ -58,8 +58,8 @@ const ConfirmationModal = ({
                                 onClose();
                             }}
                             className={`py-3 px-4 rounded-xl font-semibold text-white transition-colors ${isDestructive
-                                    ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30'
-                                    : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
+                                ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30'
+                                : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
                                 }`}
                         >
                             {t(confirmLabel || 'Confirm')}

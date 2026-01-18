@@ -1000,7 +1000,7 @@ export const translations = {
     "Permanently deleting this project will result in the loss of all data. This change is irreversible.": "Trvalým vymazaním tohto projektu prídete o všetky dáta. Táto zmena je nevratná.",
     "Unarchive project": "Obnoviť projekt",
     "This project will be activated and can be found in its specified category.": "Tento projekt bude aktivovaný a nájdete ho vo zvolenej kategórii.",
-    "Unarchive": "Obnoviť",
+
     "Archive project {name}?": "Archivovať projekt {name}?",
     "Archiving this project will not result in data loss. You can find this project in the 'Archive' tab in the app settings.": "Archiváciou tohto projektu nestratíte žiadne údaje. Tento projekt nájdete v záložke 'Archív' v nastaveniach aplikácie."
   }
