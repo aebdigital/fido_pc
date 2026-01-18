@@ -10,6 +10,8 @@ import ContractorProfileModal from '../components/ContractorProfileModal';
 import ProjectDetailView from '../components/ProjectDetailView';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
 
@@ -17,6 +19,7 @@ const Projects = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const {
     projectCategories,
     contractors,
@@ -74,6 +77,47 @@ const Projects = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showContractorSelector]);
+
+  // Load saved filter year from Supabase
+  useEffect(() => {
+    if (user?.id) {
+      const loadFilterYear = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('project_filter_year')
+            .eq('id', user.id)
+            .single();
+
+          if (error && error.code !== 'PGRST116') { // Ignore "Row not found" error implies default 'all'
+            console.error('Error loading filter year:', error);
+          }
+
+          if (data && data.project_filter_year) {
+            setFilterYear(data.project_filter_year);
+          }
+        } catch (err) {
+          console.error("Unexpected error loading filter year", err);
+        }
+      };
+      loadFilterYear();
+    }
+  }, [user]);
+
+  const handleSetFilterYear = async (year) => {
+    setFilterYear(year);
+    setShowYearSelector(false);
+
+    if (user?.id) {
+      try {
+        await supabase
+          .from('profiles')
+          .upsert({ id: user.id, project_filter_year: year });
+      } catch (err) {
+        console.error("Error saving filter year preference:", err);
+      }
+    }
+  };
 
 
 
@@ -562,7 +606,7 @@ const Projects = () => {
                           <div className="absolute top-full left-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-30 overflow-hidden animate-slide-in-top p-1 no-gradient">
                             <div className="space-y-0.5">
                               <button
-                                onClick={() => { setFilterYear('all'); setShowYearSelector(false); }}
+                                onClick={() => handleSetFilterYear('all')}
                                 className={`w-full text-left px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterYear === 'all' ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                               >
                                 {t('Whenever')}
@@ -576,7 +620,7 @@ const Projects = () => {
                                 return years.map(year => (
                                   <button
                                     key={year}
-                                    onClick={() => { setFilterYear(year.toString()); setShowYearSelector(false); }}
+                                    onClick={() => handleSetFilterYear(year.toString())}
                                     className={`w-full text-left px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterYear === year.toString() ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                                   >
                                     {year}
