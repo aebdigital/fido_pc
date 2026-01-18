@@ -1,4 +1,6 @@
 .App {
   height: 100vh;
+  /* Fallback */
+  height: 100dvh;
   overflow: hidden;
 }
