@@ -13,7 +13,11 @@ import { useLanguage } from '../context/LanguageContext';
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
 
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
 const Projects = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -52,6 +56,45 @@ const Projects = () => {
 
   const [showContractorSelector, setShowContractorSelector] = useState(false);
   const [filterYear, setFilterYear] = useState('all'); // 'all' or specific year string
+
+  // Load saved filter year from Supabase
+  useEffect(() => {
+    const loadFilterYear = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('project_filter_year')
+          .eq('id', user.id)
+          .single();
+
+        if (data && data.project_filter_year) {
+          setFilterYear(data.project_filter_year);
+        }
+      } catch (error) {
+        console.error('Error loading filter year:', error);
+      }
+    };
+
+    loadFilterYear();
+  }, [user?.id]);
+
+  const handleYearChange = async (year) => {
+    setFilterYear(year);
+    setShowYearSelector(false);
+
+    if (user?.id) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ project_filter_year: year })
+          .eq('id', user.id);
+      } catch (error) {
+        console.error('Error saving filter year:', error);
+      }
+    }
+  };
   const [showYearSelector, setShowYearSelector] = useState(false);
 
   // Ref for dropdown (used in header)
@@ -562,7 +605,7 @@ const Projects = () => {
                           <div className="absolute top-full left-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-30 overflow-hidden animate-slide-in-top p-1 no-gradient">
                             <div className="space-y-0.5">
                               <button
-                                onClick={() => { setFilterYear('all'); setShowYearSelector(false); }}
+                                onClick={() => handleYearChange('all')}
                                 className={`w-full text-left px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterYear === 'all' ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                               >
                                 {t('Whenever')}
@@ -576,7 +619,7 @@ const Projects = () => {
                                 return years.map(year => (
                                   <button
                                     key={year}
-                                    onClick={() => { setFilterYear(year.toString()); setShowYearSelector(false); }}
+                                    onClick={() => handleYearChange(year.toString())}
                                     className={`w-full text-left px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterYear === year.toString() ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                                   >
                                     {year}
