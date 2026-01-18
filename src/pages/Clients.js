@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Search, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { User, Search, ChevronRight, Plus, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
