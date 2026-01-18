@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import { registerActiveInput, unregisterActiveInput } from './MathKeyboardToolbar';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 const evaluateExpression = (str) => {
   try {
@@ -125,16 +125,14 @@ const NumberInput = ({
   const handleInputBlur = () => {
     setIsFocused(false);
     // Unregister from global keyboard toolbar
-    unregisterActiveInput(inputRef);
+    // unregisterActiveInput(inputRef);
     processAndSubmit();
   };
 
   const handleInputFocus = () => {
     setIsFocused(true);
-    // Only register with math toolbar on touch devices (no hardware keyboard)
-    const isTouch = isTouchDevice();
 
-    // Always move cursor to end of text so user can see what they're typing
+    // Always move cursor to the end of text so user can see what they're typing
     if (inputRef.current) {
       setTimeout(() => {
         if (inputRef.current) {
@@ -142,40 +140,6 @@ const NumberInput = ({
           inputRef.current.setSelectionRange(len, len);
         }
       }, 0);
-    }
-
-    // Register with global keyboard toolbar for touch devices
-    if (isTouch) {
-      registerActiveInput(inputRef, {
-        addSymbol: (symbol) => {
-          if (inputRef.current) {
-            const start = inputRef.current.selectionStart;
-            const end = inputRef.current.selectionEnd;
-            const text = internalValue;
-            const before = text.substring(0, start);
-            const after = text.substring(end);
-            const newValue = before + symbol + after;
-            setInternalValue(newValue);
-
-            // Reset cursor position after state update
-            setTimeout(() => {
-              if (inputRef.current) {
-                inputRef.current.selectionStart = inputRef.current.selectionEnd = start + symbol.length;
-                inputRef.current.focus();
-              }
-            }, 0);
-          }
-        },
-        done: () => {
-          processAndSubmit();
-          if (inputRef.current) {
-            inputRef.current.blur();
-          }
-        },
-        evaluate: () => {
-          processAndSubmit();
-        }
-      });
     }
   };
 

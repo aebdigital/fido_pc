@@ -12,7 +12,7 @@ import Clients from './pages/Clients';
 import Settings from './pages/Settings';
 import ProjectDetail from './pages/ProjectDetail';
 import Login from './components/Login';
-import MathKeyboardToolbar from './components/MathKeyboardToolbar';
+
 import './App.css';
 
 function AppContent() {
@@ -21,9 +21,8 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${
-        darkMode ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'
+        }`}>
         <div className={`text-xl ${darkMode ? 'text-white' : 'text-gray-900'}`}>
           Loading...
         </div>
@@ -50,8 +49,7 @@ function AppContent() {
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </Layout>
-            {/* iOS-style math keyboard toolbar - sits above virtual keyboard on touch devices */}
-            <MathKeyboardToolbar />
+
           </div>
         </Router>
       </NavigationBlockerProvider>
