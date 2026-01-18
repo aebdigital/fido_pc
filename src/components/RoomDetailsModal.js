@@ -711,17 +711,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
 
           {/* Content */}
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            {/* Main Content Area - Scrollable */}
+            {/* Scrollable Content */}
             <div
               ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto p-4 lg:p-6 custom-scrollbar"
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#9CA3AF #F3F4F6',
-              }}
+              className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 space-y-6 lg:space-y-8 overscroll-y-contain"
             >
-              <div className="space-y-3 lg:space-y-2">
-                {/* Work section */}
+              {/* Work Section */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 lg:p-6 pb-20 sm:pb-6">
                 <div className="flex items-center gap-3 pb-2">
                   <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                   <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h3>
