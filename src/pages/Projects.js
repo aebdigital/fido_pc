@@ -11,6 +11,7 @@ import ProjectDetailView from '../components/ProjectDetailView';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const Projects = () => {
   const location = useLocation();
@@ -45,6 +46,7 @@ const Projects = () => {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [projectDeleteMode, setProjectDeleteMode] = useState(false);
+  const [projectToArchive, setProjectToArchive] = useState(null);
   const [isClosingModal, setIsClosingModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
 
@@ -246,11 +248,28 @@ const Projects = () => {
 
 
 
+  const handleArchiveProject = (projectId) => {
+    // Find project to get its name for confirmation
+    const project = activeProjects.find(p => p.id === projectId);
+
+    if (project) {
+      setProjectToArchive(project);
+    }
+  };
+
+  const confirmArchiveProject = () => {
+    if (projectToArchive) {
+      archiveProject(projectToArchive.category, projectToArchive.id);
+      setProjectToArchive(null);
+      // Exit delete mode after action
+      setProjectDeleteMode(false);
+    }
+  };
+
   const handleCategorySelect = (categoryId) => {
     setActiveCategory(categoryId);
     setSelectedProject(null);
     setCurrentView('projects');
-    setFilterYear('all'); // Reset filter when changing category
   };
 
   const handleProjectSelect = async (project) => {
@@ -279,15 +298,7 @@ const Projects = () => {
     setProjectDeleteMode(!projectDeleteMode);
   };
 
-  const handleArchiveProject = (projectId) => {
-    archiveProject(activeCategory, projectId);
 
-    // If we're currently viewing the archived project, go back to project list
-    if (selectedProject && selectedProject.id === projectId) {
-      setSelectedProject(null);
-      setCurrentView('projects');
-    }
-  };
 
 
 
@@ -734,7 +745,20 @@ const Projects = () => {
             />
           )
         }
-      </div >
+        {/* Archive Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={!!projectToArchive}
+          onClose={() => setProjectToArchive(null)}
+          onConfirm={confirmArchiveProject}
+          title={t('Archive project {name}?').replace('{name}', projectToArchive?.name || '')}
+          message={t('Archiving this project will not result in data loss. You can find this project in the \'Archive\' tab in the app settings.')}
+          confirmLabel="ArchiveProjectAction"
+          cancelLabel="Cancel"
+          confirmButtonClass="bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 text-white"
+          icon={<Archive className="w-6 h-6 text-amber-500" />}
+        />
+      </div>
+
     </>
   );
 };

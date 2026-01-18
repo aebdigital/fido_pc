@@ -95,7 +95,10 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     if (isOpen && project && projectBreakdown) {
       if (editMode && existingInvoice?.invoiceItems) {
         // Load existing invoice items
-        setInvoiceItems(existingInvoice.invoiceItems);
+        setInvoiceItems(existingInvoice.invoiceItems.map(item => ({
+          ...item,
+          unit: unitToDisplaySymbol(item.unit)
+        })));
       } else {
         // Create invoice items from project breakdown
         const items = [];
@@ -462,9 +465,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {editMode ? t('Edit Invoice') : t('Invoice Builder')}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {project?.number || ''}
-                </p>
+
               </div>
             </div>
             <button

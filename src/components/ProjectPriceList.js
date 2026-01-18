@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Hammer, Package, Menu, Info, RefreshCw, Wrench, ChevronDown, ChevronUp, Loader2, Check, X } from 'lucide-react';
+import { Hammer, Package, Menu, Info, RefreshCw, RefreshCcw, Wrench, ChevronDown, ChevronUp, Loader2, Check, X } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
+import ConfirmationModal from './ConfirmationModal';
 
 const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const { generalPriceList } = useAppData();
@@ -15,6 +16,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
     installations: true,
     others: true
   });
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const lastSavedData = useRef(null);
   const onSaveRef = useRef(onSave);
@@ -180,6 +182,36 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
     }));
   };
 
+
+  const handleResetAll = () => {
+    if (!generalPriceList) return;
+
+    // Reset to general price list
+    let initialPrices = JSON.parse(JSON.stringify(generalPriceList)); // Deep clone
+
+    // Initialize with correct structure and flags
+    Object.keys(initialPrices).forEach(category => {
+      if (!Array.isArray(initialPrices[category])) return;
+
+      initialPrices[category] = initialPrices[category].map((item, index) => {
+        // Normalize names for old projects to new localized constants
+        let normalizedName = item.name;
+        if (item.name === 'Skirting') normalizedName = 'Lištovanie';
+        if (item.name === 'Skirting board') normalizedName = 'Soklové lišty';
+
+        return {
+          ...item,
+          name: normalizedName,
+          originalPrice: item.price, // Since it's reset, current price IS original
+          isOverridden: false
+        };
+      });
+    });
+
+    setProjectPriceData(initialPrices);
+    setShowResetConfirm(false);
+  };
+
   const PriceCard = ({ item, category, itemIndex }) => (
     <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
       <div className="flex justify-between items-start gap-2">
@@ -260,6 +292,13 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-2xl">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h2>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+              title={t('Update prices from general price list?')}
+            >
+              <RefreshCcw className="w-5 h-5 lg:w-6 lg:h-6" />
+            </button>
             <div
               className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-colors ${saveStatus === 'saved'
                 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
@@ -289,8 +328,8 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         </div>
 
         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <Info className="w-4 h-4" />
-          <span className="text-sm">{t('Override prices for this project only. Original prices are preserved in general settings.')}</span>
+          <Info className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm">{t('Changing the price list will overwrite the prices in this project only')}</span>
         </div>
 
         {/* Content */}
@@ -386,6 +425,16 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={handleResetAll}
+        title="Update prices from general price list?"
+        message="By updating the prices, you will replace all existing prices with those from the general price list. This action is irreversible."
+        confirmLabel="Update"
+        icon="warning"
+      />
     </div>
   );
 };

@@ -35,6 +35,7 @@ import InvoiceCreationModal from './InvoiceCreationModal';
 import InvoiceDetailModal from './InvoiceDetailModal';
 import PDFPreviewModal from './PDFPreviewModal';
 import ClientForm from './ClientForm';
+import ConfirmationModal from './ConfirmationModal';
 import PaywallModal from './PaywallModal';
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
@@ -97,6 +98,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [editingProjectName, setEditingProjectName] = useState('');
   const [isEditingProjectNotes, setIsEditingProjectNotes] = useState(false);
   const [editingProjectNotes, setEditingProjectNotes] = useState('');
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const [showContractorWarning, setShowContractorWarning] = useState(false);
   const [showEditClientModal, setShowEditClientModal] = useState(false);
   const [showInvoiceCreationModal, setShowInvoiceCreationModal] = useState(false);
@@ -116,6 +118,12 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
   const [photoDeleteMode, setPhotoDeleteMode] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
+  const [showArchiveConfirmation, setShowArchiveConfirmation] = useState(false);
+
+  // Touch handling state
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const [currentTranslate, setCurrentTranslate] = useState(0);
 
   // Receipt state
   const [receipts, setReceipts] = useState([]);
@@ -292,8 +300,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     }
 
     // Show loading state
-    const originalLoadingState = isLoadingDetails;
-    setIsLoadingDetails(true);
+    setIsDuplicating(true);
 
     try {
       // 1. Create the new project structure (Basic info)
@@ -425,7 +432,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       console.error('Error duplicating project:', error);
       alert(t('Failed to duplicate project.'));
     } finally {
-      setIsLoadingDetails(originalLoadingState);
+      setIsDuplicating(false);
     }
   };
 
@@ -600,6 +607,49 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       console.error('Error loading receipts:', error);
     }
     setIsLoadingReceipts(false);
+  };
+
+  // Touch Handlers for Lightbox
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setCurrentTranslate(0);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+    if (touchStart) {
+      const currentTouch = e.targetTouches[0].clientX;
+      const diff = currentTouch - touchStart;
+      setCurrentTranslate(diff);
+    }
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && selectedPhotoIndex < projectPhotos.length - 1) {
+      // Swipe Left -> Next Photo
+      setLightboxDirection(1);
+      setSelectedPhotoIndex(prev => prev + 1);
+    } else if (isRightSwipe && selectedPhotoIndex > 0) {
+      // Swipe Right -> Prev Photo
+      setLightboxDirection(-1);
+      setSelectedPhotoIndex(prev => prev - 1);
+    } else {
+      // Snap back if swipe wasn't strong enough or at boundaries
+      // (Optional: Implement snap back animation if desired, but state reset handles it)
+    }
+
+    setTouchStart(null);
+    setTouchEnd(null);
+    setCurrentTranslate(0);
   };
 
   const handleReceiptUpload = async (e) => {
@@ -1300,20 +1350,27 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <>
                   <button
                     onClick={handleDuplicateProject}
-                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    disabled={isDuplicating}
+                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Copy className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
+                    {isDuplicating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm sm:text-lg">{t('Duplicating...')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
+                      </>
+                    )}
                   </button>
                   <button
-                    onClick={() => {
-                      archiveProject(project.category, project.id);
-                      onBack();
-                    }}
+                    onClick={() => setShowArchiveConfirmation(true)}
                     className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Archive className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm sm:text-lg">{t('Archive')}</span>
+                    <span className="text-sm sm:text-lg">{t('ArchiveProjectAction')}</span>
                   </button>
                 </>
               )}
@@ -2031,20 +2088,26 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               }`}
             onClick={(e) => {
               e.stopPropagation();
-              // Click on image to go to next photo (looping to start if at end)
-              setLightboxDirection(1);
-              setSelectedPhotoIndex(prev => (prev < projectPhotos.length - 1 ? prev + 1 : 0));
+              // Keep click for next photo for desktop users, but touch users will swipe
+            }}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            style={{
+              transform: currentTranslate ? `translateX(${currentTranslate}px)` : 'none',
+              transition: currentTranslate ? 'none' : 'transform 0.3s ease-out'
             }}
           >
             <img
               key={selectedPhotoIndex}
+              draggable={false} // Prevent native drag
               src={projectPhotos[selectedPhotoIndex]?.url}
               alt={projectPhotos[selectedPhotoIndex]?.name || "Project Photo"}
-              className={`max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl ${lightboxDirection === -1
+              className={`max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl select-none ${!currentTranslate && (lightboxDirection === -1
                 ? 'animate-slide-from-left'
                 : lightboxDirection === 1
                   ? 'animate-slide-from-right'
-                  : 'animate-fadeSlideIn'
+                  : 'animate-fadeSlideIn')
                 }`}
             />
           </div>
@@ -2069,6 +2132,21 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {/* Paywall Modal with Stripe integration */}
       <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
+
+      {/* Archive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showArchiveConfirmation}
+        onClose={() => setShowArchiveConfirmation(false)}
+        onConfirm={() => {
+          archiveProject(project.category, project.id);
+          onBack();
+        }}
+        title={t('Archive project {name}?').replace('{name}', project.name)}
+        message="Archiving this project will not result in data loss. You can find this project in the 'Archive' tab in the app settings."
+        confirmLabel="ArchiveProjectAction"
+        cancelLabel="Cancel"
+        icon="info"
+      />
     </div>
   );
 };

@@ -9,6 +9,7 @@ import {
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import ProjectDetailView from '../components/ProjectDetailView';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const Archive = ({ onBack }) => {
   const { t } = useLanguage();
@@ -25,6 +26,7 @@ const Archive = ({ onBack }) => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [deletingProjectId, setDeletingProjectId] = useState(null);
   const [unarchivingProjectId, setUnarchivingProjectId] = useState(null);
+  const [confirmationModal, setConfirmationModal] = useState({ isOpen: false, type: null, projectId: null });
   const [archiveRetentionDays, setArchiveRetentionDays] = useState(priceOfferSettings?.archiveRetentionDays || 30);
   const [isSaving, setIsSaving] = useState(false);
   const archiveDebounceRef = useRef(null);
@@ -58,22 +60,34 @@ const Archive = ({ onBack }) => {
 
 
 
-  const handleUnarchiveProject = async (projectId, e) => {
+
+
+  const handleUnarchiveClick = (projectId, e) => {
     e.stopPropagation();
+    setConfirmationModal({ isOpen: true, type: 'unarchive', projectId });
+  };
+
+  const confirmUnarchive = async () => {
+    const projectId = confirmationModal.projectId;
     setUnarchivingProjectId(projectId);
     try {
       await unarchiveProject(projectId);
-      // If the unarchived project was selected, go back to list
       if (selectedProject?.id === projectId) {
         setSelectedProject(null);
       }
     } finally {
       setUnarchivingProjectId(null);
+      setConfirmationModal({ isOpen: false, type: null, projectId: null });
     }
   };
 
-  const handleDeleteProject = async (projectId, e) => {
+  const handleDeleteClick = (projectId, e) => {
     e.stopPropagation();
+    setConfirmationModal({ isOpen: true, type: 'delete', projectId });
+  };
+
+  const confirmDelete = async () => {
+    const projectId = confirmationModal.projectId;
     setDeletingProjectId(projectId);
     try {
       await deleteArchivedProject(projectId);
@@ -82,6 +96,7 @@ const Archive = ({ onBack }) => {
       }
     } finally {
       setDeletingProjectId(null);
+      setConfirmationModal({ isOpen: false, type: null, projectId: null });
     }
   };
 
@@ -209,7 +224,7 @@ const Archive = ({ onBack }) => {
 
                 <div className="flex gap-2">
                   <button
-                    onClick={(e) => handleUnarchiveProject(project.id, e)}
+                    onClick={(e) => handleUnarchiveClick(project.id, e)}
                     disabled={unarchivingProjectId === project.id || deletingProjectId === project.id}
                     className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-3 transition-all duration-300"
                     title={t('Unarchive')}
@@ -221,7 +236,7 @@ const Archive = ({ onBack }) => {
                     )}
                   </button>
                   <button
-                    onClick={(e) => handleDeleteProject(project.id, e)}
+                    onClick={(e) => handleDeleteClick(project.id, e)}
                     disabled={deletingProjectId === project.id || unarchivingProjectId === project.id}
                     className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-3 transition-all duration-300"
                     title={t('Delete Forever')}
@@ -238,7 +253,22 @@ const Archive = ({ onBack }) => {
           ))}
         </div>
       )}
-    </div>
+
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ isOpen: false, type: null, projectId: null })}
+        onConfirm={confirmationModal.type === 'delete' ? confirmDelete : confirmUnarchive}
+        title={confirmationModal.type === 'delete' ? "Delete project" : "Unarchive project"}
+        message={confirmationModal.type === 'delete'
+          ? "Permanently deleting this project will result in the loss of all data. This change is irreversible."
+          : "This project will be activated and can be found in its specified category."
+        }
+        confirmLabel={confirmationModal.type === 'delete' ? "Delete" : "Unarchive"}
+        isDestructive={confirmationModal.type === 'delete'}
+        icon={confirmationModal.type === 'delete' ? 'warning' : 'info'}
+      />
+    </div >
   );
 };
 

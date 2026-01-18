@@ -186,16 +186,16 @@ const NumberInput = ({
   };
 
   const isSmall = size === "small";
-  const inputWidth = isSmall ? "w-24" : "w-32";
+  const inputWidth = isSmall ? "w-full sm:w-24" : "w-full sm:w-32";
   const paddingRight = isSmall ? "pr-10" : "pr-14";
   const fontSize = "text-base"; // Use text-base (16px) to prevent iOS auto-zoom
   const borderRadius = isSmall ? "rounded" : "rounded-xl";
 
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block w-full sm:w-auto">
       {/* Math Toolbar is now handled by the global MathKeyboardToolbar component */}
 
-      <div className={`relative inline-flex overflow-hidden ${borderRadius} ${className}`}>
+      <div className={`relative flex w-full sm:inline-flex sm:w-auto overflow-hidden ${borderRadius} ${className}`}>
         <input
           ref={inputRef}
           type="text"

@@ -210,7 +210,8 @@ export const translations = {
     "Clients": "Klienti",
     "Settings": "Nastavenia",
     "Contact": "Kontakt",
-    "Archive": "Archivovať",
+    "Archive": "Archív", // Noun (Page title, Settings)
+    "ArchiveProjectAction": "Archivovať", // Verb (Button action)
     "No Archived Projects": "Žiadne archivované projekty",
     "Archived projects will appear here": "Archivované projekty sa zobrazia tu",
     "Archived on": "Archivované",
@@ -387,6 +388,11 @@ export const translations = {
     "Others": "Ostatné",
     "rental per day": "prenájom na deň",
     "Custom work and material": "Vlastná práca a materiál",
+    'Custom work': 'Vlastná práca',
+    'Custom material': 'Vlastný materiál',
+    'Custom Work': 'Vlastná práca', // Fallback for case sensitivity
+    'Custom Material': 'Vlastný materiál', // Fallback for case sensitivity
+    'Journey': 'Cesta',
 
     // ========== MEASUREMENTS & SPECIFICATIONS ==========
     "Number of outlets": "Počet vývodov",
@@ -458,6 +464,7 @@ export const translations = {
     "Select Client": "Vybrať klienta",
     "last change": "posledná zmena",
     "Duplicate": "Duplikovať",
+    "Duplicating...": "Duplikujem...",
     "History": "História",
     "Preview": "Náhľad",
     "Send": "Odoslať",
@@ -978,8 +985,24 @@ export const translations = {
     // iOS-compatible invoice statuses (neuter form for general use)
     "unpaid": "Neuhradené",
     "Unpaid": "Neuhradené",
+    "Paid": "Uhradené",
     "paid": "Uhradené",
-    "afterMaturity": "Po splatnosti"
+    "afterMaturity": "Po splatnosti",
+
+    // Price List Sync
+    "Update prices from general price list?": "Aktualizovať ceny z hlavného cenníka?",
+    "By updating the prices, you will replace all existing prices with those from the general price list. This action is irreversible.": "Aktualizáciou cien nahradíte všetky existujúce ceny cenami z hlavného cenníka. Táto akcia je nevratná.",
+    "Update": "Aktualizovať",
+    "Changing the price list will overwrite the prices in this project only": "Zmena cenníka prepíše ceny v tomto projekte",
+
+    // Archive
+    "Delete project": "Vymazať projekt",
+    "Permanently deleting this project will result in the loss of all data. This change is irreversible.": "Trvalým vymazaním tohto projektu prídete o všetky dáta. Táto zmena je nevratná.",
+    "Unarchive project": "Obnoviť projekt",
+    "This project will be activated and can be found in its specified category.": "Tento projekt bude aktivovaný a nájdete ho vo zvolenej kategórii.",
+    "Unarchive": "Obnoviť",
+    "Archive project {name}?": "Archivovať projekt {name}?",
+    "Archiving this project will not result in data loss. You can find this project in the 'Archive' tab in the app settings.": "Archiváciou tohto projektu nestratíte žiadne údaje. Tento projekt nájdete v záložke 'Archív' v nastaveniach aplikácie."
   }
 };
 

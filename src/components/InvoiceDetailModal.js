@@ -44,7 +44,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   if (!isOpen || !invoice) return null;
 
   const contractor = contractors.find(c => c.id === invoice.contractorId);
-  const project = findProjectById(invoice.projectId, invoice.categoryId);
+  const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
+  const project = projectResult?.project;
   const rawProjectBreakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
   const client = clients.find(c => c.id === invoice.clientId);
 
@@ -493,7 +494,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 {invoice.invoiceNumber}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {t('Price offer')} {invoice.invoiceNumber}
+                {t('Price offer')} {formatProjectNumber(project) || invoice.invoiceNumber}
               </p>
             </div>
             <button

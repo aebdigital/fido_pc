@@ -17,6 +17,12 @@ const getWorkItemNameByPropertyId = (propertyId) => {
   return property ? property.name : null;
 };
 
+// Helper to remove trailing zeros (12.00 -> 12, 12.10 -> 12.1)
+const formatSmartDecimal = (num, decimals = 2) => {
+  if (num === null || num === undefined) return '0';
+  return parseFloat(num.toFixed(decimals)).toString();
+};
+
 const RoomPriceSummary = ({ room, workData, priceList }) => {
   const { t } = useLanguage();
   const { calculateRoomPriceWithMaterials, formatPrice, generalPriceList } = useAppData();
@@ -117,10 +123,11 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                         // For plasterboarding items, build full translated name with subtitle and type
                         if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle) {
-                          // Ceiling doesn't have selectedType, partition/offset have Simple/Double/Triple
-                          workName = item.selectedType
-                            ? `${t(item.name)} ${t(item.subtitle)}, ${t(item.selectedType)}`
-                            : `${t(item.name)} ${t(item.subtitle)}`;
+                          // Ceiling doesn't have useable selectedType for display name, partition/offset have Simple/Double/Triple
+                          const shouldShowType = item.selectedType && item.propertyId !== 'plasterboarding_ceiling';
+                          workName = shouldShowType
+                            ? `${t(item.name)}, ${t(item.subtitle)}, ${t(item.selectedType).toLowerCase()}`
+                            : `${t(item.name)}, ${t(item.subtitle)}`;
                         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
                           // For sanitary installation, show the type name (e.g., "Rohový ventil") instead of generic name
                           // Use selectedType first, fall back to subtitle (both are set when loading from DB)
@@ -143,15 +150,15 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           (item.name && item.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
                           if (item.subtitle.includes('- prenájom')) {
                             const duration = parseFloat(fields[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
-                            workDescription = `${t(item.subtitle)} - ${duration.toFixed(0)} ${t('dní')}`;
+                            workDescription = `${t(item.subtitle)} - ${formatSmartDecimal(duration, 0)} ${t('dní')}`;
                           } else if (item.subtitle.includes('- montáž a demontáž')) {
                             const area = parseFloat(fields[WORK_ITEM_NAMES.LENGTH] || 0) * parseFloat(fields[WORK_ITEM_NAMES.HEIGHT] || 0);
-                            workDescription = `${t(item.subtitle)} - ${area.toFixed(1)}${t(UNIT_TYPES.METER_SQUARE)}`;
+                            workDescription = `${t(item.subtitle)} - ${formatSmartDecimal(area, 2)}${t(UNIT_TYPES.METER_SQUARE)}`;
                           } else {
-                            workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                            workDescription = `${workName} - ${formatSmartDecimal(quantity, 2)}${t(unit)}`;
                           }
                         } else {
-                          workDescription = `${workName} - ${quantity.toFixed(quantity < 10 ? 1 : 0)}${t(unit)}`;
+                          workDescription = `${workName} - ${formatSmartDecimal(quantity, 2)}${t(unit)}`;
                         }
 
                         nonGroupedItems.push({
@@ -182,7 +189,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           return (
                             <div key={`work-group-${index}`} className="flex justify-between items-center text-sm">
                               <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                {item.displayName} - {item.totalQuantity.toFixed(item.totalQuantity < 10 ? 1 : 0)}{t(item.unit)}
+                                {item.displayName} - {formatSmartDecimal(item.totalQuantity, 2)}{t(item.unit)}
                               </span>
                               <span className="font-medium text-gray-700 dark:text-gray-300">{formatPrice(item.totalCost)}</span>
                             </div>
@@ -207,7 +214,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
               {/* Add auxiliary work cost at bottom of work section */}
               {calculation.auxiliaryWorkCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">{t(WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK)} ({(calculation.auxiliaryWorkRate * 100).toFixed(0)}%)</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{t(WORK_ITEM_NAMES.AUXILIARY_AND_FINISHING_WORK)} ({formatSmartDecimal(calculation.auxiliaryWorkRate * 100, 2)}%)</span>
                   <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(calculation.auxiliaryWorkCost)}</span>
                 </div>
               )}
@@ -236,7 +243,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     if (!materialGroups[materialKey]) {
                       materialGroups[materialKey] = {
                         name: displayName, // Display name (will be overwritten by originalName for sorting)
-                        rawDisplayName: displayName, // Preserve raw display name for rendering
+                        // Only set rawDisplayName for custom items, otherwise we want to translate the name later
+                        rawDisplayName: (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_MATERIAL) ? displayName : null,
                         originalName: item.name, // For sorting lookup
                         subtitle: item.subtitle,
                         propertyId: item.propertyId,
@@ -292,7 +300,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                     return (
                       <div key={`material-group-${index}`} className="flex justify-between items-center text-sm">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">{materialDescription} - {group.totalQuantity.toFixed(group.totalQuantity < 10 ? 1 : 0)}{t(unit)}</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{materialDescription} - {formatSmartDecimal(group.totalQuantity, 2)}{t(unit)}</span>
                         <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(group.totalCost)}</span>
                       </div>
                     );
@@ -306,7 +314,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
               {/* Add auxiliary material cost at bottom of material section */}
               {calculation.auxiliaryMaterialCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">{t(MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL)} ({(calculation.auxiliaryMaterialRate * 100).toFixed(0)}%)</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{t(MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL)} ({formatSmartDecimal(calculation.auxiliaryMaterialRate * 100, 2)}%)</span>
                   <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(calculation.auxiliaryMaterialCost)}</span>
                 </div>
               )}
@@ -384,7 +392,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           const translatedUnit = t(item.unit);
                           const formattedQuantity = (item.unit === UNIT_TYPES.DAY || item.unit === UNIT_TYPES.DAYS)
                             ? `${Math.round(item.totalQuantity)} ${translatedUnit}`
-                            : `${item.totalQuantity.toFixed(item.totalQuantity < 10 ? 1 : 0)}${translatedUnit}`;
+                            : `${formatSmartDecimal(item.totalQuantity, 2)}${translatedUnit}`;
                           const workDescription = `${workName} - ${formattedQuantity}`;
 
                           return (
@@ -401,7 +409,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           const translatedUnit = t(unit);
                           const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
                             ? `${Math.round(quantity)} ${translatedUnit}`
-                            : `${quantity.toFixed(quantity < 10 ? 1 : 0)}${translatedUnit}`;
+                            : `${formatSmartDecimal(quantity, 2)}${translatedUnit}`;
                           const workDescription = `${workName} - ${formattedQuantity}`;
 
                           return (

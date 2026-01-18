@@ -72,6 +72,9 @@ export const formatProjectNumber = (project) => {
 
   const number = parseInt(project.number || 0);
 
+  // If number is 0, return empty string so consumers can use fallback
+  if (!number) return '';
+
   // If number is already in year+sequence format (legacy), return as is
   // Legacy format: 2026001, 2026002, etc. (7 digits starting with 202x)
   if (number >= 2020000 && number <= 2099999) {

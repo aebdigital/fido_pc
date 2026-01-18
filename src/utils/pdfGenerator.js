@@ -249,6 +249,12 @@ export const generateInvoicePDF = async ({
     return (amount || 0).toFixed(2).replace('.', ',') + ' €';
   };
 
+  // Helper to remove trailing zeros (12.00 -> 12, 12.10 -> 12.1)
+  const formatSmartDecimal = (num, decimals = 2) => {
+    if (num === null || num === undefined) return '0';
+    return parseFloat(num.toFixed(decimals)).toString();
+  };
+
   try {
     const doc = new jsPDF();
     registerInterFont(doc);
@@ -527,7 +533,7 @@ export const generateInvoicePDF = async ({
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(1)}${t(unit)}`),
+          sanitizeText(`${formatSmartDecimal(quantity, 2)}${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
@@ -551,6 +557,8 @@ export const generateInvoicePDF = async ({
         let unit = item.calculation?.unit || item.unit || '';
         // Strip €/ prefix from unit if present (e.g. "€/m2" -> "m2")
         if (unit.startsWith('€/')) unit = unit.substring(2);
+        // Convert iOS unit values to display symbols
+        unit = unitToDisplaySymbol(unit);
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = materialCost * itemVatRate;
         // Handle ceramic subtitle translation with correct gender based on propertyId
@@ -571,7 +579,7 @@ export const generateInvoicePDF = async ({
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${quantity.toFixed(2)}${t(unit)}`),
+          sanitizeText(`${formatSmartDecimal(quantity, 2)}${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
@@ -605,12 +613,15 @@ export const generateInvoicePDF = async ({
           let quantity = item.calculation?.quantity || 0;
           let unit = item.calculation?.unit || '';
           if (unit.startsWith('€/')) unit = unit.substring(2);
+          // Convert iOS unit values to display symbols
+          unit = unitToDisplaySymbol(unit);
+
           const values = item.fields || {};
 
           // Determine unit and quantity for scaffolding based on groupKey
           if (groupKey.includes('- prenájom') || groupKey.includes('rental') || groupKey.includes('prenájom')) {
             quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || quantity);
-            unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
+            unit = UNIT_TYPES.DAYS;
           } else {
             unit = UNIT_TYPES.METER_SQUARE;
           }
@@ -637,10 +648,11 @@ export const generateInvoicePDF = async ({
       Object.values(othersGroups).forEach(group => {
         const pricePerUnit = group.totalQuantity > 0 ? group.totalCost / group.totalQuantity : 0;
         const vatAmount = group.totalCost * group.vatRate;
+        // Group unit is already converted/set
         const translatedUnit = t(group.unit);
         const formattedQuantity = (group.unit === UNIT_TYPES.DAY || group.unit === UNIT_TYPES.DAYS)
           ? `${Math.round(group.totalQuantity)} ${translatedUnit}`
-          : `${group.totalQuantity.toFixed(2)}${translatedUnit}`;
+          : `${formatSmartDecimal(group.totalQuantity, 2)}${translatedUnit}`;
 
         tableData.push([
           sanitizeText(t(group.name) || ''),
@@ -660,6 +672,8 @@ export const generateInvoicePDF = async ({
         let unit = item.calculation?.unit || item.unit || '';
         // Strip €/ prefix from unit if present (e.g. "€/h" -> "h")
         if (unit.startsWith('€/')) unit = unit.substring(2);
+        // Convert iOS unit values to display symbols
+        unit = unitToDisplaySymbol(unit);
 
         const values = item.fields || {};
 
@@ -708,7 +722,7 @@ export const generateInvoicePDF = async ({
         const translatedUnit = t(unit);
         const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
           ? `${Math.round(quantity)} ${translatedUnit}`
-          : `${quantity.toFixed(2)}${translatedUnit}`;
+          : `${formatSmartDecimal(quantity, 2)}${translatedUnit}`;
 
         tableData.push([
           sanitizeText(displayName || ''),

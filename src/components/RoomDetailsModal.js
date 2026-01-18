@@ -133,7 +133,31 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
   const othersIds = [WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK, WORK_ITEM_PROPERTY_IDS.COMMUTE, WORK_ITEM_PROPERTY_IDS.RENTALS];
 
   const mainProperties = workProperties.filter(prop => !othersIds.includes(prop.id) && !prop.hidden);
-  const othersProperties = workProperties.filter(prop => othersIds.includes(prop.id) && !prop.hidden);
+
+  // Construct others list with split Custom Work/Material
+  const othersPropertiesSource = workProperties.filter(prop => othersIds.includes(prop.id) && !prop.hidden);
+  const othersProperties = [];
+
+  othersPropertiesSource.forEach(prop => {
+    if (prop.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+      // Add "Custom Work" virtual property
+      othersProperties.push({
+        ...prop,
+        id: WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK, // Real ID
+        name: 'Custom work', // Override name for display if needed, translation handles 'Custom work'
+        virtualType: 'Work' // Flag for UI logic
+      });
+      // Add "Custom Material" virtual property
+      othersProperties.push({
+        ...prop,
+        id: 'custom_work_material_only', // Virtual ID for adding
+        name: 'Custom material', // Distinct name
+        virtualType: 'Material'
+      });
+    } else {
+      othersProperties.push(prop);
+    }
+  });
 
   const handleAddWorkItem = (propertyId, e) => {
     if (e) {
@@ -159,23 +183,32 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     const property = workProperties.find(p => p.id === propertyId);
 
     // For custom_work, create item directly - user will select type from inline buttons
-    if (propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+    if (propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || propertyId === 'custom_work_material_only') {
+      const isMaterial = propertyId === 'custom_work_material_only';
+      const actualPropertyId = WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK; // Always save as custom_work in DB
+      const property = workProperties.find(p => p.id === actualPropertyId);
+
       const newItem = {
         id: Date.now(),
-        propertyId,
+        propertyId: actualPropertyId,
         // Store English keys - display code will translate
         name: property.name,
         subtitle: property.subtitle,
         fields: {},
         complementaryWorks: {},
-        selectedType: null,
+        selectedType: isMaterial ? 'Material' : 'Work',
         selectedUnit: null,
         doorWindowItems: { doors: [], windows: [] }
       };
       // Add new custom work items at the TOP of the list
       setWorkData([newItem, ...workData]);
       setNewlyAddedItems(prev => new Set([...prev, newItem.id]));
-      setExpandedItems(prev => ({ ...prev, [newItem.id]: true }));
+      // Expand both the new item (if it has sub-content) AND the property card itself
+      setExpandedItems(prev => ({
+        ...prev,
+        [newItem.id]: true,
+        [propertyId]: true // Ensure the card (Custom Work or Custom Material) is open
+      }));
       return;
     }
 
@@ -742,20 +775,25 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
                         {othersProperties.map(renderWorkPropertyCard)}
                       </div>
                       <div className="hidden lg:flex lg:gap-2 w-full">
-                        {/* Desktop: 3 column layout - even distribution for others */}
-                        {Array.from({ length: 3 }, (_, colIndex) => {
-                          const itemsPerColumn = Math.ceil(othersProperties.length / 3);
-                          const startIndex = colIndex * itemsPerColumn;
-                          const endIndex = Math.min(startIndex + itemsPerColumn, othersProperties.length);
-
-                          return (
-                            <div key={colIndex} className="flex-1 space-y-2">
-                              {othersProperties
-                                .slice(startIndex, endIndex)
-                                .map(renderWorkPropertyCard)}
-                            </div>
-                          );
-                        })}
+                        {/* Desktop: 3 column layout - Custom distribution for Others */}
+                        <div className="flex-1 space-y-2">
+                          {/* Col 1: Custom Work */}
+                          {othersProperties
+                            .filter(p => p.virtualType === 'Work' || p.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK)
+                            .map(renderWorkPropertyCard)}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          {/* Col 2: Custom Material */}
+                          {othersProperties
+                            .filter(p => p.id === 'custom_work_material_only' || p.virtualType === 'Material')
+                            .map(renderWorkPropertyCard)}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          {/* Col 3: The rest (Commute, Rentals) */}
+                          {othersProperties
+                            .filter(p => p.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && p.id !== 'custom_work_material_only')
+                            .map(renderWorkPropertyCard)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -764,7 +802,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
                 {/* Price Summary - Mobile inline version */}
                 <div className="lg:hidden mt-6">
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h3>
                     <RoomPriceSummary room={room} workData={workData} priceList={priceList} />
                   </div>
                 </div>

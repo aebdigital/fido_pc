@@ -131,6 +131,10 @@ const WorkPropertyCard = ({
     if (property.id === WORK_ITEM_PROPERTY_IDS.RENTALS) {
       return rentalPropertyIds.includes(item.propertyId);
     }
+    // Handle split Custom Work/Material: Both map to custom_work items
+    if (property.id === 'custom_work_material_only') {
+      return item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK;
+    }
     return item.propertyId === property.id;
   });
 
@@ -288,13 +292,13 @@ const WorkPropertyCard = ({
           {t(field.name)}
           {field.subtitle && ` - ${t(field.subtitle)}`}
         </span>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 w-full sm:w-auto">
           {isTextType ? (
             <input
               type="text"
               value={value || ''}
               onChange={(e) => onUpdateWorkItem(item.id, fieldKey, e.target.value, true)}
-              className="w-32 px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
+              className="w-full sm:w-32 px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
               placeholder={t(field.name)}
             />
           ) : (
@@ -494,21 +498,21 @@ const WorkPropertyCard = ({
 
               if (hasDoors && hasWindows) {
                 return (
-                  <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
                     {renderDoorWindowSection(existingItem, 'doors')}
                     {renderDoorWindowSection(existingItem, 'windows')}
                   </div>
                 );
               } else if (hasWindows) {
                 return (
-                  <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
                     {renderDoorWindowSection(existingItem, 'windows')}
                     <div className="hidden lg:block"></div>
                   </div>
                 );
               } else if (hasDoors) {
                 return (
-                  <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
                     {renderDoorWindowSection(existingItem, 'doors')}
                     <div className="hidden lg:block"></div>
                   </div>
@@ -584,7 +588,7 @@ const WorkPropertyCard = ({
 
   // 3. Special handling for properties with types (Simple/Double/Triple) - but NOT custom_work
   // custom_work is handled in the regular property card section below
-  if (property.types && property.id !== WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+  if (property.types && property.id !== WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && property.id !== 'custom_work_material_only') {
     const existingItems = workData.filter(item => item.propertyId === property.id);
 
     return (
@@ -677,21 +681,21 @@ const WorkPropertyCard = ({
 
               if (hasDoors && hasWindows) {
                 return (
-                  <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
                     {renderDoorWindowSection(item, 'doors')}
                     {renderDoorWindowSection(item, 'windows')}
                   </div>
                 );
               } else if (hasWindows) {
                 return (
-                  <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
                     {renderDoorWindowSection(item, 'windows')}
                     <div className="hidden lg:block"></div>
                   </div>
                 );
               } else if (hasDoors) {
                 return (
-                  <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
                     {renderDoorWindowSection(item, 'doors')}
                     <div className="hidden lg:block"></div>
                   </div>
@@ -882,92 +886,91 @@ const WorkPropertyCard = ({
   }
 
   // 5. Special handling for Custom Work (Grouped by Type)
-  if (property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-    const unclassifiedItems = existingItems.filter(item => !item.selectedUnit);
-    const workItems = existingItems.filter(item => item.selectedType === 'Work' && item.selectedUnit);
-    const materialItems = existingItems.filter(item => item.selectedType === 'Material' && item.selectedUnit);
+  // Treat custom_work_material_only as Custom Work for rendering purposes
+  if (property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || property.id === 'custom_work_material_only') {
+    const isVirtualMaterial = property.virtualType === 'Material' || property.id === 'custom_work_material_only';
+    const isVirtualWork = property.virtualType === 'Work';
 
-    const renderCustomItem = (item, index, totalCount) => (
-      <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
-        <div className="flex items-center justify-between">
-          {item.selectedUnit ? (
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <input
-                id={`custom-work-name-${item.id}`}
-                type="text"
-                defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
-                onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
-                className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 font-semibold"
-                placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
-              />
-            </div>
-          ) : (
-            <span className="font-semibold text-gray-900 dark:text-white text-lg">
-              {t(property.name)}
-            </span>
-          )}
-          <button
-            onClick={(e) => onRemoveWorkItem(item.id, e)}
-            className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
-          >
-            <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-          </button>
-        </div>
+    // If virtualType is set, filter accordingly. Otherwise show all (legacy/fallback).
+    const unclassifiedItems = existingItems.filter(item => !item.selectedUnit &&
+      (!property.virtualType || (isVirtualWork && item.selectedType !== 'Material') || (isVirtualMaterial && item.selectedType === 'Material'))
+    );
 
-        {/* Property type selection - only show if unit not yet selected */}
-        {property.types && !item.selectedUnit && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {property.types.map(type => (
+    // Explicitly filter for Work vs Material based on virtual property type
+    const workItems = existingItems.filter(item =>
+      item.selectedType === 'Work' && item.selectedUnit && (!property.virtualType || isVirtualWork)
+    );
+
+    const materialItems = existingItems.filter(item =>
+      item.selectedType === 'Material' && item.selectedUnit && (!property.virtualType || isVirtualMaterial)
+    );
+
+    const renderCustomItem = (item, index, totalCount) => {
+      const isConfiguring = !item.selectedUnit;
+
+      return (
+        <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
+          {/* Header Row: Only show if configured (unit selected) OR if we need to show the default header in a non-configuring state (fallback) */}
+          {!isConfiguring && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <input
+                  id={`custom-work-name-${item.id}`}
+                  type="text"
+                  defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
+                  onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
+                  className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 font-semibold"
+                  placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
+                />
+              </div>
               <button
-                key={type}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onUpdateItemState(item.id, { selectedType: type });
-                }}
-                className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex flex-col items-center justify-center gap-1 ${item.selectedType === type
-                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
+                onClick={(e) => onRemoveWorkItem(item.id, e)}
+                className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2"
               >
-                {type === 'Work' && <Hammer className="w-4 h-4" />}
-                {type === 'Material' && <Package className="w-4 h-4" />}
-                {t(type)}
+                <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
               </button>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Unit selector - only show after type is selected but before unit is selected */}
-        {property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
-            <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Select unit')}</span>
-            <div className="grid grid-cols-4 gap-2">
-              {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
+          {/* Configuration State: Unit Selector with Integrated Header/Trash */}
+          {property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Select unit')}</span>
                 <button
-                  key={unit}
-                  onClick={(e) => onUnitSelect(item.id, unit, e)}
-                  className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
                 >
-                  {unit}
+                  <Trash2 className="w-5 h-5" />
                 </button>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
+                  <button
+                    key={unit}
+                    onClick={(e) => onUnitSelect(item.id, unit, e)}
+                    className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors font-medium"
+                  >
+                    {unit}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Property fields - only show if unit is selected */}
+          {property.fields && item.selectedUnit && (
+            <div className="space-y-3 lg:space-y-2">
+              {property.fields.map(field => (
+                <div key={field.name}>
+                  {renderField(item, field)}
+                </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Property fields - only show if unit is selected */}
-        {property.fields && item.selectedUnit && (
-          <div className="space-y-3 lg:space-y-2">
-            {property.fields.map(field => (
-              <div key={field.name}>
-                {renderField(item, field)}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+          )}
+        </div>
+      );
+    };
 
     return (
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
@@ -981,7 +984,15 @@ const WorkPropertyCard = ({
           }}
         >
           <div className="flex-1">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
+            <div className="flex items-center gap-2">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
+              {(isVirtualWork || (!property.virtualType && property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK)) && (
+                <Hammer className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              )}
+              {isVirtualMaterial && (
+                <Package className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              )}
+            </div>
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
@@ -1003,24 +1014,16 @@ const WorkPropertyCard = ({
               </div>
             )}
 
-            {/* 2. Work Items */}
+            {/* 2. Work Items - No sub-header */}
             {workItems.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 px-1">
-                  <Hammer className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                  <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('Work')}</h5>
-                </div>
                 {workItems.map((item, index) => renderCustomItem(item, index))}
               </div>
             )}
 
-            {/* 3. Material Items */}
+            {/* 3. Material Items - No sub-header */}
             {materialItems.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 px-1">
-                  <Package className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                  <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('Material')}</h5>
-                </div>
                 {materialItems.map((item, index) => renderCustomItem(item, index))}
               </div>
             )}
@@ -1151,21 +1154,21 @@ const WorkPropertyCard = ({
 
             if (hasDoors && hasWindows) {
               return (
-                <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 lg:gap-3">
                   {renderDoorWindowSection(item, 'doors')}
                   {renderDoorWindowSection(item, 'windows')}
                 </div>
               );
             } else if (hasWindows) {
               return (
-                <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                <div className="grid grid-cols-2 gap-2 lg:gap-3">
                   {renderDoorWindowSection(item, 'windows')}
                   <div className="hidden lg:block"></div>
                 </div>
               );
             } else if (hasDoors) {
               return (
-                <div className="lg:grid lg:grid-cols-2 lg:gap-3">
+                <div className="grid grid-cols-2 gap-2 lg:gap-3">
                   {renderDoorWindowSection(item, 'doors')}
                   <div className="hidden lg:block"></div>
                 </div>
