@@ -86,7 +86,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen lg:h-[100dvh] bg-gray-50 dark:bg-gray-950 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       {/* Desktop Sidebar - Hidden on Mobile */}
       <div className="hidden lg:flex lg:flex-col lg:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
         {/* Logo */}
@@ -95,7 +95,7 @@ const Layout = ({ children }) => {
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="flex-1 px-4 py-6 overflow-y-auto">
+        <nav className="flex-1 px-4 py-6">
           <div className="space-y-2">
             {menuItems.map(item => (
               <a
@@ -154,39 +154,37 @@ const Layout = ({ children }) => {
       {/* Bottom Navigation - Mobile Only */}
       <div className={`lg:hidden fixed bottom-4 left-4 right-4 z-40 transition-transform duration-300 ${isNavVisible ? 'translate-y-0' : 'translate-y-[calc(100%+16px)]'
         }`}>
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-[2rem] border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-          <div className="flex justify-around">
-            {menuItems.map(item => {
-              const isActive = location.pathname === item.path;
-              return (
-                <a
-                  key={item.path}
-                  href={item.path}
-                  onClick={(e) => handleNavigation(item.path, e)}
-                  className={`mobile-nav-link flex flex-col items-center px-1.5 py-0.5 m-0.5 rounded-2xl transition-all duration-200 bg-transparent ${isActive
-                    ? '' // No background for active item
-                    : ''
+        <div className="mobile-bottom-bar">
+          {menuItems.map(item => {
+            const isActive = location.pathname === item.path;
+            return (
+              <a
+                key={item.path}
+                href={item.path}
+                onClick={(e) => handleNavigation(item.path, e)}
+                className={`mobile-nav-link flex flex-col items-center px-1.5 py-0.5 m-0.5 rounded-2xl transition-all duration-200 bg-transparent ${isActive
+                  ? '' // No background for active item
+                  : ''
+                  }`}
+              >
+                <item.icon
+                  className={`w-5 h-5 mb-0.5 ${ // Smaller icon size
+                    isActive
+                      ? 'text-blue-500 dark:text-blue-400' // Active icon color
+                      : 'text-gray-400'
+                    }`}
+                />
+                <span
+                  className={`text-xs font-semibold ${isActive
+                    ? 'text-blue-500 dark:text-blue-400' // Active text color
+                    : 'text-gray-400'
                     }`}
                 >
-                  <item.icon
-                    className={`w-5 h-5 mb-0.5 ${ // Smaller icon size
-                      isActive
-                        ? 'text-blue-500 dark:text-blue-400' // Active icon color
-                        : 'text-gray-400'
-                      }`}
-                  />
-                  <span
-                    className={`text-xs font-semibold ${isActive
-                      ? 'text-blue-500 dark:text-blue-400' // Active text color
-                      : 'text-gray-400'
-                      }`}
-                  >
-                    {item.name}
-                  </span>
-                </a>
-              );
-            })}
-          </div>
+                  {item.name}
+                </span>
+              </a>
+            );
+          })}
         </div>
       </div>
 
