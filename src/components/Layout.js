@@ -162,7 +162,7 @@ const Layout = ({ children }) => {
                 key={item.path}
                 href={item.path}
                 onClick={(e) => handleNavigation(item.path, e)}
-                className={`mobile-nav-link flex flex-col items-center px-1.5 py-0.5 m-0.5 rounded-2xl transition-all duration-200 bg-transparent ${isActive
+                className={`mobile-nav-link flex flex-col items-center px-1.5 py-0.5 m-0.5 rounded-2xl transition-all duration-200 bg-transparent no-gradient ${isActive
                   ? '' // No background for active item
                   : ''
                   }`}

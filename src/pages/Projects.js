@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const Projects = () => {
   const location = useLocation();
@@ -34,7 +35,9 @@ const Projects = () => {
     loadProjectDetails,
     getOrphanProjectCategories,
     hasOrphanProjects,
-    clients
+    clients,
+    projectFilterYear: filterYear,
+    updateProjectFilterYear
   } = useAppData();
 
   // Special state for viewing orphan projects (projects without contractor)
@@ -54,8 +57,11 @@ const Projects = () => {
   const [showContractorModal, setShowContractorModal] = useState(false);
 
   const [showContractorSelector, setShowContractorSelector] = useState(false);
-  const [filterYear, setFilterYear] = useState('all'); // 'all' or specific year string
+  // const [filterYear, setFilterYear] = useState('all'); // Moved to Context
   const [showYearSelector, setShowYearSelector] = useState(false);
+
+  // Lock scroll when modal is open
+  useScrollLock(showNewProjectModal || showContractorModal || !!projectToArchive);
 
   // Ref for dropdown (used in header)
   const dropdownRef = useRef(null);
@@ -78,46 +84,12 @@ const Projects = () => {
     };
   }, [showContractorSelector]);
 
-  // Load saved filter year from Supabase
-  useEffect(() => {
-    if (user?.id) {
-      const loadFilterYear = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('project_filter_year')
-            .eq('id', user.id)
-            .single();
+  // Filter year loading logic moved to AppDataContext
+  // const handleSetFilterYear... replaced below
 
-          if (error && error.code !== 'PGRST116') { // Ignore "Row not found" error implies default 'all'
-            console.error('Error loading filter year:', error);
-          }
-
-          if (data && data.project_filter_year) {
-            setFilterYear(data.project_filter_year);
-          }
-        } catch (err) {
-          console.error("Unexpected error loading filter year", err);
-        }
-      };
-      loadFilterYear();
-    }
-  }, [user]);
-
-  const handleSetFilterYear = async (year) => {
-    setFilterYear(year);
+  const handleSetFilterYear = (year) => {
+    updateProjectFilterYear(year);
     setShowYearSelector(false);
-
-    if (user?.id) {
-      try {
-        await supabase
-          .from('profiles')
-          .update({ project_filter_year: year })
-          .eq('id', user.id);
-      } catch (err) {
-        console.error("Error saving filter year preference:", err);
-      }
-    }
   };
 
 

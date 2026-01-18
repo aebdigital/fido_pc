@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import ClientForm from '../components/ClientForm';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const Clients = () => {
   const { t } = useLanguage();
@@ -13,6 +14,8 @@ const Clients = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteMode, setDeleteMode] = useState(false);
+
+  useScrollLock(showClientModal);
 
   const handleDeleteClient = (clientId) => {
     if (window.confirm(t('Are you sure you want to delete this client?'))) {

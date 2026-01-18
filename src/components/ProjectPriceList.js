@@ -4,10 +4,12 @@ import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
 import ConfirmationModal from './ConfirmationModal';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const { generalPriceList } = useAppData();
   const { t } = useLanguage();
+  useScrollLock(true);
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [expandedSections, setExpandedSections] = useState({

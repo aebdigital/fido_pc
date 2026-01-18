@@ -207,6 +207,7 @@ export const AppDataProvider = ({ children }) => {
       archiveRetentionDays: 30 // Default 30 days retention
     },
     activeContractorId: null, // Currently selected contractor
+    projectFilterYear: 'all', // Filter year for projects
     generalPriceList: {
       work: [
         { name: 'Preparatory and demolition works', price: 15, unit: '€/h' },
@@ -343,14 +344,17 @@ export const AppDataProvider = ({ children }) => {
 
     try {
       // Load all data from Supabase in parallel
-      const [contractors, clients, projects, invoices, allPriceLists] = await Promise.all([
+      const [contractors, clients, projects, invoices, allPriceLists, profileResult] = await Promise.all([
         api.contractors.getAll(),
         api.clients.getAll(null), // We'll filter by contractor later
         api.projects.getAll(null), // We'll filter by contractor later
         api.invoices.getAll(null), // We'll filter by contractor later
-        api.priceLists.getAll() // Get all price lists
+        api.invoices.getAll(null), // We'll filter by contractor later
+        api.priceLists.getAll(), // Get all price lists
+        supabase.from('profiles').select('project_filter_year').eq('id', user.id).single()
       ]);
 
+      const profileData = profileResult.data;
       console.log('[SUPABASE] Data loaded:', { contractors: contractors?.length, clients: clients?.length, projects: projects?.length, invoices: invoices?.length });
 
       // Transform contractors
@@ -524,6 +528,7 @@ export const AppDataProvider = ({ children }) => {
         invoices: transformedInvoices,
         priceOfferSettings,
         activeContractorId,
+        projectFilterYear: profileData?.project_filter_year || 'all',
         generalPriceList
       };
     } catch (error) {
@@ -927,6 +932,19 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
+
+
+  const updateProjectFilterYear = async (year) => {
+    setAppData(prev => ({ ...prev, projectFilterYear: year }));
+    if (user?.id) {
+      try {
+        await supabase.from('profiles').update({ project_filter_year: year }).eq('id', user.id);
+      } catch (err) {
+        console.error("Error saving filter year preference:", err);
+      }
+    }
+  };
+
   const contextValue = {
     // Data
     clients: appData.clients,
@@ -937,6 +955,7 @@ export const AppDataProvider = ({ children }) => {
     contractors: appData.contractors,
     priceOfferSettings: appData.priceOfferSettings,
     activeContractorId: appData.activeContractorId,
+    projectFilterYear: appData.projectFilterYear,
     invoices: appData.invoices,
 
     // Helper functions
@@ -997,6 +1016,7 @@ export const AppDataProvider = ({ children }) => {
     findProjectById: projectManager.findProjectById,
     findClientById: clientManager.findClientById,
     loadProjectDetails: projectManager.loadProjectDetails,
+    updateProjectFilterYear,
 
     // Price calculation functions
     calculateRoomPrice,

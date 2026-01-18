@@ -765,7 +765,7 @@ export const translations = {
     "In case of non-payment of the invoice will automatically claim over to a collections company...": "V prípade neuhradenia faktúry bude automaticky postúpená inkasnej spoločnosti...",
 
     // ========== INVOICE BUILDER (iOS-aligned) ==========
-    "Invoice Builder": "Tvorca faktúry",
+    "Invoice Builder": "Tvorba faktúry",
     "Summary": "Zhrnutie",
     "Invoice maturity": "Splatnosť faktúry",
     "Price per piece": "Cena za kus",
