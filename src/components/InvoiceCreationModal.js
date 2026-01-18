@@ -485,19 +485,19 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <div className="flex justify-between items-center">
                   <span className="text-base font-semibold text-gray-900 dark:text-white">{t('without VAT')}</span>
                   <span className="text-base font-semibold text-gray-900 dark:text-white">
-                    {calculateTotals.priceWithoutVat.toFixed(2)} €
+                    {calculateTotals.priceWithoutVat.toFixed(1)} €
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-base font-semibold text-gray-900 dark:text-white">{t('VAT')}</span>
                   <span className="text-base font-semibold text-gray-900 dark:text-white">
-                    {calculateTotals.cumulativeVat.toFixed(2)} €
+                    {calculateTotals.cumulativeVat.toFixed(1)} €
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
                   <span className="text-lg font-bold text-gray-900 dark:text-white">{t('Total Price')}</span>
                   <span className="text-lg font-bold text-gray-900 dark:text-white">
-                    {calculateTotals.totalPrice.toFixed(2)} €
+                    {calculateTotals.totalPrice.toFixed(1)} €
                   </span>
                 </div>
 

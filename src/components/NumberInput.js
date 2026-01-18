@@ -94,7 +94,7 @@ const NumberInput = ({
     const evaluatedValue = evaluateExpression(internalValue);
 
     if (evaluatedValue !== null) {
-      const roundedValue = Math.round(evaluatedValue * 100) / 100;
+      const roundedValue = Math.round(evaluatedValue * 10) / 10;
       const finalValue = Math.max(min, roundedValue);
       setInternalValue(finalValue.toString().replace('.', ','));
       onChange(finalValue);
@@ -102,7 +102,7 @@ const NumberInput = ({
       // Fallback to simple parse if expression evaluation failed
       const numericValue = parseFloat(internalValue.replace(',', '.'));
       if (!isNaN(numericValue)) {
-        const finalValue = Math.max(min, Math.round(numericValue * 100) / 100);
+        const finalValue = Math.max(min, Math.round(numericValue * 10) / 10);
         setInternalValue(finalValue.toString().replace('.', ','));
         onChange(finalValue);
       } else {
@@ -172,7 +172,7 @@ const NumberInput = ({
   const incrementValue = (step) => {
     const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
     const newValue = Math.max(min, currentValue + step);
-    const roundedValue = Math.round(newValue * 100) / 100;
+    const roundedValue = Math.round(newValue * 10) / 10;
     setInternalValue(roundedValue.toString().replace('.', ','));
     debouncedOnChange(roundedValue);
   };
@@ -180,7 +180,7 @@ const NumberInput = ({
   const decrementValue = (step) => {
     const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
     const newValue = Math.max(min, currentValue - step);
-    const roundedValue = Math.round(newValue * 100) / 100;
+    const roundedValue = Math.round(newValue * 10) / 10;
     setInternalValue(roundedValue.toString().replace('.', ','));
     debouncedOnChange(roundedValue);
   };

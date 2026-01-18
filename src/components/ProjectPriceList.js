@@ -228,15 +228,17 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <NumberInput
-            value={item.price}
-            onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
-            className={item.isOverridden
-              ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
-              : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
-            }
-            min={0}
-          />
+          <div className="w-28 sm:w-auto">
+            <NumberInput
+              value={item.price}
+              onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
+              className={item.isOverridden
+                ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
+                : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
+              }
+              min={0}
+            />
+          </div>
           <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
           {item.isOverridden && (
             <button
@@ -260,13 +262,15 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
               }
             </span>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <NumberInput
-                value={item.capacity.value}
-                onChange={(newValue) => handleCapacityChange(category, itemIndex, newValue)}
-                className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                min={0}
-                step={0.1}
-              />
+              <div className="w-28 sm:w-auto">
+                <NumberInput
+                  value={item.capacity.value}
+                  onChange={(newValue) => handleCapacityChange(category, itemIndex, newValue)}
+                  className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                  min={0}
+                  step={0.1}
+                />
+              </div>
               <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
             </div>
           </div>

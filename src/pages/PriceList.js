@@ -27,7 +27,10 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       // Deep clone the price list for local editing
       const clonedPriceList = {};
       Object.keys(generalPriceList).forEach(category => {
-        clonedPriceList[category] = generalPriceList[category].map(item => ({ ...item }));
+        clonedPriceList[category] = generalPriceList[category].map(item => ({
+          ...item,
+          price: item.price ? Math.round(item.price * 10) / 10 : 0
+        }));
       });
 
       // Only set if not already set or if explicitly needed (e.g. initial load)
@@ -146,7 +149,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       Object.keys(updatedPrices).forEach(category => {
         updatedPrices[category] = updatedPrices[category].map(item => ({
           ...item,
-          price: item.name === 'VAT' ? item.price : Math.round(item.price * multiplier * 100) / 100
+          price: item.name === 'VAT' ? item.price : Math.round(item.price * multiplier * 10) / 10
         }));
       });
       return updatedPrices;
@@ -216,15 +219,17 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <NumberInput
-            value={item.price}
-            onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
-            className={isItemModified(category, itemIndex)
-              ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
-              : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
-            }
-            min={0}
-          />
+          <div className="w-28 sm:w-auto">
+            <NumberInput
+              value={item.price}
+              onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
+              className={isItemModified(category, itemIndex)
+                ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
+                : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
+              }
+              min={0}
+            />
+          </div>
           <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
         </div>
       </div>
@@ -239,13 +244,15 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               }
             </span>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <NumberInput
-                value={item.capacity.value}
-                onChange={(newValue) => handleCapacityChange(category, itemIndex, newValue)}
-                className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                min={0}
-                step={0.1}
-              />
+              <div className="w-28 sm:w-auto">
+                <NumberInput
+                  value={item.capacity.value}
+                  onChange={(newValue) => handleCapacityChange(category, itemIndex, newValue)}
+                  className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                  min={0}
+                  step={0.1}
+                />
+              </div>
               <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
             </div>
           </div>

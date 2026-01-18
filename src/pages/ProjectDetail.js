@@ -8,15 +8,15 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const { t } = useLanguage();
-  const { 
-    contractors, 
+  const {
+    contractors,
     activeContractorId,
     loadProjectDetails,
     getProjectRooms,
     findProjectById,
     calculateRoomPriceWithMaterials
   } = useAppData();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [project, setProject] = useState(null);
 
@@ -43,7 +43,7 @@ const ProjectDetail = () => {
     'Living room', 'Kids room', 'Bedroom', 'Guests room',
     'Work room', 'Custom'
   ];
-  
+
   const rooms = getProjectRooms(id);
 
   if (isLoading) {
@@ -64,9 +64,8 @@ const ProjectDetail = () => {
       <div className="flex items-center gap-4 mb-8">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">{id}</span>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-            project.invoiceStatus === 'sent' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-          }`}>
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${project.invoiceStatus === 'sent' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+            }`}>
             {t(project.invoiceStatus === 'sent' ? 'sent' : 'not sent')}
           </span>
         </div>
@@ -99,7 +98,7 @@ const ProjectDetail = () => {
           </div>
           <div className="flex gap-2">
             <button className="p-2 text-gray-600 hover:text-gray-900">🗑️</button>
-            <button 
+            <button
               className="p-2 text-gray-600 hover:text-gray-900"
               onClick={() => setShowRoomSelector(!showRoomSelector)}
             >
@@ -136,26 +135,27 @@ const ProjectDetail = () => {
         {/* Existing Rooms */}
         <div className="space-y-3">
           {rooms.map((room) => {
-             const calc = calculateRoomPriceWithMaterials(room, project.priceListSnapshot);
-             const price = calc.workTotal + calc.materialTotal + calc.othersTotal;
-             
-             return (
-            <Link
-              key={room.id}
-              to={`/projects/${id}/room/${room.id}`}
-              className="bg-gray-100 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 transition-colors"
-            >
-              <div>
-                <div className="font-medium text-gray-900">{room.name}</div>
-                <div className="text-sm text-gray-600">{room.workItems?.filter(hasWorkItemInput).length || 0} {t('works')}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs text-gray-500 mb-1">{t('VAT not included')}</div>
-                <div className="font-semibold text-gray-900">€{price.toFixed(2)}</div>
-                <span className="text-gray-400 ml-2">›</span>
-              </div>
-            </Link>
-          )})}
+            const calc = calculateRoomPriceWithMaterials(room, project.priceListSnapshot);
+            const price = calc.workTotal + calc.materialTotal + calc.othersTotal;
+
+            return (
+              <Link
+                key={room.id}
+                to={`/projects/${id}/room/${room.id}`}
+                className="bg-gray-100 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 transition-colors"
+              >
+                <div>
+                  <div className="font-medium text-gray-900">{room.name}</div>
+                  <div className="text-sm text-gray-600">{room.workItems?.filter(hasWorkItemInput).length || 0} {t('works')}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-500 mb-1">{t('VAT not included')}</div>
+                  <div className="font-semibold text-gray-900">{price.toFixed(1)} €</div>
+                  <span className="text-gray-400 ml-2">›</span>
+                </div>
+              </Link>
+            )
+          })}
         </div>
       </div>
 

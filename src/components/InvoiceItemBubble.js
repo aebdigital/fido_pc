@@ -137,7 +137,7 @@ const InvoiceItemBubble = ({
 
   // Format currency
   const formatCurrency = (value) => {
-    return `${value.toFixed(2)} €`;
+    return `${value.toFixed(1)} €`;
   };
 
   return (
