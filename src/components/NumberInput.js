@@ -41,13 +41,13 @@ const NumberInput = ({
   ...props
 }) => {
   // Helper to format value according to props
-  const formatValue = (val) => {
+  const formatValue = useCallback((val) => {
     if (val === '' || val === null || val === undefined) return '';
     if (forceDecimal !== null && typeof val === 'number') {
       return val.toFixed(forceDecimal).replace('.', ',');
     }
     return val.toString().replace('.', ',');
-  };
+  }, [forceDecimal]);
 
   const [internalValue, setInternalValue] = useState(
     value !== undefined && value !== null && value !== '' ? formatValue(value) : ''
@@ -74,7 +74,7 @@ const NumberInput = ({
         value !== undefined && value !== null && value !== '' ? formatValue(value) : ''
       );
     }
-  }, [value, isFocused, forceDecimal]);
+  }, [value, isFocused, forceDecimal, formatValue]);
 
   // Cleanup debounce timeout on unmount
   useEffect(() => {
