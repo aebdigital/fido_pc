@@ -88,7 +88,7 @@ const Layout = ({ children }) => {
   return (
     <div className="flex h-screen lg:h-[100dvh] bg-gray-50 dark:bg-gray-950 overflow-hidden">
       {/* Desktop Sidebar - Hidden on Mobile */}
-      <div className="hidden lg:flex lg:flex-col lg:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
+      <div className="hidden lg:flex lg:flex-col lg:w-56 xl:w-64 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
         {/* Logo */}
         <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
           <img src={isDarkMode ? '/dark-logo.jpg' : logo} alt="Fido Logo" className="h-12 w-auto" />
@@ -143,7 +143,7 @@ const Layout = ({ children }) => {
 
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col lg:ml-0">
+      <div className="flex-1 flex flex-col lg:ml-0 min-w-0">
         <div className="flex-1 overflow-y-auto overflow-x-hidden lg:pt-0 pb-24 lg:pb-0 bg-white dark:bg-gray-900">
           <div className="pl-4 pr-4 pt-4 pb-4 lg:p-6">
             {children}

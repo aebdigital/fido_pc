@@ -2061,7 +2061,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 setLightboxDirection(-1);
                 setSelectedPhotoIndex(prev => prev - 1);
               }}
-              className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
             >
               <ChevronLeft className="w-8 h-8" />
             </button>
@@ -2075,7 +2075,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 setLightboxDirection(1);
                 setSelectedPhotoIndex(prev => prev + 1);
               }}
-              className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
             >
               <ChevronRight className="w-8 h-8" />
             </button>

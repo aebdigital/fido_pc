@@ -805,7 +805,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
             </div>
 
             {/* Price Summary Sidebar - Desktop only */}
-            <div className="hidden lg:flex lg:w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-col h-full">
+            <div className="hidden lg:flex lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-col h-full">
               <RoomPriceSummary room={room} workData={workData} priceList={priceList} />
             </div>
           </div>
