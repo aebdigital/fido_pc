@@ -25,7 +25,7 @@ import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { generatePriceOfferPDF } from '../utils/pdfGenerator';
 import { compressImage } from '../utils/imageCompression';
-import { hasWorkItemInput } from '../utils/priceCalculations';
+import { calculateWorksCount } from '../utils/priceCalculations';
 import { formatProjectNumber, PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS } from '../utils/dataTransformers';
 import { workProperties } from '../config/workProperties';
 import RoomDetailsModal from './RoomDetailsModal';
@@ -39,7 +39,7 @@ import ConfirmationModal from './ConfirmationModal';
 import PaywallModal from './PaywallModal';
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
-  const { t } = useLanguage();
+  const { t, tPlural } = useLanguage();
   const {
     clients,
     generalPriceList,
@@ -1094,7 +1094,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 </div>
               ) : (
                 <>
-                  {getProjectRooms(project.id).map(room => (
+                  {getProjectRooms(project.id).map(room => {
+                    const worksCount = calculateWorksCount(room, project.priceListSnapshot);
+                    return (
                     <div
                       key={room.id}
                       className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
@@ -1105,7 +1107,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     >
                       <div className={`transition-all duration-300 flex-1 min-w-0 ${deleteMode ? 'mr-4' : ''}`}>
                         <div className="font-semibold text-gray-900 dark:text-white text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
-                        <div className="text-base text-gray-600 dark:text-gray-400">{room.workItems?.filter(hasWorkItemInput).length || 0} {t('works')}</div>
+                        <div className="text-base text-gray-600 dark:text-gray-400">{worksCount} {tPlural(worksCount, 'work_singular', 'works', 'works_many')}</div>
                       </div>
 
                       {deleteMode ? (
@@ -1133,7 +1135,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                         </div>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
 
                   {getProjectRooms(project.id).length === 0 && (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">

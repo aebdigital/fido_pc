@@ -1848,3 +1848,18 @@ export const calculateRoomPrice = (room, priceList) => {
   const calculation = calculateRoomPriceWithMaterials(room, priceList);
   return calculation.total;
 };
+
+/**
+ * Calculate the number of work items for display (iOS-compatible)
+ * This counts price bill rows, excluding auxiliary work
+ * @param {Object} room - Room with workItems
+ * @param {Object} priceList - Price list for calculations
+ * @returns {number} Number of works to display
+ */
+export const calculateWorksCount = (room, priceList) => {
+  if (!room || !priceList) return 0;
+  const calculation = calculateRoomPriceWithMaterials(room, priceList);
+  const itemsCount = calculation.items?.length || 0;
+  // iOS subtracts 1 when there are multiple items to exclude auxiliary work
+  return itemsCount > 1 ? itemsCount - 1 : itemsCount;
+};

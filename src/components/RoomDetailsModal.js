@@ -7,6 +7,9 @@ import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 
+// Helper to generate UUID for new work items (prevents duplicate inserts on autosave)
+const generateWorkItemId = () => crypto.randomUUID();
+
 const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) => {
   useScrollLock(true);
   const { t } = useLanguage();
@@ -189,7 +192,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       const property = workProperties.find(p => p.id === actualPropertyId);
 
       const newItem = {
-        id: Date.now(),
+        id: generateWorkItemId(),
         propertyId: actualPropertyId,
         // Store English keys - display code will translate
         name: property.name,
@@ -218,7 +221,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       return;
     }
     const newItem = {
-      id: Date.now(),
+      id: generateWorkItemId(),
       propertyId,
       // Store English keys - display code will translate
       name: property.name,
@@ -246,7 +249,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     const defaultPrice = 0;
 
     const newItem = {
-      id: Date.now(),
+      id: generateWorkItemId(),
       propertyId: WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION,
       name: WORK_ITEM_NAMES.SANITARY_INSTALLATIONS,
       subtitle: sanitaryType,
@@ -274,7 +277,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     if (!property) return;
 
     const newItem = {
-      id: Date.now(),
+      id: generateWorkItemId(),
       propertyId: property.id,
       // Store just the base name - display code will build full name with subtitle and type
       name: property.name,
@@ -336,7 +339,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     }
 
     const newItem = {
-      id: Date.now(),
+      id: generateWorkItemId(),
       propertyId: specificPropertyId,
       name: rentalType,
       subtitle: 'no. 1',
@@ -387,8 +390,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
 
     saveScrollPosition();
 
+    const newId = generateWorkItemId();
     const newDoorWindow = {
-      id: Date.now(),
+      id: newId,
+      c_id: newId, // Ensure c_id is set for database sync
       width: 0,
       height: 0
     };
@@ -467,7 +472,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       e.stopPropagation();
     }
 
-    const newId = Date.now();
+    const newId = generateWorkItemId();
 
     setWorkData(items =>
       items.map(item => {

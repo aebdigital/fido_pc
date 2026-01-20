@@ -382,7 +382,30 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                   ];
 
                   // For others we might not have propertyIds, but we try sort by name
-                  const sortedOthersItems = sortItemsByMasterList(allOthersItems, activePriceList, 'others');
+                  const sortedOthersItems = sortItemsByMasterList(allOthersItems, activePriceList, 'others').sort((a, b) => {
+                    const aName = (a.name || '').toLowerCase() + (a.subtitle || '').toLowerCase();
+                    const bName = (b.name || '').toLowerCase() + (b.subtitle || '').toLowerCase();
+
+                    const isScaffolding = (name) => name.includes('scaffolding') || name.includes('lešenie');
+                    const isRental = (name) => name.includes('rental') || name.includes('prenájom');
+                    const isAssembly = (name) => name.includes('assembly') || name.includes('montáž');
+
+                    const aIsScaff = isScaffolding(aName);
+                    const bIsScaff = isScaffolding(bName);
+
+                    // Only sort if both are scaffolding
+                    if (aIsScaff && bIsScaff) {
+                      const aIsRental = isRental(aName);
+                      const bIsRental = isRental(bName);
+                      const aIsAssembly = isAssembly(aName);
+                      const bIsAssembly = isAssembly(bName);
+
+                      // Rental comes first
+                      if (aIsRental && bIsAssembly) return -1;
+                      if (aIsAssembly && bIsRental) return 1;
+                    }
+                    return 0;
+                  });
 
                   return (
                     <>

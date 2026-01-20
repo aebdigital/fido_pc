@@ -644,8 +644,21 @@ export const generateInvoicePDF = async ({
         }
       });
 
+      // Sort groups: Rental/Prenájom first, then Assembly/Montáž
+      const sortedGroups = Object.values(othersGroups).sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        const aIsRental = aName.includes('rental') || aName.includes('prenájom');
+        const bIsRental = bName.includes('rental') || bName.includes('prenájom');
+
+        // Rental comes first
+        if (aIsRental && !bIsRental) return -1;
+        if (!aIsRental && bIsRental) return 1;
+        return 0;
+      });
+
       // Print grouped scaffolding items
-      Object.values(othersGroups).forEach(group => {
+      sortedGroups.forEach(group => {
         const pricePerUnit = group.totalQuantity > 0 ? group.totalCost / group.totalQuantity : 0;
         const vatAmount = group.totalCost * group.vatRate;
         // Group unit is already converted/set

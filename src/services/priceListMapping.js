@@ -104,8 +104,8 @@ const INSTALLATIONS_COLUMN_MAPPING = {
 
 // Others category mapping
 const OTHERS_COLUMN_MAPPING = {
-  'others_0': 'others_scaffolding_assembly_and_disassembly_price', // Scaffolding assembly
-  'others_1': 'others_scaffolding_price', // Scaffolding rental per day
+  'others_0': 'others_scaffolding_price', // Scaffolding rental per day
+  'others_1': 'others_scaffolding_assembly_and_disassembly_price', // Scaffolding assembly
   'others_2': 'others_core_drill_rental_price', // Core Drill
   'others_3': 'others_tool_rental_price', // Tool rental
   'others_4': 'others_commute_price', // Commute

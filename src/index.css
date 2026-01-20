@@ -574,12 +574,15 @@ select {
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000) !important;
 }
 
-/* Dark mode: white border */
+/* Dark mode: white border/ring */
 .dark .ring-2.dark\:ring-white {
   --tw-ring-color: rgb(255 255 255) !important;
+  --tw-ring-opacity: 1 !important;
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color) !important;
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color) !important;
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000) !important;
+  border-color: white !important;
+  /* Fallback/Safety */
 }
 
 /* Mobile date input fixes - prevent overflow */

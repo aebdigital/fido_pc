@@ -884,7 +884,7 @@ export function windowFromDatabase(dbWindow) {
  */
 export function doorToDatabase(appDoor) {
   return {
-    c_id: appDoor.c_id || crypto.randomUUID(),
+    c_id: appDoor.c_id || appDoor.id || crypto.randomUUID(),
     size1: appDoor.width || 0,
     size2: appDoor.height || 0
   };
@@ -897,7 +897,7 @@ export function doorToDatabase(appDoor) {
  */
 export function windowToDatabase(appWindow) {
   return {
-    c_id: appWindow.c_id || crypto.randomUUID(),
+    c_id: appWindow.c_id || appWindow.id || crypto.randomUUID(),
     size1: appWindow.width || 0,
     size2: appWindow.height || 0
   };

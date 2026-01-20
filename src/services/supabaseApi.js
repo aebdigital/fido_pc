@@ -33,7 +33,7 @@ const handleError = (operation, error) => {
 // ========== CONTRACTORS ==========
 
 export const contractorsApi = {
-  // Get all contractors for current user
+  // Get all contractors for current user (excludes soft-deleted)
   getAll: async () => {
     try {
       const userId = await getCurrentUserId()
@@ -41,6 +41,7 @@ export const contractorsApi = {
         .from('contractors')
         .select('c_id, name, contact_person_name, email, phone, web, street, second_row_street, city, postal_code, country, business_id, tax_id, vat_registration_number, bank_account_number, swift_code, legal_notice, logo_url, signature_url, price_offer_settings, user_id, created_at, updated_at')
         .eq('user_id', userId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -106,12 +107,17 @@ export const contractorsApi = {
     }
   },
 
-  // Delete contractor
+  // Soft delete contractor (marks as deleted instead of removing)
   delete: async (id) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('contractors')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', id)
 
       if (error) throw error
@@ -125,7 +131,7 @@ export const contractorsApi = {
 // ========== CLIENTS ==========
 
 export const clientsApi = {
-  // Get all clients for current contractor
+  // Get all clients for current contractor (excludes soft-deleted)
   getAll: async (contractorId) => {
     try {
       const userId = await getCurrentUserId()
@@ -133,6 +139,7 @@ export const clientsApi = {
         .from('clients')
         .select('*')
         .eq('user_id', userId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
 
       // Only filter by contractor if provided (contractor_id column stores contractor's c_id)
       if (contractorId) {
@@ -204,12 +211,17 @@ export const clientsApi = {
     }
   },
 
-  // Delete client
+  // Soft delete client (marks as deleted instead of removing)
   delete: async (id) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('clients')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', id)
 
       if (error) throw error
@@ -223,7 +235,7 @@ export const clientsApi = {
 // ========== PROJECTS ==========
 
 export const projectsApi = {
-  // Get all projects for contractor
+  // Get all projects for contractor (excludes soft-deleted)
   getAll: async (contractorId) => {
     try {
       const userId = await getCurrentUserId()
@@ -231,6 +243,7 @@ export const projectsApi = {
         .from('projects')
         .select('*')
         .eq('user_id', userId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
 
       // Only filter by contractor if provided (contractor_id column stores contractor's c_id)
       if (contractorId) {
@@ -302,15 +315,68 @@ export const projectsApi = {
     }
   },
 
-  // Delete project
+  // Soft delete project (marks as deleted instead of removing)
+  // Also cascade soft-deletes related entities: invoices, rooms, receipts, history_events
   delete: async (id) => {
     try {
+      const now = new Date().toISOString()
+
+      // Soft delete the project
       const { error } = await supabase
         .from('projects')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', id)
-
       if (error) throw error
+      console.log(`🗑️ Project soft deleted: ${id}`)
+
+      // Cascade soft-delete invoices linked to this project
+      await supabase
+        .from('invoices')
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
+        .eq('project_id', id)
+      console.log(`🗑️ Cascade soft deleted invoices for project: ${id}`)
+
+      // Cascade soft-delete rooms linked to this project
+      await supabase
+        .from('rooms')
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
+        .eq('project_id', id)
+      console.log(`🗑️ Cascade soft deleted rooms for project: ${id}`)
+
+      // Cascade soft-delete receipts linked to this project
+      await supabase
+        .from('receipts')
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
+        .eq('project_id', id)
+      console.log(`🗑️ Cascade soft deleted receipts for project: ${id}`)
+
+      // Cascade soft-delete history_events linked to this project
+      await supabase
+        .from('history_events')
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
+        .eq('project_id', id)
+      console.log(`🗑️ Cascade soft deleted history_events for project: ${id}`)
+
       return true
     } catch (error) {
       handleError('projectsApi.delete', error)
@@ -321,13 +387,14 @@ export const projectsApi = {
 // ========== ROOMS ==========
 
 export const roomsApi = {
-  // Get all rooms for a project (project_id now references project's c_id)
+  // Get all rooms for a project (excludes soft-deleted)
   getByProject: async (projectId) => {
     try {
       const { data, error } = await supabase
         .from('rooms')
         .select('*')
         .eq('project_id', projectId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
         .order('created_at', { ascending: true })
 
       if (error) throw error
@@ -393,12 +460,17 @@ export const roomsApi = {
     }
   },
 
-  // Delete room
+  // Soft delete room (marks as deleted instead of removing)
   delete: async (id) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('rooms')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', id)
 
       if (error) throw error
@@ -412,7 +484,7 @@ export const roomsApi = {
 // ========== INVOICES ==========
 
 export const invoicesApi = {
-  // Get all invoices for contractor
+  // Get all invoices for contractor (excludes soft-deleted)
   getAll: async (contractorId) => {
     try {
       const userId = await getCurrentUserId()
@@ -424,6 +496,7 @@ export const invoicesApi = {
           contractors (c_id, name)
         `)
         .eq('user_id', userId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
 
       // Only filter by contractor if provided (contractor_id column stores contractor's c_id)
       if (contractorId) {
@@ -553,12 +626,17 @@ export const invoicesApi = {
     }
   },
 
-  // Delete invoice
+  // Soft delete invoice (marks as deleted instead of removing)
   delete: async (id) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('invoices')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', id)
 
       if (error) throw error
@@ -589,13 +667,14 @@ export const workItemsApi = {
     }
   },
 
-  // Get work items by room and table (room_id now references room's c_id)
+  // Get work items by room and table (excludes soft-deleted)
   getByRoom: async (roomId, tableName) => {
     try {
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
         .eq('room_id', roomId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
         .order('created_at', { ascending: true })
 
       if (error) throw error
@@ -644,12 +723,17 @@ export const workItemsApi = {
     }
   },
 
-  // Delete work item (by c_id)
+  // Soft delete work item (marks as deleted instead of removing)
   delete: async (tableName, id) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from(tableName)
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', id)
 
       if (error) throw error
@@ -696,7 +780,7 @@ export const workItemsApi = {
 // - Project price list: is_general = false, project_id = <project_c_id> (one per project)
 
 export const priceListsApi = {
-  // Get all price lists for current user
+  // Get all price lists for current user (excludes soft-deleted)
   getAll: async () => {
     try {
       const userId = await getCurrentUserId()
@@ -704,6 +788,7 @@ export const priceListsApi = {
         .from('price_lists')
         .select('*')
         .eq('user_id', userId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
 
       if (error) throw error
       // Map c_id to id for app compatibility
@@ -911,13 +996,18 @@ export const priceListsApi = {
     }
   },
 
-  // Delete price list for a project (cleanup when project is deleted)
+  // Soft delete price list for a project (cleanup when project is deleted)
   deleteByProject: async (projectId) => {
     try {
       const userId = await getCurrentUserId()
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('price_lists')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('user_id', userId)
         .eq('project_id', projectId)
 
@@ -982,13 +1072,14 @@ export const invoiceSettingsApi = {
 // ========== RECEIPTS ==========
 
 export const receiptsApi = {
-  // Get all receipts for a project (project_id now references project's c_id)
+  // Get all receipts for a project (excludes soft-deleted)
   getByProject: async (projectId) => {
     try {
       const { data, error } = await supabase
         .from('receipts')
         .select('*')
         .eq('project_id', projectId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
         .order('receipt_date', { ascending: false })
 
       if (error) throw error
@@ -1037,12 +1128,17 @@ export const receiptsApi = {
     }
   },
 
-  // Delete receipt (by c_id)
+  // Soft delete receipt (marks as deleted instead of removing)
   delete: async (id) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('receipts')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', id)
 
       if (error) throw error
@@ -1072,6 +1168,7 @@ export const doorsApi = {
         .select('*')
         .eq('user_id', userId)
         .eq(parentColumnName, parentCId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
 
       if (error) throw error
       return (data || []).map(item => ({ ...item, id: item.c_id }))
@@ -1098,6 +1195,7 @@ export const doorsApi = {
         .select('*')
         .eq('user_id', userId)
         .in(parentColumnName, parentCIds)
+        .or('is_deleted.is.null,is_deleted.eq.false')
 
       if (error) throw error
       return (data || []).map(item => ({ ...item, id: item.c_id }))
@@ -1190,12 +1288,17 @@ export const doorsApi = {
     }
   },
 
-  // Delete a door
+  // Soft delete a door (marks as deleted instead of removing)
   delete: async (doorCId) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('doors')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', doorCId)
 
       if (error) throw error
@@ -1225,6 +1328,7 @@ export const windowsApi = {
         .select('*')
         .eq('user_id', userId)
         .eq(parentColumnName, parentCId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
 
       if (error) throw error
       return (data || []).map(item => ({ ...item, id: item.c_id }))
@@ -1251,6 +1355,7 @@ export const windowsApi = {
         .select('*')
         .eq('user_id', userId)
         .in(parentColumnName, parentCIds)
+        .or('is_deleted.is.null,is_deleted.eq.false')
 
       if (error) throw error
       return (data || []).map(item => ({ ...item, id: item.c_id }))
@@ -1343,12 +1448,17 @@ export const windowsApi = {
     }
   },
 
-  // Delete a window
+  // Soft delete a window (marks as deleted instead of removing)
   delete: async (windowCId) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('windows')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', windowCId)
 
       if (error) throw error
@@ -1379,13 +1489,14 @@ function tableNameToForeignKeyColumn(tableName) {
 // Syncs with iOS history_events table for cross-platform history display
 
 export const historyEventsApi = {
-  // Get all history events for a project
+  // Get all history events for a project (excludes soft-deleted)
   getByProjectId: async (projectId) => {
     try {
       const { data, error } = await supabase
         .from('history_events')
         .select('*')
         .eq('project_id', projectId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -1420,12 +1531,17 @@ export const historyEventsApi = {
     }
   },
 
-  // Delete history event
+  // Soft delete history event (marks as deleted instead of removing)
   delete: async (id) => {
     try {
+      const now = new Date().toISOString()
       const { error } = await supabase
         .from('history_events')
-        .delete()
+        .update({
+          is_deleted: true,
+          deleted_at: now,
+          updated_at: now
+        })
         .eq('c_id', id)
 
       if (error) throw error

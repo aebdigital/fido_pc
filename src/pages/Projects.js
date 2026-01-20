@@ -364,7 +364,7 @@ const Projects = () => {
   return (
     <>
       <div className="pb-20 lg:pb-0 overflow-hidden w-full min-w-0">
-        <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projekty')}</h1>
+        <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projects')}</h1>
 
         {/* Contractor Profile Dropdown */}
         {(currentView === 'categories' || currentView === 'projects') && (
@@ -459,8 +459,8 @@ const Projects = () => {
 
         <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden w-full">
           {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar - Hidden when viewing project details */}
-          <div className={`lg:w-80 flex lg:flex-col w-screen lg:w-80 ${currentView === 'details' ? 'hidden' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{ maxWidth: '100vw' }}>
-            <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-6 py-4 space-x-2 lg:space-x-0 lg:space-y-3 scrollbar-hide" style={{ width: '100%' }}>
+          <div className={`flex lg:flex-col w-screen lg:w-48 xl:w-56 2xl:w-72 flex-shrink-0 ${currentView === 'details' ? 'hidden' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{ maxWidth: '100vw' }}>
+            <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-3 xl:px-4 py-4 space-x-2 lg:space-x-0 lg:space-y-2 xl:space-y-3 scrollbar-hide" style={{ width: '100%' }}>
               {displayCategories.map(category => (
                 <button
                   key={category.id}
@@ -470,16 +470,16 @@ const Projects = () => {
                     : 'hover:shadow-md'
                     }`}
                 >
-                  <div className="h-24 lg:h-32 relative shadow-lg">
+                  <div className="h-24 lg:h-20 xl:h-24 2xl:h-28 relative shadow-lg">
                     <img
                       src={category.image}
                       alt={category.name}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-2 lg:p-3 flex justify-between items-end">
-                      <h3 className="text-base lg:text-xl font-bold text-gray-900">{t(category.name)}</h3>
-                      <span className="text-gray-900 text-xs lg:text-sm font-medium">{category.count} {t('projects')}</span>
+                    <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-between items-end">
+                      <h3 className="text-base lg:text-sm xl:text-base 2xl:text-lg font-bold text-gray-900">{t(category.name)}</h3>
+                      <span className="text-gray-900 text-xs font-medium">{category.count}</span>
                     </div>
                   </div>
                 </button>
@@ -531,7 +531,7 @@ const Projects = () => {
                         </svg>
                       </button>
                       <h2 className="text-lg sm:text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
-                        {t(displayCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projekty')}
+                        {t(displayCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projects')}
                       </h2>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">

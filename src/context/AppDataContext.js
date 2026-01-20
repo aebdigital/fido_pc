@@ -211,92 +211,92 @@ export const AppDataProvider = ({ children }) => {
     generalPriceList: {
       work: [
         { name: 'Preparatory and demolition works', price: 15, unit: '€/h' },
-        { name: 'Elektroinštalačné práce', subtitle: 'outlet', price: 20.00, unit: '€/pc' },
-        { name: 'Vodoinštalačné práce', subtitle: 'outlet', price: 45, unit: '€/pc' },
-        { name: 'Brick partitions', subtitle: '75 - 175mm', price: 18, unit: '€/m2' },
-        { name: 'Brick load-bearing wall', subtitle: '200 - 450mm', price: 55.00, unit: '€/m2' },
-        { name: 'Plasterboarding', subtitle: 'partition, simple', price: 45.00, unit: '€/m2' },
-        { name: 'Plasterboarding', subtitle: 'partition, double', price: 45.00, unit: '€/m2' },
-        { name: 'Plasterboarding', subtitle: 'partition, triple', price: 45.00, unit: '€/m2' },
-        { name: 'Plasterboarding', subtitle: 'offset wall, simple', price: 45.00, unit: '€/m2' },
-        { name: 'Plasterboarding', subtitle: 'offset wall, double', price: 45.00, unit: '€/m2' },
-        { name: 'Plasterboarding', subtitle: 'ceiling', price: 30.00, unit: '€/m2' },
-        { name: 'Netting', subtitle: 'wall', price: 5.00, unit: '€/m2' },
-        { name: 'Netting', subtitle: 'ceiling', price: 8, unit: '€/m2' },
-        { name: 'Plastering', subtitle: 'wall', price: 7, unit: '€/m2' },
-        { name: 'Plastering', subtitle: 'ceiling', price: 10.00, unit: '€/m2' },
-        { name: 'Facade Plastering', price: 80, unit: '€/m2' },
-        { name: 'Installation of corner bead', price: 3, unit: '€/m' },
-        { name: 'Plastering of window sash', price: 5, unit: '€/m' },
-        { name: 'Penetration coating', price: 1, unit: '€/m2' },
-        { name: 'Painting', subtitle: 'wall, 2 layers', price: 2.50, unit: '€/m2' },
+        { name: 'Elektroinštalačné práce', subtitle: 'outlet', price: 65, unit: '€/pc' },
+        { name: 'Vodoinštalačné práce', subtitle: 'outlet', price: 50, unit: '€/pc' },
+        { name: 'Brick partitions', subtitle: '75 - 175mm', price: 23, unit: '€/m2' },
+        { name: 'Brick load-bearing wall', subtitle: '200 - 450mm', price: 24, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'partition, simple', price: 37, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'partition, double', price: 47, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'partition, triple', price: 57, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'offset wall, simple', price: 32, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'offset wall, double', price: 42, unit: '€/m2' },
+        { name: 'Plasterboarding', subtitle: 'ceiling', price: 35, unit: '€/m2' },
+        { name: 'Netting', subtitle: 'wall', price: 9, unit: '€/m2' },
+        { name: 'Netting', subtitle: 'ceiling', price: 13, unit: '€/m2' },
+        { name: 'Plastering', subtitle: 'wall', price: 15, unit: '€/m2' },
+        { name: 'Plastering', subtitle: 'ceiling', price: 19, unit: '€/m2' },
+        { name: 'Facade Plastering', price: 12, unit: '€/m2' },
+        { name: 'Installation of corner bead', price: 3.5, unit: '€/m' },
+        { name: 'Plastering of window sash', price: 15, unit: '€/m' },
+        { name: 'Penetration coating', price: 0.7, unit: '€/m2' },
+        { name: 'Painting', subtitle: 'wall, 2 layers', price: 3, unit: '€/m2' },
         { name: 'Painting', subtitle: 'ceiling, 2 layers', price: 3, unit: '€/m2' },
-        { name: 'Levelling', price: 7, unit: '€/m2' },
-        { name: 'Floating floor', subtitle: 'laying', price: 6.00, unit: '€/m2' },
-        { name: 'Lištovanie', subtitle: 'floating floor', price: 3.50, unit: '€/m' },
-        { name: 'Tiling under 60cm', subtitle: 'ceramic', price: 30, unit: '€/m2' },
-        { name: 'Jolly Edging', price: 25, unit: '€/m' },
-        { name: 'Paving under 60cm', subtitle: 'ceramic', price: 30, unit: '€/m2' },
-        { name: 'Plinth', subtitle: 'cutting and grinding', price: 15, unit: '€/m' },
-        { name: 'Plinth', subtitle: 'bonding', price: 8, unit: '€/m' },
-        { name: 'Large Format', subtitle: 'above 60cm', price: 80, unit: '€/m2' },
-        { name: 'Grouting', subtitle: 'tiling and paving', price: 5, unit: '€/m2' },
-        { name: 'Siliconing', price: 2, unit: '€/m' },
-        { name: 'Window installation', price: 7, unit: '€/m' },
-        { name: 'Installation of door jamb', price: 55.00, unit: '€/pc' },
+        { name: 'Levelling', price: 9, unit: '€/m2' },
+        { name: 'Floating floor', subtitle: 'laying', price: 9, unit: '€/m2' },
+        { name: 'Lištovanie', subtitle: 'floating floor', price: 4.5, unit: '€/m' },
+        { name: 'Tiling under 60cm', subtitle: 'ceramic', price: 35, unit: '€/m2' },
+        { name: 'Jolly Edging', price: 30, unit: '€/m' },
+        { name: 'Paving under 60cm', subtitle: 'ceramic', price: 35, unit: '€/m2' },
+        { name: 'Plinth', subtitle: 'cutting and grinding', price: 16, unit: '€/m' },
+        { name: 'Plinth', subtitle: 'bonding', price: 9, unit: '€/m' },
+        { name: 'Large Format', subtitle: 'above 60cm', price: 85, unit: '€/m2' },
+        { name: 'Grouting', subtitle: 'tiling and paving', price: 7, unit: '€/m2' },
+        { name: 'Siliconing', price: 3.5, unit: '€/m' },
+        { name: 'Window installation', price: 17, unit: '€/m' },
+        { name: 'Installation of door jamb', price: 62, unit: '€/pc' },
         { name: 'Auxiliary and finishing work', price: 10, unit: '%' }
       ],
       material: [
         { name: 'Partition masonry', subtitle: '75 - 175mm', price: 30, unit: '€/m2', materialKey: 'brick_partitions' },
-        { name: 'Load-bearing masonry', subtitle: '200 - 450mm', price: 160, unit: '€/m2', materialKey: 'brick_load_bearing' },
-        { name: 'Plasterboard', subtitle: 'simple, partition', price: 35.00, unit: '€/pc', capacity: { value: 2, unit: 'm2' }, materialKey: 'plasterboarding_partition_simple' },
-        { name: 'Plasterboard', subtitle: 'double, partition', price: 35.00, unit: '€/pc', capacity: { value: 2, unit: 'm2' }, materialKey: 'plasterboarding_partition_double' },
-        { name: 'Plasterboard', subtitle: 'triple, partition', price: 35.00, unit: '€/pc', capacity: { value: 2, unit: 'm2' }, materialKey: 'plasterboarding_partition_triple' },
-        { name: 'Plasterboard', subtitle: 'simple, offset wall', price: 35.00, unit: '€/pc', capacity: { value: 2, unit: 'm2' }, materialKey: 'plasterboarding_offset_simple' },
-        { name: 'Plasterboard', subtitle: 'double, offset wall', price: 35.00, unit: '€/pc', capacity: { value: 2, unit: 'm2' }, materialKey: 'plasterboarding_offset_double' },
-        { name: 'Plasterboard', subtitle: 'ceiling', price: 20.00, unit: '€/pc', capacity: { value: 2, unit: 'm2' }, materialKey: 'plasterboarding_ceiling' },
-        { name: 'Mesh', price: 1.30, unit: '€/m2', materialKey: 'netting_wall' },
-        { name: 'Adhesive', subtitle: 'netting', price: 12.00, unit: '€/pkg', capacity: { value: 5, unit: 'm2' }, materialKey: 'adhesive_netting' },
+        { name: 'Load-bearing masonry', subtitle: '200 - 450mm', price: 65, unit: '€/m2', materialKey: 'brick_load_bearing' },
+        { name: 'Plasterboard', subtitle: 'simple, partition', price: 30, unit: '€/pc', capacity: { value: 2.4, unit: 'm2' }, materialKey: 'plasterboarding_partition_simple' },
+        { name: 'Plasterboard', subtitle: 'double, partition', price: 50, unit: '€/pc', capacity: { value: 2.4, unit: 'm2' }, materialKey: 'plasterboarding_partition_double' },
+        { name: 'Plasterboard', subtitle: 'triple, partition', price: 70, unit: '€/pc', capacity: { value: 2.4, unit: 'm2' }, materialKey: 'plasterboarding_partition_triple' },
+        { name: 'Plasterboard', subtitle: 'simple, offset wall', price: 19, unit: '€/pc', capacity: { value: 2.4, unit: 'm2' }, materialKey: 'plasterboarding_offset_simple' },
+        { name: 'Plasterboard', subtitle: 'double, offset wall', price: 29, unit: '€/pc', capacity: { value: 2.4, unit: 'm2' }, materialKey: 'plasterboarding_offset_double' },
+        { name: 'Plasterboard', subtitle: 'ceiling', price: 19, unit: '€/pc', capacity: { value: 2.4, unit: 'm2' }, materialKey: 'plasterboarding_ceiling' },
+        { name: 'Mesh', price: 1.2, unit: '€/m2', materialKey: 'netting_wall' },
+        { name: 'Adhesive', subtitle: 'netting', price: 9, unit: '€/pkg', capacity: { value: 6, unit: 'm2' }, materialKey: 'adhesive_netting' },
         { name: 'Adhesive', subtitle: 'tiling and paving', price: 15, unit: '€/pkg', capacity: { value: 3, unit: 'm2' }, materialKey: 'adhesive_tiling' },
         { name: 'Plaster', price: 13, unit: '€/pkg', capacity: { value: 8, unit: 'm2' }, materialKey: 'plastering_wall' },
         { name: 'Facade Plaster', price: 25, unit: '€/pkg', capacity: { value: 10, unit: 'm2' }, materialKey: 'facade_plastering' },
-        { name: 'Corner bead', price: 4.50, unit: '€/pc', capacity: { value: 2, unit: 'm' }, materialKey: 'corner_bead' },
-        { name: 'Primer', price: 0.50, unit: '€/m2', materialKey: 'penetration_coating' },
-        { name: 'Paint', subtitle: 'wall', price: 0.80, unit: '€/m2', materialKey: 'painting_wall' },
-        { name: 'Paint', subtitle: 'ceiling', price: 0.80, unit: '€/m2', materialKey: 'painting_ceiling' },
-        { name: 'Self-levelling compound', price: 18, unit: '€/pkg', capacity: { value: 2, unit: 'm2' }, materialKey: 'levelling' },
-        { name: 'Floating floor', price: 15, unit: '€/m2', materialKey: 'floating_floor' },
+        { name: 'Corner bead', price: 4, unit: '€/pc', capacity: { value: 2.5, unit: 'm' }, materialKey: 'corner_bead' },
+        { name: 'Primer', price: 0.5, unit: '€/m2', materialKey: 'penetration_coating' },
+        { name: 'Paint', subtitle: 'wall', price: 1, unit: '€/m2', materialKey: 'painting_wall' },
+        { name: 'Paint', subtitle: 'ceiling', price: 1, unit: '€/m2', materialKey: 'painting_ceiling' },
+        { name: 'Self-levelling compound', price: 20, unit: '€/pkg', capacity: { value: 1.2, unit: 'm2' }, materialKey: 'levelling' },
+        { name: 'Floating floor', price: 20, unit: '€/m2', materialKey: 'floating_floor' },
         { name: 'Soklové lišty', price: 3, unit: '€/m', materialKey: 'skirting' },
-        { name: 'Silicone', price: 8, unit: '€/pkg', capacity: { value: 15, unit: 'm' }, materialKey: 'siliconing' },
-        { name: 'Tiles', subtitle: 'ceramic', price: 20.00, unit: '€/m2', materialKey: 'tiling_under_60' },
-        { name: 'Pavings', subtitle: 'ceramic', price: 20.00, unit: '€/m2', materialKey: 'paving_under_60' },
+        { name: 'Silicone', price: 12, unit: '€/pkg', capacity: { value: 14, unit: 'm' }, materialKey: 'siliconing' },
+        { name: 'Tiles', subtitle: 'ceramic', price: 30, unit: '€/m2', materialKey: 'tiling_under_60' },
+        { name: 'Pavings', subtitle: 'ceramic', price: 30, unit: '€/m2', materialKey: 'paving_under_60' },
         { name: 'Tiles', subtitle: 'large format', price: 150, unit: '€/m2', materialKey: 'tiling_large_format' },
         { name: 'Pavings', subtitle: 'large format', price: 150, unit: '€/m2', materialKey: 'paving_large_format' },
         { name: 'Auxiliary and fastening material', price: 10, unit: '%' }
       ],
       installations: [
-        { name: 'Sanitary installations', subtitle: 'Corner valve', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Standing mixer tap', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Wall-mounted tap', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Flush-mounted tap', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Toilet combi', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Concealed toilet', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Sink', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Sink with cabinet', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Bathtub', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Shower cubicle', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Installation of gutter', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Urinal', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Bath screen', price: 35.00, unit: '€/pc' },
-        { name: 'Sanitary installations', subtitle: 'Mirror', price: 35.00, unit: '€/pc' }
+        { name: 'Sanitary installations', subtitle: 'Corner valve', price: 10.5, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Standing mixer tap', price: 26, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Wall-mounted tap', price: 36, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Flush-mounted tap', price: 98, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Toilet combi', price: 67, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Concealed toilet', price: 205, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Sink', price: 52, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Sink with cabinet', price: 125, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Bathtub', price: 155, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Shower cubicle', price: 235, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Installation of gutter', price: 95, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Urinal', price: 53, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Bath screen', price: 85, unit: '€/pc' },
+        { name: 'Sanitary installations', subtitle: 'Mirror', price: 35, unit: '€/pc' }
       ],
       others: [
-        { name: 'Scaffolding', subtitle: 'assembly and disassembly', price: 30, unit: '€/m2' },
         { name: 'Scaffolding', price: 10, unit: '€/day' },
+        { name: 'Scaffolding', subtitle: 'assembly and disassembly', price: 3, unit: '€/m2' },
         { name: 'Core Drill', price: 25, unit: '€/h' },
         { name: 'Tool rental', price: 10, unit: '€/h' },
         { name: 'Commute', price: 1, unit: '€/km' },
-        { name: 'VAT', price: 20, unit: '%' }
+        { name: 'VAT', price: 23, unit: '%' }
       ]
     }
   });
@@ -613,66 +613,270 @@ export const AppDataProvider = ({ children }) => {
       }
 
       const categories = getRefreshCategories(change.table);
-      console.log('[RealtimeSync] Data changed, refreshing categories:', categories);
+      const { eventType, record, oldRecord } = change;
+      console.log('[RealtimeSync] Data changed:', change.table, eventType, record?.c_id || record?.id);
 
       if (categories.length === 0) return;
 
       isRefreshingRef.current = true;
 
       try {
-        // Refresh specific data based on what changed
-        if (categories.includes('contractors')) {
-          const contractors = await api.contractors.getAll();
-          const transformedContractors = (contractors || []).map(transformContractorFromDB);
-          setAppData(prev => ({ ...prev, contractors: transformedContractors }));
-        }
+        // OPTIMIZED: Surgically update only the changed record instead of reloading entire categories
 
-        if (categories.includes('clients')) {
-          const clients = await api.clients.getAll(null);
-          const transformedClients = (clients || []).map(transformClientFromDB);
-          setAppData(prev => ({ ...prev, clients: transformedClients }));
-        }
+        if (categories.includes('contractors') && record) {
+          const transformedRecord = transformContractorFromDB(record);
+          setAppData(prev => {
+            const contractors = [...(prev.contractors || [])];
+            if (eventType === 'DELETE' || record.is_deleted) {
+              // Remove deleted contractor
+              return { ...prev, contractors: contractors.filter(c => c.id !== record.c_id && c.id !== record.id) };
+            } else if (eventType === 'INSERT') {
+              // Add new contractor
+              return { ...prev, contractors: [...contractors, transformedRecord] };
+            } else {
+              // Update existing contractor
+              const index = contractors.findIndex(c => c.id === record.c_id || c.id === record.id);
+              if (index >= 0) {
+                contractors[index] = transformedRecord;
+              } else {
+                contractors.push(transformedRecord);
+              }
 
-        if (categories.includes('projects')) {
-          // Reload full data to ensure project categories are updated correctly
-          const data = await loadInitialData();
-          setAppData(prev => ({
-            ...data,
-            // Preserve existing room data
-            projectRoomsData: {
-              ...(prev?.projectRoomsData || {}),
-              ...(data.projectRoomsData || {})
+              // If this is the active contractor, also update priceOfferSettings
+              const isActiveContractor = (record.c_id === prev.activeContractorId || record.id === prev.activeContractorId);
+              if (isActiveContractor && record.price_offer_settings) {
+                try {
+                  const settings = typeof record.price_offer_settings === 'string'
+                    ? JSON.parse(record.price_offer_settings)
+                    : record.price_offer_settings;
+                  const updatedPriceOfferSettings = { ...prev.priceOfferSettings, ...settings };
+                  console.log('[RealtimeSync] Updated priceOfferSettings from contractor:', updatedPriceOfferSettings);
+                  return { ...prev, contractors, priceOfferSettings: updatedPriceOfferSettings };
+                } catch (e) {
+                  console.warn('[RealtimeSync] Failed to parse price offer settings', e);
+                }
+              }
+
+              return { ...prev, contractors };
             }
-          }));
+          });
         }
 
-        if (categories.includes('invoices')) {
-          const invoices = await api.invoices.getAll(null);
-          const transformedInvoices = (invoices || []).map(transformInvoiceFromDB).filter(Boolean);
-          setAppData(prev => ({ ...prev, invoices: transformedInvoices }));
+        if (categories.includes('clients') && record) {
+          const transformedRecord = transformClientFromDB(record);
+          setAppData(prev => {
+            const clients = [...(prev.clients || [])];
+            if (eventType === 'DELETE' || record.is_deleted) {
+              return { ...prev, clients: clients.filter(c => c.id !== record.c_id && c.id !== record.id) };
+            } else if (eventType === 'INSERT') {
+              return { ...prev, clients: [...clients, transformedRecord] };
+            } else {
+              const index = clients.findIndex(c => c.id === record.c_id || c.id === record.id);
+              if (index >= 0) {
+                clients[index] = transformedRecord;
+              } else {
+                clients.push(transformedRecord);
+              }
+              return { ...prev, clients };
+            }
+          });
         }
 
-        if (categories.includes('rooms') || categories.includes('workItems')) {
-          // Clear room cache to force reload on next access
-          // This ensures fresh data is fetched when user views a project
-          setAppData(prev => ({ ...prev, projectRoomsData: {} }));
+        if (categories.includes('projects') && record) {
+          // For projects, we need to update the correct category list
+          setAppData(prev => {
+            // Helper function to update project in a category
+            const updateProjectInCategory = (category) => {
+              if (!category) return category;
+              const projects = [...category];
+              if (eventType === 'DELETE' || record.is_deleted) {
+                return projects.filter(p => p.id !== record.c_id && p.id !== record.id);
+              } else if (eventType === 'INSERT') {
+                // For inserts, we need full project data - fetch it
+                return projects; // Will be added after fetch below
+              } else {
+                const index = projects.findIndex(p => p.id === record.c_id || p.id === record.id);
+                if (index >= 0) {
+                  // Update with new values from record
+                  projects[index] = { ...projects[index], ...record, id: record.c_id || record.id };
+                }
+                return projects;
+              }
+            };
+
+            const newState = {
+              ...prev,
+              contractorProjects: {
+                flats: updateProjectInCategory(prev.contractorProjects?.flats),
+                houses: updateProjectInCategory(prev.contractorProjects?.houses),
+                firms: updateProjectInCategory(prev.contractorProjects?.firms),
+                cottages: updateProjectInCategory(prev.contractorProjects?.cottages),
+                other: updateProjectInCategory(prev.contractorProjects?.other)
+              }
+            };
+
+            // If it's a new project insert, we need to fetch the full record to get category info
+            if (eventType === 'INSERT' && record.c_id) {
+              // Schedule async fetch for full project data
+              api.projects.getById(record.c_id).then(fullProject => {
+                if (fullProject) {
+                  const category = fullProject.category || 'other';
+                  setAppData(p => ({
+                    ...p,
+                    contractorProjects: {
+                      ...p.contractorProjects,
+                      [category]: [...(p.contractorProjects?.[category] || []), fullProject]
+                    }
+                  }));
+                }
+              }).catch(err => console.error('[RealtimeSync] Failed to fetch new project:', err));
+            }
+
+            return newState;
+          });
         }
 
-        if (categories.includes('priceLists')) {
-          // Reload price lists
-          const allPriceLists = await api.priceLists.getAll();
-          const generalPriceListData = (allPriceLists || []).find(
-            pl => pl.contractor_id === appData.activeContractorId && pl.is_general === true
-          );
-          if (generalPriceListData) {
-            const generalPriceList = dbColumnsToPriceList(generalPriceListData, getDefaultData().generalPriceList);
+        if (categories.includes('invoices') && record) {
+          const transformedRecord = transformInvoiceFromDB(record);
+          if (transformedRecord) {
+            setAppData(prev => {
+              const invoices = [...(prev.invoices || [])];
+              if (eventType === 'DELETE' || record.is_deleted) {
+                return { ...prev, invoices: invoices.filter(i => i.id !== record.c_id && i.id !== record.id) };
+              } else if (eventType === 'INSERT') {
+                return { ...prev, invoices: [...invoices, transformedRecord] };
+              } else {
+                const index = invoices.findIndex(i => i.id === record.c_id || i.id === record.id);
+                if (index >= 0) {
+                  invoices[index] = transformedRecord;
+                } else {
+                  invoices.push(transformedRecord);
+                }
+                return { ...prev, invoices };
+              }
+            });
+          }
+        }
+
+        if (categories.includes('rooms') && record) {
+          // For rooms, update the specific project's room cache
+          const projectId = record.project_id;
+          if (projectId) {
+            setAppData(prev => {
+              const projectRoomsData = { ...prev.projectRoomsData };
+              if (projectRoomsData[projectId]) {
+                const rooms = [...projectRoomsData[projectId].rooms];
+                if (eventType === 'DELETE' || record.is_deleted) {
+                  projectRoomsData[projectId] = {
+                    ...projectRoomsData[projectId],
+                    rooms: rooms.filter(r => r.id !== record.c_id && r.id !== record.id)
+                  };
+                } else if (eventType === 'INSERT') {
+                  // Fetch full room data for new rooms
+                  api.rooms.getById(record.c_id).then(fullRoom => {
+                    if (fullRoom) {
+                      setAppData(p => ({
+                        ...p,
+                        projectRoomsData: {
+                          ...p.projectRoomsData,
+                          [projectId]: {
+                            ...p.projectRoomsData?.[projectId],
+                            rooms: [...(p.projectRoomsData?.[projectId]?.rooms || []), fullRoom]
+                          }
+                        }
+                      }));
+                    }
+                  }).catch(err => console.error('[RealtimeSync] Failed to fetch new room:', err));
+                } else {
+                  const index = rooms.findIndex(r => r.id === record.c_id || r.id === record.id);
+                  if (index >= 0) {
+                    rooms[index] = { ...rooms[index], ...record, id: record.c_id || record.id };
+                    projectRoomsData[projectId] = { ...projectRoomsData[projectId], rooms };
+                  }
+                }
+              }
+              return { ...prev, projectRoomsData };
+            });
+          }
+        }
+
+        if (categories.includes('workItems') && record) {
+          // For work items, invalidate only the affected room's cache
+          const roomId = record.room_id;
+
+          // Doors/windows don't have room_id, they have parent wall IDs
+          // Check if this is a door or window change
+          const isDoorOrWindow = change.table === 'doors' || change.table === 'windows';
+
+          if (roomId) {
+            // Find which project this room belongs to and invalidate just that room's work items
+            setAppData(prev => {
+              const projectRoomsData = { ...prev.projectRoomsData };
+              for (const projectId in projectRoomsData) {
+                const projectData = projectRoomsData[projectId];
+                if (projectData?.rooms) {
+                  const roomIndex = projectData.rooms.findIndex(r => r.id === roomId || r.c_id === roomId);
+                  if (roomIndex >= 0) {
+                    // Mark this room's work items as stale so they reload on next access
+                    const rooms = [...projectData.rooms];
+                    rooms[roomIndex] = { ...rooms[roomIndex], _workItemsStale: true };
+                    projectRoomsData[projectId] = { ...projectData, rooms };
+                    break;
+                  }
+                }
+              }
+              return { ...prev, projectRoomsData };
+            });
+          } else if (isDoorOrWindow) {
+            // For doors/windows, mark ALL rooms as stale since we don't know which room the parent belongs to
+            // This is a bit heavy-handed but ensures consistency
+            console.log(`[RealtimeSync] Door/window changed, marking all rooms as stale`);
+            setAppData(prev => {
+              const projectRoomsData = { ...prev.projectRoomsData };
+              for (const projectId in projectRoomsData) {
+                const projectData = projectRoomsData[projectId];
+                if (projectData?.rooms) {
+                  const rooms = projectData.rooms.map(r => ({ ...r, _workItemsStale: true }));
+                  projectRoomsData[projectId] = { ...projectData, rooms };
+                }
+              }
+              return { ...prev, projectRoomsData };
+            });
+          }
+        }
+
+        if (categories.includes('priceLists') && record) {
+          // Check if this affects the active contractor's general price list
+          if (record.contractor_id === appData.activeContractorId && record.is_general) {
+            const generalPriceList = dbColumnsToPriceList(record, getDefaultData().generalPriceList);
             setAppData(prev => ({ ...prev, generalPriceList }));
           }
         }
 
-        console.log('[RealtimeSync] Data refresh complete');
+        console.log('[RealtimeSync] Surgical update complete');
       } catch (error) {
-        console.error('[RealtimeSync] Error refreshing data:', error);
+        console.error('[RealtimeSync] Error in surgical update, falling back to reload:', error);
+        // Fallback: reload the affected categories if surgical update fails
+        try {
+          if (categories.includes('contractors')) {
+            const contractors = await api.contractors.getAll();
+            setAppData(prev => ({ ...prev, contractors: (contractors || []).map(transformContractorFromDB) }));
+          }
+          if (categories.includes('clients')) {
+            const clients = await api.clients.getAll(null);
+            setAppData(prev => ({ ...prev, clients: (clients || []).map(transformClientFromDB) }));
+          }
+          if (categories.includes('projects')) {
+            const data = await loadInitialData();
+            setAppData(prev => ({ ...data, projectRoomsData: { ...prev?.projectRoomsData, ...data.projectRoomsData } }));
+          }
+          if (categories.includes('invoices')) {
+            const invoices = await api.invoices.getAll(null);
+            setAppData(prev => ({ ...prev, invoices: (invoices || []).map(transformInvoiceFromDB).filter(Boolean) }));
+          }
+        } catch (fallbackError) {
+          console.error('[RealtimeSync] Fallback reload also failed:', fallbackError);
+        }
       } finally {
         isRefreshingRef.current = false;
       }

@@ -141,7 +141,7 @@ const Archive = ({ onBack }) => {
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 lg:gap-3">
               <div className="grid grid-cols-4 gap-2 flex-1 lg:flex lg:flex-initial lg:gap-3">
-                {[14, 30, 60, 9999].map((days) => (
+                {[14, 30, 60, 99999].map((days) => (
                   <button
                     key={days}
                     onClick={() => handleArchiveRetentionChange(days)}
@@ -151,7 +151,7 @@ const Archive = ({ onBack }) => {
                       }`}
                   >
                     <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${archiveRetentionDays === days ? 'bg-blue-400' : 'bg-transparent'}`} />
-                    {days === 9999 ? t('Forever') : `${days} ${t('days')}`}
+                    {days === 99999 ? t('Forever') : `${days} ${t('days')}`}
                   </button>
                 ))}
               </div>
@@ -160,7 +160,7 @@ const Archive = ({ onBack }) => {
               )}
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {archiveRetentionDays >= 9999
+              {archiveRetentionDays >= 99999
                 ? t('Your projects will remain in archive forever. They will not be deleted, unless you do so.')
                 : `${t('Your projects will remain in archive for')} ${archiveRetentionDays} ${t('days')}, ${t('after that they will be deleted automatically')}.`
               }
@@ -197,7 +197,7 @@ const Archive = ({ onBack }) => {
                     // Use the state but ensure it's a number
                     const retention = parseInt(archiveRetentionDays) || 30;
 
-                    if (retention >= 9999) {
+                    if (retention >= 99999) {
                       return t('Forever');
                     }
 

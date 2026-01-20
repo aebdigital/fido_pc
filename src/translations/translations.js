@@ -228,15 +228,25 @@ export const translations = {
 
     // ========== ROOM TYPES ==========
     "Hallway": "Chodba",
+    "hallway": "Chodba",
     "Toilet": "WC",
+    "toilet": "WC",
     "Bathroom": "Kúpeľňa",
+    "bathroom": "Kúpeľňa",
     "Kitchen": "Kuchyňa",
+    "kitchen": "Kuchyňa",
     "Living room": "Obývačka",
+    "living room": "Obývačka",
     "Kids room": "Detská izba",
+    "kids room": "Detská izba",
     "Bedroom": "Spálňa",
+    "bedroom": "Spálňa",
     "Guest room": "Hosťovská",
+    "guest room": "Hosťovská",
     "Work room": "Pracovňa",
+    "work room": "Pracovňa",
     "Custom": "Vlastné",
+    "custom": "Vlastné",
 
     // ========== WORK TYPES - MAIN CATEGORIES ==========
     "Work": "Práca",
@@ -841,7 +851,9 @@ export const translations = {
     "Window no.": "Okno č.",
     "Tool no.": "Náradie č.",
     "room": "miestnosť",
+    "work_singular": "práca",
     "works": "práce",
+    "works_many": "prác",
 
     // ========== PRICE LIST MANAGEMENT ==========
     "Edit prices here. New projects will inherit these prices. Existing project overrides are preserved.": "Tu upravte ceny. Nové projekty zdedia tieto ceny. Existujúce prepisy projektov sú zachované.",
