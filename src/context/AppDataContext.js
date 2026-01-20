@@ -613,7 +613,7 @@ export const AppDataProvider = ({ children }) => {
       }
 
       const categories = getRefreshCategories(change.table);
-      const { eventType, record, oldRecord } = change;
+      const { eventType, record /*, oldRecord*/ } = change;
       console.log('[RealtimeSync] Data changed:', change.table, eventType, record?.c_id || record?.id);
 
       if (categories.length === 0) return;
