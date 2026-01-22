@@ -141,9 +141,9 @@ export const clientsApi = {
         .eq('user_id', userId)
         .or('is_deleted.is.null,is_deleted.eq.false')
 
-      // Only filter by contractor if provided (contractor_id column stores contractor's c_id)
+      // Filter by contractor if provided, but also include clients with null contractor_id (legacy/unassigned)
       if (contractorId) {
-        query = query.eq('contractor_id', contractorId)
+        query = query.or(`contractor_id.eq.${contractorId},contractor_id.is.null`)
       }
 
       const { data, error } = await query.order('created_at', { ascending: false })
