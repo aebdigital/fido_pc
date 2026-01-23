@@ -792,6 +792,90 @@ export const useProjectManager = (appData, setAppData) => {
     }
   }, [setAppData]);
 
+  // Legacy full-save mode for backwards compatibility
+  const fullSaveWorkItemsForRoom = useCallback(async (roomId, workItems) => {
+    const allWorkItemTables = [
+      'brick_partitions', 'brick_load_bearing_walls', 'plasterboarding_partitions',
+      'plasterboarding_offset_walls', 'plasterboarding_ceilings', 'netting_walls',
+      'netting_ceilings', 'plastering_walls', 'plastering_ceilings', 'facade_plasterings',
+      'plastering_of_window_sashes', 'painting_walls', 'painting_ceilings', 'levellings',
+      'tile_ceramics', 'paving_ceramics', 'laying_floating_floors', 'wirings', 'plumbings',
+      'installation_of_sanitaries', 'installation_of_corner_beads', 'installation_of_door_jambs',
+      'window_installations', 'demolitions', 'groutings', 'penetration_coatings', 'siliconings',
+      'custom_works', 'custom_materials', 'scaffoldings', 'core_drills', 'tool_rentals'
+    ];
+
+    // Delete existing items from ALL work item tables for this room
+    // OPTIMIZATION: Use RPC call to delete all items on server side (fixes N+1 query issue)
+    try {
+      console.log(`[fullSave] clearing all items for room ${roomId} via RPC...`);
+      await api.workItems.deleteAllItemsForRoomRPC(roomId);
+      console.log(`[fullSave] cleared items for room ${roomId}`);
+    } catch (error) {
+      console.error('[fullSave] Error clearing room items via RPC:', error);
+      // Fallback to loop if RPC fails (e.g. function not found)
+      await Promise.all(allWorkItemTables.map(async (tableName) => {
+        try {
+          const existingItems = await api.workItems.getByRoom(roomId, tableName);
+          if (existingItems?.length > 0) {
+            await Promise.all(existingItems.map(item =>
+              api.workItems.delete(tableName, item.id).catch(err => {
+                console.error(`Failed to delete item ${item.id} from ${tableName}:`, err);
+              })
+            ));
+          }
+        } catch (err) {
+          console.warn(`[fullSave] Error fetching items from ${tableName}:`, err.message);
+        }
+      }));
+    }
+
+    // Save all work items
+    const savedParentItems = [];
+    await Promise.all(workItems.map(async (workItem) => {
+      const tableName = getTableName(workItem.propertyId, workItem);
+      if (!tableName) return;
+      const dbRecord = workItemToDatabase(workItem, roomId, appData.activeContractorId);
+      if (dbRecord) {
+        try {
+          const result = await api.workItems.upsert(tableName, dbRecord);
+          if (result?.id) {
+            savedParentItems.push({ workItem, tableName, dbCId: result.c_id || result.id });
+          }
+        } catch (error) {
+          console.error(`Error saving work item to ${tableName}:`, error);
+          throw error;
+        }
+      }
+    }));
+
+    // Save doors and windows
+    await Promise.all(savedParentItems.map(async ({ workItem, tableName, dbCId }) => {
+      const doorWindowItems = workItem.doorWindowItems;
+      if (!doorWindowItems) return;
+
+      if (tableCanHaveDoors(tableName) && doorWindowItems.doors?.length > 0) {
+        await Promise.all(doorWindowItems.doors.map(async (door) => {
+          try {
+            await api.doors.upsert(doorToDatabase(door), tableName, dbCId);
+          } catch (error) {
+            console.error(`Error saving door:`, error);
+          }
+        }));
+      }
+
+      if (tableCanHaveWindows(tableName) && doorWindowItems.windows?.length > 0) {
+        await Promise.all(doorWindowItems.windows.map(async (window) => {
+          try {
+            await api.windows.upsert(windowToDatabase(window), tableName, dbCId);
+          } catch (error) {
+            console.error(`Error saving window:`, error);
+          }
+        }));
+      }
+    }));
+  }, [appData.activeContractorId]);
+
   const saveWorkItemsForRoom = useCallback(async (roomId, workItems, originalItems = null) => {
     // If no original items provided, use legacy full-save mode (backwards compatibility)
     if (!originalItems) {
@@ -965,90 +1049,6 @@ export const useProjectManager = (appData, setAppData) => {
             }
           }));
         }
-      }
-    }));
-  }, [appData.activeContractorId]);
-
-  // Legacy full-save mode for backwards compatibility
-  const fullSaveWorkItemsForRoom = useCallback(async (roomId, workItems) => {
-    const allWorkItemTables = [
-      'brick_partitions', 'brick_load_bearing_walls', 'plasterboarding_partitions',
-      'plasterboarding_offset_walls', 'plasterboarding_ceilings', 'netting_walls',
-      'netting_ceilings', 'plastering_walls', 'plastering_ceilings', 'facade_plasterings',
-      'plastering_of_window_sashes', 'painting_walls', 'painting_ceilings', 'levellings',
-      'tile_ceramics', 'paving_ceramics', 'laying_floating_floors', 'wirings', 'plumbings',
-      'installation_of_sanitaries', 'installation_of_corner_beads', 'installation_of_door_jambs',
-      'window_installations', 'demolitions', 'groutings', 'penetration_coatings', 'siliconings',
-      'custom_works', 'custom_materials', 'scaffoldings', 'core_drills', 'tool_rentals'
-    ];
-
-    // Delete existing items from ALL work item tables for this room
-    // OPTIMIZATION: Use RPC call to delete all items on server side (fixes N+1 query issue)
-    try {
-      console.log(`[fullSave] clearing all items for room ${roomId} via RPC...`);
-      await api.workItems.deleteAllItemsForRoomRPC(roomId);
-      console.log(`[fullSave] cleared items for room ${roomId}`);
-    } catch (error) {
-      console.error('[fullSave] Error clearing room items via RPC:', error);
-      // Fallback to loop if RPC fails (e.g. function not found)
-      await Promise.all(allWorkItemTables.map(async (tableName) => {
-        try {
-          const existingItems = await api.workItems.getByRoom(roomId, tableName);
-          if (existingItems?.length > 0) {
-            await Promise.all(existingItems.map(item =>
-              api.workItems.delete(tableName, item.id).catch(err => {
-                console.error(`Failed to delete item ${item.id} from ${tableName}:`, err);
-              })
-            ));
-          }
-        } catch (err) {
-          console.warn(`[fullSave] Error fetching items from ${tableName}:`, err.message);
-        }
-      }));
-    }
-
-    // Save all work items
-    const savedParentItems = [];
-    await Promise.all(workItems.map(async (workItem) => {
-      const tableName = getTableName(workItem.propertyId, workItem);
-      if (!tableName) return;
-      const dbRecord = workItemToDatabase(workItem, roomId, appData.activeContractorId);
-      if (dbRecord) {
-        try {
-          const result = await api.workItems.upsert(tableName, dbRecord);
-          if (result?.id) {
-            savedParentItems.push({ workItem, tableName, dbCId: result.c_id || result.id });
-          }
-        } catch (error) {
-          console.error(`Error saving work item to ${tableName}:`, error);
-          throw error;
-        }
-      }
-    }));
-
-    // Save doors and windows
-    await Promise.all(savedParentItems.map(async ({ workItem, tableName, dbCId }) => {
-      const doorWindowItems = workItem.doorWindowItems;
-      if (!doorWindowItems) return;
-
-      if (tableCanHaveDoors(tableName) && doorWindowItems.doors?.length > 0) {
-        await Promise.all(doorWindowItems.doors.map(async (door) => {
-          try {
-            await api.doors.upsert(doorToDatabase(door), tableName, dbCId);
-          } catch (error) {
-            console.error(`Error saving door:`, error);
-          }
-        }));
-      }
-
-      if (tableCanHaveWindows(tableName) && doorWindowItems.windows?.length > 0) {
-        await Promise.all(doorWindowItems.windows.map(async (window) => {
-          try {
-            await api.windows.upsert(windowToDatabase(window), tableName, dbCId);
-          } catch (error) {
-            console.error(`Error saving window:`, error);
-          }
-        }));
       }
     }));
   }, [appData.activeContractorId]);

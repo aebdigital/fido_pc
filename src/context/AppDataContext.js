@@ -659,8 +659,6 @@ export const AppDataProvider = ({ children }) => {
   }, [loading, appData.priceOfferSettings?.archiveRetentionDays, appData.archivedProjects, projectManager]);
 
   // Real-time sync subscription - listen for changes from iOS or other clients
-  const isRefreshingRef = useRef(false);
-
   useEffect(() => {
     if (!user?.id || loading) return;
 
