@@ -77,7 +77,7 @@ const REALTIME_TABLES = [
 export const subscribeToRealtimeChanges = (userId, onDataChange) => {
   if (!userId) {
     console.warn('[RealtimeSync] No user ID provided, skipping subscription')
-    return () => {}
+    return () => { }
   }
 
   // Clean up existing subscription
@@ -89,10 +89,13 @@ export const subscribeToRealtimeChanges = (userId, onDataChange) => {
 
   console.log('[RealtimeSync] Setting up real-time subscriptions for user:', userId)
 
+  // Event buffer to batch rapid changes
+  let eventBuffer = []
+
   // Create a single channel for all table subscriptions
   const channel = supabase.channel('desktop-realtime-sync', {
     config: {
-      broadcast: { self: false }, // Don't receive own broadcasts
+      broadcast: { self: false },
     }
   })
 
@@ -101,26 +104,36 @@ export const subscribeToRealtimeChanges = (userId, onDataChange) => {
     channel.on(
       'postgres_changes',
       {
-        event: '*', // Listen to INSERT, UPDATE, DELETE
+        event: '*',
         schema: 'public',
         table: tableName,
         filter: `user_id=eq.${userId}`
       },
       (payload) => {
-        console.log(`[RealtimeSync] Change detected in ${tableName}:`, payload.eventType)
+        // console.log(`[RealtimeSync] Change detected in ${tableName}:`, payload.eventType)
 
-        // Debounce to batch rapid changes
+        // Add to buffer
+        eventBuffer.push({
+          table: tableName,
+          eventType: payload.eventType,
+          record: payload.new,
+          oldRecord: payload.old,
+          timestamp: Date.now()
+        })
+
+        // Debounce flush
         if (debounceTimer) {
           clearTimeout(debounceTimer)
         }
 
         debounceTimer = setTimeout(() => {
-          onDataChange({
-            table: tableName,
-            eventType: payload.eventType,
-            record: payload.new,
-            oldRecord: payload.old
-          })
+          if (eventBuffer.length > 0) {
+            console.log(`[RealtimeSync] Flushing ${eventBuffer.length} batched events`)
+            // Pass the copy of buffer and clear it
+            const batch = [...eventBuffer]
+            eventBuffer = []
+            onDataChange(batch)
+          }
         }, DEBOUNCE_DELAY)
       }
     )
@@ -149,6 +162,7 @@ export const subscribeToRealtimeChanges = (userId, onDataChange) => {
       supabase.removeChannel(activeChannel)
       activeChannel = null
     }
+    eventBuffer = []
   }
 }
 

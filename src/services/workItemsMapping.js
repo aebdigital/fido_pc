@@ -6,6 +6,83 @@
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 import { workProperties } from '../config/workProperties';
 
+/**
+ * Check if a work item is a commute item
+ * @param {Object} workItem - Work item to check
+ * @returns {boolean} True if this is a commute work item
+ */
+export function isCommuteWorkItem(workItem) {
+  // Explicitly check propertyId first - this is the most reliable check
+  if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE) {
+    return true;
+  }
+
+  // IMPORTANT: Don't treat custom work items as commute, even if named "Cesta"/"Commute"
+  // This prevents accidentally filtering out custom work items with those names
+  if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+    return false;
+  }
+
+  // Legacy check for items that might not have propertyId set correctly
+  // Only match if name is exactly 'Cesta' or 'Commute' (case-sensitive)
+  return workItem.name === 'Cesta' || workItem.name === 'Commute';
+}
+
+/**
+ * Extract commute data from work items array
+ * Used when saving - extracts commute values to save to Room fields
+ * @param {Array} workItems - Array of work items
+ * @returns {Object} { commuteLength, daysInWork, commutePrice } or null if no commute item
+ */
+export function extractCommuteFromWorkItems(workItems) {
+  const commuteItem = workItems?.find(isCommuteWorkItem);
+  if (!commuteItem) return null;
+
+  return {
+    commuteLength: commuteItem.fields?.[WORK_ITEM_NAMES.DISTANCE_EN] ||
+                   commuteItem.fields?.[WORK_ITEM_NAMES.DISTANCE_SK] || 0,
+    daysInWork: commuteItem.fields?.[WORK_ITEM_NAMES.DURATION_EN] ||
+                commuteItem.fields?.[WORK_ITEM_NAMES.DURATION_SK] || 0,
+    commutePrice: commuteItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
+  };
+}
+
+/**
+ * Create a commute work item from Room's commute fields
+ * Used when loading - creates a work item for the UI from Room fields
+ * @param {Object} room - Room object with commuteLength and daysInWork
+ * @returns {Object|null} Commute work item or null if no commute data
+ */
+export function createCommuteWorkItemFromRoom(room) {
+  // Only create if there's actual commute data
+  const commuteLength = room.commute_length || room.commuteLength || 0;
+  const daysInWork = room.days_in_work || room.daysInWork || 0;
+
+  if (commuteLength === 0 && daysInWork === 0) {
+    return null;
+  }
+
+  // Find commute property config
+  const commuteProperty = workProperties.find(p => p.id === WORK_ITEM_PROPERTY_IDS.COMMUTE);
+
+  return {
+    id: `commute-${room.id || room.c_id}`, // Synthetic ID for commute
+    c_id: `commute-${room.id || room.c_id}`,
+    propertyId: WORK_ITEM_PROPERTY_IDS.COMMUTE,
+    name: commuteProperty?.name || 'Commute',
+    subtitle: commuteProperty?.subtitle || '',
+    fields: {
+      [WORK_ITEM_NAMES.DISTANCE_EN]: commuteLength,
+      [WORK_ITEM_NAMES.DISTANCE_SK]: commuteLength,
+      [WORK_ITEM_NAMES.DURATION_EN]: daysInWork,
+      [WORK_ITEM_NAMES.DURATION_SK]: daysInWork,
+      [WORK_ITEM_NAMES.PRICE]: 0 // Price comes from price list, not stored on room
+    },
+    complementaryWorks: {},
+    doorWindowItems: { doors: [], windows: [] }
+  };
+}
+
 // Map iOS unit enum values to display symbols
 // iOS stores: "basicMeter", "squareMeter", etc.
 // Desktop displays: "bm", "m²", etc.
@@ -20,7 +97,16 @@ const IOS_UNIT_TO_DISPLAY = {
   'day': 'deň',
   'kilogram': 'kg',
   'ton': 't',
-  'percentage': '%'
+  'percentage': '%',
+  // Additional mappings for desktop units
+  'pkg': 'bal',
+  'pc': 'ks',
+  'm2': 'm²',
+  'm3': 'm³',
+  'bm': 'bm',
+  'h': 'hod',
+  'km': 'km',
+  'kg': 'kg'
 };
 
 /**
@@ -30,12 +116,19 @@ const IOS_UNIT_TO_DISPLAY = {
  */
 export function unitToDisplaySymbol(unit) {
   if (!unit) return '';
+
+  // Strip €/ prefix if present (desktop sends units like "€/pkg", "€/m2")
+  let normalized = unit;
+  if (normalized.startsWith('€/')) {
+    normalized = normalized.substring(2);
+  }
+
   // Check if it's an iOS enum value that needs conversion
-  if (IOS_UNIT_TO_DISPLAY[unit]) {
-    return IOS_UNIT_TO_DISPLAY[unit];
+  if (IOS_UNIT_TO_DISPLAY[normalized]) {
+    return IOS_UNIT_TO_DISPLAY[normalized];
   }
   // Already a display symbol or unknown, return as-is
-  return unit;
+  return normalized;
 }
 
 // Map propertyId to database table name
@@ -103,6 +196,12 @@ export const PROPERTY_TO_TABLE = {
  * @returns {Object} Database record
  */
 export function workItemToDatabase(workItem, roomId, contractorId) {
+  // Skip commute items - they are saved to Room fields, not custom_works table
+  // This ensures iOS compatibility (iOS stores commute in Room.commuteLength/daysInWork)
+  if (isCommuteWorkItem(workItem)) {
+    return null;
+  }
+
   let tableName = PROPERTY_TO_TABLE[workItem.propertyId];
 
   // Handle custom work/material - route to correct table based on selectedType
@@ -155,9 +254,9 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
-        netting: workItem.complementaryWorks?.['Netting_0'] || 0,
-        painting: workItem.complementaryWorks?.['Painting_0'] || 0,
-        plastering: workItem.complementaryWorks?.['Plastering_0'] || 0,
+        netting: workItem.complementaryWorks?.['Netting WALL_0'] || workItem.complementaryWorks?.['Netting_0'] || 0,
+        painting: workItem.complementaryWorks?.['Painting WALL_0'] || workItem.complementaryWorks?.['Painting_0'] || 0,
+        plastering: workItem.complementaryWorks?.['Plastering WALL_0'] || workItem.complementaryWorks?.['Plastering_0'] || 0,
         tiling: workItem.complementaryWorks?.['Tiling under 60cm_0'] || 0,
         penetration_one: workItem.complementaryWorks?.['Penetration coating_0'] || 0,
         penetration_two: workItem.complementaryWorks?.['Penetration coating_1'] || 0,
@@ -165,18 +264,31 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
       };
 
     case 'plasterboarding_partitions':
-    case 'plasterboarding_offset_walls':
-    case 'plasterboarding_ceilings':
+    case 'plasterboarding_offset_walls': {
       // Map type to bigint: Simple=1, Double=2, Triple=3
-      const typeMap = { 'Simple': 1, 'Double': 2, 'Triple': 3 };
+      const typeMapWall = { 'Simple': 1, 'Double': 2, 'Triple': 3 };
       return {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        type: typeMap[workItem.selectedType] || 1,
-        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
+        type: typeMapWall[workItem.selectedType] || 1,
+        painting: (workItem.complementaryWorks?.['Painting WALL_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0,
         penetration: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0
       };
+    }
+
+    case 'plasterboarding_ceilings': {
+      // Map type to bigint: Simple=1, Double=2, Triple=3
+      const typeMapCeiling = { 'Simple': 1, 'Double': 2, 'Triple': 3 };
+      return {
+        ...baseRecord,
+        size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
+        type: typeMapCeiling[workItem.selectedType] || 1,
+        painting: (workItem.complementaryWorks?.['Painting CEILING_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0,
+        penetration: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0
+      };
+    }
 
     case 'netting_walls':
       // Netting walls have: painting, plastering, tiling, penetration_one, penetration_two
@@ -184,8 +296,8 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
-        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
-        plastering: workItem.complementaryWorks?.['Plastering_0'] ? 1 : 0,
+        painting: (workItem.complementaryWorks?.['Painting WALL_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0,
+        plastering: (workItem.complementaryWorks?.['Plastering WALL_0'] || workItem.complementaryWorks?.['Plastering_0']) ? 1 : 0,
         tiling: workItem.complementaryWorks?.['Tiling under 60cm_0'] ? 1 : 0,
         penetration_one: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0,
         penetration_two: workItem.complementaryWorks?.['Penetration coating_1'] ? 1 : 0
@@ -199,7 +311,7 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.HEIGHT] || 0,
-        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
+        painting: (workItem.complementaryWorks?.['Painting WALL_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0,
         penetration: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0
       };
 
@@ -216,8 +328,8 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
-        plastering: workItem.complementaryWorks?.['Plastering_0'] ? 1 : 0,
+        painting: (workItem.complementaryWorks?.['Painting CEILING_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0,
+        plastering: (workItem.complementaryWorks?.['Plastering CEILING_0'] || workItem.complementaryWorks?.['Plastering_0']) ? 1 : 0,
         penetration_one: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0,
         penetration_two: workItem.complementaryWorks?.['Penetration coating_1'] ? 1 : 0
       };
@@ -229,7 +341,7 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ...baseRecord,
         size1: workItem.fields?.[WORK_ITEM_NAMES.WIDTH] || 0,
         size2: workItem.fields?.[WORK_ITEM_NAMES.LENGTH] || 0,
-        painting: workItem.complementaryWorks?.['Painting_0'] ? 1 : 0,
+        painting: (workItem.complementaryWorks?.['Painting CEILING_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0,
         penetration: workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0
       };
 
@@ -333,7 +445,9 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
         ? (workItem.fields?.[WORK_ITEM_NAMES.DISTANCE_EN] || workItem.fields?.[WORK_ITEM_NAMES.DISTANCE_SK] || 0)
         : (workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || workItem.fields?.['Quantity'] || 0);
       const unit = isCommute ? 'km' : (workItem.selectedUnit || '');
-      const title = isCommute ? 'Cesta' : (workItem.fields?.[WORK_ITEM_NAMES.NAME] || workItem.name || '');
+      // Only store user-entered name, not the fallback 'Custom work and material'
+      // Let each platform handle fallback display name
+      const title = isCommute ? 'Cesta' : (workItem.fields?.[WORK_ITEM_NAMES.NAME] || '');
       const numberOfDays = isCommute
         ? (workItem.fields?.[WORK_ITEM_NAMES.DURATION_EN] || workItem.fields?.[WORK_ITEM_NAMES.DURATION_SK] || 0)
         : 0;
@@ -351,10 +465,11 @@ export function workItemToDatabase(workItem, roomId, contractorId) {
 
     case 'custom_materials':
       // Note: custom_materials table doesn't have linked_to_parent/linked_work_key columns
+      // Only store user-entered name, let each platform handle fallback display name
       return {
         room_id: roomId,
         c_id: workItemCId,
-        title: workItem.fields?.[WORK_ITEM_NAMES.NAME] || workItem.name || '',
+        title: workItem.fields?.[WORK_ITEM_NAMES.NAME] || '',
         unit: workItem.selectedUnit || '',
         number_of_units: workItem.fields?.[WORK_ITEM_NAMES.QUANTITY] || 0,
         price_per_unit: workItem.fields?.[WORK_ITEM_NAMES.PRICE] || 0
@@ -438,7 +553,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
   switch (tableName) {
     case 'brick_partitions':
     case 'brick_load_bearing_walls':
-      // Load complementary works as numbers (0, 1, or 2) with _0/_1/_2 suffix keys
+      // Load complementary works as numbers (0, 1, or 2) with WALL suffix keys
       return {
         ...baseItem,
         fields: {
@@ -446,9 +561,9 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          'Netting_0': dbRecord.netting || 0,
-          'Painting_0': dbRecord.painting || 0,
-          'Plastering_0': dbRecord.plastering || 0,
+          'Netting WALL_0': dbRecord.netting || 0,
+          'Painting WALL_0': dbRecord.painting || 0,
+          'Plastering WALL_0': dbRecord.plastering || 0,
           'Tiling under 60cm_0': dbRecord.tiling || 0,
           'Penetration coating_0': dbRecord.penetration_one || 0,
           'Penetration coating_1': dbRecord.penetration_two || 0,
@@ -456,28 +571,46 @@ export function databaseToWorkItem(dbRecord, tableName) {
         }
       };
 
-    case 'plasterboarding_partitions':
-    case 'plasterboarding_ceilings': {
-      // Partitions and ceilings use WIDTH x LENGTH
+    case 'plasterboarding_partitions': {
+      // Partitions use WIDTH x LENGTH with WALL suffix
       // Map bigint type back to string: 1=Simple, 2=Double, 3=Triple
-      const typeNames = { 1: 'Simple', 2: 'Double', 3: 'Triple' };
-      const plasterboardType = typeNames[dbRecord.type] || 'Simple';
+      const typeNamesPartition = { 1: 'Simple', 2: 'Double', 3: 'Triple' };
+      const partitionType = typeNamesPartition[dbRecord.type] || 'Simple';
       return {
         ...baseItem,
         fields: {
           [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
         },
-        selectedType: plasterboardType,
+        selectedType: partitionType,
         complementaryWorks: {
-          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Painting WALL_0': dbRecord.painting ? 1 : 0,
+          'Penetration coating_0': dbRecord.penetration ? 1 : 0
+        }
+      };
+    }
+
+    case 'plasterboarding_ceilings': {
+      // Ceilings use WIDTH x LENGTH with CEILING suffix
+      // Map bigint type back to string: 1=Simple, 2=Double, 3=Triple
+      const typeNamesCeiling = { 1: 'Simple', 2: 'Double', 3: 'Triple' };
+      const ceilingType = typeNamesCeiling[dbRecord.type] || 'Simple';
+      return {
+        ...baseItem,
+        fields: {
+          [WORK_ITEM_NAMES.WIDTH]: dbRecord.size1 || 0,
+          [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
+        },
+        selectedType: ceilingType,
+        complementaryWorks: {
+          'Painting CEILING_0': dbRecord.painting ? 1 : 0,
           'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
     }
 
     case 'plasterboarding_offset_walls': {
-      // Offset walls use WIDTH x HEIGHT
+      // Offset walls use WIDTH x HEIGHT with WALL suffix
       const typeNamesOffset = { 1: 'Simple', 2: 'Double', 3: 'Triple' };
       const offsetType = typeNamesOffset[dbRecord.type] || 'Simple';
       return {
@@ -488,14 +621,14 @@ export function databaseToWorkItem(dbRecord, tableName) {
         },
         selectedType: offsetType,
         complementaryWorks: {
-          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Painting WALL_0': dbRecord.painting ? 1 : 0,
           'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
     }
 
     case 'netting_walls':
-      // Netting walls have: painting, plastering, tiling, penetration_one, penetration_two
+      // Netting walls have: painting, plastering, tiling, penetration_one, penetration_two with WALL suffix
       return {
         ...baseItem,
         fields: {
@@ -503,8 +636,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          'Painting_0': dbRecord.painting ? 1 : 0,
-          'Plastering_0': dbRecord.plastering ? 1 : 0,
+          'Painting WALL_0': dbRecord.painting ? 1 : 0,
+          'Plastering WALL_0': dbRecord.plastering ? 1 : 0,
           'Tiling under 60cm_0': dbRecord.tiling ? 1 : 0,
           'Penetration coating_0': dbRecord.penetration_one ? 1 : 0,
           'Penetration coating_1': dbRecord.penetration_two ? 1 : 0
@@ -514,7 +647,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
     case 'plastering_walls':
     case 'painting_walls':
     case 'facade_plasterings':
-      // Wall types use WIDTH x HEIGHT with painting and penetration
+      // Wall types use WIDTH x HEIGHT with painting and penetration with WALL suffix
       return {
         ...baseItem,
         fields: {
@@ -522,7 +655,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.HEIGHT]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Painting WALL_0': dbRecord.painting ? 1 : 0,
           'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
@@ -537,7 +670,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'netting_ceilings':
-      // Netting ceilings have: painting, plastering, penetration_one, penetration_two
+      // Netting ceilings have: painting, plastering, penetration_one, penetration_two with CEILING suffix
       return {
         ...baseItem,
         fields: {
@@ -545,8 +678,8 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          'Painting_0': dbRecord.painting ? 1 : 0,
-          'Plastering_0': dbRecord.plastering ? 1 : 0,
+          'Painting CEILING_0': dbRecord.painting ? 1 : 0,
+          'Plastering CEILING_0': dbRecord.plastering ? 1 : 0,
           'Penetration coating_0': dbRecord.penetration_one ? 1 : 0,
           'Penetration coating_1': dbRecord.penetration_two ? 1 : 0
         }
@@ -554,7 +687,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
 
     case 'plastering_ceilings':
     case 'painting_ceilings':
-      // Ceiling types use WIDTH x LENGTH with painting and penetration
+      // Ceiling types use WIDTH x LENGTH with painting and penetration with CEILING suffix
       return {
         ...baseItem,
         fields: {
@@ -562,7 +695,7 @@ export function databaseToWorkItem(dbRecord, tableName) {
           [WORK_ITEM_NAMES.LENGTH]: dbRecord.size2 || 0
         },
         complementaryWorks: {
-          'Painting_0': dbRecord.painting ? 1 : 0,
+          'Painting CEILING_0': dbRecord.painting ? 1 : 0,
           'Penetration coating_0': dbRecord.penetration ? 1 : 0
         }
       };
@@ -674,28 +807,23 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'custom_works':
-      // Detect if this is a commute item
-      // Commute items have: title 'Cesta' or 'Commute', AND unit 'km', AND number_of_days > 0
-      // This distinguishes from custom work items that might also use 'km' unit
+      // Skip commute items from custom_works table - they are now loaded from Room fields
+      // This ensures iOS compatibility (iOS stores commute in Room.commuteLength/daysInWork)
       const isCommuteItem = (dbRecord.title === 'Cesta' || dbRecord.title === 'Commute') &&
         dbRecord.unit === 'km';
 
       if (isCommuteItem) {
-        return {
-          ...baseItem,
-          propertyId: WORK_ITEM_PROPERTY_IDS.COMMUTE,
-          name: 'Cesta',
-          fields: {
-            [WORK_ITEM_NAMES.DISTANCE_EN]: dbRecord.number_of_units || 0,
-            [WORK_ITEM_NAMES.DISTANCE_SK]: dbRecord.number_of_units || 0,
-            [WORK_ITEM_NAMES.DURATION_EN]: dbRecord.number_of_days || 0,
-            [WORK_ITEM_NAMES.DURATION_SK]: dbRecord.number_of_days || 0,
-            [WORK_ITEM_NAMES.PRICE]: dbRecord.price_per_unit || 0
-          }
-        };
+        // Return null to skip - commute will be created from Room fields instead
+        return null;
       }
 
       // Regular custom work item
+      console.log('[DB Load] custom_works item:', {
+        title: dbRecord.title,
+        unit: dbRecord.unit,
+        number_of_units: dbRecord.number_of_units,
+        price_per_unit: dbRecord.price_per_unit
+      });
       return {
         ...baseItem,
         name: dbRecord.title,
@@ -709,6 +837,12 @@ export function databaseToWorkItem(dbRecord, tableName) {
       };
 
     case 'custom_materials':
+      console.log('[DB Load] custom_materials item:', {
+        title: dbRecord.title,
+        unit: dbRecord.unit,
+        number_of_units: dbRecord.number_of_units,
+        price_per_unit: dbRecord.price_per_unit
+      });
       return {
         ...baseItem,
         name: dbRecord.title,

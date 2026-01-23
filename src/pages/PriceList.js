@@ -203,64 +203,90 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     return originalPrices[category][itemIndex].price !== localPriceList[category][itemIndex].price;
   };
 
-  const PriceCard = ({ item, category, itemIndex }) => (
-    <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className="flex justify-between items-start gap-2">
-        <div className="flex-1 min-w-0">
-          {category === 'installations' && item.subtitle ? (
-            <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.subtitle)}</h3>
-          ) : (
-            <>
-              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
-              {item.subtitle && (
-                <p className="text-xs lg:text-sm text-black dark:text-white -mt-0.5 leading-tight">{t(item.subtitle)}</p>
-              )}
-            </>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-28 sm:w-auto">
-            <NumberInput
-              value={item.price}
-              onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
-              className={isItemModified(category, itemIndex)
-                ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
-                : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
-              }
-              min={0}
-              forceDecimal={2}
-            />
-          </div>
-          <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
-        </div>
-      </div>
+  const PriceCard = ({ item, category, itemIndex }) => {
+    // Helper to get correct subtitle translation key directly inside render
+    const getSubtitleTranslation = (name, subtitle) => {
+      if (!subtitle) return '';
 
-      {item.capacity && (
-        <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
-          <div className="flex justify-between items-center gap-2">
-            <span className="text-sm lg:text-base text-black dark:text-white">
-              {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
-                ? t('capacity per 25kg package')
-                : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
-              }
-            </span>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-28 sm:w-auto">
-                <NumberInput
-                  value={item.capacity.value}
-                  onChange={(newValue) => handleCapacityChange(category, itemIndex, newValue)}
-                  className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                  min={0}
-                  step={0.1}
-                />
+      const lowerSubtitle = subtitle.toLowerCase();
+      const isCeramic = lowerSubtitle === 'ceramic' || lowerSubtitle.includes('keramick');
+
+      if (isCeramic) {
+        const lowerName = name.toLowerCase();
+        // Check for Paving (Dlažba) which needs feminine 'keramická'
+        if (lowerName.includes('paving') || lowerName.includes('dlažba')) {
+          return t('ceramic feminine');
+        }
+        // Check for Tiles (Obklad) which needs masculine 'keramický'
+        if (lowerName.includes('tiles') || lowerName.includes('obklad')) {
+          return t('ceramic masculine');
+        }
+      }
+
+      return t(subtitle);
+    };
+
+    return (
+      <div className={`${category === 'material' ? 'bg-gray-400 dark:bg-gray-700' : 'bg-gray-200 dark:bg-gray-800'} rounded-2xl p-3 lg:p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow`}>
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
+            {category === 'installations' && item.subtitle ? (
+              <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.subtitle)}</h3>
+            ) : (
+              <>
+                <h3 className="font-medium text-gray-900 dark:text-white leading-tight text-base lg:text-lg">{t(item.name)}</h3>
+                {item.subtitle && (
+                  <p className="text-xs lg:text-sm text-black dark:text-white -mt-0.5 leading-tight">
+                    {getSubtitleTranslation(item.name, item.subtitle)}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-28 sm:w-auto">
+              <NumberInput
+                value={item.price}
+                onChange={(newValue) => handlePriceChange(category, itemIndex, newValue)}
+                className={isItemModified(category, itemIndex)
+                  ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-900 dark:text-blue-100'
+                  : 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white'
+                }
+                min={0}
+                forceDecimal={2}
+              />
+            </div>
+            <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
+          </div>
+        </div>
+
+        {item.capacity && (
+          <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-sm lg:text-base text-black dark:text-white">
+                {(item.name === 'Adhesive' || item.name === 'Plaster' || item.name === 'Facade Plaster')
+                  ? t('capacity per 25kg package')
+                  : `${t('capacity per')} ${item.unit.includes('pc') ? t('piece') : t('package')}`
+                }
+              </span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="w-28 sm:w-auto">
+                  <NumberInput
+                    value={item.capacity.value}
+                    onChange={(newValue) => handleCapacityChange(category, itemIndex, newValue)}
+                    className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                    min={0}
+                    step={0.1}
+                  />
+                </div>
+                <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
               </div>
-              <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   if (!localPriceList) {
     return (

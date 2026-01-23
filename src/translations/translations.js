@@ -57,6 +57,9 @@ export const translations = {
     "Duplikované do": "Duplicated to",
     "Duplikované z": "Duplicated from",
 
+    // Plural forms for room work count
+    "work_singular": "work",
+
     // iOS-compatible project status translations
     "not sent": "Not sent",
     "sent": "Sent",
@@ -89,6 +92,12 @@ export const translations = {
     "Fasádna omietka": "Facade Plastering",
     "Penetračný náter": "Penetration coating",
     "Maľovanie": "Painting",
+    "Sieťkovanie STENA": "Netting",
+    "Sieťkovanie STROP": "Netting",
+    "Omietka STENA": "Plastering",
+    "Omietka STROP": "Plastering",
+    "Maľovanie STENA": "Painting",
+    "Maľovanie STROP": "Painting",
     "Nivelačka": "Levelling",
     "Plávajúca podlaha": "Floating floor",
     "Lištovanie": "Skirting",
@@ -237,16 +246,22 @@ export const translations = {
     "kitchen": "Kuchyňa",
     "Living room": "Obývačka",
     "living room": "Obývačka",
+    "livingroom": "Obývačka", // Legacy iOS enum
     "Kids room": "Detská izba",
     "kids room": "Detská izba",
+    "kidsroom": "Detská izba", // Legacy iOS enum
     "Bedroom": "Spálňa",
     "bedroom": "Spálňa",
     "Guest room": "Hosťovská",
     "guest room": "Hosťovská",
+    "Guests room": "Hosťovská", // Legacy iOS variant
+    "geustsroom": "Hosťovská", // Legacy iOS enum (typo)
     "Work room": "Pracovňa",
     "work room": "Pracovňa",
+    "workroom": "Pracovňa", // Legacy iOS enum
     "Custom": "Vlastné",
     "custom": "Vlastné",
+    "other": "Vlastné", // Legacy iOS enum
 
     // ========== WORK TYPES - MAIN CATEGORIES ==========
     "Work": "Práca",
@@ -268,6 +283,12 @@ export const translations = {
     "Penetračný náter": "Penetračný náter",
     "Painting": "Maľovanie",
     "Maľovanie": "Maľovanie",
+    "Netting WALL": "Sieťkovanie",
+    "Netting CEILING": "Sieťkovanie",
+    "Plastering WALL": "Omietka",
+    "Plastering CEILING": "Omietka",
+    "Painting WALL": "Maľovanie",
+    "Painting CEILING": "Maľovanie",
     "Levelling": "Nivelačka",
     "Nivelačka": "Nivelačka",
     "Floating floor": "Plávajúca podlaha",

@@ -1,9 +1,10 @@
 import { useCallback } from 'react';
 import api from '../services/supabaseApi';
-import { databaseToWorkItem, getTableName, workItemToDatabase, tableCanHaveDoors, tableCanHaveWindows, doorToDatabase, windowToDatabase, doorFromDatabase, windowFromDatabase, TABLES_WITH_DOORS_WINDOWS } from '../services/workItemsMapping';
+import { databaseToWorkItem, getTableName, workItemToDatabase, tableCanHaveDoors, tableCanHaveWindows, doorToDatabase, windowToDatabase, doorFromDatabase, windowFromDatabase, TABLES_WITH_DOORS_WINDOWS, createCommuteWorkItemFromRoom, extractCommuteFromWorkItems, isCommuteWorkItem } from '../services/workItemsMapping';
 import { analyzeReceipt } from '../services/openaiReceiptService';
 import { priceListToDbColumns } from '../services/priceListMapping';
 import { PROJECT_EVENTS } from '../utils/dataTransformers';
+import { computeWorkItemsDelta, computeDoorWindowDelta } from '../utils/workItemsDelta';
 import flatsImage from '../images/flats.jpg';
 import housesImage from '../images/houses.jpg';
 import firmsImage from '../images/firms.jpg';
@@ -94,65 +95,61 @@ export const useProjectManager = (appData, setAppData) => {
         project_history: JSON.stringify(initialHistory)
       });
 
-      // Create a project-specific price list in the price_lists table (iOS-compatible)
-      // This mimics iOS behavior: copy general price list values to a new row with is_general=false
-      try {
-        const dbPriceData = priceListToDbColumns(priceListSnapshot);
-        console.log('[addProject] Creating price list with data:', JSON.stringify(dbPriceData).slice(0, 500));
+      // OPTIMIZED: Run price list creation and history event in parallel
+      // Then update project with price_list_id (this needs the price list to exist first)
+      const dbPriceData = priceListToDbColumns(priceListSnapshot);
+      console.log('[addProject] Creating price list and history event in parallel');
 
-        const createdPriceList = await api.priceLists.createForProject(projectCId, activeContractorId, dbPriceData);
-        console.log('[addProject] Created project price list:', createdPriceList?.c_id, 'for iOS compatibility');
-
-        // CRITICAL: Update the project with the price_list_id so iOS can link them
-        // Without this, iOS will create a new default price list with default values (15€ etc.)
-        if (createdPriceList && createdPriceList.c_id) {
-          await api.projects.update(projectCId, { price_list_id: createdPriceList.c_id });
-          console.log('[addProject] Linked price_list_id to project:', createdPriceList.c_id);
-
-          // Also update the newProject object so it has the price_list_id
-          newProject.price_list_id = createdPriceList.c_id;
-        } else {
-          console.warn('[addProject] Price list created but no c_id returned');
-        }
-      } catch (priceListError) {
-        console.error('[addProject] Failed to create project price list:', priceListError);
-        // Don't fail the whole operation if price list creation fails
-      }
-
-      // Also write to history_events table for iOS sync
-      try {
-        await api.historyEvents.create({
+      const [createdPriceList] = await Promise.all([
+        // Create price list
+        api.priceLists.createForProject(projectCId, activeContractorId, dbPriceData)
+          .catch(err => {
+            console.error('[addProject] Failed to create project price list:', err);
+            return null;
+          }),
+        // Create history event (iOS sync)
+        api.historyEvents.create({
           type: PROJECT_EVENTS.CREATED,
           project_id: projectCId,
           created_at: initialHistory[0].date
-        });
-        console.log('[addProject] Created history event in history_events table for iOS sync');
-      } catch (historyError) {
-        console.error('[addProject] Failed to create history event:', historyError);
-        // Don't fail the whole operation if history event creation fails
-      }
+        }).catch(err => {
+          console.error('[addProject] Failed to create history event:', err);
+          return null;
+        })
+      ]);
 
-      // Add the price list snapshot and history to the project object
+      // Link price list to project AND get the trigger-assigned number in one call
+      // The update returns the project with the number already set by the AFTER INSERT trigger
       let projectWithSnapshot = {
         ...newProject,
         priceListSnapshot,
         projectHistory: initialHistory
       };
 
-      // CRITICAL FIX: If number is 0, it means the DB trigger (likely AFTER INSERT) hasn't updated it yet in our return value.
-      // We need to re-fetch to get the actual assigned number (e.g., 2026049).
-      if (projectWithSnapshot.number === 0 || projectWithSnapshot.number === '0') {
-        try {
-          // Small delay to ensure trigger has completed
-          await new Promise(resolve => setTimeout(resolve, 500));
+      if (createdPriceList?.c_id) {
+        // This update call returns the project with the auto-assigned number (trigger already ran)
+        const updatedProject = await api.projects.update(projectCId, { price_list_id: createdPriceList.c_id });
+        console.log('[addProject] Linked price_list_id and got number:', updatedProject?.number);
 
+        if (updatedProject) {
+          projectWithSnapshot = {
+            ...projectWithSnapshot,
+            ...updatedProject,
+            price_list_id: createdPriceList.c_id,
+            priceListSnapshot,
+            projectHistory: initialHistory
+          };
+        }
+      } else if (projectWithSnapshot.number === 0 || projectWithSnapshot.number === '0') {
+        // Fallback: Only refetch if we didn't do an update above and number is still 0
+        // No sleep needed - trigger should be done by now since we did parallel operations
+        try {
           const refetchedProject = await api.projects.getById(projectCId);
-          if (refetchedProject && refetchedProject.number !== 0) {
-            console.log('[addProject] Refetched project to get assigned number:', refetchedProject.number);
+          if (refetchedProject?.number && refetchedProject.number !== 0) {
+            console.log('[addProject] Refetched project number:', refetchedProject.number);
             projectWithSnapshot = {
               ...projectWithSnapshot,
               ...refetchedProject,
-              // Restore calculated/snapshot fields which might be lost in raw fetch
               priceListSnapshot,
               projectHistory: initialHistory
             };
@@ -727,9 +724,17 @@ export const useProjectManager = (appData, setAppData) => {
         // Don't pass contractor ID - work items are scoped by room, not contractor
         // (c_id is now a unique UUID per work item, not contractor ID)
         const workItems = await loadWorkItemsForRoom(room.id, null);
+
+        // Create commute work item from Room fields (iOS compatibility)
+        // Commute is stored in Room.commute_length and Room.days_in_work, not in custom_works
+        const commuteWorkItem = createCommuteWorkItemFromRoom(room);
+        const allWorkItems = commuteWorkItem
+          ? [...(workItems || []), commuteWorkItem]
+          : (workItems || []);
+
         return {
           ...room,
-          workItems: workItems || []
+          workItems: allWorkItems
         };
       }));
 
@@ -787,148 +792,294 @@ export const useProjectManager = (appData, setAppData) => {
     }
   }, [setAppData]);
 
-  const saveWorkItemsForRoom = useCallback(async (roomId, workItems) => {
-    // Get all possible work item tables to ensure we delete removed items too
-    const allWorkItemTables = [
-      'brick_partitions',
-      'brick_load_bearing_walls',
-      'plasterboarding_partitions',
-      'plasterboarding_offset_walls',
-      'plasterboarding_ceilings',
-      'netting_walls',
-      'netting_ceilings',
-      'plastering_walls',
-      'plastering_ceilings',
-      'facade_plasterings',
-      'plastering_of_window_sashes',
-      'painting_walls',
-      'painting_ceilings',
-      'levellings',
-      'tile_ceramics',
-      'paving_ceramics',
-      'laying_floating_floors',
-      'wirings',
-      'plumbings',
-      'installation_of_sanitaries',
-      'installation_of_corner_beads',
-      'installation_of_door_jambs',
-      'window_installations',
-      'demolitions',
-      'groutings',
-      'penetration_coatings',
-      'siliconings',
-      'custom_works',
-      'custom_materials',
-      'scaffoldings',
-      'core_drills',
-      'tool_rentals'
-    ];
+  const saveWorkItemsForRoom = useCallback(async (roomId, workItems, originalItems = null) => {
+    // If no original items provided, use legacy full-save mode (backwards compatibility)
+    if (!originalItems) {
+      console.log('[saveWorkItems] No original items provided, using full save mode');
+      await fullSaveWorkItemsForRoom(roomId, workItems);
+      return;
+    }
 
-    // Delete existing items from ALL work item tables for this room
-    const deletePromises = allWorkItemTables.map(async (tableName) => {
-      try {
-        const existingItems = await api.workItems.getByRoom(roomId, tableName);
-        if (existingItems && existingItems.length > 0) {
-          const deleteResults = await Promise.all(existingItems.map(item =>
-            api.workItems.delete(tableName, item.id)
-              .catch(err => {
-                console.error(`Failed to delete item ${item.id} from ${tableName}:`, err);
-                return null;
-              })
-          ));
-          // Log if any deletions failed
-          const failedCount = deleteResults.filter(r => r === null).length;
-          if (failedCount > 0) {
-            console.warn(`[saveWorkItemsForRoom] ${failedCount}/${existingItems.length} deletions failed for ${tableName}`);
-          }
-        }
-      } catch (error) {
-        // Log fetch errors (not just silently swallow them)
-        console.warn(`[saveWorkItemsForRoom] Error fetching items from ${tableName}:`, error.message);
-      }
-    });
+    // Delta save mode - only save what changed
+    const { toInsert, toUpdate, toDelete } = computeWorkItemsDelta(originalItems, workItems);
+    console.log(`[Delta Save] Insert: ${toInsert.length}, Update: ${toUpdate.length}, Delete: ${toDelete.length}`);
 
-    await Promise.all(deletePromises);
+    // If nothing changed, skip database operations
+    if (toInsert.length === 0 && toUpdate.length === 0 && toDelete.length === 0) {
+      console.log('[Delta Save] No changes detected, skipping save');
+      return;
+    }
 
-    // Save work items and track saved items with their doors/windows
-    const savedParentItems = []; // Track saved items with their doors/windows
+    // Track saved items for door/window handling
+    const savedParentItems = [];
 
-    await Promise.all(workItems.map(async (workItem) => {
+    // Process inserts
+    const insertPromises = toInsert.map(async (workItem) => {
       const tableName = getTableName(workItem.propertyId, workItem);
       if (!tableName) {
         console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
         return;
       }
       const dbRecord = workItemToDatabase(workItem, roomId, appData.activeContractorId);
-      console.log(`[saveWorkItems] Saving to ${tableName}:`, dbRecord);
       if (dbRecord) {
         try {
           const result = await api.workItems.upsert(tableName, dbRecord);
-          console.log(`[saveWorkItems] Saved to ${tableName}, result:`, result);
-          // Track this item for door/window saving
+          console.log(`[Delta Insert] ${tableName}:`, dbRecord.c_id);
           if (result && result.id) {
-            savedParentItems.push({
-              workItem,
-              tableName,
-              dbCId: result.c_id || result.id
-            });
+            savedParentItems.push({ workItem, tableName, dbCId: result.c_id || result.id, isNew: true });
+          }
+        } catch (error) {
+          console.error(`Error inserting work item to ${tableName}:`, error);
+          throw error;
+        }
+      }
+    });
+
+    // Process updates
+    const updatePromises = toUpdate.map(async (workItem) => {
+      const tableName = getTableName(workItem.propertyId, workItem);
+      if (!tableName) {
+        console.warn(`No table mapping for propertyId: ${workItem.propertyId}`);
+        return;
+      }
+      const dbRecord = workItemToDatabase(workItem, roomId, appData.activeContractorId);
+      if (dbRecord) {
+        try {
+          const result = await api.workItems.upsert(tableName, dbRecord);
+          console.log(`[Delta Update] ${tableName}:`, dbRecord.c_id);
+          if (result && result.id) {
+            // Find original item to compare doors/windows
+            const originalItem = originalItems.find(o => (o.c_id || o.id) === (workItem.c_id || workItem.id));
+            savedParentItems.push({ workItem, tableName, dbCId: result.c_id || result.id, originalItem });
+          }
+        } catch (error) {
+          console.error(`Error updating work item in ${tableName}:`, error);
+          throw error;
+        }
+      }
+    });
+
+    // Process deletes (soft delete)
+    const deletePromises = toDelete.map(async (workItem) => {
+      // Use custom table if specified (for type changes), otherwise compute from item
+      const tableName = workItem._deleteTable || getTableName(workItem.propertyId, workItem);
+      if (!tableName) {
+        console.warn(`No table mapping for deletion, propertyId: ${workItem.propertyId}`);
+        return;
+      }
+      const cId = workItem.c_id || workItem.id;
+      if (cId) {
+        try {
+          await api.workItems.delete(tableName, cId);
+          console.log(`[Delta Delete] ${tableName}:`, cId);
+        } catch (error) {
+          console.error(`Error deleting work item from ${tableName}:`, error);
+        }
+      }
+    });
+
+    // Execute all operations in parallel
+    await Promise.all([...insertPromises, ...updatePromises, ...deletePromises]);
+
+    // Handle doors and windows for saved parent items
+    await Promise.all(savedParentItems.map(async ({ workItem, tableName, dbCId, isNew, originalItem }) => {
+      const doorWindowItems = workItem.doorWindowItems;
+      if (!doorWindowItems) return;
+
+      if (isNew) {
+        // New item - insert all doors and windows
+        if (tableCanHaveDoors(tableName) && doorWindowItems.doors?.length > 0) {
+          await Promise.all(doorWindowItems.doors.map(async (door) => {
+            try {
+              const dbDoor = doorToDatabase(door);
+              await api.doors.upsert(dbDoor, tableName, dbCId);
+            } catch (error) {
+              console.error(`Error saving door for ${tableName}:`, error);
+            }
+          }));
+        }
+        if (tableCanHaveWindows(tableName) && doorWindowItems.windows?.length > 0) {
+          await Promise.all(doorWindowItems.windows.map(async (window) => {
+            try {
+              const dbWindow = windowToDatabase(window);
+              await api.windows.upsert(dbWindow, tableName, dbCId);
+            } catch (error) {
+              console.error(`Error saving window for ${tableName}:`, error);
+            }
+          }));
+        }
+      } else if (originalItem) {
+        // Updated item - use delta for doors/windows
+        const dwDelta = computeDoorWindowDelta(originalItem.doorWindowItems, doorWindowItems);
+
+        // Insert new doors
+        if (tableCanHaveDoors(tableName)) {
+          await Promise.all(dwDelta.doorsToInsert.map(async (door) => {
+            try {
+              await api.doors.upsert(doorToDatabase(door), tableName, dbCId);
+            } catch (error) {
+              console.error(`Error inserting door:`, error);
+            }
+          }));
+          // Update existing doors
+          await Promise.all(dwDelta.doorsToUpdate.map(async (door) => {
+            try {
+              await api.doors.upsert(doorToDatabase(door), tableName, dbCId);
+            } catch (error) {
+              console.error(`Error updating door:`, error);
+            }
+          }));
+          // Delete removed doors
+          await Promise.all(dwDelta.doorsToDelete.map(async (door) => {
+            try {
+              if (door.c_id) await api.doors.delete(door.c_id);
+            } catch (error) {
+              console.error(`Error deleting door:`, error);
+            }
+          }));
+        }
+
+        // Insert new windows
+        if (tableCanHaveWindows(tableName)) {
+          await Promise.all(dwDelta.windowsToInsert.map(async (window) => {
+            try {
+              await api.windows.upsert(windowToDatabase(window), tableName, dbCId);
+            } catch (error) {
+              console.error(`Error inserting window:`, error);
+            }
+          }));
+          // Update existing windows
+          await Promise.all(dwDelta.windowsToUpdate.map(async (window) => {
+            try {
+              await api.windows.upsert(windowToDatabase(window), tableName, dbCId);
+            } catch (error) {
+              console.error(`Error updating window:`, error);
+            }
+          }));
+          // Delete removed windows
+          await Promise.all(dwDelta.windowsToDelete.map(async (window) => {
+            try {
+              if (window.c_id) await api.windows.delete(window.c_id);
+            } catch (error) {
+              console.error(`Error deleting window:`, error);
+            }
+          }));
+        }
+      }
+    }));
+  }, [appData.activeContractorId]);
+
+  // Legacy full-save mode for backwards compatibility
+  const fullSaveWorkItemsForRoom = useCallback(async (roomId, workItems) => {
+    const allWorkItemTables = [
+      'brick_partitions', 'brick_load_bearing_walls', 'plasterboarding_partitions',
+      'plasterboarding_offset_walls', 'plasterboarding_ceilings', 'netting_walls',
+      'netting_ceilings', 'plastering_walls', 'plastering_ceilings', 'facade_plasterings',
+      'plastering_of_window_sashes', 'painting_walls', 'painting_ceilings', 'levellings',
+      'tile_ceramics', 'paving_ceramics', 'laying_floating_floors', 'wirings', 'plumbings',
+      'installation_of_sanitaries', 'installation_of_corner_beads', 'installation_of_door_jambs',
+      'window_installations', 'demolitions', 'groutings', 'penetration_coatings', 'siliconings',
+      'custom_works', 'custom_materials', 'scaffoldings', 'core_drills', 'tool_rentals'
+    ];
+
+    // Delete existing items from ALL work item tables for this room
+    // OPTIMIZATION: Use RPC call to delete all items on server side (fixes N+1 query issue)
+    try {
+      console.log(`[fullSave] clearing all items for room ${roomId} via RPC...`);
+      await api.workItems.deleteAllItemsForRoomRPC(roomId);
+      console.log(`[fullSave] cleared items for room ${roomId}`);
+    } catch (error) {
+      console.error('[fullSave] Error clearing room items via RPC:', error);
+      // Fallback to loop if RPC fails (e.g. function not found)
+      await Promise.all(allWorkItemTables.map(async (tableName) => {
+        try {
+          const existingItems = await api.workItems.getByRoom(roomId, tableName);
+          if (existingItems?.length > 0) {
+            await Promise.all(existingItems.map(item =>
+              api.workItems.delete(tableName, item.id).catch(err => {
+                console.error(`Failed to delete item ${item.id} from ${tableName}:`, err);
+              })
+            ));
+          }
+        } catch (err) {
+          console.warn(`[fullSave] Error fetching items from ${tableName}:`, err.message);
+        }
+      }));
+    }
+
+    // Save all work items
+    const savedParentItems = [];
+    await Promise.all(workItems.map(async (workItem) => {
+      const tableName = getTableName(workItem.propertyId, workItem);
+      if (!tableName) return;
+      const dbRecord = workItemToDatabase(workItem, roomId, appData.activeContractorId);
+      if (dbRecord) {
+        try {
+          const result = await api.workItems.upsert(tableName, dbRecord);
+          if (result?.id) {
+            savedParentItems.push({ workItem, tableName, dbCId: result.c_id || result.id });
           }
         } catch (error) {
           console.error(`Error saving work item to ${tableName}:`, error);
           throw error;
         }
-      } else {
-        console.warn(`[saveWorkItems] No dbRecord for workItem:`, workItem);
       }
     }));
 
-    // Save doors and windows for parent items that support them
+    // Save doors and windows
     await Promise.all(savedParentItems.map(async ({ workItem, tableName, dbCId }) => {
       const doorWindowItems = workItem.doorWindowItems;
       if (!doorWindowItems) return;
 
-      // Save doors
-      if (tableCanHaveDoors(tableName) && doorWindowItems.doors && doorWindowItems.doors.length > 0) {
+      if (tableCanHaveDoors(tableName) && doorWindowItems.doors?.length > 0) {
         await Promise.all(doorWindowItems.doors.map(async (door) => {
           try {
-            const dbDoor = doorToDatabase(door);
-            await api.doors.upsert(dbDoor, tableName, dbCId);
-            console.log(`[saveWorkItems] Saved door to ${tableName}:`, dbDoor);
+            await api.doors.upsert(doorToDatabase(door), tableName, dbCId);
           } catch (error) {
-            console.error(`Error saving door for ${tableName}:`, error);
+            console.error(`Error saving door:`, error);
           }
         }));
       }
 
-      // Save windows
-      if (tableCanHaveWindows(tableName) && doorWindowItems.windows && doorWindowItems.windows.length > 0) {
+      if (tableCanHaveWindows(tableName) && doorWindowItems.windows?.length > 0) {
         await Promise.all(doorWindowItems.windows.map(async (window) => {
           try {
-            const dbWindow = windowToDatabase(window);
-            await api.windows.upsert(dbWindow, tableName, dbCId);
-            console.log(`[saveWorkItems] Saved window to ${tableName}:`, dbWindow);
+            await api.windows.upsert(windowToDatabase(window), tableName, dbCId);
           } catch (error) {
-            console.error(`Error saving window for ${tableName}:`, error);
+            console.error(`Error saving window:`, error);
           }
         }));
       }
     }));
   }, [appData.activeContractorId]);
 
-  const updateProjectRoom = useCallback(async (projectId, roomId, roomData) => {
+  const updateProjectRoom = useCallback(async (projectId, roomId, roomData, originalWorkItems = null) => {
     try {
-      console.log('[updateProjectRoom] Called with:', { projectId, roomId, workItemsCount: roomData.workItems?.length });
+      console.log('[updateProjectRoom] Called with:', { projectId, roomId, workItemsCount: roomData.workItems?.length, hasOriginal: !!originalWorkItems });
       if (!roomId) throw new Error('Room ID is required to update a room');
 
       const { workItems, ...otherData } = roomData;
+
+      // Extract commute data from workItems and save to Room fields (iOS compatibility)
+      // iOS stores commute in Room.commute_length and Room.days_in_work, not in custom_works
+      const commuteData = workItems ? extractCommuteFromWorkItems(workItems) : null;
+      if (commuteData) {
+        console.log('[updateProjectRoom] Extracting commute to Room fields:', commuteData);
+        otherData.commute_length = commuteData.commuteLength;
+        otherData.days_in_work = commuteData.daysInWork;
+      }
 
       if (Object.keys(otherData).length > 0) {
         await api.rooms.update(roomId, otherData);
       }
 
       if (workItems) {
-        console.log('[updateProjectRoom] Saving workItems:', workItems.length, 'items');
-        await saveWorkItemsForRoom(roomId, workItems);
+        // Filter out commute items - they're saved to Room, not custom_works
+        const workItemsWithoutCommute = workItems.filter(item => !isCommuteWorkItem(item));
+        const originalWithoutCommute = originalWorkItems?.filter(item => !isCommuteWorkItem(item)) || null;
+
+        console.log('[updateProjectRoom] Saving workItems:', workItemsWithoutCommute.length, 'items (excluding commute)');
+        await saveWorkItemsForRoom(roomId, workItemsWithoutCommute, originalWithoutCommute);
         console.log('[updateProjectRoom] workItems saved successfully');
       }
 

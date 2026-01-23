@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import ClientForm from '../components/ClientForm';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 const Clients = () => {
@@ -14,13 +15,19 @@ const Clients = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteMode, setDeleteMode] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState(null);
 
-  useScrollLock(showClientModal);
+  useScrollLock(showClientModal || !!clientToDelete);
 
-  const handleDeleteClient = (clientId) => {
-    if (window.confirm(t('Are you sure you want to delete this client?'))) {
-      deleteClient(clientId);
+  const handleDeleteClient = (client) => {
+    setClientToDelete(client);
+  };
+
+  const confirmDeleteClient = () => {
+    if (clientToDelete) {
+      deleteClient(clientToDelete.id);
       setSelectedClient(null);
+      setClientToDelete(null);
     }
   };
 
@@ -142,7 +149,7 @@ const Clients = () => {
                   <div className="flex-shrink-0 ml-2">
                     {deleteMode ? (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteClient(client.id); }}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClient(client); }}
                         className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors shadow-sm"
                         title={t('Delete client')}
                       >
@@ -238,6 +245,18 @@ const Clients = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!clientToDelete}
+        onClose={() => setClientToDelete(null)}
+        onConfirm={confirmDeleteClient}
+        title="Delete client?"
+        message={`Are you sure you want to delete "${clientToDelete?.name || ''}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDestructive={true}
+      />
     </div>
   );
 };

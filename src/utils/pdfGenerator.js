@@ -488,6 +488,12 @@ export const generateInvoicePDF = async ({
     // Build detailed breakdown from project
     const tableData = [];
 
+    // Debug: Log breakdown contents for custom work items
+    const customWorkItems = projectBreakdown?.items?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
+    const customMaterialItems = projectBreakdown?.materialItems?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
+    console.log('[PDF] Custom work items in breakdown:', customWorkItems.length, customWorkItems);
+    console.log('[PDF] Custom material items in breakdown:', customMaterialItems.length, customMaterialItems);
+
     // Add work items with category header
     if (projectBreakdown && projectBreakdown.items && projectBreakdown.items.length > 0) {
       tableData.push([
@@ -525,7 +531,9 @@ export const generateInvoicePDF = async ({
           // For electrical and plumbing work, show just the name without subtitle
           displayName = t(itemName);
         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-          displayName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(itemName);
+          // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
+          const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+          displayName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
         } else {
           // Add subtitle for work types (wall/ceiling distinction, etc.)
           displayName = item.subtitle ? `${t(itemName)} ${t(item.subtitle)}` : t(itemName);
@@ -573,9 +581,14 @@ export const generateInvoicePDF = async ({
             translatedSubtitle = t(item.subtitle);
           }
         }
-        const displayName = item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK
-          ? (item.fields?.[WORK_ITEM_NAMES.NAME] || t(item.name))
-          : (translatedSubtitle ? `${t(item.name)} - ${translatedSubtitle}` : t(item.name));
+        let displayName;
+        if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+          // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
+          const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+          displayName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
+        } else {
+          displayName = translatedSubtitle ? `${t(item.name)} - ${translatedSubtitle}` : t(item.name);
+        }
 
         tableData.push([
           sanitizeText(displayName || ''),
@@ -724,9 +737,10 @@ export const generateInvoicePDF = async ({
         if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('prenájom') ||
           item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
           displayName = t(item.subtitle);
-        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.fields?.[WORK_ITEM_NAMES.NAME]) {
-          // For custom work, use the user-entered name
-          displayName = item.fields[WORK_ITEM_NAMES.NAME];
+        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+          // For custom work, use the user-entered name or specific fallback based on selectedType
+          const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+          displayName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
         } else {
           displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
         }

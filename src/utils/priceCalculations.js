@@ -144,6 +144,19 @@ export const isPlasteringItem = (workItem, priceItem = null) => {
 };
 
 /**
+ * Check if a work item is valid Large Format
+ * @param {Object} workItem 
+ * @returns {boolean}
+ */
+export const isLargeFormatItem = (workItem) => {
+  if (!workItem) return false;
+  return workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD] ||
+    workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT] ||
+    (workItem.name && (workItem.name.toLowerCase().includes('large format') || workItem.name.toLowerCase().includes('veľkoformát'))) ||
+    (workItem.subtitle && (workItem.subtitle.toLowerCase().includes('large format') || workItem.subtitle.toLowerCase().includes('nad 60cm') || workItem.subtitle.toLowerCase().includes('above 60cm')));
+};
+
+/**
  * Calculate work quantity from work item fields
  * Handles all quantity types: area (m²), length (m), count (pc), time (h), distance (km)
  * @param {Object} workItem - Work item with fields
@@ -393,11 +406,27 @@ export const findPriceListItem = (workItem, priceList) => {
     return null;
   }
 
+  // Override target name for Large Format items to ensure we match the generic "Large Format" price item
+  if (isLargeFormatItem(workItem)) {
+    targetName = WORK_ITEM_NAMES.LARGE_FORMAT;
+  }
+
   // Search through all categories in the price list
   for (const category of ['work', 'material', 'installations', 'others']) {
     if (priceList[category]) {
       // Find exact or partial match
       const item = priceList[category].find(item => {
+        // Check for Large Format overrides FIRST
+        // If the work item is Large Format, we MUST match the "Large Format" price item (85€)
+        // instead of the regular tiling item (35€)
+        if (isLargeFormatItem(workItem)) {
+          // Only allow matching if this price item IS "Large Format"
+          const isLargeFormatPriceItem = item.name.toLowerCase().includes(WORK_ITEM_NAMES.LARGE_FORMAT.toLowerCase()) ||
+            (item.subtitle && item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.ABOVE_60CM.toLowerCase()));
+
+          if (!isLargeFormatPriceItem) return false;
+        }
+
         // Handle array of target names (for backward compatibility or multiple valid names)
         const nameMatch = Array.isArray(targetName)
           ? targetName.some(name => item.name.toLowerCase().includes(name.toLowerCase()))
@@ -408,6 +437,7 @@ export const findPriceListItem = (workItem, priceList) => {
         const isPlasterboarding = !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.PLASTERBOARDING.toLowerCase();
         const isNetting = !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.NETTING.toLowerCase();
         const isPainting = !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.PAINTING.toLowerCase();
+        const isPlastering = !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.PLASTERING.toLowerCase();
         const isSanitary = !Array.isArray(targetName) && targetName.toLowerCase() === WORK_ITEM_NAMES.SANITARY_INSTALLATIONS.toLowerCase();
 
         // Skip subtitle matching for rental items (Scaffolding, Core Drill, Tool rental)
@@ -440,15 +470,15 @@ export const findPriceListItem = (workItem, priceList) => {
           return subtitleMatch;
         }
 
-        // Check for wall/ceiling subtype matching (Plasterboarding, Netting, Painting)
-        if ((isPlasterboarding || isNetting || isPainting) && item.subtitle && workItem.subtitle) {
+        // Check for wall/ceiling subtype matching (Plasterboarding, Netting, Painting, Plastering)
+        if ((isPlasterboarding || isNetting || isPainting || isPlastering) && item.subtitle && workItem.subtitle) {
           const ceilingMatch = matchCeilingSubtype(workItem.subtitle, item.subtitle);
 
           // If ceiling match returns null, it means mismatch (one is ceiling, other isn't)
           if (ceilingMatch === null) return false;
 
-          // For Netting and Painting, also check wall subtype when not ceiling
-          if (!ceilingMatch && (isNetting || isPainting)) {
+          // For Netting, Painting, and Plastering, also check wall subtype when not ceiling
+          if (!ceilingMatch && (isNetting || isPainting || isPlastering)) {
             return matchWorkSubtype(workItem.subtitle, item.subtitle, 'WALL');
           }
 
@@ -642,10 +672,7 @@ export const calculateWorkItemWithMaterials = (
     let materialKey = getMaterialKey(workItem.propertyId, workItem.selectedType);
 
     // Check if large format is enabled for tiling/paving - use large format material
-    const isLargeFormat = workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT_ABOVE_60CM_FIELD] ||
-      workItem.fields?.[WORK_ITEM_NAMES.LARGE_FORMAT] ||
-      (workItem.name && (workItem.name.toLowerCase().includes('large format') || workItem.name.toLowerCase().includes('veľkoformát'))) ||
-      (workItem.subtitle && (workItem.subtitle.toLowerCase().includes('large format') || workItem.subtitle.toLowerCase().includes('nad 60cm') || workItem.subtitle.toLowerCase().includes('above 60cm')));
+    const isLargeFormat = isLargeFormatItem(workItem);
 
     if (isLargeFormat) {
       if (materialKey === 'tiling_under_60') {
@@ -816,9 +843,9 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     // Brick Partitions and Brick Load-bearing Walls can have complementary works
     if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.BRICK_PARTITIONS ||
       workItem.propertyId === WORK_ITEM_PROPERTY_IDS.BRICK_LOAD_BEARING) {
-      additiveNettingWallPieces += cleanArea * (workItem.complementaryWorks?.['Netting_0'] || 0);
-      additivePaintingWallPieces += cleanArea * (workItem.complementaryWorks?.['Painting_0'] || 0);
-      additivePlasteringWallPieces += cleanArea * (workItem.complementaryWorks?.['Plastering_0'] || 0);
+      additiveNettingWallPieces += cleanArea * (workItem.complementaryWorks?.['Netting WALL_0'] || workItem.complementaryWorks?.['Netting_0'] || 0);
+      additivePaintingWallPieces += cleanArea * (workItem.complementaryWorks?.['Painting WALL_0'] || workItem.complementaryWorks?.['Painting_0'] || 0);
+      additivePlasteringWallPieces += cleanArea * (workItem.complementaryWorks?.['Plastering WALL_0'] || workItem.complementaryWorks?.['Plastering_0'] || 0);
       additiveTilingPieces += cleanArea * (workItem.complementaryWorks?.['Tiling under 60cm_0'] || 0);
       additivePenetrationPieces += cleanArea * (
         (workItem.complementaryWorks?.['Penetration coating_0'] || 0) +
@@ -829,8 +856,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
 
     // Netting Wall complementary works
     if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_WALL) {
-      additivePaintingWallPieces += cleanArea * (workItem.complementaryWorks?.['Painting_0'] ? 1 : 0);
-      additivePlasteringWallPieces += cleanArea * (workItem.complementaryWorks?.['Plastering_0'] ? 1 : 0);
+      additivePaintingWallPieces += cleanArea * ((workItem.complementaryWorks?.['Painting WALL_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0);
+      additivePlasteringWallPieces += cleanArea * ((workItem.complementaryWorks?.['Plastering WALL_0'] || workItem.complementaryWorks?.['Plastering_0']) ? 1 : 0);
       additiveTilingPieces += cleanArea * (workItem.complementaryWorks?.['Tiling under 60cm_0'] ? 1 : 0);
       additivePenetrationPieces += cleanArea * (
         (workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0) +
@@ -840,8 +867,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
 
     // Netting Ceiling complementary works
     if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING) {
-      additivePaintingCeilingPieces += cleanArea * (workItem.complementaryWorks?.['Painting_0'] ? 1 : 0);
-      additivePlasteringCeilingPieces += cleanArea * (workItem.complementaryWorks?.['Plastering_0'] ? 1 : 0);
+      additivePaintingCeilingPieces += cleanArea * ((workItem.complementaryWorks?.['Painting CEILING_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0);
+      additivePlasteringCeilingPieces += cleanArea * ((workItem.complementaryWorks?.['Plastering CEILING_0'] || workItem.complementaryWorks?.['Plastering_0']) ? 1 : 0);
       additivePenetrationPieces += cleanArea * (
         (workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0) +
         (workItem.complementaryWorks?.['Penetration coating_1'] ? 1 : 0)
@@ -851,30 +878,36 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     // Plasterboarding Partition complementary works
     if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION ||
       workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET) {
-      additivePaintingWallPieces += cleanArea * (workItem.complementaryWorks?.['Painting_0'] ? 1 : 0);
+      additivePaintingWallPieces += cleanArea * ((workItem.complementaryWorks?.['Painting WALL_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0);
       additivePenetrationPieces += cleanArea * (workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0);
     }
 
     // Plasterboarding Ceiling complementary works
     if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_CEILING) {
-      additivePaintingCeilingPieces += cleanArea * (workItem.complementaryWorks?.['Painting_0'] ? 1 : 0);
+      additivePaintingCeilingPieces += cleanArea * ((workItem.complementaryWorks?.['Painting CEILING_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0);
       additivePenetrationPieces += cleanArea * (workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0);
     }
 
     // Plastering Wall complementary works
     if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL) {
-      additivePaintingWallPieces += cleanArea * (workItem.complementaryWorks?.['Painting_0'] ? 1 : 0);
+      additivePaintingWallPieces += cleanArea * ((workItem.complementaryWorks?.['Painting WALL_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0);
       additivePenetrationPieces += cleanArea * (workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0);
     }
 
     // Plastering Ceiling complementary works
     if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING) {
-      additivePaintingCeilingPieces += cleanArea * (workItem.complementaryWorks?.['Painting_0'] ? 1 : 0);
+      additivePaintingCeilingPieces += cleanArea * ((workItem.complementaryWorks?.['Painting CEILING_0'] || workItem.complementaryWorks?.['Painting_0']) ? 1 : 0);
       additivePenetrationPieces += cleanArea * (workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0);
     }
 
     // Levelling complementary works
     if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.LEVELLING) {
+      additivePenetrationPieces += cleanArea * (workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0);
+    }
+
+    // Painting Wall and Ceiling complementary works (fixed: added missing toggle logic)
+    if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PAINTING_WALL ||
+      workItem.propertyId === WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING) {
       additivePenetrationPieces += cleanArea * (workItem.complementaryWorks?.['Penetration coating_0'] ? 1 : 0);
     }
   });
@@ -933,7 +966,8 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   // This ensures materials are calculated for complementary works just like iOS does
   totalNettingArea += additiveNettingWallPieces + additiveNettingCeilingPieces;
   totalPlasteringQuantity += additivePlasteringWallPieces + additivePlasteringCeilingPieces;
-  // Note: Tiling and Painting materials are calculated separately, and Penetration uses additivePenetrationPieces directly
+  totalTilingPavingArea += additiveTilingPieces; // Add tiling pieces to total for adhesive aggregation
+  // Note: Painting materials are calculated separately, and Penetration uses additivePenetrationPieces directly
 
   room.workItems.forEach(workItem => {
     // Skip items with no meaningful input (all fields are 0 or empty)
@@ -1025,18 +1059,38 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           const calculation = calculateWorkItemWithMaterials(workItem, priceItem, activePriceList);
 
           if (workItem.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+            // Debug: Log custom work item processing
+            console.log('[CustomWork] Processing:', {
+              name: workItem.name,
+              selectedType: workItem.selectedType,
+              fields: workItem.fields,
+              calculation
+            });
+
+            // Localize name if it matches the default English constant
+            let localizedName = workItem.name;
+            const defaultName = WORK_ITEM_NAMES.CUSTOM_WORK_AND_MATERIAL;
+
+            if (workItem.name === defaultName || workItem.name === 'Custom work and material') {
+              localizedName = workItem.selectedType === 'Material' ? 'Vlastný materiál' : 'Vlastná práca';
+            }
+
             if (workItem.selectedType === 'Material') {
               materialTotal += (calculation.materialCost || 0) + (calculation.additionalMaterialCost || 0);
               materialItems.push({
                 ...workItem,
+                name: localizedName,
                 calculation
               });
+              console.log('[CustomWork] Added to materialItems:', localizedName);
             } else {
               workTotal += calculation.workCost;
               items.push({
                 ...workItem,
+                name: localizedName,
                 calculation
               });
+              console.log('[CustomWork] Added to items (work):', localizedName);
             }
           } else {
             othersTotal += (calculation.workCost || 0) + (calculation.materialCost || 0);
@@ -1107,16 +1161,26 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           };
           if (isLargeFormat) {
             itemToAdd.isLargeFormat = true;
-            // Update subtitle to indicate large format
-            itemToAdd.subtitle = WORK_ITEM_NAMES.LARGE_FORMAT;
+            // Update subtitle and name to indicate large format
+            itemToAdd.subtitle = 'veľkoformát'; // Use lowercase 'veľkoformát' to match user request/iOS style
+
+            // Update name based on type
+            if (itemToAdd.name.toLowerCase().includes('obklad') || itemToAdd.name.toLowerCase().includes('tiling')) {
+              itemToAdd.name = 'Obklad, veľkoformát';
+            } else if (itemToAdd.name.toLowerCase().includes('dlažba') || itemToAdd.name.toLowerCase().includes('paving')) {
+              itemToAdd.name = 'Dlažba, veľkoformát';
+            }
+
+            // Modify propertyId to prevent complementary standard tiling from merging into this item
+            itemToAdd.propertyId = `${itemToAdd.propertyId}_large_format`;
           }
           items.push(itemToAdd);
 
-          // Track materials as separate items
-          if (calculation.material) {
+          // Only add material if it has quantity and cost (skip when aggregated into another item)
+          if (calculation.material && calculation.materialQuantity > 0 && calculation.materialCost > 0) {
             let materialUnit = calculation.material.unit || UNIT_TYPES.METER_SQUARE;
 
-            // If material has capacity, the quantity is packages/pieces. 
+            // If material has capacity, the quantity is packages/pieces.
             // Extract the unit from material.unit (e.g. "€/pkg" -> "pkg")
             if (calculation.material.capacity && calculation.material.unit) {
               materialUnit = calculation.material.unit.includes('€/')
@@ -1124,10 +1188,29 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
                 : calculation.material.unit;
             }
 
+            // Handle gender-specific subtitles for ceramic items
+            let materialSubtitle = calculation.material.subtitle || '';
+            const isCeramic = materialSubtitle.toLowerCase() === 'ceramic' ||
+              materialSubtitle.toLowerCase().includes('keramick');
+
+            if (isCeramic) {
+              // Check if it's Tiles (Obklad) or Paving (Dlažba)
+              const isTiles = calculation.material.name.toLowerCase() === 'tiles' ||
+                calculation.material.name.toLowerCase().includes('obklad');
+              const isPaving = calculation.material.name.toLowerCase() === 'pavings' ||
+                calculation.material.name.toLowerCase().includes('dlažba');
+
+              if (isTiles) {
+                materialSubtitle = 'ceramic masculine'; // Will translate to 'keramický'
+              } else if (isPaving) {
+                materialSubtitle = 'ceramic feminine'; // Will translate to 'keramická'
+              }
+            }
+
             materialItems.push({
               id: `${workItem.id}_material`,
               name: calculation.material.name,
-              subtitle: calculation.material.subtitle || '',
+              subtitle: materialSubtitle,
               propertyId: workItem.propertyId,
               calculation: {
                 quantity: calculation.materialQuantity, // Use the calculated quantity (packages/units)
@@ -1205,7 +1288,11 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
               item.name === adhesiveName && item.subtitle === adhesiveSubtitle
             );
 
-            if (!existingAdhesive) {
+            if (existingAdhesive && existingAdhesive.calculation) {
+              // Merge with existing adhesive (fixed: sum quantities and costs)
+              existingAdhesive.calculation.quantity = (existingAdhesive.calculation.quantity || 0) + calculation.additionalMaterialQuantity;
+              existingAdhesive.calculation.materialCost = (existingAdhesive.calculation.materialCost || 0) + adhesiveCost;
+            } else {
               materialItems.push({
                 id: `${workItem.id}_adhesive`,
                 name: adhesiveName,
@@ -1233,6 +1320,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
                   id: `${workItem.id}_jolly`,
                   propertyId: 'jolly_edging', // Override to prevent grouping with tiling
                   name: WORK_ITEM_NAMES.JOLLY_EDGING,
+                  subtitle: undefined, // Clear inherited subtitle from parent tiling item
                   calculation: {
                     workCost: jollyEdgingCost,
                     materialCost: 0,
@@ -1321,7 +1409,36 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   }
 
   // Add complementary work price items (from flags on parent items)
-  // Each complementary work type adds its own materials directly
+  // Each complementary work type merges with existing items or creates new ones
+  // Helper function to find and merge with existing item or create new one
+  const mergeOrAddWorkItem = (propertyIdToFind, additiveQuantity, priceItem, subtitleOverride = null) => {
+    if (additiveQuantity <= 0 || !priceItem) return;
+
+    const cost = additiveQuantity * priceItem.price;
+    workTotal += cost;
+
+    // Try to find existing item with matching propertyId
+    const existingItem = items.find(item => item.propertyId === propertyIdToFind);
+    if (existingItem && existingItem.calculation) {
+      // Merge with existing item
+      existingItem.calculation.workCost = (existingItem.calculation.workCost || 0) + cost;
+      existingItem.calculation.quantity = (existingItem.calculation.quantity || 0) + additiveQuantity;
+    } else {
+      // Create new item
+      items.push({
+        id: `complementary_${propertyIdToFind}`,
+        name: priceItem.name,
+        subtitle: subtitleOverride || priceItem.subtitle || '',
+        propertyId: propertyIdToFind,
+        calculation: {
+          workCost: cost,
+          materialCost: 0,
+          quantity: additiveQuantity,
+          unit: UNIT_TYPES.METER_SQUARE
+        }
+      });
+    }
+  };
 
   // Calculate total complementary netting area for material calculations
   const totalComplementaryNettingArea = additiveNettingWallPieces + additiveNettingCeilingPieces;
@@ -1331,22 +1448,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     const nettingWallPriceItem = activePriceList.work.find(item =>
       item.name === WORK_ITEM_NAMES.NETTING && item.subtitle?.toLowerCase().includes('wall')
     ) || activePriceList.work.find(item => item.name === WORK_ITEM_NAMES.NETTING);
-    if (nettingWallPriceItem) {
-      const cost = additiveNettingWallPieces * nettingWallPriceItem.price;
-      workTotal += cost;
-      items.push({
-        id: 'complementary_netting_wall',
-        name: WORK_ITEM_NAMES.NETTING,
-        subtitle: nettingWallPriceItem.subtitle || 'Wall',
-        propertyId: 'complementary_netting_wall',
-        calculation: {
-          workCost: cost,
-          materialCost: 0,
-          quantity: additiveNettingWallPieces,
-          unit: UNIT_TYPES.METER_SQUARE
-        }
-      });
-    }
+    mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.NETTING_WALL, additiveNettingWallPieces, nettingWallPriceItem);
   }
 
   // Netting Ceiling from complementary works
@@ -1354,22 +1456,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     const nettingCeilingPriceItem = activePriceList.work.find(item =>
       item.name === WORK_ITEM_NAMES.NETTING && item.subtitle?.toLowerCase().includes('ceiling')
     );
-    if (nettingCeilingPriceItem) {
-      const cost = additiveNettingCeilingPieces * nettingCeilingPriceItem.price;
-      workTotal += cost;
-      items.push({
-        id: 'complementary_netting_ceiling',
-        name: WORK_ITEM_NAMES.NETTING,
-        subtitle: nettingCeilingPriceItem.subtitle || 'Ceiling',
-        propertyId: 'complementary_netting_ceiling',
-        calculation: {
-          workCost: cost,
-          materialCost: 0,
-          quantity: additiveNettingCeilingPieces,
-          unit: UNIT_TYPES.METER_SQUARE
-        }
-      });
-    }
+    mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.NETTING_CEILING, additiveNettingCeilingPieces, nettingCeilingPriceItem);
   }
 
   // Add Mesh material for complementary netting (Sklotextilná mriežka)
@@ -1393,23 +1480,33 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
       });
     }
 
-    // Add Adhesive for netting (Lepidlo na sieťkovanie)
     const nettingAdhesive = findAdhesiveByKey('adhesive_netting', activePriceList.material);
     if (nettingAdhesive && nettingAdhesive.capacity) {
       const adhesivePackages = Math.ceil(totalComplementaryNettingArea / nettingAdhesive.capacity.value);
       const adhesiveCost = adhesivePackages * nettingAdhesive.price;
       materialTotal += adhesiveCost;
-      materialItems.push({
-        id: 'complementary_netting_adhesive',
-        name: nettingAdhesive.name,
-        subtitle: nettingAdhesive.subtitle || 'netting',
-        calculation: {
-          quantity: adhesivePackages,
-          materialCost: adhesiveCost,
-          pricePerUnit: nettingAdhesive.price,
-          unit: UNIT_TYPES.PACKAGE
-        }
-      });
+
+      const adhesiveSubtitle = nettingAdhesive.subtitle || 'netting';
+      const existingAdhesive = materialItems.find(item =>
+        item.name === nettingAdhesive.name && item.subtitle === adhesiveSubtitle
+      );
+
+      if (existingAdhesive && existingAdhesive.calculation) {
+        existingAdhesive.calculation.quantity = (existingAdhesive.calculation.quantity || 0) + adhesivePackages;
+        existingAdhesive.calculation.materialCost = (existingAdhesive.calculation.materialCost || 0) + adhesiveCost;
+      } else {
+        materialItems.push({
+          id: 'complementary_netting_adhesive',
+          name: nettingAdhesive.name,
+          subtitle: adhesiveSubtitle,
+          calculation: {
+            quantity: adhesivePackages,
+            materialCost: adhesiveCost,
+            pricePerUnit: nettingAdhesive.price,
+            unit: UNIT_TYPES.PACKAGE
+          }
+        });
+      }
     }
   }
 
@@ -1418,16 +1515,21 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     const paintingWallPriceItem = activePriceList.work.find(item =>
       item.name === WORK_ITEM_NAMES.PAINTING && item.subtitle?.toLowerCase().includes('wall')
     ) || activePriceList.work.find(item => item.name === WORK_ITEM_NAMES.PAINTING);
-    if (paintingWallPriceItem) {
-      const cost = additivePaintingWallPieces * paintingWallPriceItem.price;
-      workTotal += cost;
 
-      // Find wall paint material
-      const paintWallMaterial = findMaterialByKey('painting_wall', activePriceList.material);
-      let paintMaterialCost = 0;
-      if (paintWallMaterial) {
-        paintMaterialCost = Math.ceil(additivePaintingWallPieces) * paintWallMaterial.price;
-        materialTotal += paintMaterialCost;
+    // Find wall paint material and add to material items (merged separately)
+    const paintWallMaterial = findMaterialByKey('painting_wall', activePriceList.material);
+    if (paintWallMaterial) {
+      const paintMaterialCost = Math.ceil(additivePaintingWallPieces) * paintWallMaterial.price;
+      materialTotal += paintMaterialCost;
+      // Find existing paint wall material item to merge (check both name AND subtitle to distinguish from ceiling paint)
+      const existingPaintMaterial = materialItems.find(m =>
+        m.id === 'painting_wall_material' ||
+        (m.name === paintWallMaterial.name && m.subtitle?.toLowerCase().includes('wall'))
+      );
+      if (existingPaintMaterial && existingPaintMaterial.calculation) {
+        existingPaintMaterial.calculation.quantity = (existingPaintMaterial.calculation.quantity || 0) + Math.ceil(additivePaintingWallPieces);
+        existingPaintMaterial.calculation.materialCost = (existingPaintMaterial.calculation.materialCost || 0) + paintMaterialCost;
+      } else {
         materialItems.push({
           id: 'complementary_painting_wall_material',
           name: paintWallMaterial.name,
@@ -1440,20 +1542,9 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           }
         });
       }
-
-      items.push({
-        id: 'complementary_painting_wall',
-        name: WORK_ITEM_NAMES.PAINTING,
-        subtitle: paintingWallPriceItem.subtitle || 'Wall',
-        propertyId: 'complementary_painting_wall',
-        calculation: {
-          workCost: cost,
-          materialCost: paintMaterialCost,
-          quantity: additivePaintingWallPieces,
-          unit: UNIT_TYPES.METER_SQUARE
-        }
-      });
     }
+
+    mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.PAINTING_WALL, additivePaintingWallPieces, paintingWallPriceItem);
   }
 
   // Painting Ceiling from complementary works (includes paint material)
@@ -1461,16 +1552,21 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     const paintingCeilingPriceItem = activePriceList.work.find(item =>
       item.name === WORK_ITEM_NAMES.PAINTING && item.subtitle?.toLowerCase().includes('ceiling')
     );
-    if (paintingCeilingPriceItem) {
-      const cost = additivePaintingCeilingPieces * paintingCeilingPriceItem.price;
-      workTotal += cost;
 
-      // Find ceiling paint material
-      const paintCeilingMaterial = findMaterialByKey('painting_ceiling', activePriceList.material);
-      let paintMaterialCost = 0;
-      if (paintCeilingMaterial) {
-        paintMaterialCost = Math.ceil(additivePaintingCeilingPieces) * paintCeilingMaterial.price;
-        materialTotal += paintMaterialCost;
+    // Find ceiling paint material and add to material items (merged separately)
+    const paintCeilingMaterial = findMaterialByKey('painting_ceiling', activePriceList.material);
+    if (paintCeilingMaterial) {
+      const paintMaterialCost = Math.ceil(additivePaintingCeilingPieces) * paintCeilingMaterial.price;
+      materialTotal += paintMaterialCost;
+      // Find existing paint ceiling material item to merge (check both name AND subtitle to distinguish from wall paint)
+      const existingPaintMaterial = materialItems.find(m =>
+        m.id === 'painting_ceiling_material' ||
+        (m.name === paintCeilingMaterial.name && m.subtitle?.toLowerCase().includes('ceiling'))
+      );
+      if (existingPaintMaterial && existingPaintMaterial.calculation) {
+        existingPaintMaterial.calculation.quantity = (existingPaintMaterial.calculation.quantity || 0) + Math.ceil(additivePaintingCeilingPieces);
+        existingPaintMaterial.calculation.materialCost = (existingPaintMaterial.calculation.materialCost || 0) + paintMaterialCost;
+      } else {
         materialItems.push({
           id: 'complementary_painting_ceiling_material',
           name: paintCeilingMaterial.name,
@@ -1483,20 +1579,9 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           }
         });
       }
-
-      items.push({
-        id: 'complementary_painting_ceiling',
-        name: WORK_ITEM_NAMES.PAINTING,
-        subtitle: paintingCeilingPriceItem.subtitle || 'Ceiling',
-        propertyId: 'complementary_painting_ceiling',
-        calculation: {
-          workCost: cost,
-          materialCost: paintMaterialCost,
-          quantity: additivePaintingCeilingPieces,
-          unit: UNIT_TYPES.METER_SQUARE
-        }
-      });
     }
+
+    mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING, additivePaintingCeilingPieces, paintingCeilingPriceItem);
   }
 
   // Calculate total complementary plastering area for material calculations
@@ -1507,22 +1592,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     const plasteringWallPriceItem = activePriceList.work.find(item =>
       item.name === WORK_ITEM_NAMES.PLASTERING && item.subtitle?.toLowerCase().includes('wall')
     ) || activePriceList.work.find(item => item.name === WORK_ITEM_NAMES.PLASTERING);
-    if (plasteringWallPriceItem) {
-      const cost = additivePlasteringWallPieces * plasteringWallPriceItem.price;
-      workTotal += cost;
-      items.push({
-        id: 'complementary_plastering_wall',
-        name: WORK_ITEM_NAMES.PLASTERING,
-        subtitle: plasteringWallPriceItem.subtitle || 'Wall',
-        propertyId: 'complementary_plastering_wall',
-        calculation: {
-          workCost: cost,
-          materialCost: 0,
-          quantity: additivePlasteringWallPieces,
-          unit: UNIT_TYPES.METER_SQUARE
-        }
-      });
-    }
+    mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL, additivePlasteringWallPieces, plasteringWallPriceItem);
   }
 
   // Plastering Ceiling from complementary works
@@ -1530,26 +1600,12 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
     const plasteringCeilingPriceItem = activePriceList.work.find(item =>
       item.name === WORK_ITEM_NAMES.PLASTERING && item.subtitle?.toLowerCase().includes('ceiling')
     );
-    if (plasteringCeilingPriceItem) {
-      const cost = additivePlasteringCeilingPieces * plasteringCeilingPriceItem.price;
-      workTotal += cost;
-      items.push({
-        id: 'complementary_plastering_ceiling',
-        name: WORK_ITEM_NAMES.PLASTERING,
-        subtitle: plasteringCeilingPriceItem.subtitle || 'Ceiling',
-        propertyId: 'complementary_plastering_ceiling',
-        calculation: {
-          workCost: cost,
-          materialCost: 0,
-          quantity: additivePlasteringCeilingPieces,
-          unit: UNIT_TYPES.METER_SQUARE
-        }
-      });
-    }
+    mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING, additivePlasteringCeilingPieces, plasteringCeilingPriceItem);
   }
 
   // Add Plaster material for complementary plastering (Omietka)
-  if (totalComplementaryPlasteringArea > 0) {
+  // Only add if NOT already added by a standard plastering item (which would have included the additive quantity)
+  if (totalComplementaryPlasteringArea > 0 && !plasteringMaterialAdded) {
     const plasterMaterial = findMaterialByKey('plastering_wall', activePriceList.material);
     if (plasterMaterial && plasterMaterial.capacity) {
       // Plaster is sold in packages with capacity
@@ -1591,85 +1647,97 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
       item.name === WORK_ITEM_NAMES.TILING_UNDER_60CM || item.name === 'Tiling'
     );
     if (tilingPriceItem) {
-      const cost = additiveTilingPieces * tilingPriceItem.price;
-      workTotal += cost;
-
       // Find tiles material
       const tilesMaterial = findMaterialByKey('tiling_under_60', activePriceList.material);
-      let tilesMaterialCost = 0;
       if (tilesMaterial) {
-        tilesMaterialCost = Math.ceil(additiveTilingPieces) * tilesMaterial.price;
+        const tilesMaterialCost = Math.ceil(additiveTilingPieces) * tilesMaterial.price;
         materialTotal += tilesMaterialCost;
-        materialItems.push({
-          id: 'complementary_tiling_material',
-          name: tilesMaterial.name,
-          subtitle: tilesMaterial.subtitle || '',
-          calculation: {
-            quantity: Math.ceil(additiveTilingPieces),
-            materialCost: tilesMaterialCost,
-            pricePerUnit: tilesMaterial.price,
-            unit: UNIT_TYPES.METER_SQUARE
+        // Find existing tiling material item to merge
+        // Find existing tiling material item to merge (CHECK SUBTITLE TOO!)
+        const existingTilesMaterial = materialItems.find(m =>
+          m.name === tilesMaterial.name &&
+          (!m.subtitle || !tilesMaterial.subtitle || m.subtitle === tilesMaterial.subtitle)
+        );
+        if (existingTilesMaterial && existingTilesMaterial.calculation) {
+          existingTilesMaterial.calculation.quantity = (existingTilesMaterial.calculation.quantity || 0) + Math.ceil(additiveTilingPieces);
+          existingTilesMaterial.calculation.materialCost = (existingTilesMaterial.calculation.materialCost || 0) + tilesMaterialCost;
+        } else {
+          // Handle gender-specific subtitles for ceramic items
+          let materialSubtitle = tilesMaterial.subtitle || '';
+          const isCeramic = materialSubtitle.toLowerCase() === 'ceramic' ||
+            materialSubtitle.toLowerCase().includes('keramick');
+
+          if (isCeramic) {
+            // Check if it's Tiles (Obklad) or Paving (Dlažba)
+            const isTiles = tilesMaterial.name.toLowerCase() === 'tiles' ||
+              tilesMaterial.name.toLowerCase().includes('obklad');
+            const isPaving = tilesMaterial.name.toLowerCase() === 'pavings' ||
+              tilesMaterial.name.toLowerCase().includes('dlažba');
+
+            if (isTiles) {
+              materialSubtitle = 'ceramic masculine'; // Will translate to 'keramický'
+            } else if (isPaving) {
+              materialSubtitle = 'ceramic feminine'; // Will translate to 'keramická'
+            }
           }
-        });
+
+          materialItems.push({
+            id: 'complementary_tiling_material',
+            name: tilesMaterial.name,
+            subtitle: materialSubtitle,
+            calculation: {
+              quantity: Math.ceil(additiveTilingPieces),
+              materialCost: tilesMaterialCost,
+              pricePerUnit: tilesMaterial.price,
+              unit: UNIT_TYPES.METER_SQUARE
+            }
+          });
+        }
       }
 
       // Find adhesive for tiling (only if not already added via totalTilingPavingArea)
-      // Note: Adhesive is typically calculated from totalTilingPavingArea, but complementary tiling
-      // is not included in that. We need to add adhesive for complementary tiling area.
-      const tilingAdhesive = findAdhesiveByKey('adhesive_tiling', activePriceList.material);
-      let adhesiveCost = 0;
-      if (tilingAdhesive && tilingAdhesive.capacity) {
-        const packagesNeeded = Math.ceil(additiveTilingPieces / tilingAdhesive.capacity.value);
-        adhesiveCost = packagesNeeded * tilingAdhesive.price;
-        materialTotal += adhesiveCost;
-        materialItems.push({
-          id: 'complementary_tiling_adhesive',
-          name: tilingAdhesive.name,
-          subtitle: tilingAdhesive.subtitle || 'tiling and paving',
-          calculation: {
-            quantity: packagesNeeded,
-            materialCost: adhesiveCost,
-            pricePerUnit: tilingAdhesive.price,
-            unit: UNIT_TYPES.PACKAGE
+      // If tilingPavingAdhesiveAdded is true, it means an explicit tiling item already handled the adhesive 
+      // (using the total area which now includes this complementary amount), so we skip adding it again.
+      if (!tilingPavingAdhesiveAdded) {
+        const tilingAdhesive = findAdhesiveByKey('adhesive_tiling', activePriceList.material);
+        if (tilingAdhesive && tilingAdhesive.capacity) {
+          const packagesNeeded = Math.ceil(additiveTilingPieces / tilingAdhesive.capacity.value);
+          const adhesiveCost = packagesNeeded * tilingAdhesive.price;
+          materialTotal += adhesiveCost;
+          // Find existing adhesive item to merge (fixed: include subtitle match to differentiate netting vs tiling adhesive)
+          const existingAdhesive = materialItems.find(m =>
+            m.name === tilingAdhesive.name &&
+            m.subtitle === (tilingAdhesive.subtitle || 'tiling and paving')
+          );
+          if (existingAdhesive && existingAdhesive.calculation) {
+            existingAdhesive.calculation.quantity = (existingAdhesive.calculation.quantity || 0) + packagesNeeded;
+            existingAdhesive.calculation.materialCost = (existingAdhesive.calculation.materialCost || 0) + adhesiveCost;
+          } else {
+            materialItems.push({
+              id: 'complementary_tiling_adhesive',
+              name: tilingAdhesive.name,
+              subtitle: tilingAdhesive.subtitle || 'tiling and paving',
+              calculation: {
+                quantity: packagesNeeded,
+                materialCost: adhesiveCost,
+                pricePerUnit: tilingAdhesive.price,
+                unit: UNIT_TYPES.PACKAGE
+              }
+            });
           }
-        });
+        }
       }
 
-      items.push({
-        id: 'complementary_tiling',
-        name: WORK_ITEM_NAMES.TILING_UNDER_60CM,
-        subtitle: tilingPriceItem.subtitle || '',
-        propertyId: 'complementary_tiling',
-        calculation: {
-          workCost: cost,
-          materialCost: tilesMaterialCost + adhesiveCost,
-          quantity: additiveTilingPieces,
-          unit: UNIT_TYPES.METER_SQUARE
-        }
-      });
+      mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60, additiveTilingPieces, tilingPriceItem);
 
       // Add Grouting work for complementary tiling (Špárovanie obklad a dlažba)
-      // Find grouting with "tiling and paving" subtitle, fallback to any grouting
       const groutingPriceItem = activePriceList.work.find(item =>
         item.name === WORK_ITEM_NAMES.GROUTING && item.subtitle?.toLowerCase().includes('tiling')
       ) || activePriceList.work.find(item =>
         item.name === WORK_ITEM_NAMES.GROUTING
       );
       if (groutingPriceItem) {
-        const groutingCost = additiveTilingPieces * groutingPriceItem.price;
-        workTotal += groutingCost;
-        items.push({
-          id: 'complementary_tiling_grouting',
-          name: WORK_ITEM_NAMES.GROUTING,
-          subtitle: groutingPriceItem.subtitle || 'tiling and paving',
-          propertyId: 'complementary_tiling_grouting',
-          calculation: {
-            workCost: groutingCost,
-            materialCost: 0,
-            quantity: additiveTilingPieces,
-            unit: UNIT_TYPES.METER_SQUARE
-          }
-        });
+        mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.GROUTING, additiveTilingPieces, groutingPriceItem);
       }
     }
   }
@@ -1680,40 +1748,32 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
       item.name === WORK_ITEM_NAMES.PENETRATION_COATING
     );
     if (penetrationPriceItem) {
-      const cost = additivePenetrationPieces * penetrationPriceItem.price;
-      workTotal += cost;
-
       // Find primer material
       const primerMaterial = findMaterialByKey('penetration_coating', activePriceList.material);
-      let primerMaterialCost = 0;
       if (primerMaterial) {
-        primerMaterialCost = Math.ceil(additivePenetrationPieces) * primerMaterial.price;
+        const primerMaterialCost = Math.ceil(additivePenetrationPieces) * primerMaterial.price;
         materialTotal += primerMaterialCost;
-        materialItems.push({
-          id: 'complementary_penetration_material',
-          name: primerMaterial.name,
-          subtitle: primerMaterial.subtitle || '',
-          calculation: {
-            quantity: Math.ceil(additivePenetrationPieces),
-            materialCost: primerMaterialCost,
-            pricePerUnit: primerMaterial.price,
-            unit: UNIT_TYPES.METER_SQUARE
-          }
-        });
+        // Find existing primer material item to merge
+        const existingPrimer = materialItems.find(m => m.name === primerMaterial.name);
+        if (existingPrimer && existingPrimer.calculation) {
+          existingPrimer.calculation.quantity = (existingPrimer.calculation.quantity || 0) + Math.ceil(additivePenetrationPieces);
+          existingPrimer.calculation.materialCost = (existingPrimer.calculation.materialCost || 0) + primerMaterialCost;
+        } else {
+          materialItems.push({
+            id: 'complementary_penetration_material',
+            name: primerMaterial.name,
+            subtitle: primerMaterial.subtitle || '',
+            calculation: {
+              quantity: Math.ceil(additivePenetrationPieces),
+              materialCost: primerMaterialCost,
+              pricePerUnit: primerMaterial.price,
+              unit: UNIT_TYPES.METER_SQUARE
+            }
+          });
+        }
       }
 
-      items.push({
-        id: 'complementary_penetration',
-        name: WORK_ITEM_NAMES.PENETRATION_COATING,
-        subtitle: penetrationPriceItem.subtitle || '',
-        propertyId: 'complementary_penetration',
-        calculation: {
-          workCost: cost,
-          materialCost: primerMaterialCost,
-          quantity: additivePenetrationPieces,
-          unit: UNIT_TYPES.METER_SQUARE
-        }
-      });
+      mergeOrAddWorkItem(WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING, additivePenetrationPieces, penetrationPriceItem);
     }
   }
 

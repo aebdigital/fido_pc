@@ -333,49 +333,36 @@ export const projectsApi = {
       if (error) throw error
       console.log(`🗑️ Project soft deleted: ${id}`)
 
-      // Cascade soft-delete invoices linked to this project
-      await supabase
-        .from('invoices')
-        .update({
-          is_deleted: true,
-          deleted_at: now,
-          updated_at: now
-        })
-        .eq('project_id', id)
-      console.log(`🗑️ Cascade soft deleted invoices for project: ${id}`)
+      // Cascade soft-delete related entities in parallel
+      await Promise.all([
+        // Invoices
+        supabase
+          .from('invoices')
+          .update({ is_deleted: true, deleted_at: now, updated_at: now })
+          .eq('project_id', id)
+          .then(() => console.log(`🗑️ Cascade soft deleted invoices for project: ${id}`)),
 
-      // Cascade soft-delete rooms linked to this project
-      await supabase
-        .from('rooms')
-        .update({
-          is_deleted: true,
-          deleted_at: now,
-          updated_at: now
-        })
-        .eq('project_id', id)
-      console.log(`🗑️ Cascade soft deleted rooms for project: ${id}`)
+        // Rooms
+        supabase
+          .from('rooms')
+          .update({ is_deleted: true, deleted_at: now, updated_at: now })
+          .eq('project_id', id)
+          .then(() => console.log(`🗑️ Cascade soft deleted rooms for project: ${id}`)),
 
-      // Cascade soft-delete receipts linked to this project
-      await supabase
-        .from('receipts')
-        .update({
-          is_deleted: true,
-          deleted_at: now,
-          updated_at: now
-        })
-        .eq('project_id', id)
-      console.log(`🗑️ Cascade soft deleted receipts for project: ${id}`)
+        // Receipts
+        supabase
+          .from('receipts')
+          .update({ is_deleted: true, deleted_at: now, updated_at: now })
+          .eq('project_id', id)
+          .then(() => console.log(`🗑️ Cascade soft deleted receipts for project: ${id}`)),
 
-      // Cascade soft-delete history_events linked to this project
-      await supabase
-        .from('history_events')
-        .update({
-          is_deleted: true,
-          deleted_at: now,
-          updated_at: now
-        })
-        .eq('project_id', id)
-      console.log(`🗑️ Cascade soft deleted history_events for project: ${id}`)
+        // History Events
+        supabase
+          .from('history_events')
+          .update({ is_deleted: true, deleted_at: now, updated_at: now })
+          .eq('project_id', id)
+          .then(() => console.log(`🗑️ Cascade soft deleted history_events for project: ${id}`))
+      ])
 
       return true
     } catch (error) {
@@ -590,19 +577,7 @@ export const invoicesApi = {
       console.log('[SUPABASE invoicesApi.update] Updating invoice with c_id:', id);
       console.log('[SUPABASE invoicesApi.update] Updates:', JSON.stringify(updates).slice(0, 1000));
 
-      // First, verify the invoice exists before updating
-      const { data: existingInvoice, error: fetchError } = await supabase
-        .from('invoices')
-        .select('c_id, number')
-        .eq('c_id', id)
-        .single()
-
-      console.log('[SUPABASE invoicesApi.update] Existing invoice check:', existingInvoice, 'fetchError:', fetchError);
-
-      if (fetchError || !existingInvoice) {
-        console.error('[SUPABASE invoicesApi.update] Invoice not found before update! c_id:', id);
-        return null
-      }
+      // Removed redundant pre-fetch check. If ID doesn't exist, update returns empty data.
 
       const { data, error } = await supabase
         .from('invoices')
@@ -664,6 +639,20 @@ export const workItemsApi = {
       // Don't throw for RPC errors, just log and return null so fallback or empty state can handle it
       console.error('RPC Error:', error)
       return { data: [], error }
+    }
+  },
+
+  // Delete all work items for a room via RPC (fixes N+1 issue)
+  deleteAllItemsForRoomRPC: async (roomId) => {
+    try {
+      const { error } = await supabase.rpc('delete_room_items', {
+        p_room_id: roomId
+      })
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('workItemsApi.deleteAllItemsForRoomRPC', error)
     }
   },
 

@@ -80,6 +80,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   // Local state
   const clientFormRef = useRef(null);
+  const createClientFormRef = useRef(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [showNewRoomModal, setShowNewRoomModal] = useState(false);
@@ -119,6 +120,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [photoDeleteMode, setPhotoDeleteMode] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [showArchiveConfirmation, setShowArchiveConfirmation] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
 
   // Touch handling state
   const [touchStart, setTouchStart] = useState(null);
@@ -268,12 +270,19 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     setShowRoomDetailsModal(true);
   };
 
-  const handleSaveRoomWork = (roomId, workData) => {
-    updateProjectRoom(project.id, roomId, { workItems: workData });
+  const handleSaveRoomWork = (roomId, workData, originalWorkItems = null) => {
+    updateProjectRoom(project.id, roomId, { workItems: workData }, originalWorkItems);
   };
 
-  const handleDeleteRoom = (roomId) => {
-    deleteProjectRoom(project.id, roomId);
+  const handleDeleteRoom = (room) => {
+    setRoomToDelete(room);
+  };
+
+  const confirmDeleteRoom = () => {
+    if (roomToDelete) {
+      deleteProjectRoom(project.id, roomToDelete.id);
+      setRoomToDelete(null);
+    }
   };
 
   const handleSaveProjectPriceList = (priceData) => {
@@ -1019,7 +1028,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Klient')}</h2>
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Client')}</h2>
             </div>
             <div
               onClick={() => {
@@ -1114,7 +1123,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteRoom(room.id);
+                            handleDeleteRoom(room);
                           }}
                           className="bg-red-500 hover:bg-red-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0"
                         >
@@ -1752,7 +1761,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       )}
 
       {showClientSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => setShowClientSelector(false)}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => {
+          if (showCreateClientInModal && createClientFormRef.current) {
+            createClientFormRef.current.submit();
+          } else {
+            setShowClientSelector(false);
+            setClientSearchQuery('');
+          }
+        }}>
           <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0`} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
@@ -1765,6 +1781,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
             {showCreateClientInModal ? (
               <ClientForm
+                ref={createClientFormRef}
                 onSave={handleCreateClientInModal}
                 onCancel={() => setShowCreateClientInModal(false)}
               />
@@ -1815,7 +1832,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           room={selectedRoom}
           workProperties={workProperties}
           onClose={() => setShowRoomDetailsModal(false)}
-          onSave={(workData) => handleSaveRoomWork(selectedRoom.id, workData)}
+          onSave={(workData, originalWorkItems) => handleSaveRoomWork(selectedRoom.id, workData, originalWorkItems)}
           isReadOnly={project.is_archived}
           priceList={project.priceListSnapshot}
         />
@@ -2150,6 +2167,18 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         confirmLabel="ArchiveProjectAction"
         cancelLabel="Cancel"
         icon="info"
+      />
+
+      {/* Room Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!roomToDelete}
+        onClose={() => setRoomToDelete(null)}
+        onConfirm={confirmDeleteRoom}
+        title={t('Delete room?')}
+        message={t('Are you sure you want to delete "{name}"? This action cannot be undone.').replace('{name}', roomToDelete ? (t(roomToDelete.name) !== roomToDelete.name ? t(roomToDelete.name) : roomToDelete.name) : '')}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDestructive={true}
       />
     </div>
   );

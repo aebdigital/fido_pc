@@ -51,6 +51,71 @@ const getWorkItemUnit = (item) => {
   return 'm²';
 };
 
+// Helper to build display name for work items (matching PDF generator logic)
+const getWorkItemDisplayName = (item, t) => {
+  const itemName = item.name || '';
+
+  // For electrical and plumbing work, just show the main name (no subtitle with outlet types)
+  if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING ||
+      item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
+    return t(itemName);
+  }
+
+  // For plasterboarding items, build full name with subtitle and type
+  if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle) {
+    const shouldShowType = item.selectedType && item.propertyId !== 'plasterboarding_ceiling';
+    if (shouldShowType) {
+      return `${t(itemName)}, ${t(item.subtitle)}, ${t(item.selectedType).toLowerCase()}`;
+    }
+    return `${t(itemName)}, ${t(item.subtitle)}`;
+  }
+
+  // For sanitary installation, show the type name
+  if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
+    return t(item.selectedType || item.subtitle);
+  }
+
+  // For plinth items, show name with subtitle
+  if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle) {
+    return `${t(itemName)} - ${t(item.subtitle)}`;
+  }
+
+  // For custom work, use the entered name or fallback
+  if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+    const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+    return item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
+  }
+
+  // For Large Format items, the name already includes "veľkoformát" - don't append subtitle
+  if (item.isLargeFormat) {
+    return t(itemName);
+  }
+
+  // For items with subtitle (like wall/ceiling distinction)
+  if (item.subtitle) {
+    return `${t(itemName)}, ${t(item.subtitle)}`;
+  }
+
+  // Default: just translate the name
+  return t(itemName) || t('Work item');
+};
+
+// Helper to build display name for material items
+const getMaterialItemDisplayName = (item, t) => {
+  // For custom materials
+  if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+    const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+    return item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
+  }
+
+  // For materials with subtitle
+  if (item.subtitle) {
+    return `${t(item.name || '')}, ${t(item.subtitle)}`;
+  }
+
+  return t(item.name) || t('Material');
+};
+
 /**
  * InvoiceCreationModal - iOS-aligned invoice builder
  *
@@ -112,7 +177,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             const unit = getWorkItemUnit(item);
             items.push({
               id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
-              title: item.name || item.subtitle || t('Work item'),
+              title: getWorkItemDisplayName(item, t),
               pieces: calculation.quantity || 0,
               pricePerPiece: calculation.quantity > 0 ? (calculation.workCost || 0) / calculation.quantity : 0,
               price: calculation.workCost || 0,
@@ -135,7 +200,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             const materialUnit = calculation.unit ? unitToDisplaySymbol(calculation.unit) : 'ks';
             items.push({
               id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
-              title: item.name || item.subtitle || t('Material'),
+              title: getMaterialItemDisplayName(item, t),
               pieces: calculation.quantity || 0,
               pricePerPiece: calculation.pricePerUnit || (calculation.quantity > 0 ? (calculation.materialCost || 0) / calculation.quantity : 0),
               price: calculation.materialCost || 0,
@@ -158,7 +223,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             const otherUnit = getWorkItemUnit(item);
             items.push({
               id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
-              title: item.name || item.subtitle || t('Other'),
+              title: getWorkItemDisplayName(item, t),
               pieces: calculation.quantity || 0,
               pricePerPiece: calculation.quantity > 0 ? (calculation.workCost || 0) / calculation.quantity : 0,
               price: calculation.workCost || 0,

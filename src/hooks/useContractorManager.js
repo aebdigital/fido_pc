@@ -74,16 +74,102 @@ export const useContractorManager = (appData, setAppData) => {
     }
   }, [setAppData]);
 
-  const setActiveContractor = useCallback((contractorId) => {
+  const setActiveContractor = useCallback(async (contractorId) => {
     // Save to localStorage for persistence across sessions
     if (contractorId) {
       localStorage.setItem('lastActiveContractorId', contractorId);
     }
-    setAppData(prev => ({
-      ...prev,
-      activeContractorId: contractorId
-    }));
-  }, [setAppData]);
+
+    // OPTIMIZED: Load data for the new contractor (since we now filter by contractor)
+    // This is needed because initial load only fetches data for the initially active contractor
+    try {
+      console.log('[setActiveContractor] Switching to contractor:', contractorId);
+
+      // Fetch data filtered by the new contractor in parallel
+      const [clients, projects, invoices, generalPriceListData] = await Promise.all([
+        api.clients.getAll(contractorId),
+        api.projects.getAll(contractorId),
+        api.invoices.getAll(contractorId),
+        api.priceLists.getGeneral(contractorId)
+      ]);
+
+      console.log('[setActiveContractor] Loaded data for contractor:', {
+        clients: clients?.length,
+        projects: projects?.length,
+        invoices: invoices?.length
+      });
+
+      // Transform the loaded data
+      const transformedClients = (clients || []).map(client => ({
+        ...client,
+        id: client.c_id || client.id
+      }));
+
+      const transformedProjects = (projects || []).map(project => ({
+        ...project,
+        id: project.c_id || project.id,
+        clientId: project.client_id,
+        hasInvoice: project.has_invoice,
+        invoiceId: project.invoice_id,
+        isArchived: project.is_archived
+      }));
+
+      // Re-associate projects to clients
+      transformedClients.forEach(client => {
+        client.projects = transformedProjects.filter(p => p.clientId === client.id && !p.isArchived);
+      });
+
+      // Build contractor projects structure
+      const categories = getDefaultCategories().map(cat => ({
+        ...cat,
+        projects: transformedProjects.filter(p => p.category === cat.id && !p.is_archived),
+        count: transformedProjects.filter(p => p.category === cat.id && !p.is_archived).length
+      }));
+
+      // Find contractor to get price offer settings
+      const contractor = appData.contractors?.find(c => c.id === contractorId);
+      let priceOfferSettings = appData.priceOfferSettings;
+      if (contractor?.price_offer_settings) {
+        try {
+          const settings = typeof contractor.price_offer_settings === 'string'
+            ? JSON.parse(contractor.price_offer_settings)
+            : contractor.price_offer_settings;
+          priceOfferSettings = { ...priceOfferSettings, ...settings };
+        } catch (e) {
+          console.warn('Failed to parse price offer settings', e);
+        }
+      }
+
+      // Transform invoices
+      const transformedInvoices = (invoices || []).map(inv => ({
+        ...inv,
+        id: inv.c_id || inv.id
+      }));
+
+      setAppData(prev => ({
+        ...prev,
+        activeContractorId: contractorId,
+        clients: transformedClients,
+        invoices: transformedInvoices,
+        priceOfferSettings,
+        generalPriceList: generalPriceListData ? prev.generalPriceList : prev.generalPriceList, // Keep existing if no new one
+        contractorProjects: {
+          ...prev.contractorProjects,
+          [contractorId]: {
+            categories,
+            archivedProjects: transformedProjects.filter(p => p.is_archived)
+          }
+        }
+      }));
+    } catch (error) {
+      console.error('[setActiveContractor] Error loading contractor data:', error);
+      // Still switch the contractor even if data load fails
+      setAppData(prev => ({
+        ...prev,
+        activeContractorId: contractorId
+      }));
+    }
+  }, [setAppData, appData.contractors, appData.priceOfferSettings]);
 
   const updatePriceOfferSettings = useCallback(async (newSettings) => {
     try {

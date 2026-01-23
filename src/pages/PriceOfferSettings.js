@@ -11,6 +11,7 @@ import {
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import ContractorProfileModal from '../components/ContractorProfileModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const PriceOfferSettings = ({ onBack }) => {
   const { t } = useLanguage();
@@ -28,6 +29,7 @@ const PriceOfferSettings = ({ onBack }) => {
   const [timeLimit, setTimeLimit] = useState(priceOfferSettings.timeLimit || 30);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
+  const [contractorToDelete, setContractorToDelete] = useState(null);
   const debounceRef = useRef(null);
 
   const handleCreateContractor = () => {
@@ -60,12 +62,18 @@ const PriceOfferSettings = ({ onBack }) => {
     }
   };
 
-  const handleDeleteContractor = async (contractorId) => {
-    if (window.confirm(t('Are you sure you want to delete this contractor?'))) {
+  const handleDeleteContractor = (contractor) => {
+    setContractorToDelete(contractor);
+  };
+
+  const confirmDeleteContractor = async () => {
+    if (contractorToDelete) {
       try {
-        await deleteContractor(contractorId);
+        await deleteContractor(contractorToDelete.id);
+        setContractorToDelete(null);
       } catch (error) {
         console.error('Error deleting contractor:', error);
+        setContractorToDelete(null);
         if (error.userFriendly) {
           alert(error.message);
         } else {
@@ -218,7 +226,7 @@ const PriceOfferSettings = ({ onBack }) => {
                     <div className="flex-shrink-0 ml-2">
                       {deleteMode ? (
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteContractor(contractor.id); }}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteContractor(contractor); }}
                           className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors shadow-sm"
                           title={t('Delete contractor')}
                         >
@@ -247,6 +255,18 @@ const PriceOfferSettings = ({ onBack }) => {
           onSave={handleSaveContractor}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!contractorToDelete}
+        onClose={() => setContractorToDelete(null)}
+        onConfirm={confirmDeleteContractor}
+        title="Delete contractor?"
+        message={`Are you sure you want to delete "${contractorToDelete?.name || ''}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDestructive={true}
+      />
     </div>
   );
 };

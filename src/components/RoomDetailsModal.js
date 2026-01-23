@@ -30,6 +30,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
   const isUnmounting = useRef(false);
   const saveTimerRef = useRef(null);
 
+  // Store original work items for delta save optimization
+  // This is the state as loaded from the database when modal opened
+  const originalWorkItems = useRef(JSON.parse(JSON.stringify(room.workItems || [])));
+
   // Update ref when prop changes
   useEffect(() => {
     onSaveRef.current = onSave;
@@ -76,6 +80,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
         if (roomItemIds !== currentIds) {
           // Room data was updated externally (e.g., loaded from database)
           lastSavedData.current = JSON.stringify(room.workItems);
+          // Also update original items baseline for delta saves
+          originalWorkItems.current = JSON.parse(JSON.stringify(room.workItems));
           return room.workItems;
         }
         return currentWorkData;
@@ -100,8 +106,11 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
         if (isUnmounting.current) return;
 
         setSaveStatus('saving');
-        onSaveRef.current(workData);
+        // Pass both current data and original data for delta save optimization
+        onSaveRef.current(workData, originalWorkItems.current);
         lastSavedData.current = currentDataString;
+        // Update original after successful save so next save compares against this state
+        originalWorkItems.current = JSON.parse(currentDataString);
         saveTimerRef.current = null;
 
         // Short delay to show "Saving" state before switching to "Saved"
@@ -123,7 +132,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     // If pending changes, save immediately before closing
     if (saveStatus === 'modified') {
       try {
-        await onSaveRef.current(workData);
+        // Pass both current data and original data for delta save optimization
+        await onSaveRef.current(workData, originalWorkItems.current);
       } catch (error) {
         console.error('Auto-save failed on close:', error);
       }

@@ -136,7 +136,9 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           // For plinth items, show name with subtitle (e.g., "Sokel - rezanie a brúsenie")
                           workName = `${t(item.name)} - ${t(item.subtitle)}`;
                         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-                          workName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(item.name);
+                          // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
+                          const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+                          workName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
                         } else {
                           const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId);
                           // Always translate the name
@@ -235,16 +237,22 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     // Skip auxiliary material items as they are rendered separately at the bottom
                     if (item.name === MATERIAL_ITEM_NAMES.AUXILIARY_AND_FASTENING_MATERIAL) return;
 
-                    const displayName = (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_MATERIAL)
-                      ? (item.fields?.[WORK_ITEM_NAMES.NAME] || item.name)
+                    // For custom work/material items, use specific fallback based on selectedType
+                    const isCustomItem = item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_MATERIAL;
+                    const hasCustomName = isCustomItem && item.fields?.[WORK_ITEM_NAMES.NAME];
+                    const customFallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+                    const displayName = isCustomItem
+                      ? (item.fields?.[WORK_ITEM_NAMES.NAME] || customFallbackName)
                       : item.name;
                     const materialKey = `${displayName}-${item.subtitle || 'no-subtitle'}`;
 
                     if (!materialGroups[materialKey]) {
                       materialGroups[materialKey] = {
                         name: displayName, // Display name (will be overwritten by originalName for sorting)
-                        // Only set rawDisplayName for custom items, otherwise we want to translate the name later
-                        rawDisplayName: (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_MATERIAL) ? displayName : null,
+                        // Only set rawDisplayName if user entered a custom name, otherwise translate the fallback
+                        rawDisplayName: hasCustomName ? displayName : null,
+                        // Store the name to use for translation (fallback name for custom items without user name)
+                        displayNameKey: isCustomItem && !hasCustomName ? customFallbackName : null,
                         originalName: item.name, // For sorting lookup
                         subtitle: item.subtitle,
                         propertyId: item.propertyId,
@@ -293,8 +301,10 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                       }
                     }
 
-                    // Use rawDisplayName if available (custom name), otherwise translate generic name
-                    const nameToDisplay = group.rawDisplayName || t(group.name);
+                    // Use rawDisplayName if available (user-entered custom name),
+                    // displayNameKey for fallback names that need translation,
+                    // otherwise translate the generic name
+                    const nameToDisplay = group.rawDisplayName || t(group.displayNameKey || group.name);
                     const materialDescription = `${nameToDisplay}${translatedSubtitle ? `, ${translatedSubtitle}` : ''}`;
                     const unit = group.unit && group.unit.includes(UNIT_TYPES.PIECE) ? UNIT_TYPES.PIECE : (group.unit ? group.unit.replace('€/', '') : UNIT_TYPES.METER_SQUARE);
 
