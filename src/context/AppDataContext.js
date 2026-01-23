@@ -391,13 +391,13 @@ export const AppDataProvider = ({ children }) => {
         activeContractorId = transformedContractors[0].id;
       }
 
-      // PHASE 2: Load data filtered by active contractor (OPTIMIZED - reduces data by 50-80%)
-      // Note: We still need all priceLists for project linkage, but clients/projects/invoices are filtered
+      // PHASE 2: Load all data (UI handles contractor-based grouping client-side)
+      // Loading all data ensures cross-device visibility when data is created under different contractors
       const [clients, projects, invoices, allPriceLists] = await Promise.all([
-        api.clients.getAll(activeContractorId),      // Filter by contractor
-        api.projects.getAll(activeContractorId),     // Filter by contractor
-        api.invoices.getAll(activeContractorId),     // Filter by contractor
-        api.priceLists.getAll()                      // Need all for project linkage
+        api.clients.getAll(null),
+        api.projects.getAll(null),
+        api.invoices.getAll(null),
+        api.priceLists.getAll()
       ]);
 
       /* console.log('[SUPABASE] Data loaded (filtered by contractor):', {
