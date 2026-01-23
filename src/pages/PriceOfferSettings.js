@@ -261,10 +261,10 @@ const PriceOfferSettings = ({ onBack }) => {
         isOpen={!!contractorToDelete}
         onClose={() => setContractorToDelete(null)}
         onConfirm={confirmDeleteContractor}
-        title="Delete contractor?"
-        message={`Are you sure you want to delete "${contractorToDelete?.name || ''}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('Delete contractor?')}
+        message={t('Are you sure you want to delete "{name}"? This action cannot be undone.').replace('{name}', contractorToDelete?.name || '')}
+        confirmLabel={t('Delete')}
+        cancelLabel={t('Cancel')}
         isDestructive={true}
       />
     </div>

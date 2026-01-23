@@ -251,10 +251,10 @@ const Clients = () => {
         isOpen={!!clientToDelete}
         onClose={() => setClientToDelete(null)}
         onConfirm={confirmDeleteClient}
-        title="Delete client?"
-        message={`Are you sure you want to delete "${clientToDelete?.name || ''}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('Delete client?')}
+        message={t('Are you sure you want to delete "{name}"? This action cannot be undone.').replace('{name}', clientToDelete?.name || '')}
+        confirmLabel={t('Delete')}
+        cancelLabel={t('Cancel')}
         isDestructive={true}
       />
     </div>

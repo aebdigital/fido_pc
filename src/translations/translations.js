@@ -895,7 +895,11 @@ export const translations = {
     "BID": "IČO",
     "TID": "DIČ",
     "Delete client": "Vymazať klienta",
+    "Delete client?": "Vymazať klienta?",
+    "Delete contractor?": "Vymazať dodávateľa?",
+    "Delete room?": "Vymazať miestnosť?",
     "Are you sure you want to delete this client?": "Ste si istí, že chcete vymazať tohto klienta?",
+    "Are you sure you want to delete \"{name}\"? This action cannot be undone.": "Ste si istí, že chcete vymazať \"{name}\"? Táto akcia je nevratná.",
 
     // ========== LEGAL & INFO ==========
     "Tutorial": "Tutoriál",
