@@ -1051,7 +1051,7 @@ export const useProjectManager = (appData, setAppData) => {
         }
       }
     }));
-  }, [appData.activeContractorId]);
+  }, [appData.activeContractorId, fullSaveWorkItemsForRoom]);
 
   const updateProjectRoom = useCallback(async (projectId, roomId, roomData, originalWorkItems = null) => {
     try {
