@@ -89,7 +89,15 @@ const Invoices = () => {
   };
 
   const getInvoiceTotal = (invoice) => {
-    // Get the project to calculate total
+    // PREFERRED: Use stored values from the invoice record if available
+    // This allows listing invoices without loading full project details for each one
+    if (invoice.priceWithoutVat !== undefined && invoice.priceWithoutVat !== null) {
+      const price = parseFloat(invoice.priceWithoutVat);
+      const vat = parseFloat(invoice.cumulativeVat || 0);
+      return formatPrice(price + vat);
+    }
+
+    // FALLBACK: Calculate from project data (legacy behavior / fallback)
     const project = findProjectById(invoice.projectId, invoice.categoryId);
     if (!project) return '0,00';
 

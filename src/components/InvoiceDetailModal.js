@@ -5,6 +5,7 @@ import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
 import { generateInvoicePDF, generateCashReceiptPDF } from '../utils/pdfGenerator';
 import { PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS, formatProjectNumber } from '../utils/dataTransformers';
+import { WORK_ITEM_NAMES } from '../config/constants';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import PDFPreviewModal from './PDFPreviewModal';
 
@@ -87,11 +88,17 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
           unit: item.unit,
           vatRate: (item.vat !== undefined) ? item.vat / 100 : (original.vatRate || 0.23),
 
+
           // Ensure propertyId is preserved for grouping logic in PDF generator
           propertyId: original.propertyId || (item.category === 'work' ? 'custom_work' : undefined),
 
           // Ensure fields are preserved for specific logic (e.g. scaffolding)
-          fields: original.fields || {},
+          // CRITICAL: Sync item.title (which is editable) to fields.Name specifically for custom work
+          // This ensures PDF generator picks up the displayed name instead of falling back to default "Custom work"
+          fields: {
+            ...(original.fields || {}),
+            [WORK_ITEM_NAMES.NAME]: item.title
+          },
           subtitle: original.subtitle
         };
 

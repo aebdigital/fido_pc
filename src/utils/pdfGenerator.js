@@ -533,7 +533,17 @@ export const generateInvoicePDF = async ({
         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
           // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
           const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-          displayName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
+
+          // Use user-entered name from fields, OR from item name if it's not generic
+          // This handles cases where fields might be missing but the item name was preserved (e.g. edited title)
+          const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
+          // Check if item.name is a specific user-entered string and not a generic fallback
+          const isGenericName = !itemName ||
+            itemName === 'Custom work' || itemName === 'Custom material' ||
+            itemName === 'Vlastná práca' || itemName === 'Vlastný materiál' ||
+            itemName === 'Custom work and material';
+
+          displayName = fieldName || (!isGenericName ? itemName : null) || t(fallbackName);
         } else {
           // Add subtitle for work types (wall/ceiling distinction, etc.)
           displayName = item.subtitle ? `${t(itemName)} ${t(item.subtitle)}` : t(itemName);
@@ -585,7 +595,16 @@ export const generateInvoicePDF = async ({
         if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
           // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
           const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-          displayName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
+
+          // Use user-entered name from fields, OR from item name if it's not generic
+          const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
+          const itemName = item.name; // Use item.name from loop scope
+          const isGenericName = !itemName ||
+            itemName === 'Custom work' || itemName === 'Custom material' ||
+            itemName === 'Vlastná práca' || itemName === 'Vlastný materiál' ||
+            itemName === 'Custom work and material';
+
+          displayName = fieldName || (!isGenericName ? itemName : null) || t(fallbackName);
         } else {
           displayName = translatedSubtitle ? `${t(item.name)} - ${translatedSubtitle}` : t(item.name);
         }
