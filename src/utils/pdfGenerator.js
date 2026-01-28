@@ -1014,8 +1014,10 @@ export const generateInvoicePDF = async ({
     // === FOOTER SECTION - Contractor info ===
     // Check if content would collide with footer - footer starts at Y=252
     // If signature bottom is too close to footer, move entire footer to a new page
+    // Notes start at 240, so signature needs to end before that (e.g. 235) to avoid overlap
     const footerStartY = 252;
-    const needsNewPage = signatureBottomY > (footerStartY - 10); // 10px safety margin
+    const notesStartY = 240;
+    const needsNewPage = signatureBottomY > (notesStartY - 5); // Break if signature goes past 235
 
     if (needsNewPage) {
       doc.addPage();
@@ -1058,12 +1060,14 @@ export const generateInvoicePDF = async ({
         }
       } else if (type === 'web') {
         // Simple globe icon - circle with cross lines (remains Stroked but black)
+        // Shifting down by 0.6mm to align with text center and other images
+        const cy = y - size * 0.3; // Center Y
         doc.setLineWidth(0.2);
-        doc.circle(x + size / 2, y - size / 2, size / 2, 'S');
-        doc.line(x, y - size / 2, x + size, y - size / 2);
-        doc.line(x + size / 2, y - size, x + size / 2, y);
+        doc.circle(x + size / 2, cy, size / 2, 'S');
+        doc.line(x, cy, x + size, cy);
+        doc.line(x + size / 2, cy - size / 2, x + size / 2, cy + size / 2);
         // Optional: add inner ellipses for meridians
-        doc.ellipse(x + size / 2, y - size / 2, size / 4, size / 2, 'S');
+        doc.ellipse(x + size / 2, cy, size / 4, size / 2, 'S');
       } else if (type === 'email') {
         if (mailIconData) {
           doc.addImage(mailIconData, 'PNG', x, y - size * 0.8, size, size);
