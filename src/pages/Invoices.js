@@ -90,11 +90,9 @@ const Invoices = () => {
 
   const getInvoiceTotal = (invoice) => {
     // PREFERRED: Use stored values from the invoice record if available
-    // This allows listing invoices without loading full project details for each one
+    // We display price WITHOUT VAT as per the label "VAT not included"
     if (invoice.priceWithoutVat !== undefined && invoice.priceWithoutVat !== null) {
-      const price = parseFloat(invoice.priceWithoutVat);
-      const vat = parseFloat(invoice.cumulativeVat || 0);
-      return formatPrice(price + vat);
+      return formatPrice(parseFloat(invoice.priceWithoutVat));
     }
 
     // FALLBACK: Calculate from project data (legacy behavior / fallback)
@@ -104,13 +102,8 @@ const Invoices = () => {
     const breakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
     if (!breakdown) return '0,00';
 
-    // Get VAT rate
-    const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
-    const vatRate = vatItem ? vatItem.price / 100 : 0.23;
-
     const totalWithoutVAT = breakdown.total || 0;
-    const totalWithVAT = totalWithoutVAT * (1 + vatRate);
-    return formatPrice(totalWithVAT);
+    return formatPrice(totalWithoutVAT);
   };
 
   const handleContractorSelect = (contractor) => {

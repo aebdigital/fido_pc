@@ -200,7 +200,7 @@ export const AppDataProvider = ({ children }) => {
         projects: []
       },
       {
-        id: 'companies',
+        id: 'firms',
         name: 'Companies',
         count: 0,
         image: firmsImage,
@@ -337,7 +337,7 @@ export const AppDataProvider = ({ children }) => {
       projects: []
     },
     {
-      id: 'companies',
+      id: 'firms',
       name: 'Companies',
       count: 0,
       image: firmsImage,
@@ -472,18 +472,16 @@ export const AppDataProvider = ({ children }) => {
         // Let's assume snake_case project_id based on DB schema.
         const linkedInvoice = (invoices || []).find(inv => inv.project_id === project.id);
 
-        return {
+        const projectData = {
           ...project,
           priceListSnapshot,
           photos,
           projectHistory,
-          // Map snake_case to camelCase for frontend usage
-          clientId: project.client_id,
-          hasInvoice: project.has_invoice,
-          invoiceId: project.invoice_id,
           invoiceStatus: linkedInvoice ? linkedInvoice.status : null,
           isArchived: project.is_archived
         };
+
+        return projectData;
       });
 
       // Build contractor projects structure

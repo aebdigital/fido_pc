@@ -1075,7 +1075,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Projekt')}</h2>
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Project')}</h2>
               </div>
               {!project.is_archived && (
                 <div className="flex gap-2">
@@ -1106,45 +1106,45 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   {getProjectRooms(project.id).map(room => {
                     const worksCount = calculateWorksCount(room, project.priceListSnapshot);
                     return (
-                    <div
-                      key={room.id}
-                      className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
-                      onClick={deleteMode ? undefined : () => {
-                        setSelectedRoom(room);
-                        setShowRoomDetailsModal(true);
-                      }}
-                    >
-                      <div className={`transition-all duration-300 flex-1 min-w-0 ${deleteMode ? 'mr-4' : ''}`}>
-                        <div className="font-semibold text-gray-900 dark:text-white text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
-                        <div className="text-base text-gray-600 dark:text-gray-400">{worksCount} {tPlural(worksCount, 'work_singular', 'works', 'works_many')}</div>
-                      </div>
-
-                      {deleteMode ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteRoom(room);
-                          }}
-                          className="bg-red-500 hover:bg-red-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0"
-                        >
-                          <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('VAT not included')}</div>
-                            <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg whitespace-nowrap">
-                              {formatPrice((() => {
-                                const calc = calculateRoomPriceWithMaterials(room, project.priceListSnapshot);
-                                return calc.workTotal + calc.materialTotal + calc.othersTotal;
-                              })())}
-                            </div>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                      <div
+                        key={room.id}
+                        className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
+                        onClick={deleteMode ? undefined : () => {
+                          setSelectedRoom(room);
+                          setShowRoomDetailsModal(true);
+                        }}
+                      >
+                        <div className={`transition-all duration-300 flex-1 min-w-0 ${deleteMode ? 'mr-4' : ''}`}>
+                          <div className="font-semibold text-gray-900 dark:text-white text-lg truncate">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
+                          <div className="text-base text-gray-600 dark:text-gray-400">{worksCount} {tPlural(worksCount, 'work_singular', 'works', 'works_many')}</div>
                         </div>
-                      )}
-                    </div>
-                  );
+
+                        {deleteMode ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteRoom(room);
+                            }}
+                            className="bg-red-500 hover:bg-red-600 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                            <div className="text-right">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('VAT not included')}</div>
+                              <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg whitespace-nowrap">
+                                {formatPrice((() => {
+                                  const calc = calculateRoomPriceWithMaterials(room, project.priceListSnapshot);
+                                  return calc.workTotal + calc.materialTotal + calc.othersTotal;
+                                })())}
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                          </div>
+                        )}
+                      </div>
+                    );
                   })}
 
                   {getProjectRooms(project.id).length === 0 && (

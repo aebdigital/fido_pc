@@ -228,6 +228,37 @@ const sanitizeText = (text) => {
   return String(text);
 };
 
+// Fix for Slovak work names showing in English mode
+// Maps standard Slovak work names to English equivalent
+const SLOVAK_WORK_NAMES_FIX = {
+  'Prípravné a búracie práce': 'Preparatory and demolition works',
+  'Elektroinštalačné práce': 'Electrical installation work',
+  'Vodoinštalačné práce': 'Plumbing work',
+  'Murovanie priečok': 'Brick partitions',
+  'Murovanie nosného muriva': 'Brick load-bearing wall',
+  'Sádrokartón': 'Plasterboarding',
+  'Sieťkovanie': 'Netting',
+  'Omietka': 'Plastering',
+  'Fasádne omietky': 'Facade Plastering',
+  'Nivelačka': 'Levelling',
+  'Pomocné a ukončovacie práce': 'Auxiliary and finishing work',
+  'Osadenie okna': 'Window installation',
+  'Osadenie zárubne': 'Installation of door jamb',
+  'Samonivelizačná hmota': 'Self-leveling compound',
+  'Pomocný a spojovací materiál': 'Auxiliary and connecting material',
+  'Lepidlo, obklad a dlažba': 'Adhesive, tiling and paving',
+  'Dlažba, veľkoformát': 'Pavings, large format'
+};
+
+// Fix for Slovak units showing in English mode
+const SLOVAK_UNIT_FIX = {
+  'hod': 'h',
+  'ks': 'pc',
+  'bal': 'pkg',
+  'deň': 'day',
+  'dní': 'days'
+};
+
 export const generateInvoicePDF = async ({
   invoice,
   contractor,
@@ -262,7 +293,7 @@ export const generateInvoicePDF = async ({
     // === HEADER SECTION ===
 
     // Logo - Top Right (preserve aspect ratio)
-    const maxLogoSize = 25;
+    const maxLogoSize = 45; // reduced from 62
     if (contractor?.logo) {
       try {
         let format = 'JPEG';
@@ -288,8 +319,8 @@ export const generateInvoicePDF = async ({
           }
         }
 
-        const logoX = 190 - logoWidth;
-        const logoY = 10 + (maxLogoSize - logoHeight) / 2; // Center vertically in the space
+        const logoX = 197.65 - logoWidth; // 210 - 12.35 margin
+        const logoY = 8 + (maxLogoSize - logoHeight) / 2; // Moved up from 12.35 to 8
         doc.addImage(contractor.logo, format, logoX, logoY, logoWidth, logoHeight);
       } catch (e) {
         console.warn('Failed to add logo to PDF:', e);
@@ -297,39 +328,39 @@ export const generateInvoicePDF = async ({
     }
 
     // Invoice number / Price Offer title - left side
-    doc.setFontSize(14);
+    doc.setFontSize(25);
     doc.setFont('Inter', 'bold');
 
     if (isPriceOffer) {
       // New format: CP {number} - {name} as MAIN TITLE (same style as invoice)
       const title = `${t('Price Offer Abbr')} ${projectNumber || ''} - ${invoice.projectName || ''}`;
-      doc.text(sanitizeText(title), 20, 20);
+      doc.text(sanitizeText(title), 12.35, 20);
 
-      // Project Notes - same style as invoice subtitle (fontSize 11, 4px below title)
+      // Project Notes - same style as invoice subtitle (fontSize 14, 4px below title)
       if (projectNotes) {
-        doc.setFontSize(11);
+        doc.setFontSize(14);
         doc.setFont('Inter', 'normal');
-        const splitNotes = doc.splitTextToSize(sanitizeText(projectNotes), 100);
-        doc.text(splitNotes, 20, 24);
+        const splitNotes = doc.splitTextToSize(sanitizeText(projectNotes), 120);
+        doc.text(splitNotes, 12.35, 26);
       }
     } else {
-      doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 20, 20);
-      doc.setFontSize(11);
+      doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
+      doc.setFontSize(14);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText(`${t('Price offer')} ${projectNumber || invoice.invoiceNumber}`), 20, 24);
+      doc.text(sanitizeText(`${t('Price offer')} ${projectNumber || invoice.invoiceNumber}`), 12.35, 26);
     }
 
     // === CLIENT SECTION (Odberatel) - Left side under header ===
-    let clientY = 35;
+    let clientY = 45;
 
-    // Odberatel heading - 30% bigger (8 * 1.3 = ~10.4)
-    doc.setFontSize(10);
+    // Odberatel heading - 30% bigger (10 * 1.3 = 13)
+    doc.setFontSize(13);
     doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText(t('Subscriber')), 20, clientY);
+    doc.text(sanitizeText(t('Subscriber')), 12.35, clientY);
 
-    doc.setFontSize(8);
+    doc.setFontSize(10);
     doc.setFont('Inter', 'normal');
-    clientY += 4; // Closer to content (was 5)
+    clientY += 6;
 
     // First, calculate how many lines the address will have
     const contentStartY = clientY;
@@ -346,8 +377,7 @@ export const generateInvoicePDF = async ({
     }
 
     // Calculate the bottom Y position based on address content
-    // Use minimum height of 5 lines (20px) to ensure consistent layout even with empty client
-    const lineHeight = 4;
+    const lineHeight = 5;
     const minLines = 5;
     const actualLines = Math.max(addressLines.length, minLines);
     const addressBottomY = contentStartY + (actualLines * lineHeight);
@@ -355,15 +385,15 @@ export const generateInvoicePDF = async ({
     // --- Draw LEFT COLUMN: Address (top-aligned) ---
     let addressY = contentStartY;
     addressLines.forEach(line => {
-      doc.text(sanitizeText(line), 20, addressY);
+      doc.text(sanitizeText(line), 12.35, addressY);
       addressY += lineHeight;
     });
     if (addressLines.length === 0 && !client) {
-      doc.text(sanitizeText('-'), 20, contentStartY);
+      doc.text(sanitizeText('-'), 12.35, contentStartY);
     }
 
     // --- Draw MIDDLE COLUMN: Business IDs (bottom-aligned) ---
-    const businessX = 70;
+    const businessX = 75;
     const businessId = client?.business_id || client?.businessId;
     const taxId = client?.tax_id || client?.taxId;
     const vatId = client?.vat_registration_number || client?.vatId || client?.vatNumber;
@@ -382,8 +412,8 @@ export const generateInvoicePDF = async ({
     });
 
     // --- Draw RIGHT COLUMN: Dates (bottom-aligned) ---
-    const rightBlockX = 190;
-    const labelX = rightBlockX - 50;
+    const rightBlockX = 197.65;
+    const labelX = rightBlockX - 60;
 
     let dateLines = [];
     if (isPriceOffer) {
@@ -417,18 +447,18 @@ export const generateInvoicePDF = async ({
     clientY = addressBottomY;
 
     // === FOUR INFO BOXES - Only for Invoice ===
-    let tableStartY = clientY + 4; // Closer to columns
+    let tableStartY = clientY + 6;
     let boxY = 0;
     let boxHeight = 0;
 
     if (!isPriceOffer) {
-      boxY = clientY + 3; // Closer to columns
-      const ibanBoxWidth = 52; // Wider box for IBAN
-      const boxWidth = 36; // Smaller equal width for other 3 boxes
-      boxHeight = 10; // Height for equal spacing
-      const boxStartX = 20;
-      const gap = 3; // Gaps between boxes
-      const borderRadius = 2; // Smaller border radius
+      boxY = clientY + 4;
+      const ibanBoxWidth = 60;
+      const boxWidth = 40;
+      boxHeight = 11; // reduced from 14 for a tighter look
+      const boxStartX = 12.35;
+      const gap = 4;
+      const borderRadius = 5; // Pills style
 
       doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(0.3);
@@ -438,49 +468,49 @@ export const generateInvoicePDF = async ({
 
       // Box 1: Cislo uctu / IBAN (wider)
       doc.roundedRect(boxStartX, boxY, ibanBoxWidth, boxHeight, borderRadius, borderRadius);
-      doc.setFontSize(6);
-      doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText(t('Bank Account / IBAN')), boxStartX + 2, boxY + 3.5);
       doc.setFontSize(7);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText(t('Bank Account / IBAN')), boxStartX + 4, boxY + 3.5); // centered vertically more
+      doc.setFontSize(8);
       doc.setFont('Inter', 'bold');
-      // Truncate IBAN if too long to fit in wider box
-      const ibanDisplay = contractorBankAccount.length > 26 ? contractorBankAccount.substring(0, 26) + '...' : contractorBankAccount;
-      doc.text(sanitizeText(ibanDisplay || '-'), boxStartX + 2, boxY + 7.5);
+      // Truncate IBAN if too long
+      const ibanDisplay = contractorBankAccount.length > 30 ? contractorBankAccount.substring(0, 30) + '...' : contractorBankAccount;
+      doc.text(sanitizeText(ibanDisplay || '-'), boxStartX + 4, boxY + 7.5); // reduced gap between label and value
 
       // Box 2: Variabilny symbol
       const box2X = boxStartX + ibanBoxWidth + gap;
       doc.roundedRect(box2X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
-      doc.setFontSize(6);
-      doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText(t('Variable Symbol')), box2X + 2, boxY + 3.5);
       doc.setFontSize(7);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText(t('Variable Symbol')), box2X + 4, boxY + 3.5);
+      doc.setFontSize(8);
       doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(invoice.invoiceNumber), box2X + 2, boxY + 7.5);
+      doc.text(sanitizeText(invoice.invoiceNumber), box2X + 4, boxY + 7.5);
 
       // Box 3: Datum splatnosti
       const box3X = box2X + boxWidth + gap;
       doc.roundedRect(box3X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
-      doc.setFontSize(6);
-      doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText(t('Due Date')), box3X + 2, boxY + 3.5);
       doc.setFontSize(7);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText(t('Due Date')), box3X + 4, boxY + 3.5);
+      doc.setFontSize(8);
       doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(formatDate(invoice.dueDate)), box3X + 2, boxY + 7.5);
+      doc.text(sanitizeText(formatDate(invoice.dueDate)), box3X + 4, boxY + 7.5);
 
       // Box 4: Suma na uhradu
       const box4X = box3X + boxWidth + gap;
       doc.roundedRect(box4X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
-      doc.setFontSize(6);
-      doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText(t('Amount Due')), box4X + 2, boxY + 3.5);
       doc.setFontSize(7);
+      doc.setFont('Inter', 'normal');
+      doc.text(sanitizeText(t('Amount Due')), box4X + 4, boxY + 3.5);
+      doc.setFontSize(8);
       doc.setFont('Inter', 'bold');
-      doc.text(sanitizeText(formatCurrency(totalWithVAT)), box4X + 2, boxY + 7.5);
+      doc.text(sanitizeText(formatCurrency(totalWithVAT)), box4X + 4, boxY + 7.5);
 
-      tableStartY = boxY + boxHeight + 3; // Closer to boxes
+      tableStartY = boxY + boxHeight + 6;
     } else {
       // For Price Offer, start table closer to client section
-      tableStartY = clientY + 4; // Closer to columns
+      tableStartY = clientY + 6;
     }
 
     // === ITEMS TABLE ===
@@ -497,7 +527,7 @@ export const generateInvoicePDF = async ({
     // Add work items with category header
     if (projectBreakdown && projectBreakdown.items && projectBreakdown.items.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Work (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText(t('Work (Table Header)')).charAt(0).toUpperCase() + sanitizeText(t('Work (Table Header)')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
       ]);
 
       const sortedItems = sortItemsByMasterList(projectBreakdown.items, options.priceList, 'work');
@@ -506,12 +536,20 @@ export const generateInvoicePDF = async ({
         const quantity = item.calculation?.quantity || 0;
         const workCost = item.calculation?.workCost || 0;
         const pricePerUnit = quantity > 0 ? workCost / quantity : 0;
-        const unit = getWorkItemUnit(item);
+
+        let unit = getWorkItemUnit(item);
+        // Fix for Slovak units in English mode
+        if (SLOVAK_UNIT_FIX[unit]) unit = SLOVAK_UNIT_FIX[unit];
+
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = workCost * itemVatRate;
 
         // Get the work item name - try multiple sources
-        const itemName = item.name || getWorkItemNameByPropertyId(item.propertyId) || '';
+        let rawName = item.name || getWorkItemNameByPropertyId(item.propertyId) || '';
+        // Fix for Slovak work names in English mode
+        if (SLOVAK_WORK_NAMES_FIX[rawName]) rawName = SLOVAK_WORK_NAMES_FIX[rawName];
+
+        const itemName = rawName;
         let displayName;
         // For plasterboarding items, build full translated name with subtitle and type
         if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && item.selectedType) {
@@ -563,7 +601,7 @@ export const generateInvoicePDF = async ({
     // Add material items with category header
     if (projectBreakdown && projectBreakdown.materialItems && projectBreakdown.materialItems.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Material (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText(t('Material (Table Header)')).charAt(0).toUpperCase() + sanitizeText(t('Material (Table Header)')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
       ]);
 
       const sortedMaterials = sortItemsByMasterList(projectBreakdown.materialItems, options.priceList, 'material');
@@ -577,6 +615,9 @@ export const generateInvoicePDF = async ({
         if (unit.startsWith('€/')) unit = unit.substring(2);
         // Convert iOS unit values to display symbols
         unit = unitToDisplaySymbol(unit);
+        // Fix for Slovak units in English mode
+        if (SLOVAK_UNIT_FIX[unit]) unit = SLOVAK_UNIT_FIX[unit];
+
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = materialCost * itemVatRate;
         // Handle ceramic subtitle translation with correct gender based on propertyId
@@ -591,6 +632,12 @@ export const generateInvoicePDF = async ({
             translatedSubtitle = t(item.subtitle);
           }
         }
+
+        let rawName = item.name || '';
+        // Fix for Slovak work names in English mode
+        if (SLOVAK_WORK_NAMES_FIX[rawName]) rawName = SLOVAK_WORK_NAMES_FIX[rawName];
+        const itemName = rawName;
+
         let displayName;
         if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
           // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
@@ -623,7 +670,7 @@ export const generateInvoicePDF = async ({
     // Add others items with category header
     if (projectBreakdown && projectBreakdown.othersItems && projectBreakdown.othersItems.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Others (Table Header)')), colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], fontSize: 7 } }
+        { content: sanitizeText(t('Others (Table Header)')).charAt(0).toUpperCase() + sanitizeText(t('Others (Table Header)')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
       ]);
 
       // Group scaffolding items by their type (montáž/prenájom)
@@ -794,19 +841,19 @@ export const generateInvoicePDF = async ({
       ]],
       body: tableData,
       theme: 'plain',
-      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', cellPadding: 1, font: 'Inter' },
-      styles: { fontSize: 8, cellPadding: 1, lineColor: [255, 255, 255], lineWidth: 0, font: 'Inter' },
-      tableWidth: 170,
-      margin: { left: 20, right: 20 },
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', cellPadding: 1.2, font: 'Inter', fontSize: 9.2 },
+      styles: { fontSize: 9, cellPadding: 1.2, lineColor: [255, 255, 255], lineWidth: 0, font: 'Inter' },
+      tableWidth: 185.3,
+      margin: { left: 12.35, right: 12.35 },
       tableLineColor: [255, 255, 255],
       tableLineWidth: 0,
       columnStyles: {
         0: { cellWidth: 'auto', halign: 'left' },
-        1: { cellWidth: 22, halign: 'center' },
-        2: { cellWidth: 28, halign: 'right' },
-        3: { cellWidth: 18, halign: 'center' },
-        4: { cellWidth: 25, halign: 'right' },
-        5: { cellWidth: 28, halign: 'right' }
+        1: { cellWidth: 25, halign: 'center' },
+        2: { cellWidth: 32, halign: 'right' },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 28, halign: 'right' },
+        5: { cellWidth: 32, halign: 'right' }
       },
       didParseCell: (data) => {
         // Force header alignment to match body columns
@@ -820,7 +867,7 @@ export const generateInvoicePDF = async ({
         const headerBottom = data.table.head[0].cells[0].y + data.table.head[0].cells[0].height;
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.35); // ~1px thick
-        doc.line(20, headerBottom, 190, headerBottom);
+        doc.line(12.35, headerBottom, 197.65, headerBottom);
       }
     });
 
@@ -829,15 +876,15 @@ export const generateInvoicePDF = async ({
     // Draw black line at the bottom of table
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.35); // ~1px thick
-    doc.line(20, finalY, 190, finalY);
+    doc.line(12.35, finalY, 197.65, finalY);
 
     // === TOTALS SECTION - Right aligned, with gap from table ===
-    const rightX = 190;
-    const totalsLabelX = rightX - 60; // More space between label and value
+    const rightX = 197.65;
+    const totalsLabelX = rightX - 95; // Wider label area to prevent collision with numbers
     let totalY = finalY + 8; // Gap from table
-    const rowSpacing = 5; // Equal spacing between all rows
+    const rowSpacing = 8; // Increased from 5 for better separation
 
-    doc.setFontSize(10);
+    doc.setFontSize(12.8);
     doc.setFont('Inter', 'normal');
     doc.text(sanitizeText(t('Without VAT:')), totalsLabelX, totalY);
     // Values are now normal font, not bold
@@ -850,7 +897,7 @@ export const generateInvoicePDF = async ({
     doc.text(sanitizeText(formatCurrency(vat)), rightX, totalY, { align: 'right' });
 
     totalY += rowSpacing;
-    doc.setFontSize(11);
+    doc.setFontSize(15.3);
     doc.setFont('Inter', 'bold');
     doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
     doc.text(sanitizeText(formatCurrency(totalWithVAT)), rightX, totalY, { align: 'right' });
@@ -871,16 +918,16 @@ export const generateInvoicePDF = async ({
           );
 
           if (qrCodeDataUrl) {
-            const qrSize = 30;
-            const qrX = 20;
-            const qrY = finalY + 5;
+            const qrSize = 40;
+            const qrX = 12.35;
+            const qrY = finalY + 8;
 
             doc.addImage(qrCodeDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
 
             // Add label below QR code
-            doc.setFontSize(6);
+            doc.setFontSize(8);
             doc.setFont('Inter', 'normal');
-            doc.text(sanitizeText(t('Scan to pay')), qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+            doc.text(sanitizeText(t('Scan to pay')), qrX + qrSize / 2, qrY + qrSize + 4, { align: 'center' });
           }
         } catch (e) {
           console.warn('Failed to add QR code to PDF:', e);
@@ -889,10 +936,10 @@ export const generateInvoicePDF = async ({
     }
 
     // === SIGNATURE SECTION ===
-    const signatureY = totalY + 12; // Proportionally moved down
-    doc.setFontSize(9);
+    const signatureY = totalY + 15;
+    doc.setFontSize(12);
     doc.setFont('Inter', 'normal');
-    doc.text(sanitizeText(t('Issued by:')), rightX - 40, signatureY);
+    doc.text(sanitizeText(t('Issued by:')), rightX - 50, signatureY);
 
     if (contractor?.signature) {
       try {
@@ -919,21 +966,21 @@ export const generateInvoicePDF = async ({
           }
         }
 
-        // Center in the box (box starts at rightX - 40, signatureY + 3)
-        const boxX = rightX - 40;
-        const boxY = signatureY + 3;
-        const centeredX = boxX + (40 - sigWidth) / 2;
-        const centeredY = boxY + (20 - sigHeight) / 2;
+        // Center in the box
+        const boxX = rightX - 55;
+        const boxY = signatureY + 5;
+        const centeredX = boxX + (55 - sigWidth) / 2;
+        const centeredY = boxY + (30 - sigHeight) / 2;
 
         doc.addImage(contractor.signature, format, centeredX, centeredY, sigWidth, sigHeight);
       } catch (e) {
         console.warn('Failed to add signature to PDF:', e);
         doc.setLineWidth(0.3);
-        doc.line(rightX - 40, signatureY + 18, rightX, signatureY + 18);
+        doc.line(rightX - 55, signatureY + 25, rightX, signatureY + 25);
       }
     } else {
       doc.setLineWidth(0.3);
-      doc.line(rightX - 40, signatureY + 18, rightX, signatureY + 18);
+      doc.line(rightX - 55, signatureY + 25, rightX, signatureY + 25);
     }
 
     // Calculate the bottom of the content (signature section bottom)
@@ -952,10 +999,10 @@ export const generateInvoicePDF = async ({
     // === INVOICE NOTES - Centered above footer icons ===
     // Notes go above the footer on the same page as the footer
     if (invoice.notes) {
-      doc.setFontSize(8);
+      doc.setFontSize(10);
       doc.setFont('Inter', 'normal');
-      const notesText = doc.splitTextToSize(sanitizeText(invoice.notes), 150);
-      doc.text(notesText, 105, 242, { align: 'center' });
+      const notesText = doc.splitTextToSize(sanitizeText(invoice.notes), 160);
+      doc.text(notesText, 105, 240, { align: 'center' });
     }
 
     // Top row ABOVE divider: Name | Phone | Web | Email (equally spaced with icons)
@@ -966,98 +1013,131 @@ export const generateInvoicePDF = async ({
 
     // Helper function to draw simple icons using only supported jsPDF methods
     const drawIcon = (type, x, y, size = 3) => {
-      doc.setDrawColor(80, 80, 80);
-      doc.setFillColor(80, 80, 80);
+      doc.setDrawColor(0, 0, 0); // Pitch black
+      doc.setFillColor(0, 0, 0); // Pitch black
       doc.setLineWidth(0.2);
 
       if (type === 'user') {
-        // Simple user icon - circle head + shoulders (two circles)
-        doc.circle(x + size / 2, y - size * 0.6, size / 4, 'S');
-        doc.circle(x + size / 2, y - size * 0.1, size / 3, 'S');
+        // Simple user icon - filled head + shoulders (circle + semi-circle/chord)
+
+        // Better "person.fill" approximation:
+        // This will draw a full circle, overlapping the text area below if not careful.
+        // We rely on the footer height spacing.
+
+        // Clip body circle to not exceed y? Too complex for this tool.
+        // Let's revert to: Head + Shoulders (Filled)
+        // Original was:
+        // doc.circle(x + size / 2, y - size * 0.6, size / 4, 'S');
+        // doc.circle(x + size / 2, y - size * 0.1, size / 3, 'S');
+        doc.circle(x + size / 2, y - size * 0.65, size / 4, 'F');
+        doc.circle(x + size / 2, y - size * 0.1, size / 3, 'F');
+
       } else if (type === 'phone') {
-        // Simple phone icon - rectangle
-        doc.roundedRect(x, y - size, size * 0.6, size, 0.3, 0.3, 'S');
+        // Simple phone icon - filled rounded rect
+        doc.roundedRect(x + size * 0.2, y - size * 0.9, size * 0.6, size * 0.9, 0.5, 0.5, 'F');
       } else if (type === 'web') {
-        // Simple globe icon - circle with cross lines
+        // Simple globe icon - circle with cross lines (remains Stroked but black)
+        doc.setLineWidth(0.2);
         doc.circle(x + size / 2, y - size / 2, size / 2, 'S');
         doc.line(x, y - size / 2, x + size, y - size / 2);
         doc.line(x + size / 2, y - size, x + size / 2, y);
+        // Optional: add inner ellipses for meridians
+        doc.ellipse(x + size / 2, y - size / 2, size / 4, size / 2, 'S');
       } else if (type === 'email') {
-        // Simple envelope icon - rectangle with V
-        doc.rect(x, y - size * 0.7, size, size * 0.7, 'S');
-        doc.line(x, y - size * 0.7, x + size / 2, y - size * 0.3);
-        doc.line(x + size, y - size * 0.7, x + size / 2, y - size * 0.3);
+        // Simple envelope icon - filled rectangle with white V
+        doc.rect(x, y - size * 0.7, size, size * 0.7, 'F');
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.3);
+        doc.line(x, y - size * 0.7, x + size / 2, y - size * 0.35);
+        doc.line(x + size, y - size * 0.7, x + size / 2, y - size * 0.35);
+        // Reset draw color to black to avoid affecting subsequent drawings (like the divider)
+        doc.setDrawColor(0, 0, 0);
       }
     };
 
-    // Calculate positions for 4 equal columns
-    const colWidth = pageWidth / 4;
-    const col1 = startX;
-    const col2 = startX + colWidth;
-    const col3 = startX + colWidth * 2;
-    const col4 = startX + colWidth * 3;
-    const iconOffset = 5; // Space after icon for text
-    const textMaxWidth = colWidth - iconOffset - 2; // Available width for text (with small margin)
-    const iconLineHeight = 2.5; // Line height for wrapped text
+    // Calculate positions spread from left to right edge
+    const totalUsableWidth = 185.3; // 197.65 - 12.35
+    const colWidth = totalUsableWidth / 3; // totalUsableWidth / (nCount - 1)
+    const col1 = 12.35;
+    const col2 = 12.35 + colWidth;
+    const col3 = 12.35 + colWidth * 2;
+    const col4 = 197.65; // Flush to right edge
+    const iconOffset = 5;
+    const textMaxWidth = colWidth - iconOffset - 2;
+    const iconLineHeight = 2.5;
 
     doc.setFontSize(7);
 
     // Helper to draw wrapped text for footer icons
-    const drawWrappedIconText = (text, x, y, maxWidth, bold = false) => {
+    const drawWrappedIconText = (text, x, y, maxWidth, bold = false, align = 'left') => {
       if (!text) return 0;
       doc.setFont('Inter', bold ? 'bold' : 'normal');
       const lines = doc.splitTextToSize(sanitizeText(text), maxWidth);
 
-      // Vertical centering adjustment
-      // If lines.length > 1, shift start Y up so the block is centered relative to y
-      // y is where the icon is drawn (approx center)
       const adjustment = (lines.length - 1) * iconLineHeight / 2;
       const startY = y - adjustment;
 
       lines.forEach((line, i) => {
-        doc.text(line, x, startY + (i * iconLineHeight));
+        doc.text(line, x, startY + (i * iconLineHeight), { align: align });
       });
       return lines.length;
     };
 
-    // Column 1: Contact Person with user icon (not company name)
+    // Column 1: Contact Person (left edge)
     const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
     if (contactPerson) {
       drawIcon('user', col1, topRowY, 3);
       drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, true);
     }
 
-    // Column 2: Phone with phone icon
-    doc.setFont('Inter', 'normal');
+    // Column 2: Phone
     if (contractor?.phone) {
       drawIcon('phone', col2, topRowY, 3);
       drawWrappedIconText(contractor.phone, col2 + iconOffset, topRowY, textMaxWidth);
     }
 
-    // Column 3: Web with globe icon
+    // Column 3: Web
     if (contractor?.website) {
       drawIcon('web', col3, topRowY, 3);
       drawWrappedIconText(contractor.website, col3 + iconOffset, topRowY, textMaxWidth);
     }
 
-    // Column 4: Email with envelope icon
+    // Column 4: Email (right edge - right aligned for flush look)
     if (contractor?.email) {
-      drawIcon('email', col4, topRowY, 3);
-      drawWrappedIconText(contractor.email, col4 + iconOffset, topRowY, textMaxWidth);
+      const emailIconSize = 3;
+      // Calculate text width to position icon correctly to the left of the text
+      // Since it's right aligned, we need: RightEdge(col4) - TextWidth - IconPadding - IconWidth
+      const emailText = sanitizeText(contractor.email);
+      doc.setFont('Inter', 'normal');
+      // If text wraps, getting accurate width is harder, but for email it usually fits.
+      // Use splitTextToSize to check if it wraps.
+      const lines = doc.splitTextToSize(emailText, textMaxWidth);
+      // Use the width of the longest line (or just the first/only line)
+      let maxLineWidth = 0;
+      lines.forEach(line => {
+        const w = doc.getTextWidth(line);
+        if (w > maxLineWidth) maxLineWidth = w;
+      });
+
+      const iconX = col4 - maxLineWidth - emailIconSize - 2; // 2mm padding between icon and text
+
+      drawIcon('email', iconX, topRowY, emailIconSize);
+      drawWrappedIconText(contractor.email, col4, topRowY, textMaxWidth, false, 'right');
     }
 
     // Divider line - equal spacing above and below
-    const dividerY = 256; // Moved up for equal spacing
+    const dividerY = 256;
+    doc.setDrawColor(0, 0, 0); // Ensure black color
     doc.setLineWidth(0.5);
-    doc.line(20, dividerY, 190, dividerY);
+    doc.line(12.35, dividerY, 197.65, dividerY);
 
     // Three columns BELOW divider
-    const col1X = 20;      // Left column - Address
+    const col1X = 12.35;      // Left column - Address
     const col2X = 80;      // Middle column - Business IDs
-    const col3X = 140;     // Right column - Bank info
-    let colY = dividerY + 4; // Equal gap below divider (4px matches gap above)
+    const col3X = 145;     // Right column - Bank info
+    let colY = dividerY + 5;
 
-    doc.setFontSize(7);
+    doc.setFontSize(9);
     doc.setFont('Inter', 'normal');
 
     // Collect all column data first to calculate heights
@@ -1095,7 +1175,7 @@ export const generateInvoicePDF = async ({
     if (swiftCode) col3Lines.push({ text: `SWIFT kód: ${swiftCode}` });
 
     // Calculate max lines and bottom Y position
-    const footerLineHeight = 3.5;
+    const footerLineHeight = 4.5;
     const maxLines = Math.max(col1Lines.length, col2Lines.length, col3Lines.length);
     const bottomY = colY + (maxLines * footerLineHeight);
 
@@ -1124,7 +1204,7 @@ export const generateInvoicePDF = async ({
     });
 
     // App attribution - bottom center
-    doc.setFontSize(6);
+    doc.setFontSize(8);
     doc.text(sanitizeText(t('Generated by Fido Building Calcul app.')), 105, 290, { align: 'center' });
 
     // Generate PDF blob and URL
@@ -1196,12 +1276,12 @@ export const generateCashReceiptPDF = async ({
     };
 
     const pageWidth = 210;
-    const margin = 20;
+    const margin = 12.35; // 35pt equivalent
     const contentWidth = pageWidth - (margin * 2);
     let currentY = 25;
 
     // === TITLE ===
-    doc.setFontSize(20);
+    doc.setFontSize(25);
     doc.setFont('Inter', 'bold');
     const title = `${t('Cash Receipt')} ${invoice.invoiceNumber}`;
     doc.text(sanitizeText(title), margin, currentY);
@@ -1215,44 +1295,45 @@ export const generateCashReceiptPDF = async ({
 
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
-    doc.setFontSize(8);
+    doc.setFontSize(10);
 
     // Box 1: Purpose
     const box1X = margin;
-    doc.roundedRect(box1X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+    doc.roundedRect(box1X, boxY, boxWidth, boxHeight, 5, 5); // Larger border radius
     doc.setFont('Inter', 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(sanitizeText(t('Purpose')), box1X + 3, boxY + 5);
+    doc.setFontSize(8); // reduced from 10
+    doc.text(sanitizeText(t('Purpose')), box1X + 4, boxY + 5); // closer to top
     doc.setFont('Inter', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(9);
+    doc.setFontSize(9); // reduced from 11
     const purposeText = `${t('Payment for Invoice')} ${invoice.invoiceNumber}`;
-    const purposeLines = doc.splitTextToSize(sanitizeText(purposeText), boxWidth - 6);
-    doc.text(purposeLines, box1X + 3, boxY + 11);
+    const purposeLines = doc.splitTextToSize(sanitizeText(purposeText), boxWidth - 8);
+    doc.text(purposeLines, box1X + 4, boxY + 10); // closer to label
 
     // Box 2: Date of Issue
     const box2X = margin + boxWidth + 4;
-    doc.setFontSize(8);
-    doc.roundedRect(box2X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+    doc.roundedRect(box2X, boxY, boxWidth, boxHeight, 5, 5);
     doc.setFont('Inter', 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(sanitizeText(t('Date of Issue')), box2X + 3, boxY + 5);
+    doc.setFontSize(8);
+    doc.text(sanitizeText(t('Date of Issue')), box2X + 4, boxY + 5);
     doc.setFont('Inter', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    doc.text(sanitizeText(formatDate(invoice.issueDate)), box2X + 3, boxY + 11);
+    doc.setFontSize(10); // reduced from 12
+    doc.text(sanitizeText(formatDate(invoice.issueDate)), box2X + 4, boxY + 10);
 
     // Box 3: Total Price
     const box3X = margin + (boxWidth + 4) * 2;
-    doc.setFontSize(8);
-    doc.roundedRect(box3X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+    doc.roundedRect(box3X, boxY, boxWidth, boxHeight, 5, 5);
     doc.setFont('Inter', 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(sanitizeText(t('Total price')), box3X + 3, boxY + 5);
+    doc.setFontSize(8);
+    doc.text(sanitizeText(t('Total price')), box3X + 4, boxY + 5);
     doc.setFont('Inter', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
-    doc.text(sanitizeText(formatCurrency(totalWithVAT)), box3X + 3, boxY + 12);
+    doc.setFontSize(11); // reduced from 14
+    doc.text(sanitizeText(formatCurrency(totalWithVAT)), box3X + 4, boxY + 11);
 
     currentY = boxY + boxHeight + 15;
 
@@ -1262,13 +1343,13 @@ export const generateCashReceiptPDF = async ({
     const rightColWidth = contentWidth / 2 - 10;
 
     // LEFT COLUMN: Customer info
-    doc.setFontSize(11);
+    doc.setFontSize(14);
     doc.setFont('Inter', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text(sanitizeText(t('Customer')), leftColX, currentY);
     currentY += 6;
 
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     doc.setFont('Inter', 'normal');
     let clientY = currentY;
 
@@ -1326,7 +1407,7 @@ export const generateCashReceiptPDF = async ({
 
     // Made by
     if (contractor?.name) {
-      doc.setFontSize(9);
+      doc.setFontSize(12);
       doc.setFont('Inter', 'normal');
       doc.text(sanitizeText(t('Made by')), rightColX, rightY);
       doc.setFont('Inter', 'bold');
@@ -1341,7 +1422,7 @@ export const generateCashReceiptPDF = async ({
     rightY += 8;
 
     // Total prices summary
-    doc.setFontSize(10);
+    doc.setFontSize(13);
     doc.setFont('Inter', 'normal');
 
     // Calculate VAT (assuming 23%)
@@ -1358,13 +1439,13 @@ export const generateCashReceiptPDF = async ({
     rightY += 5;
 
     doc.setFont('Inter', 'bold');
-    doc.setFontSize(11);
+    doc.setFontSize(16);
     doc.text(sanitizeText(t('Total price')), rightColX, rightY);
     doc.text(sanitizeText(formatCurrency(totalWithVAT)), rightColX + rightColWidth, rightY, { align: 'right' });
     rightY += 12;
 
     // Signature
-    doc.setFontSize(8);
+    doc.setFontSize(11);
     doc.setFont('Inter', 'normal');
     doc.text(sanitizeText(t('Issued by:')), rightColX, rightY);
     rightY += 3;
@@ -1375,8 +1456,8 @@ export const generateCashReceiptPDF = async ({
         if (typeof contractor.signature === 'string' && contractor.signature.startsWith('data:image/')) {
           if (contractor.signature.includes('jpeg') || contractor.signature.includes('jpg')) format = 'JPEG';
         }
-        doc.addImage(contractor.signature, format, rightColX, rightY, 40, 20);
-        rightY += 25;
+        doc.addImage(contractor.signature, format, rightColX, rightY, 55, 30);
+        rightY += 35;
       } catch (e) {
         console.warn('Failed to add signature:', e);
         doc.line(rightColX, rightY + 15, rightColX + 40, rightY + 15);
@@ -1387,11 +1468,9 @@ export const generateCashReceiptPDF = async ({
       rightY += 20;
     }
 
-    // === FOOTER SECTION - Same as invoice (4 icons + 3 columns) ===
-    // Top row ABOVE divider: Name | Phone | Web | Email (equally spaced with icons)
     const topRowY = 252;
-    const footerPageWidth = 170; // usable width (20 to 190)
-    const startX = 20;
+    const footerPageWidth = 185.3; // usable width (12.35 to 197.65)
+    const startX = 12.35;
 
     // Helper function to draw simple icons using only supported jsPDF methods
     const drawIcon = (type, x, y, size = 3) => {
@@ -1419,17 +1498,17 @@ export const generateCashReceiptPDF = async ({
       }
     };
 
-    // Calculate positions for 4 equal columns
-    const colWidth = footerPageWidth / 4;
+    // Calculate positions for 4 columns spread from left to right edge
+    const colWidth = (185.3 - 0) / 3; // totalUsableWidth / (nCount - 1)
     const col1 = startX;
     const col2 = startX + colWidth;
     const col3 = startX + colWidth * 2;
-    const col4 = startX + colWidth * 3;
-    const iconOffset = 5; // Space after icon for text
-    const textMaxWidth = colWidth - iconOffset - 2; // Available width for text (with small margin)
-    const iconLineHeight = 2.5; // Line height for wrapped text
+    const col4 = 197.65; // Flush to right edge
+    const iconOffset = 6;
+    const textMaxWidth = colWidth - iconOffset - 3;
+    const iconLineHeight = 3.5;
 
-    doc.setFontSize(7);
+    doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
 
     // Helper to draw wrapped text for footer icons
@@ -1478,15 +1557,15 @@ export const generateCashReceiptPDF = async ({
     const dividerY = 256;
     doc.setLineWidth(0.5);
     doc.setDrawColor(0, 0, 0);
-    doc.line(20, dividerY, 190, dividerY);
+    doc.line(12.35, dividerY, 197.65, dividerY);
 
     // Three columns BELOW divider
-    const col1X = 20;      // Left column - Address
+    const col1X = 12.35;      // Left column - Address
     const col2X = 80;      // Middle column - Business IDs
-    const col3X = 140;     // Right column - Bank info
-    let colY = dividerY + 4; // Equal gap below divider
+    const col3X = 145;     // Right column - Bank info
+    let colY = dividerY + 5;
 
-    doc.setFontSize(7);
+    doc.setFontSize(9);
     doc.setFont('Inter', 'normal');
 
     // Collect all column data first to calculate heights
@@ -1524,7 +1603,7 @@ export const generateCashReceiptPDF = async ({
     if (swiftCode) footerCol3Lines.push({ text: `SWIFT kód: ${swiftCode}` });
 
     // Calculate max lines and bottom Y position
-    const footerLineHeight = 3.5;
+    const footerLineHeight = 4.5;
     const maxLines = Math.max(footerCol1Lines.length, footerCol2Lines.length, footerCol3Lines.length);
     const bottomY = colY + (maxLines * footerLineHeight);
 
@@ -1553,7 +1632,7 @@ export const generateCashReceiptPDF = async ({
     });
 
     // App attribution - bottom center
-    doc.setFontSize(6);
+    doc.setFontSize(8);
     doc.text(sanitizeText(t('Generated by Fido Building Calcul app.')), 105, 290, { align: 'center' });
 
     // Generate PDF blob and URL
