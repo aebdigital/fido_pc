@@ -14,6 +14,25 @@ const SEPA_COUNTRIES = new Set([
   'CH', 'GB'
 ]);
 
+// Helper to load image from URL and convert to Base64
+const loadImageToBase64 = async (url) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Failed to load image:', url, error);
+    return null;
+  }
+};
+
+
+
 // Validate IBAN using modulo 97 check (ISO 13616)
 const isValidIBAN = (iban) => {
   if (!iban) return false;
@@ -285,6 +304,11 @@ export const generateInvoicePDF = async ({
     if (num === null || num === undefined) return '0';
     return parseFloat(num.toFixed(decimals)).toString();
   };
+
+  // Pre-load footer icons
+  const userIconData = await loadImageToBase64('/user_18164876.png');
+  const phoneIconData = await loadImageToBase64('/phone-receiver-silhouette_1257.png');
+  const mailIconData = await loadImageToBase64('/mail.png');
 
   try {
     const doc = new jsPDF();
@@ -886,6 +910,7 @@ export const generateInvoicePDF = async ({
 
     doc.setFontSize(12.8);
     doc.setFont('Inter', 'normal');
+    // Restore keys with colons to match translation files, but value will be colon-free
     doc.text(sanitizeText(t('Without VAT:')), totalsLabelX, totalY);
     // Values are now normal font, not bold
     doc.text(sanitizeText(formatCurrency(totalWithoutVAT)), rightX, totalY, { align: 'right' });
@@ -937,7 +962,7 @@ export const generateInvoicePDF = async ({
 
     // === SIGNATURE SECTION ===
     const signatureY = totalY + 15;
-    doc.setFontSize(12);
+    doc.setFontSize(9); // Reduced to 9
     doc.setFont('Inter', 'normal');
     doc.text(sanitizeText(t('Issued by:')), rightX - 50, signatureY);
 
@@ -1017,23 +1042,20 @@ export const generateInvoicePDF = async ({
       doc.setLineWidth(0.2);
 
       if (type === 'user') {
-        // Simple user icon - filled head + shoulders (circle + semi-circle/chord)
-
-        // Better "person.fill" approximation:
-        // This will draw a full circle, overlapping the text area below if not careful.
-        // We rely on the footer height spacing.
-
-        // Clip body circle to not exceed y? Too complex for this tool.
-        // Let's revert to: Head + Shoulders (Filled)
-        // Original was:
-        // doc.circle(x + size / 2, y - size * 0.6, size / 4, 'S');
-        // doc.circle(x + size / 2, y - size * 0.1, size / 3, 'S');
-        doc.circle(x + size / 2, y - size * 0.65, size / 4, 'F');
-        doc.circle(x + size / 2, y - size * 0.1, size / 3, 'F');
-
+        if (userIconData) {
+          doc.addImage(userIconData, 'PNG', x, y - size * 0.8, size, size);
+        } else {
+          // Fallback if image fails to load
+          doc.circle(x + size / 2, y - size * 0.65, size / 4, 'F');
+          doc.circle(x + size / 2, y - size * 0.1, size / 3, 'F');
+        }
       } else if (type === 'phone') {
-        // Simple phone icon - filled rounded rect
-        doc.roundedRect(x + size * 0.2, y - size * 0.9, size * 0.6, size * 0.9, 0.5, 0.5, 'F');
+        if (phoneIconData) {
+          doc.addImage(phoneIconData, 'PNG', x, y - size * 0.8, size, size);
+        } else {
+          // Fallback (simple rounded rect)
+          doc.roundedRect(x + size * 0.2, y - size * 0.9, size * 0.6, size * 0.9, 0.5, 0.5, 'F');
+        }
       } else if (type === 'web') {
         // Simple globe icon - circle with cross lines (remains Stroked but black)
         doc.setLineWidth(0.2);
@@ -1043,14 +1065,17 @@ export const generateInvoicePDF = async ({
         // Optional: add inner ellipses for meridians
         doc.ellipse(x + size / 2, y - size / 2, size / 4, size / 2, 'S');
       } else if (type === 'email') {
-        // Simple envelope icon - filled rectangle with white V
-        doc.rect(x, y - size * 0.7, size, size * 0.7, 'F');
-        doc.setDrawColor(255, 255, 255);
-        doc.setLineWidth(0.3);
-        doc.line(x, y - size * 0.7, x + size / 2, y - size * 0.35);
-        doc.line(x + size, y - size * 0.7, x + size / 2, y - size * 0.35);
-        // Reset draw color to black to avoid affecting subsequent drawings (like the divider)
-        doc.setDrawColor(0, 0, 0);
+        if (mailIconData) {
+          doc.addImage(mailIconData, 'PNG', x, y - size * 0.8, size, size);
+        } else {
+          // Fallback
+          doc.rect(x, y - size * 0.7, size, size * 0.7, 'F');
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.3);
+          doc.line(x, y - size * 0.7, x + size / 2, y - size * 0.35);
+          doc.line(x + size, y - size * 0.7, x + size / 2, y - size * 0.35);
+          doc.setDrawColor(0, 0, 0);
+        }
       }
     };
 
@@ -1086,7 +1111,7 @@ export const generateInvoicePDF = async ({
     const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
     if (contactPerson) {
       drawIcon('user', col1, topRowY, 3);
-      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, false, true);
+      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, false);
     }
 
     // Column 2: Phone
@@ -1439,12 +1464,11 @@ export const generateCashReceiptPDF = async ({
 
     doc.setFont('Inter', 'bold');
     doc.setFontSize(16);
-    doc.text(sanitizeText(t('Total price')), rightColX, rightY);
+    doc.text(sanitizeText(t('Total price:')), rightColX, rightY);
     doc.text(sanitizeText(formatCurrency(totalWithVAT)), rightColX + rightColWidth, rightY, { align: 'right' });
     rightY += 12;
 
-    // Signature
-    doc.setFontSize(11);
+    doc.setFontSize(9); // Reduced to 9
     doc.setFont('Inter', 'normal');
     doc.text(sanitizeText(t('Issued by:')), rightColX, rightY);
     rightY += 3;
