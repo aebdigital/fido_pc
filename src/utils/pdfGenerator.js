@@ -356,7 +356,7 @@ export const generateInvoicePDF = async ({
     // Odberatel heading - 30% bigger (10 * 1.3 = 13)
     doc.setFontSize(13);
     doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText(t('Subscriber')), 12.35, clientY);
+    doc.text(sanitizeText(t('Customer')), 12.35, clientY);
 
     doc.setFontSize(10);
     doc.setFont('Inter', 'normal');
@@ -374,6 +374,9 @@ export const generateInvoicePDF = async ({
       const cityPostal = [client.postal_code || client.postalCode, client.city].filter(Boolean).join(' ');
       if (cityPostal) addressLines.push(cityPostal);
       if (client.country) addressLines.push(client.country);
+      // Add Email and Phone if available
+      if (client.email) addressLines.push(client.email);
+      if (client.phone) addressLines.push(client.phone);
     }
 
     // Calculate the bottom Y position based on address content
@@ -879,7 +882,7 @@ export const generateInvoicePDF = async ({
     const rightX = 197.65;
     const totalsLabelX = rightX - 95; // Wider label area to prevent collision with numbers
     let totalY = finalY + 8; // Gap from table
-    const rowSpacing = 8; // Increased from 5 for better separation
+    const rowSpacing = 5; // Reduced from 8 for closer spacing
 
     doc.setFontSize(12.8);
     doc.setFont('Inter', 'normal');
@@ -1083,7 +1086,7 @@ export const generateInvoicePDF = async ({
     const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
     if (contactPerson) {
       drawIcon('user', col1, topRowY, 3);
-      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, true);
+      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, false, true);
     }
 
     // Column 2: Phone
@@ -1151,7 +1154,7 @@ export const generateInvoicePDF = async ({
 
     // Build column 1 lines (Address)
     const col1Lines = [];
-    if (contractor?.name) col1Lines.push({ text: contractor.name, bold: true });
+    if (contractor?.name) col1Lines.push({ text: contractor.name, bold: false });
     if (contractorStreet) col1Lines.push({ text: contractorStreet });
     if (contractorAdditional) col1Lines.push({ text: contractorAdditional });
     const cityLine = [contractorPostal, contractorCity].filter(Boolean).join(' ');
@@ -1167,8 +1170,8 @@ export const generateInvoicePDF = async ({
     // Build column 3 lines (Bank info)
     const col3Lines = [];
     if (legalNotice) col3Lines.push({ text: `${t('Legal File Ref')}: ${legalNotice}` });
-    if (bankAccount) col3Lines.push({ text: `IBAN: ${bankAccount}` });
-    if (swiftCode) col3Lines.push({ text: `SWIFT kód: ${swiftCode}` });
+    if (bankAccount) col3Lines.push({ text: `${t('Bank Account / IBAN')}: ${bankAccount}` });
+    if (swiftCode) col3Lines.push({ text: `${t('SWIFT code')}: ${swiftCode}` });
 
     // Calculate max lines and bottom Y position
     const footerLineHeight = 4.5;
@@ -1526,7 +1529,7 @@ export const generateCashReceiptPDF = async ({
     const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
     if (contactPerson) {
       drawIcon('user', col1, topRowY, 3);
-      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, true);
+      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, false);
     }
 
     // Column 2: Phone with phone icon
@@ -1578,7 +1581,7 @@ export const generateCashReceiptPDF = async ({
 
     // Build column 1 lines (Address)
     const footerCol1Lines = [];
-    if (contractor?.name) footerCol1Lines.push({ text: contractor.name, bold: true });
+    if (contractor?.name) footerCol1Lines.push({ text: contractor.name, bold: false });
     if (contractorStreet) footerCol1Lines.push({ text: contractorStreet });
     if (contractorAdditional) footerCol1Lines.push({ text: contractorAdditional });
     const cityLine = [contractorPostal, contractorCity].filter(Boolean).join(' ');
@@ -1594,8 +1597,8 @@ export const generateCashReceiptPDF = async ({
     // Build column 3 lines (Bank info)
     const footerCol3Lines = [];
     if (legalNotice) footerCol3Lines.push({ text: `${t('Legal File Ref')}: ${legalNotice}` });
-    if (bankAccount) footerCol3Lines.push({ text: `IBAN: ${bankAccount}` });
-    if (swiftCode) footerCol3Lines.push({ text: `SWIFT kód: ${swiftCode}` });
+    if (bankAccount) footerCol3Lines.push({ text: `${t('Bank Account / IBAN')}: ${bankAccount}` });
+    if (swiftCode) footerCol3Lines.push({ text: `${t('SWIFT code')}: ${swiftCode}` });
 
     // Calculate max lines and bottom Y position
     const footerLineHeight = 4.5;
