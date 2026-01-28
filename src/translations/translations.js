@@ -313,8 +313,7 @@ export const translations = {
     "Osadenie okna": "Osadenie okna",
     "Installation of door jamb": "Osadenie zárubne",
     "Osadenie zárubne": "Osadenie zárubne",
-    "Installation of corner bead": "Osadenie rohovej lišty",
-    "Osadenie rohovej lišty": "Osadenie rohovej lišty",
+
     "Omietka špalety": "Omietka špalety",
     "Auxiliary and finishing work": "Pomocné a ukončovacie práce",
 
@@ -349,10 +348,7 @@ export const translations = {
     "Jolly Edging": "Jolly hrana",
     "Plinth": "Sokel",
 
-    "Auxiliary and finishing work": "Pomocné a ukončovacie práce",
-    "Auxiliary and connecting material": "Pomocný a spojovací materiál",
-    "Self-leveling compound": "Samonivelizačná hmota",
-    "Self-levelling compound": "Samonivelizačná hmota",
+
     "Adhesive, tiling and paving": "Lepidlo, obklad a dlažba",
     "Pavings, large format": "Dlažba, veľkoformát",
 
@@ -483,8 +479,7 @@ export const translations = {
     "pc": "pc",
     "lm": "m",
     "km": "km",
-    "m2": "m2",
-    "m": "m",
+
     "h": "h",
     "pack": "pkg",
     "pkg": "pkg",

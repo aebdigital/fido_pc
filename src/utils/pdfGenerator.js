@@ -633,10 +633,7 @@ export const generateInvoicePDF = async ({
           }
         }
 
-        let rawName = item.name || '';
-        // Fix for Slovak work names in English mode
-        if (SLOVAK_WORK_NAMES_FIX[rawName]) rawName = SLOVAK_WORK_NAMES_FIX[rawName];
-        const itemName = rawName;
+        if (SLOVAK_WORK_NAMES_FIX[item.name]) item.name = SLOVAK_WORK_NAMES_FIX[item.name];
 
         let displayName;
         if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
@@ -1008,8 +1005,7 @@ export const generateInvoicePDF = async ({
     // Top row ABOVE divider: Name | Phone | Web | Email (equally spaced with icons)
     // Footer is always at the bottom of the page (same Y positions), just on a new page if needed
     const topRowY = 252;
-    const pageWidth = 170; // usable width (20 to 190)
-    const startX = 20;
+
 
     // Helper function to draw simple icons using only supported jsPDF methods
     const drawIcon = (type, x, y, size = 3) => {
@@ -1291,7 +1287,7 @@ export const generateCashReceiptPDF = async ({
     const boxWidth = contentWidth / 3 - 3;
     const boxHeight = 18;
     const boxY = currentY;
-    const borderRadius = 2;
+
 
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
@@ -1469,7 +1465,6 @@ export const generateCashReceiptPDF = async ({
     }
 
     const topRowY = 252;
-    const footerPageWidth = 185.3; // usable width (12.35 to 197.65)
     const startX = 12.35;
 
     // Helper function to draw simple icons using only supported jsPDF methods
