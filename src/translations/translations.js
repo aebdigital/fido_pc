@@ -278,6 +278,21 @@ export const translations = {
     "Skirting, floating floor": "Lištovanie, plávajúca podlaha",
     "Plinth - cutting and grinding": "Sokel - rezanie a brúsenie",
     "Plinth - bonding": "Sokel - lepenie",
+    // Plasterboarding compound names - NEW ADDITIONS
+    "Plasterboarding, simple": "Sádrokartón, jednoduchý",
+    "Plasterboarding, double": "Sádrokartón, dvojitý",
+    "Plasterboarding, triple": "Sádrokartón, trojitý",
+    "Offset wall, simple": "Predsadená stena, jednoduchá",
+    "Offset wall, double": "Predsadená stena, dvojitá",
+    "Painting, wall": "Maľovanie, stena",
+    "Painting, ceiling": "Maľovanie, strop",
+    "Laying of floating floor": "Pokládka plávajúcej podlahy",
+    "Plinth, cutting/grinding": "Sokel, rezanie a brúsenie",
+    "Plinth, bonding": "Sokel, lepenie",
+    "Grouting, tiling and paving": "Špárovanie, obklad a dlažba",
+    "Window": "Okno",
+    "Door jamb": "Zárubňa",
+
     "Brick partitions, 75 - 175mm": "Murovanie priečok, 75 - 175mm",
     "Brick load-bearing wall, 200 - 450mm": "Murovanie nosného muriva, 200 - 450mm",
 
@@ -298,11 +313,16 @@ export const translations = {
     // Material compound names
     "Partition masonry, 75 - 175mm": "Priečkové murivo, 75 - 175mm",
     "Load-bearing masonry, 200 - 450mm": "Nosné murivo, 200 - 450mm",
-    "Plasterboard, simple, partition": "Sádrokartón, jednoduchý, priečka",
-    "Plasterboard, double, partition": "Sádrokartón, dvojitý, priečka",
-    "Plasterboard, triple, partition": "Sádrokartón, trojitý, priečka",
+    "Plasterboard, simple, partition": "Sádrokartón, jednoduchá priečka", // Updated from 'jednoduchý' to match context
+    "Plasterboard, double, partition": "Sádrokartón, dvojitá priečka", // Updated
+    "Plasterboard, triple, partition": "Sádrokartón, trojitá priečka", // Updated
+    "Plasterboard, simple partition": "Sádrokartón, jednoduchá priečka", // New 
+    "Plasterboard, double partition": "Sádrokartón, dvojitá priečka", // New
+    "Plasterboard, triple partition": "Sádrokartón, trojitá priečka", // New
     "Plasterboard, simple, offset wall": "Sádrokartón, jednoduchá predsadená stena",
     "Plasterboard, double, offset wall": "Sádrokartón, zdvojená predsadená stena",
+    "Plasterboard, simple offset wall": "Sádrokartón, jednoduchá predsadená stena", // New
+    "Plasterboard, double offset wall": "Sádrokartón, zdvojená predsadená stena", // New
     "Plasterboard, ceiling": "Sádrokartón, strop",
     "Adhesive, netting": "Lepidlo, sieťkovanie",
     "Paint, wall": "Farba, stena",
@@ -347,6 +367,8 @@ export const translations = {
     "Floor tiles": "Dlažba",
     "Auxiliary and connecting material": "Pomocný a spojovací materiál",
     "Auxiliary and fastening material": "Pomocný a spojovací materiál",
+    "Window": "Okno",
+    "Door jamb": "Zárubňa",
 
     // ========== SANITARY INSTALLATIONS ==========
     "Sanitary installation": "Inštalácia sanity",
