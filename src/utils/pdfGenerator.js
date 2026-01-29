@@ -533,7 +533,7 @@ export const generateInvoicePDF = async ({
     // Add work items with category header
     if (projectBreakdown && projectBreakdown.items && projectBreakdown.items.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Works')).charAt(0).toUpperCase() + sanitizeText(t('Works')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
+        { content: sanitizeText(t('Works')).charAt(0).toUpperCase() + sanitizeText(t('Works')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fontSize: 8 } }
       ]);
 
       // For Price Offers, sort items by master price list order
@@ -622,7 +622,7 @@ export const generateInvoicePDF = async ({
     // Add material items with category header
     if (projectBreakdown && projectBreakdown.materialItems && projectBreakdown.materialItems.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Materials')).charAt(0).toUpperCase() + sanitizeText(t('Materials')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
+        { content: sanitizeText(t('Materials')).charAt(0).toUpperCase() + sanitizeText(t('Materials')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fontSize: 8 } }
       ]);
 
       // For Price Offers, sort material items by master price list order
@@ -683,7 +683,7 @@ export const generateInvoicePDF = async ({
     // Add others items with category header
     if (projectBreakdown && projectBreakdown.othersItems && projectBreakdown.othersItems.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Others')).charAt(0).toUpperCase() + sanitizeText(t('Others')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
+        { content: sanitizeText(t('Others')).charAt(0).toUpperCase() + sanitizeText(t('Others')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fontSize: 8 } }
       ]);
 
       // Group scaffolding items by their type (assembly/rental)
@@ -1012,7 +1012,7 @@ export const generateInvoicePDF = async ({
     // Check if content would collide with footer - footer starts at Y=252
     // If signature bottom is too close to footer, move entire footer to a new page
     // Notes start at 240, so signature needs to end before that (e.g. 235) to avoid overlap
-    const footerStartY = 252;
+
     const notesStartY = 240;
     const needsNewPage = signatureBottomY > (notesStartY - 5); // Break if signature goes past 235
 

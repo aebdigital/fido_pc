@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Eye, Send, FileText, User, Calendar, DollarSign, Edit3, Trash2, ChevronRight, Building2, ClipboardList, Receipt, Mail, MapPin, Check, Plus, PencilRuler, FileText as DocIcon, Trash } from 'lucide-react';
+import { X, Eye, Send, User, Edit3, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, Trash } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
