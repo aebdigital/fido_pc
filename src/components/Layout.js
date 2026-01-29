@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ClipboardList, FileText, Users, Settings, LogOut } from 'lucide-react';
+import { ClipboardList, FileText, Users, Settings, LogOut, RefreshCw } from 'lucide-react';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -95,7 +95,7 @@ const Layout = ({ children }) => {
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="flex-1 px-4 py-6">
+        <nav className="flex-1 px-4 py-6 flex flex-col">
           <div className="space-y-2">
             {menuItems.map(item => (
               <a
@@ -111,6 +111,18 @@ const Layout = ({ children }) => {
                 <span className="text-lg font-semibold">{item.name}</span>
               </a>
             ))}
+          </div>
+
+          {/* Refresh Button - Pushed to bottom of nav area */}
+          <div className="mt-auto pt-4">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-all duration-200 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:translate-x-1 group"
+              title={t('Refresh')}
+            >
+              <RefreshCw className="w-5 h-5 mr-3 group-hover:rotate-180 transition-transform duration-500" />
+              <span className="text-lg font-semibold">{t('Refresh') || 'Refresh'}</span>
+            </button>
           </div>
         </nav>
 
