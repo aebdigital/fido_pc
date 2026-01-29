@@ -25,7 +25,7 @@ const Settings = () => {
   const { t, language, toggleLanguage } = useLanguage();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { signOut, user } = useAuth(); // Add user
-  const { isPro } = useAppData(); // Add Pro context
+  const { isPro, trialEndsAt } = useAppData(); // Add Pro context
 
   const [showPriceList, setShowPriceList] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
@@ -132,7 +132,12 @@ const Settings = () => {
               {/* Status Section */}
               <div className="px-1">
                 {isPro ? (
-                  <div className="text-xl font-semibold text-green-600 mb-1">{t('Pro User')}</div>
+                  <div className="flex flex-col items-start gap-1 mb-1">
+                    <div className="text-xl font-semibold text-green-600">{t('Pro User')}</div>
+                    {trialEndsAt && new Date(trialEndsAt) > new Date() && (
+                      <CountdownTimer targetDate={trialEndsAt} t={t} />
+                    )}
+                  </div>
                 ) : (
                   <>
                     <div className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('Restricted Access')}</div>
@@ -297,6 +302,45 @@ const Settings = () => {
 
       {/* Tutorial Modal */}
       <TutorialModal isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
+    </div>
+  );
+};
+
+const CountdownTimer = ({ targetDate, t }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = new Date(targetDate) - new Date();
+
+      if (difference <= 0) {
+        return null;
+      }
+
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((difference / 1000 / 60) % 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+
+      return `${days}${t('days_2_4')} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+
+    // Initial set
+    setTimeLeft(calculateTimeLeft());
+
+    // Update every second
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate, t]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700 font-mono">
+      {t('Trial ends in')}: {timeLeft}
     </div>
   );
 };

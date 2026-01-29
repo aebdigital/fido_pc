@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useScrollLock } from '../hooks/useScrollLock';
+import AppDataContext from '../context/AppDataContext';
 
 /**
  * PaywallModal - Web Paywall with Direct Stripe Links
@@ -17,9 +18,22 @@ const PaywallModal = ({ isOpen, onClose }) => {
   useScrollLock(true);
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { activateTrial, trialEndsAt, startTrialLoading, isPro } = React.useContext(AppDataContext);
+  // Note: AppDataContext should trigger re-render if trialEndsAt changes. 
+  // If useAppData is not available, try imports.
+  // Actually, standard import is import AppDataContext from '../context/AppDataContext';
+  // But here we need to use 'useContext(AppDataContext)' or custom hook?
+  // User didn't show context import. I should check imports first.
 
-  // State for selected plan: 'monthly' or 'yearly'
-  const [selectedPlan, setSelectedPlan] = React.useState('monthly');
+  // Re-checking imports... 'useAuth' is there. 'useLanguage' is there.
+  // I need to import AppDataContext to use useContext(AppDataContext) or if there is a useAppData hook?
+  // src/context/AppDataContext.js default export is AppDataContext.
+
+  // Wait, I cannot see imports in this localized replacement view easily.
+  // I will assume I need to ADD the import if not present.
+  // But I will stick to what I can see. I will replace the component logic.
+
+  // State
   const [isLoading, setIsLoading] = React.useState(false);
 
   if (!isOpen) return null;
@@ -29,34 +43,27 @@ const PaywallModal = ({ isOpen, onClose }) => {
     yearly: 'price_1SpIDDLoNzpDaXh6Z7mNufti'
   };
 
-  const handleSubscribe = async () => {
-    if (!user?.id) {
-      console.error('User ID missing for subscription');
-      return;
-    }
-
+  const handleSubscribe = async (plan) => {
+    if (!user?.id) return;
     setIsLoading(true);
     try {
-      const priceId = PRICE_IDS[selectedPlan];
-      console.log('[Stripe] Creating checkout session for:', priceId);
-
+      const priceId = PRICE_IDS[plan];
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-          priceId: priceId,
-          returnUrl: window.location.origin
-        }
+        body: { priceId, returnUrl: window.location.origin }
       });
-
       if (error) throw error;
-      if (!data?.url) throw new Error('No checkout URL returned');
-
-      console.log('[Stripe] Redirecting to:', data.url);
-      window.location.href = data.url;
-
+      if (data?.url) window.location.href = data.url;
     } catch (err) {
-      console.error('[Stripe] Checkout error:', err);
+      console.error(err);
       setIsLoading(false);
     }
+  };
+
+  const handleTrial = async () => {
+    setIsLoading(true);
+    const success = await activateTrial();
+    setIsLoading(false);
+    if (success) onClose();
   };
 
   return (
@@ -74,90 +81,64 @@ const PaywallModal = ({ isOpen, onClose }) => {
         {/* Scrollable Content */}
         <div className="p-4 space-y-4 overflow-y-auto">
 
-          {/* Features Card */}
+          {/* Features Card - Same as before */}
           <div className="bg-white dark:bg-gray-800 rounded-[30px] p-6 shadow-sm">
             <h3 className="text-[35px] font-semibold text-center text-gray-900 dark:text-white mb-6">{t('Pro Unlocks')}</h3>
             <div className="space-y-6">
-              <FeatureRow
-                title={t('change general prices')}
-                subtitle={t('feature allows users to modify prices in the general price list, affecting all future projects')}
-              />
-              <FeatureRow
-                title={t('adjust individual project prices')}
-                subtitle={t('feature enables users to modify prices in a project\'s price list, influencing prices exclusively within the selected project')}
-              />
-              <FeatureRow
-                title={t('export to PDF')}
-                subtitle={t('feature enables the export of entire projects into PDF format, allowing direct sharing with clients')}
-              />
-              <FeatureRow
-                title={t('create invoices')}
-                subtitle={t('easily create and send invoices to your clients')}
-              />
+              <FeatureRow title={t('change general prices')} subtitle={t('feature allows users to modify prices in the general price list, affecting all future projects')} />
+              <FeatureRow title={t('adjust individual project prices')} subtitle={t('feature enables users to modify prices in a project\'s price list, influencing prices exclusively within the selected project')} />
+              <FeatureRow title={t('export to PDF')} subtitle={t('feature enables the export of entire projects into PDF format, allowing direct sharing with clients')} />
+              <FeatureRow title={t('create invoices')} subtitle={t('easily create and send invoices to your clients')} />
             </div>
+            {/* Show timer inside modal if active? User said "show timer... in the pro status". */}
           </div>
 
-          {/* Options Header */}
           <h3 className="text-[25px] font-semibold text-center text-gray-900 dark:text-white pt-2">{t('Options')}</h3>
 
-          {/* Monthly Option */}
-          <div
-            onClick={() => setSelectedPlan('monthly')}
-            className={`flex items-center gap-4 bg-white dark:bg-gray-800 rounded-[30px] p-4 pr-6 cursor-pointer shadow-sm relative overflow-hidden transition-all duration-200 ${selectedPlan === 'monthly'
-              ? 'border-[4px] border-gray-900 dark:border-white'
-              : 'border-[4px] border-transparent opacity-80 hover:opacity-100'
-              }`}
-          >
-            {/* Checked Circle */}
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 relative transition-colors duration-200 ${selectedPlan === 'monthly' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'
-              }`}>
-              {selectedPlan === 'monthly' && <Check className="w-5 h-5 text-white dark:text-gray-900 stroke-[3]" />}
-            </div>
+          <div className="flex flex-col gap-3">
+            {/* Monthly Button */}
+            <button
+              onClick={() => handleSubscribe('monthly')}
+              disabled={isLoading}
+              className="w-full flex items-center justify-between bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 p-5 rounded-[25px] shadow-sm transition-all border-2 border-transparent hover:border-gray-900 dark:hover:border-white group"
+            >
+              <div className="text-left">
+                <div className="text-[22px] font-bold text-gray-900 dark:text-white">5.49 € <span className="text-[16px] font-medium text-gray-500">/ {t('month')}</span></div>
+                <div className="text-[12px] text-gray-500 font-medium mt-0.5">{t('Billed monthly')}</div>
+              </div>
+              <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-full group-hover:bg-gray-900 group-hover:dark:bg-white transition-colors">
+                <Check className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-white group-hover:dark:text-gray-900" />
+              </div>
+            </button>
 
-            <div className="flex-1">
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">5.49 €</span>
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">/ {t('month')}</span>
+            {/* Yearly Button */}
+            <button
+              onClick={() => handleSubscribe('yearly')}
+              disabled={isLoading}
+              className="w-full flex items-center justify-between bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 p-5 rounded-[25px] shadow-sm transition-all border-2 border-transparent hover:border-gray-900 dark:hover:border-white group"
+            >
+              <div className="text-left">
+                <div className="text-[22px] font-bold text-gray-900 dark:text-white">54.99 € <span className="text-[16px] font-medium text-gray-500">/ {t('year')}</span></div>
+                <div className="text-[12px] text-gray-500 font-medium mt-0.5">{t('Billed annually')}</div>
               </div>
-              <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-1">
-                {t('7 days of free trial, billed monthly')}
+              <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-full group-hover:bg-gray-900 group-hover:dark:bg-white transition-colors">
+                <Check className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-white group-hover:dark:text-gray-900" />
               </div>
-            </div>
+            </button>
+
+            {/* Trial Button */}
+            {!isPro && (
+              <button
+                onClick={handleTrial}
+                disabled={isLoading}
+                className="w-full mt-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-[20px] text-[18px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm"
+              >
+                {t('Vyskúšať 14 dní zadarmo')}
+              </button>
+            )}
+
+            {/* If isPro but mostly checking if trial is active? No, logic is simple: 3 options. */}
           </div>
-
-          {/* Yearly Option */}
-          <div
-            onClick={() => setSelectedPlan('yearly')}
-            className={`flex items-center gap-4 bg-white dark:bg-gray-800 rounded-[30px] p-4 pr-6 cursor-pointer shadow-sm relative overflow-hidden transition-all duration-200 ${selectedPlan === 'yearly'
-              ? 'border-[4px] border-gray-900 dark:border-white'
-              : 'border-[4px] border-transparent opacity-80 hover:opacity-100'
-              }`}
-          >
-            {/* Checked Circle */}
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 relative transition-colors duration-200 ${selectedPlan === 'yearly' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-700'
-              }`}>
-              {selectedPlan === 'yearly' && <Check className="w-5 h-5 text-white dark:text-gray-900 stroke-[3]" />}
-            </div>
-
-            <div className="flex-1">
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">54.99 €</span>
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">/ {t('year')}</span>
-              </div>
-              <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-1">
-                {t('7 days of free trial, billed annually')}
-              </div>
-            </div>
-          </div>
-
-          {/* Subscribe Button */}
-          <button
-            onClick={handleSubscribe}
-            disabled={isLoading}
-            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-[20px] text-[22px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 mt-2 shadow-sm"
-          >
-            {isLoading ? t('Processing...') : t('Subscribe')}
-          </button>
 
           {/* Legal Links */}
           <div className="flex justify-center flex-wrap gap-x-1 text-[11px] font-semibold text-gray-900 dark:text-white mt-2 mb-4 opacity-80">

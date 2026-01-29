@@ -133,6 +133,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [showReceiptsModal, setShowReceiptsModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isAnalyzingReceipt, setIsAnalyzingReceipt] = useState(false);
+  const [analyzingProgress, setAnalyzingProgress] = useState({ current: 0, total: 0 });
   const receiptInputRef = useRef(null);
 
   // Refs
@@ -662,18 +663,26 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const handleReceiptUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setIsAnalyzingReceipt(true);
+    setAnalyzingProgress({ current: 0, total: files.length });
 
     try {
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64Image = event.target.result;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setAnalyzingProgress(prev => ({ ...prev, current: i + 1 }));
 
         try {
+          // Convert to base64
+          const base64Image = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target.result);
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(file);
+          });
+
           // Analyze with GPT-4 Vision
           const analysisResult = await analyzeReceiptImage(base64Image);
 
@@ -687,24 +696,26 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
             rawText: analysisResult.raw_text || ''
           });
 
-          // Refresh receipts list
-          await loadReceipts();
-          setIsAnalyzingReceipt(false);
         } catch (error) {
-          console.error('Error analyzing receipt:', error);
-          alert(t('Failed to analyze receipt. Please try again.'));
-          setIsAnalyzingReceipt(false);
+          console.error(`Error processing receipt ${file.name}:`, error);
+          // Continue with next file even if one fails
         }
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error uploading receipt:', error);
-      setIsAnalyzingReceipt(false);
-    }
+      }
 
-    // Reset input
-    if (receiptInputRef.current) {
-      receiptInputRef.current.value = '';
+      // Refresh receipts list after all are done
+      await loadReceipts();
+
+    } catch (error) {
+      console.error('Error in batch upload:', error);
+      alert(t('Error uploading receipts. Please try again.'));
+    } finally {
+      setIsAnalyzingReceipt(false);
+      setAnalyzingProgress({ current: 0, total: 0 });
+
+      // Reset input
+      if (receiptInputRef.current) {
+        receiptInputRef.current.value = '';
+      }
     }
   };
 
@@ -1409,18 +1420,19 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   {isAnalyzingReceipt ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{t('Analyzing...')}</span>
+                      <span>{t('Analyzing...')} ({analyzingProgress.current}/{analyzingProgress.total})</span>
                     </>
                   ) : (
                     <>
                       <Camera className="w-4 h-4" />
-                      <span>{t('Add receipt')}</span>
+                      <span>{t('Add receipts')}</span>
                     </>
                   )}
                 </button>
                 <input
                   ref={receiptInputRef}
                   type="file"
+                  multiple
                   accept="image/*"
                   className="hidden"
                   onChange={handleReceiptUpload}
@@ -2036,12 +2048,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   {isAnalyzingReceipt ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{t('Analyzing...')}</span>
+                      <span>{t('Analyzing...')} ({analyzingProgress.current}/{analyzingProgress.total})</span>
                     </>
                   ) : (
                     <>
                       <Plus className="w-4 h-4" />
-                      <span>{t('Add receipt')}</span>
+                      <span>{t('Add receipts')}</span>
                     </>
                   )}
                 </button>

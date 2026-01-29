@@ -44,7 +44,7 @@ export const AppDataProvider = ({ children }) => {
   const [isPro, setIsPro] = useState(false); // Pro status
 
   // RevenueCat API Keys
-  const RC_PUBLIC_API_KEY = process.env.REACT_APP_REVENUECAT_API_KEY || "strp_KfdxAGeUmSoFxUhzXUWDuxDxTMh"; // Public key for Web SDK
+  const RC_PUBLIC_API_KEY = process.env.REACT_APP_REVENUECAT_API_KEY; // Public key for Web SDK
 
   // Stripe publishable key for client-side
   const STRIPE_PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
@@ -85,6 +85,8 @@ export const AppDataProvider = ({ children }) => {
   // Track if pro status check is in progress to prevent duplicate calls
   const proCheckInProgressRef = useRef(false);
 
+  const [trialEndsAt, setTrialEndsAt] = useState(null);
+
   const checkProStatus = useCallback(async () => {
     if (!user?.id) return;
 
@@ -97,8 +99,32 @@ export const AppDataProvider = ({ children }) => {
     proCheckInProgressRef.current = true;
 
     try {
-      console.log('[ProCheck] Invoking secure check-subscription function...');
+      console.log('[ProCheck] Checking subscription and trial status...');
 
+      // 1. Check Custom Trial from Profile
+      const profile = await api.profiles.getProfile();
+      let trialActive = false;
+      let trialDate = null;
+
+      if (profile?.trial_until) {
+        const trialEnd = new Date(profile.trial_until);
+        if (trialEnd > new Date()) {
+          console.log('[ProCheck] Active custom trial found until:', profile.trial_until);
+          trialActive = true;
+          trialDate = trialEnd;
+          setTrialEndsAt(trialEnd);
+        }
+      }
+
+      // If trial checks out, we are Pro.
+      if (trialActive) {
+        setIsPro(true);
+        proCheckInProgressRef.current = false;
+        return;
+      }
+
+      // 2. Check Standard Subscription (Edge Function)
+      console.log('[ProCheck] Invoking secure check-subscription function...');
       const { data, error } = await supabase.functions.invoke('check-subscription');
 
       if (error) {
@@ -590,6 +616,17 @@ export const AppDataProvider = ({ children }) => {
   const contractorManager = useContractorManager(appData, setAppData);
 
   // Pass findProjectById to invoiceManager as it needs it
+
+  // Activate Trial Helper
+  const activateTrial = async () => {
+    const trialUntil = await api.profiles.activateTrial(14); // 14 days logic
+    if (trialUntil) {
+      setTrialEndsAt(new Date(trialUntil));
+      setIsPro(true);
+      return true;
+    }
+    return false;
+  };
 
   const projectManager = useProjectManager(appData, setAppData);
 
@@ -1218,7 +1255,9 @@ export const AppDataProvider = ({ children }) => {
     initiateStripeCheckout,
     purchasePackage,
     rcOfferings,
-    stripePublishableKey: STRIPE_PUBLISHABLE_KEY
+    stripePublishableKey: STRIPE_PUBLISHABLE_KEY,
+    activateTrial,
+    trialEndsAt
   };
 
   // Show loading screen while data is being fetched

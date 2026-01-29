@@ -1575,6 +1575,45 @@ export const profilesApi = {
     } catch (error) {
       handleError('profilesApi.upsertFilterYear', error)
     }
+  },
+
+  // Get full profile
+  getProfile: async () => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error && error.code !== 'PGRST116') throw error
+      return data
+    } catch (error) {
+      console.warn('Error fetching profile:', error)
+      return null
+    }
+  },
+
+  // Activate free trial
+  activateTrial: async (days = 14) => {
+    try {
+      const userId = await getCurrentUserId()
+      const now = new Date()
+      const trialUntil = new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString()
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          trial_until: trialUntil
+        }, { onConflict: 'id' })
+
+      if (error) throw error
+      return trialUntil
+    } catch (error) {
+      handleError('profilesApi.activateTrial', error)
+    }
   }
 }
 
