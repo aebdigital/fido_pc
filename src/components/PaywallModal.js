@@ -18,7 +18,7 @@ const PaywallModal = ({ isOpen, onClose }) => {
   useScrollLock(true);
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { activateTrial, trialEndsAt, startTrialLoading, isPro } = React.useContext(AppDataContext);
+  const { activateTrial, isPro } = React.useContext(AppDataContext);
   // Note: AppDataContext should trigger re-render if trialEndsAt changes. 
   // If useAppData is not available, try imports.
   // Actually, standard import is import AppDataContext from '../context/AppDataContext';

@@ -104,14 +104,12 @@ export const AppDataProvider = ({ children }) => {
       // 1. Check Custom Trial from Profile
       const profile = await api.profiles.getProfile();
       let trialActive = false;
-      let trialDate = null;
 
       if (profile?.trial_until) {
         const trialEnd = new Date(profile.trial_until);
         if (trialEnd > new Date()) {
           console.log('[ProCheck] Active custom trial found until:', profile.trial_until);
           trialActive = true;
-          trialDate = trialEnd;
           setTrialEndsAt(trialEnd);
         }
       }

@@ -987,16 +987,13 @@ export const translations = {
     "This app will save you hours spent in creating budgets. With the FIDO building calcul app, the budget will be ready in just a few minutes. The app calculates the cost of labor and materials needed for the reconstruction of a house, apartment, etc.": "Táto aplikácia vám ušetrí hodiny strávené vytváraním rozpočtov. S aplikáciou Fido Building Calcul bude rozpočet hotový za pár minút. Aplikácia vypočíta náklady na prácu a materiál potrebný na rekonštrukciu domu, bytu atď.",
     "Main price list": "Hlavný cenník",
     "Customize according to your work and material costs. Price changes will reflect in every newly created project.": "Prispôsobte si cenník podľa vašich nákladov na prácu a materiál. Zmeny cien sa prejavia v každom novovytvorenom projekte.",
-    "Project price list": "Cenník projektu",
-    "For changing prices in individual projects, use the project price list. Price changes will only affect the current project.": "Na zmenu cien v jednotlivých projektoch použite cenník projektu. Zmeny cien ovplyvnia iba aktuálny projekt.",
+
     "Rooms": "Miestnosti",
     "By clicking on:( + ) select the room you want to renovate. If you click on: (Custom) you can create your own room name.\n\nAfter adding the work you want to perform, the app will calculate the cost of labor and materials as well as the quantity (m, m2, pcs…) of materials needed for the renovation.": "Kliknutím na: ( + ) vyberte miestnosť, ktorú chcete renovovať. Ak kliknete na: (Vlastné), môžete si vytvoriť vlastný názov miestnosti.\n\nPo pridaní prác, ktoré chcete vykonať, aplikácia vypočíta náklady na prácu a materiál, ako aj množstvo (m, m2, ks…) materiálu potrebného na renováciu.",
-    "Clients": "Klienti",
-    "Add a new client by clicking on: (+)\nChoose a private or legal entity and fill in the client's details.\nDon't forget to save the details.": "Pridajte nového klienta kliknutím na: (+)\nVyberte súkromnú alebo právnickú osobu a vyplňte údaje klienta.\nNezabudnite údaje uložiť.",
+
     "New project": "Nový projekt",
     "After saving the client's details, you can see already created projects, as well as create a new one by clicking on: (+)": "Po uložení údajov klienta uvidíte už vytvorené projekty a môžete vytvoriť nový kliknutím na: (+)",
-    "Settings": "Nastavenia",
-    "Projects in the archive can be restored or permanently deleted.": "Projekty v archíve je možné obnoviť alebo natrvalo odstrániť.",
+
     "Work price list": "Cenník prác",
     "The last item is - Auxiliary and finishing works.\nThis item includes: material purchase, handling, carrying out, cleaning, covering, taping, waste removal...\n\nFrom our experience, we have found that it is appropriate to set this item at 10%.\n\nExample:\nWork cost will be               1000€\nAuxiliary and finishing works   10%\nTotal work cost                 1100€": "Poslednou položkou sú - Pomocné a dokončovacie práce.\nTáto položka zahŕňa: nákup materiálu, manipuláciu, vynášanie, upratovanie, zakrývanie, páskovanie, odvoz odpadu...\n\nZ našich skúseností odporúčame nastaviť túto položku na 10%.\n\nPríklad:\nCena práce bude               1000€\nPomocné a dokončovacie práce   10%\nCelková cena práce                 11000€",
     "Material price list": "Cenník materiálu",
