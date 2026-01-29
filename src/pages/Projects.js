@@ -3,7 +3,8 @@ import {
   Plus,
   ChevronRight,
   Archive,
-  ChevronDown
+  ChevronDown,
+  RefreshCw
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ContractorProfileModal from '../components/ContractorProfileModal';
@@ -369,23 +370,34 @@ const Projects = () => {
         {/* Contractor Profile Dropdown */}
         {(currentView === 'categories' || currentView === 'projects') && (
           <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
-            <button
-              className="flex items-center gap-2 bg-transparent"
-              onClick={() => setShowContractorSelector(!showContractorSelector)}
-            >
-              {/* Mobile: truncated name */}
-              <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
-                {(() => {
-                  const name = viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'));
-                  return name.length > 16 ? name.substring(0, 16) + '...' : name;
-                })()}
-              </span>
-              {/* Desktop: full name */}
-              <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
-                {viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'))}
-              </span>
-              <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                className="flex items-center gap-2 bg-transparent"
+                onClick={() => setShowContractorSelector(!showContractorSelector)}
+              >
+                {/* Mobile: truncated name */}
+                <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
+                  {(() => {
+                    const name = viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'));
+                    return name.length > 16 ? name.substring(0, 16) + '...' : name;
+                  })()}
+                </span>
+                {/* Desktop: full name */}
+                <span className="text-xl font-bold text-gray-900 dark:text-white hidden lg:inline">
+                  {viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'))}
+                </span>
+                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+              </button>
+
+              {/* Mobile Refresh Button */}
+              <button
+                onClick={() => window.location.reload()}
+                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 lg:hidden"
+                aria-label={t('Refresh')}
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+            </div>
 
             {/* Contractor Dropdown */}
             {showContractorSelector && (
