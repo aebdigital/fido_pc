@@ -103,6 +103,7 @@ export const translations = {
     // ========== RECEIPTS ==========
     "Receipts": "Účtenky",
     "Add receipt": "Pridať účtenku",
+    "Add receipts": "Pridať účtenku",
     "View receipts": "Zobraziť účtenky",
     "Analyzing...": "Analyzujem...",
     "No receipts yet": "Zatiaľ žiadne účtenky",
