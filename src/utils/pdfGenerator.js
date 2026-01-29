@@ -359,7 +359,7 @@ export const generateInvoicePDF = async ({
     // Odberatel heading - 30% bigger (10 * 1.3 = 13)
     doc.setFontSize(13);
     doc.setFont('Inter', 'bold');
-    doc.text(sanitizeText(t('Customer')), 12.35, clientY);
+    doc.text(sanitizeText(t('Subscriber')), 12.35, clientY);
 
     doc.setFontSize(10);
     doc.setFont('Inter', 'normal');
