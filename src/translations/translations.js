@@ -367,8 +367,6 @@ export const translations = {
     "Floor tiles": "Dlažba",
     "Auxiliary and connecting material": "Pomocný a spojovací materiál",
     "Auxiliary and fastening material": "Pomocný a spojovací materiál",
-    "Window": "Okno",
-    "Door jamb": "Zárubňa",
 
     // ========== SANITARY INSTALLATIONS ==========
     "Sanitary installation": "Inštalácia sanity",
