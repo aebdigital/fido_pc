@@ -46,7 +46,13 @@ export const translations = {
     "m2": "m²",
     "bal": "pkg",
 
-    "days_2_4": "days"
+    "days_2_4": "days",
+
+    // ========== PROJECT CATEGORIES ==========
+    "Flats": "Flats",
+    "Houses": "Houses",
+    "Companies": "Companies",
+    "Cottages": "Cottages"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
