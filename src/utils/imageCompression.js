@@ -7,12 +7,44 @@
  * @param {number} options.quality - JPEG quality 0-1 (default: 0.7)
  * @returns {Promise<string>} - Base64 encoded compressed image
  */
-export const compressImage = (file, options = {}) => {
+import heic2any from 'heic2any';
+
+/**
+ * Compress and resize an image file to reduce storage and loading times
+ * @param {File} file - The image file to compress
+ * @param {Object} options - Compression options
+ * @param {number} options.maxWidth - Maximum width in pixels (default: 1200)
+ * @param {number} options.maxHeight - Maximum height in pixels (default: 1200)
+ * @param {number} options.quality - JPEG quality 0-1 (default: 0.7)
+ * @returns {Promise<string>} - Base64 encoded compressed image
+ */
+export const compressImage = async (file, options = {}) => {
   const {
     maxWidth = 1200,
     maxHeight = 1200,
     quality = 0.7
   } = options;
+
+  let imageFile = file;
+
+  // Handle HEIC/HEIF files by converting them to JPEG first
+  if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+    try {
+      console.log('Converting HEIC to JPEG...', file.name);
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.9 // High quality for intermediate step
+      });
+
+      // heic2any can return a Blob or Blob[], ensure we have a single Blob
+      const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+      imageFile = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+    } catch (error) {
+      console.error('Error converting HEIC:', error);
+      // Try to proceed with original file if conversion fails, though it likely won't load
+    }
+  }
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -51,7 +83,9 @@ export const compressImage = (file, options = {}) => {
         ctx.drawImage(img, 0, 0, width, height);
 
         // Convert to compressed JPEG (or PNG for transparent images)
-        const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        // Ensure we always return JPEG for HEIC originals (which are now JPEGs or if standard jpeg)
+        // If original was PNG, we keep PNG.
+        const mimeType = imageFile.type === 'image/png' ? 'image/png' : 'image/jpeg';
         const compressedBase64 = canvas.toDataURL(mimeType, quality);
 
         resolve(compressedBase64);
@@ -68,7 +102,7 @@ export const compressImage = (file, options = {}) => {
       reject(new Error('Failed to read file'));
     };
 
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(imageFile);
   });
 };
 

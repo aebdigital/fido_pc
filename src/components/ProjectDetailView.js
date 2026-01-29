@@ -675,12 +675,11 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         setAnalyzingProgress(prev => ({ ...prev, current: i + 1 }));
 
         try {
-          // Convert to base64
-          const base64Image = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (event) => resolve(event.target.result);
-            reader.onerror = (error) => reject(error);
-            reader.readAsDataURL(file);
+          // Compress image before analysis/upload (also converts HEIC to JPEG)
+          const base64Image = await compressImage(file, {
+            maxWidth: 1500, // Higher resolution for receipt scanning
+            maxHeight: 1500,
+            quality: 0.8
           });
 
           // Analyze with GPT-4 Vision
