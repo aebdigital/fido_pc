@@ -25,7 +25,7 @@ import { useScrollLock } from '../hooks/useScrollLock';
  */
 const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewProject = false }) => {
   useScrollLock(true);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { updateInvoice, deleteInvoice, updateClient, updateContractor, contractors, findProjectById, calculateProjectTotalPrice, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
   const navigate = useNavigate();
 
@@ -232,7 +232,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         options: {
           priceList: generalPriceList,
           projectNumber: formatProjectNumber(project),
-          projectCategory: project?.category
+          projectCategory: project?.category,
+          language: language
         }
       });
 
