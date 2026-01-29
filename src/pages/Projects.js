@@ -551,7 +551,7 @@ const Projects = () => {
                             className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
                           >
                             <Plus className="w-4 h-4" />
-                            <span className="hidden sm:inline">{t('Pridať projekt')}</span>
+                            <span className="hidden sm:inline">{t('Add Project')}</span>
                           </button>
                         </>
                       )}

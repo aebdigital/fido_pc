@@ -315,7 +315,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       // 1. Create the new project structure (Basic info)
       // Name it "Copy of [Name]"
       const newProjectData = {
-        name: `${t('Kópia')} ${project.name}`,
+        name: `${t('Copy of')} ${project.name}`,
         category: project.category,
         clientId: project.clientId,
         // Exclude invoice_id/has_invoice
@@ -424,12 +424,12 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       // 5. Add 'Duplicated' history event to both projects
       await addProjectHistoryEntry(project.id, {
         type: PROJECT_EVENTS.DUPLICATED,
-        description: `${t('Duplikované do')} ${newProject.name}`
+        description: `${t('Duplicated to')} ${newProject.name}`
       });
 
       await addProjectHistoryEntry(newProject.id, {
         type: PROJECT_EVENTS.CREATED,
-        description: `${t('Duplikované z')} ${project.name}`
+        description: `${t('Duplicated from')} ${project.name}`
       });
 
       alert(t('Project duplicated successfully.'));
@@ -787,6 +787,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         formatPrice,
         projectNotes: project.notes,
         projectNumber: formatProjectNumber(project),
+        projectCategory: project.category,
         offerValidityPeriod: priceOfferSettings?.timeLimit || 30,
         priceList: project.priceListSnapshot
       }, t); // Pass t as the second argument
@@ -794,7 +795,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       // On mobile, open directly in browser's native PDF viewer
       if (isMobile) {
         // Create a link with download attribute for proper filename
-        const filename = `${t('Cenová ponuka')} - ${project.name}.pdf`;
+        const filename = `${t('Price offer')} - ${project.name}.pdf`;
         const link = document.createElement('a');
         link.href = result.blobUrl;
         link.target = '_blank';
@@ -833,14 +834,14 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     const totalWithVAT = totalWithoutVAT + vat;
 
     const text = `
-${t('Cenová ponuka')}
+${t('Price offer')}
 ${project.name}
 
 ${t('Contractor')}: ${contractor?.name || '-'}
 ${t('Client')}: ${client?.name || '-'}
 
 ${t('without VAT')}: ${formatPrice(totalWithoutVAT)}
-${t('VAT (23%)')}: ${formatPrice(vat)}
+${t('VAT')} (${Math.round(vatRate * 100)}%): ${formatPrice(vat)}
 ${t('Total price')}: ${formatPrice(totalWithVAT)}
 ${project.notes ? `
 ${t('Notes_CP')}: ${project.notes}` : ''}
@@ -885,6 +886,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             formatPrice,
             projectNotes: project.notes,
             projectNumber: formatProjectNumber(project),
+            projectCategory: project.category,
             offerValidityPeriod: priceOfferSettings?.timeLimit || 30,
             priceList: project.priceListSnapshot
           }, t);
@@ -894,12 +896,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         }
 
         const shareData = {
-          title: `${t('Cenová ponuka')} - ${project.name}`,
+          title: `${t('Price offer')} - ${project.name}`,
         };
 
         // If we have a PDF blob, try to share it as a file
         if (currentBlob && navigator.canShare && navigator.canShare({ files: [new File([currentBlob], 'test.pdf', { type: 'application/pdf' })] })) {
-          const file = new File([currentBlob], `${t('Cenová ponuka')} - ${project.name}.pdf`, { type: 'application/pdf' });
+          const file = new File([currentBlob], `${t('Price offer')} - ${project.name}.pdf`, { type: 'application/pdf' });
           shareData.files = [file];
         } else {
           // Fallback to text if file sharing not supported
@@ -1170,7 +1172,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-900 dark:text-white text-lg">{t('VAT (23%)')}</span>
+                  <span className="text-gray-900 dark:text-white text-lg">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
                   <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id) * getVATRate())}</span>
                 </div>
                 <hr className="border-gray-300 dark:border-gray-600" />
@@ -1187,14 +1189,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Eye className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Náhľad')}</span>
+                    <span className="text-sm sm:text-lg">{t('Preview')}</span>
                   </button>
                   <button
                     onClick={handleSendPriceOffer}
                     className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                   >
                     <Send className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Odoslať')}</span>
+                    <span className="text-sm sm:text-lg">{t('Send')}</span>
                   </button>
                 </div>
               )}
@@ -1502,7 +1504,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     }}
                     className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                   >
-                    {t('Zrušiť')}
+                    {t('Cancel')}
                   </button>
                   <button
                     onClick={() => {
@@ -1517,7 +1519,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     className="flex-1 py-2 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
                   >
                     {isSavingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    {t('Uložiť')}
+                    {t('Save')}
                   </button>
                 </div>
               )}
@@ -1529,7 +1531,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fotografie')}</h2>
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Photos')}</h2>
               </div>
               {!project.is_archived && (
                 <div className="flex items-center gap-2">
@@ -1542,7 +1544,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     </button>
                   )}
                   <button
-                    className="p-3 rounded-2xl flex items-center justify-center bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                    className="p-3 rounded-2xl flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                     onClick={() => photoInputRef.current?.click()}
                   >
                     <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -2148,7 +2150,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           handleClosePDFPreview();
           handleSendPriceOffer();
         }}
-        title={`${t('Cenová ponuka')} - ${project.name}`}
+        title={`${t('Price offer')} - ${project.name}`}
       />
 
       {/* Paywall Modal with Stripe integration */}

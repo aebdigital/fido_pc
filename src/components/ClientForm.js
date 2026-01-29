@@ -173,7 +173,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                   className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
                 >
                   <Building2 className="w-4 h-4" />
-                  {t('Vyplniť podľa IČO')}
+                  {t('Fill by company ID')}
                 </button>
               )}
             </div>
@@ -270,7 +270,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
           {clientType === 'corporation' && (
             <>
               <div className="space-y-2">
-                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo organizácie')}</label>
+                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Business ID')}</label>
                 <input
                   type="text"
                   value={clientForm.businessId}
@@ -281,7 +281,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Daňové identifikačné číslo')}</label>
+                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Tax ID')}</label>
                 <input
                   type="text"
                   value={clientForm.taxId}
@@ -292,7 +292,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Identifikačné číslo pre daň z pridanej hodnoty')}</label>
+                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('VAT ID number')}</label>
                 <input
                   type="text"
                   value={clientForm.vatId}
@@ -303,7 +303,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Kontaktná osoba')}</label>
+                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Contact person')}</label>
                 <input
                   type="text"
                   value={clientForm.contactPerson}

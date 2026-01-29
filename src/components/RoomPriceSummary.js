@@ -150,10 +150,10 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                         if ((item.subtitle && (item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_EN.toLowerCase()) ||
                           item.subtitle.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) ||
                           (item.name && item.name.toLowerCase().includes(WORK_ITEM_NAMES.SCAFFOLDING_SK.toLowerCase()))) {
-                          if (item.subtitle.includes('- prenájom')) {
+                          if (item.subtitle.includes('- rental')) {
                             const duration = parseFloat(fields[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
-                            workDescription = `${t(item.subtitle)} - ${formatSmartDecimal(duration, 0)} ${t('dní')}`;
-                          } else if (item.subtitle.includes('- montáž a demontáž')) {
+                            workDescription = `${t(item.subtitle)} - ${formatSmartDecimal(duration, 0)} ${t(UNIT_TYPES.DAYS)}`;
+                          } else if (item.subtitle.includes('- assembly and disassembly')) {
                             const area = parseFloat(fields[WORK_ITEM_NAMES.LENGTH] || 0) * parseFloat(fields[WORK_ITEM_NAMES.HEIGHT] || 0);
                             workDescription = `${t(item.subtitle)} - ${formatSmartDecimal(area, 2)}${t(UNIT_TYPES.METER_SQUARE)}`;
                           } else {
@@ -343,7 +343,6 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
 
                   // Helper to check for scaffolding keywords
                   const checkText = (text) => text && (
-                    text.includes('montáž a demontáž') || text.includes('prenájom') ||
                     text.includes('assembly and disassembly') || text.includes('rental')
                   );
 
@@ -362,7 +361,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                       const values = item.fields || {};
 
                       // Determine unit and quantity for scaffolding based on groupKey
-                      if (groupKey.includes('- prenájom') || groupKey.includes('rental') || groupKey.includes('prenájom')) {
+                      if (groupKey.includes('rental')) {
                         quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || quantity);
                         unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
                       } else {
@@ -396,9 +395,9 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     const aName = (a.name || '').toLowerCase() + (a.subtitle || '').toLowerCase();
                     const bName = (b.name || '').toLowerCase() + (b.subtitle || '').toLowerCase();
 
-                    const isScaffolding = (name) => name.includes('scaffolding') || name.includes('lešenie');
-                    const isRental = (name) => name.includes('rental') || name.includes('prenájom');
-                    const isAssembly = (name) => name.includes('assembly') || name.includes('montáž');
+                    const isScaffolding = (name) => name.includes('scaffolding');
+                    const isRental = (name) => name.includes('rental');
+                    const isAssembly = (name) => name.includes('assembly');
 
                     const aIsScaff = isScaffolding(aName);
                     const bIsScaff = isScaffolding(bName);

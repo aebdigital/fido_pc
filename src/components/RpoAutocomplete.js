@@ -59,23 +59,23 @@ const RpoAutocomplete = ({ onSelect, t }) => {
 
   return (
     <div className="relative w-full" ref={wrapperRef}>
-        <div className="relative">
-            <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('Enter IČO...')}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
-                autoFocus
-            />
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                {isLoading ? (
-                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-                ) : (
-                    <Search className="w-5 h-5 text-gray-400" />
-                )}
-            </div>
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={`${t('Enter')} ${t('Business ID Abbr')}...`}
+          className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
+          autoFocus
+        />
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+          ) : (
+            <Search className="w-5 h-5 text-gray-400" />
+          )}
         </div>
+      </div>
 
       {suggestions.length > 0 && (
         <ul className="absolute z-50 left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
@@ -87,8 +87,8 @@ const RpoAutocomplete = ({ onSelect, t }) => {
             >
               <div className="font-medium text-gray-900 dark:text-white">{entity.name}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap gap-2">
-                {entity.ico && <span>IČO: {entity.ico}</span>}
-                {entity.dic && <span>• DIČ: {entity.dic}</span>}
+                {entity.ico && <span>{t('BID')}: {entity.ico}</span>}
+                {entity.dic && <span>• {t('TID')}: {entity.dic}</span>}
                 {entity.address?.municipality && (
                   <span>• {entity.address.municipality}</span>
                 )}

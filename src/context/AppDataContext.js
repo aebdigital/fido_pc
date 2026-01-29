@@ -230,8 +230,8 @@ export const AppDataProvider = ({ children }) => {
     generalPriceList: {
       work: [
         { name: 'Preparatory and demolition works', price: 15, unit: '€/h' },
-        { name: 'Elektroinštalačné práce', subtitle: 'outlet', price: 65, unit: '€/pc' },
-        { name: 'Vodoinštalačné práce', subtitle: 'outlet', price: 50, unit: '€/pc' },
+        { name: 'Electrical installation work', subtitle: 'outlet', price: 65, unit: '€/pc' },
+        { name: 'Plumbing work', subtitle: 'outlet', price: 50, unit: '€/pc' },
         { name: 'Brick partitions', subtitle: '75 - 175mm', price: 23, unit: '€/m2' },
         { name: 'Brick load-bearing wall', subtitle: '200 - 450mm', price: 24, unit: '€/m2' },
         { name: 'Plasterboarding', subtitle: 'partition, simple', price: 37, unit: '€/m2' },
@@ -252,7 +252,7 @@ export const AppDataProvider = ({ children }) => {
         { name: 'Painting', subtitle: 'ceiling, 2 layers', price: 3, unit: '€/m2' },
         { name: 'Levelling', price: 9, unit: '€/m2' },
         { name: 'Floating floor', subtitle: 'laying', price: 9, unit: '€/m2' },
-        { name: 'Lištovanie', subtitle: 'floating floor', price: 4.5, unit: '€/m' },
+        { name: 'Skirting', subtitle: 'floating floor', price: 4.5, unit: '€/m' },
         { name: 'Tiling under 60cm', subtitle: 'ceramic', price: 35, unit: '€/m2' },
         { name: 'Jolly Edging', price: 30, unit: '€/m' },
         { name: 'Paving under 60cm', subtitle: 'ceramic', price: 35, unit: '€/m2' },
@@ -285,7 +285,7 @@ export const AppDataProvider = ({ children }) => {
         { name: 'Paint', subtitle: 'ceiling', price: 1, unit: '€/m2', materialKey: 'painting_ceiling' },
         { name: 'Self-levelling compound', price: 20, unit: '€/pkg', capacity: { value: 1.2, unit: 'm2' }, materialKey: 'levelling' },
         { name: 'Floating floor', price: 20, unit: '€/m2', materialKey: 'floating_floor' },
-        { name: 'Soklové lišty', price: 3, unit: '€/m', materialKey: 'skirting' },
+        { name: 'Skirting boards', price: 3, unit: '€/m', materialKey: 'skirting' },
         { name: 'Silicone', price: 12, unit: '€/pkg', capacity: { value: 14, unit: 'm' }, materialKey: 'siliconing' },
         { name: 'Tiles', subtitle: 'ceramic', price: 30, unit: '€/m2', materialKey: 'tiling_under_60' },
         { name: 'Pavings', subtitle: 'ceramic', price: 30, unit: '€/m2', materialKey: 'paving_under_60' },
@@ -474,6 +474,7 @@ export const AppDataProvider = ({ children }) => {
 
         const projectData = {
           ...project,
+          clientId: project.client_id || project.clientId,
           priceListSnapshot,
           photos,
           projectHistory,

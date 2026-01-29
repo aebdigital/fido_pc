@@ -251,7 +251,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
                       className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
                     >
                       <Building2 className="w-4 h-4" />
-                      {t('Vyplniť podľa IČO')}
+                      {t('Fill by company ID')}
                     </button>
                   )}
                 </div>
@@ -416,7 +416,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
               {/* Business ID */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  {t('Business ID')}
+                  {t('BID')}
                 </label>
                 <input
                   type="text"
@@ -430,7 +430,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
               {/* Tax ID */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  {t('Tax ID')}
+                  {t('TID')}
                 </label>
                 <input
                   type="text"
@@ -444,7 +444,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
               {/* VAT Registration Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  {t('VAT Registration Number')}
+                  {t('VAT ID')}
                 </label>
                 <input
                   type="text"

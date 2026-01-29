@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Eye, Send, FileText, User, Calendar, DollarSign, Edit3, Trash2, ChevronRight, Building, Briefcase, Receipt } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Eye, Send, FileText, User, Calendar, DollarSign, Edit3, Trash2, ChevronRight, Building2, ClipboardList, Receipt, Mail, MapPin, Check, Plus, PencilRuler, FileText as DocIcon, Trash } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,8 @@ import { PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS, formatProjectNumber } f
 import { WORK_ITEM_NAMES } from '../config/constants';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import PDFPreviewModal from './PDFPreviewModal';
+import ClientForm from './ClientForm';
+import ContractorProfileModal from './ContractorProfileModal';
 
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -24,13 +26,15 @@ import { useScrollLock } from '../hooks/useScrollLock';
 const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewProject = false }) => {
   useScrollLock(true);
   const { t } = useLanguage();
-  const { updateInvoice, deleteInvoice, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
+  const { updateInvoice, deleteInvoice, updateClient, updateContractor, contractors, findProjectById, calculateProjectTotalPrice, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
   const navigate = useNavigate();
 
-  // Edit mode state
+  // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [showContractorModal, setShowContractorModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
 
@@ -38,6 +42,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const [showCashReceiptPreview, setShowCashReceiptPreview] = useState(false);
   const [cashReceiptUrl, setCashReceiptUrl] = useState(null);
   const [cashReceiptBlob, setCashReceiptBlob] = useState(null);
+
+  const clientFormRef = useRef(null);
 
   // Use live invoice data from global state
   const invoice = invoices?.find(inv => inv.id === invoiceProp?.id) || invoiceProp;
@@ -90,7 +96,9 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
 
 
           // Ensure propertyId is preserved for grouping logic in PDF generator
-          propertyId: original.propertyId || (item.category === 'work' ? 'custom_work' : undefined),
+          // Do NOT fallback to 'custom_work' - items without originalItem.propertyId should
+          // go through the generic translation path in the PDF generator
+          propertyId: original.propertyId,
 
           // Ensure fields are preserved for specific logic (e.g. scaffolding)
           // CRITICAL: Sync item.title (which is editable) to fields.Name specifically for custom work
@@ -177,17 +185,31 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   };
 
   const handleViewClient = () => {
-    onClose();
-    navigate('/clients', {
-      state: {
-        selectedClientId: invoice.clientId
-      }
-    });
+    setShowClientModal(true);
   };
 
   const handleViewContractor = () => {
-    onClose();
-    navigate('/profile');
+    setShowContractorModal(true);
+  };
+
+  const handleSaveClient = async (clientData) => {
+    try {
+      await updateClient(invoice.clientId, clientData);
+      setShowClientModal(false);
+    } catch (error) {
+      console.error('Error updating client:', error);
+      alert(t('Failed to update client'));
+    }
+  };
+
+  const handleSaveContractor = async (contractorData) => {
+    try {
+      await updateContractor(invoice.contractorId, contractorData);
+      setShowContractorModal(false);
+    } catch (error) {
+      console.error('Error updating contractor:', error);
+      alert(t('Failed to update contractor'));
+    }
   };
 
   // Check if mobile device
@@ -209,7 +231,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         t,
         options: {
           priceList: generalPriceList,
-          projectNumber: formatProjectNumber(project)
+          projectNumber: formatProjectNumber(project),
+          projectCategory: project?.category
         }
       });
 
@@ -252,6 +275,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         contractor,
         client,
         totalWithVAT,
+        vatRate,
         formatDate,
         formatPrice,
         t
@@ -311,6 +335,7 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
             contractor,
             client,
             totalWithVAT,
+            vatRate,
             formatDate,
             formatPrice,
             t
@@ -385,7 +410,7 @@ ${t('Due Date')}: ${formatDate(invoice.dueDate)}
 ${t('Payment Method')}: ${t(invoice.paymentMethod === 'cash' ? 'Cash' : 'Transfer')}
 
 ${t('without VAT')}: ${formatPrice(totalWithoutVAT)}
-${t('VAT (23%)')}: ${formatPrice(vat)}
+${t('VAT')} (${Math.round(vatRate * 100)}%): ${formatPrice(vat)}
 ${t('Total price')}: ${formatPrice(totalWithVAT)}
 ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
     `.trim();
@@ -408,7 +433,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             formatPrice,
             t,
             options: {
-              priceList: generalPriceList
+              priceList: generalPriceList,
+              projectCategory: project?.category
             }
           });
           currentBlob = result.pdfBlob;
@@ -495,231 +521,221 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         {/* Header - iOS style with large invoice number */}
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0 rounded-t-2xl">
           <div className="flex items-start justify-between">
-            <div>
+            <div className="flex-1 min-w-0">
               {/* Large Invoice Number - iOS style (40pt equivalent) */}
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-1">
+              <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-white mb-1 truncate leading-[1.1]">
                 {invoice.invoiceNumber}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {t('Price offer')} {formatProjectNumber(project) || invoice.invoiceNumber}
-              </p>
+              {project && (
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-400">
+                  {formatProjectNumber(project)}
+                </p>
+              )}
             </div>
-            <button
-              onClick={() => onClose()}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
 
-          {/* Status Badge with Mark as Paid - iOS style */}
-          <div className="flex items-center gap-3 mt-4">
-            <span className={`px-4 py-2 text-sm font-semibold rounded-full ${invoice.status === INVOICE_STATUS.PAID
-              ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
-              : invoice.status === INVOICE_STATUS.AFTER_MATURITY
-                ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
-                : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400'
-              }`}>
-              {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
-                : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
-                  : 'Unpaid')}
-            </span>
+            <div className="flex items-center gap-2">
+              {invoice.status !== INVOICE_STATUS.PAID ? (
+                <button
+                  onClick={handleMarkAsPaid}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg whitespace-nowrap"
+                >
+                  <Check className="w-4 h-4 text-green-600 dark:text-green-500" />
+                  <span className="text-base font-bold text-gray-900 dark:text-white">{t('Mark as Paid')}</span>
+                </button>
+              ) : (
+                <div onClick={handleMarkAsPaid} className="cursor-pointer">
+                  <span className="px-4 py-2 text-sm font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">
+                    {t('Paid')}
+                  </span>
+                </div>
+              )}
 
-            {invoice.status !== INVOICE_STATUS.PAID && (
               <button
-                onClick={handleMarkAsPaid}
-                className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-full text-sm font-semibold transition-colors"
+                onClick={() => onClose()}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ml-2"
               >
-                <DollarSign className="w-4 h-4" />
-                {t('Mark as Paid')}
+                <X className="w-8 h-8" />
               </button>
-            )}
+            </div>
           </div>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {/* Clickable Client Card - iOS style */}
           {client && (
-            <button
-              onClick={handleViewClient}
-              className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('Client')}</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{client.name}</p>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <User className="w-6 h-6 text-gray-900 dark:text-white" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Client')}</h2>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
+              <button
+                onClick={handleViewClient}
+                className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
+              >
+                <div className="min-w-0">
+                  <p className="text-xl font-bold text-gray-900 dark:text-white leading-tight truncate">{client.name}</p>
+                  {(client.street || client.city) && (
+                    <p className="text-base text-gray-500 dark:text-gray-400 truncate mt-1">
+                      {[client.street, client.city].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+                <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white flex-shrink-0" />
+              </button>
+            </div>
           )}
 
-          {/* Clickable Project Card - iOS style */}
+          {/* Clickable Project Card - Scaled down to match others */}
           {!hideViewProject && project && (
-            <button
-              onClick={handleViewProject}
-              className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-full flex items-center justify-center">
-                  <Briefcase className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('Project')}</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{project.name}</p>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <PencilRuler className="w-6 h-6 text-gray-900 dark:text-white" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Project')}</h2>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
+              <button
+                onClick={handleViewProject}
+                className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center transition-colors duration-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 cursor-pointer text-left"
+              >
+                <div className="flex-1 transition-all duration-300 min-w-0">
+                  <div className="flex items-center gap-1 mb-1 flex-wrap">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                    <span>{project.name}</span>
+                  </h3>
+                  {/* Client name */}
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 truncate">
+                    {client?.name || t('No client')}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                  <div className="text-right">
+                    {/* Status Badge */}
+                    <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full mb-0.5 ${project.status === PROJECT_STATUS.FINISHED
+                      ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                      : project.status === PROJECT_STATUS.APPROVED
+                        ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                        : project.status === PROJECT_STATUS.SENT
+                          ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                          : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                      }`}>
+                      {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
+                        : project.status === PROJECT_STATUS.APPROVED ? 'approved'
+                          : project.status === PROJECT_STATUS.SENT ? 'sent'
+                            : 'not sent')}
+                    </span>
+                    {/* Price */}
+                    <div className="font-bold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-none">{t('VAT not included')}</div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                </div>
+              </button>
+            </div>
           )}
 
-          {/* Clickable Contractor Card - iOS style */}
+          {/* Clickable Contractor Card - Reduced hover effect */}
           {contractor && (
-            <button
-              onClick={handleViewContractor}
-              className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/50 rounded-full flex items-center justify-center">
-                  <Building className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('Contractor')}</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{contractor.name}</p>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <Building2 className="w-6 h-6 text-gray-900 dark:text-white" />
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Contractor')}</h2>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
+              <button
+                onClick={handleViewContractor}
+                className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
+              >
+                <div className="min-w-0">
+                  <p className="text-xl font-bold text-gray-900 dark:text-white leading-tight truncate">{contractor.name}</p>
+                  {contractor.ico && (
+                    <p className="text-base text-gray-500 dark:text-gray-400 truncate mt-1">
+                      {t('BID Abbr')}: {contractor.ico}
+                    </p>
+                  )}
+                  {(contractor.city || contractor.street) && (
+                    <p className="text-sm text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                      {[contractor.street, contractor.city].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+                <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white flex-shrink-0" />
+              </button>
+            </div>
           )}
 
           {/* PDF Section - iOS style with 3 buttons */}
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Invoice PDF')}</span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-1">
+              <DocIcon className="w-6 h-6 text-gray-900 dark:text-white" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">PDF</h2>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={handlePreview}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
                 <Eye className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Preview')}</span>
+                <span className="text-base font-bold text-gray-900 dark:text-white">{t('Preview')}</span>
               </button>
               <button
                 onClick={handleSend}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
                 <Send className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Send')}</span>
+                <span className="text-base font-bold text-gray-900 dark:text-white">{t('Send')}</span>
               </button>
               <button
                 onClick={handleStartEdit}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
                 <Edit3 className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Edit')}</span>
+                <span className="text-base font-bold text-gray-900 dark:text-white">{t('Edit')}</span>
               </button>
             </div>
           </div>
 
           {/* Cash Receipt Section - iOS style (only if cash payment) */}
           {invoice.paymentMethod === 'cash' && (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <Receipt className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Cash Receipt')}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handleCashReceiptPreview}
-                  className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <Eye className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Preview')}</span>
-                </button>
-                <button
-                  onClick={handleCashReceiptSend}
-                  className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <Send className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Send')}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Invoice Details Card */}
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Invoice Details')}</span>
-            </div>
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Invoice Number')}</span>
-                <span className="text-base font-medium text-gray-900 dark:text-white">{invoice.invoiceNumber}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Issue Date')}</span>
-                <span className="text-base font-medium text-gray-900 dark:text-white">{formatDate(invoice.issueDate)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Due Date')}</span>
-                <span className="text-base font-medium text-gray-900 dark:text-white">{formatDate(invoice.dueDate)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">{t('Payment Method')}</span>
-                <span className="text-base font-medium text-gray-900 dark:text-white">
-                  {t(invoice.paymentMethod === 'cash' ? 'Cash' : 'Bank transfer')}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Notes Section */}
-          {invoice.notes && (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
-              <span className="text-base font-semibold text-gray-900 dark:text-white block mb-2">{t('Notes')}</span>
-              <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{invoice.notes}</p>
+              <button
+                onClick={handleCashReceiptPreview}
+                className="w-full flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <Eye className="w-6 h-6 text-gray-900 dark:text-white" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Preview Cash Receipt')}</span>
+                </div>
+                <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white" />
+              </button>
+              <button
+                onClick={handleCashReceiptSend}
+                className="w-full flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <Send className="w-6 h-6 text-gray-900 dark:text-white" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Resend Cash Receipt')}</span>
+                </div>
+                <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white" />
+              </button>
             </div>
           )}
-
-          {/* Price Summary */}
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
-            <span className="text-base font-semibold text-gray-900 dark:text-white block mb-3">{t('Price Summary')}</span>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">{t('without VAT')}</span>
-                <span className="text-base font-medium text-gray-900 dark:text-white">{formatPrice(totalWithoutVAT)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">{t('VAT (23%)')}</span>
-                <span className="text-base font-medium text-gray-900 dark:text-white">{formatPrice(vat)}</span>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-                <span className="text-lg font-bold text-gray-900 dark:text-white">{t('Total price')}</span>
-                <span className="text-xl font-bold text-gray-900 dark:text-white">{formatPrice(totalWithVAT)}</span>
-              </div>
-            </div>
-          </div>
 
           {/* Delete Button - iOS style at bottom */}
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 py-4 rounded-2xl font-semibold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
-          >
-            <Trash2 className="w-5 h-5" />
-            {t('Delete Invoice')}
-          </button>
+          <div className="pt-4 flex justify-center pb-8">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full max-w-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 rounded-full font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg"
+            >
+              <Trash className="w-5 h-5" />
+              <span className="text-lg">{t('Delete')}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Edit Invoice Modal */}
+      {/* Modals */}
       <InvoiceCreationModal
         isOpen={showEditModal}
         onClose={handleEditModalClose}
@@ -729,7 +745,6 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         existingInvoice={invoice}
       />
 
-      {/* PDF Preview Modal */}
       <PDFPreviewModal
         isOpen={showPDFPreview}
         onClose={handleClosePDFPreview}
@@ -741,7 +756,6 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         title={`${t('Invoice')} ${invoice.invoiceNumber}`}
       />
 
-      {/* Cash Receipt Preview Modal */}
       <PDFPreviewModal
         isOpen={showCashReceiptPreview}
         onClose={handleCloseCashReceiptPreview}
@@ -752,11 +766,41 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         }}
         title={`${t('Cash Receipt')} ${invoice.invoiceNumber}`}
       />
+
+      {/* Client Modal - Matching ProjectDetailView style/size */}
+      {showClientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
+          <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
+              <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Edit client')}</h3>
+              <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
+              <ClientForm
+                ref={clientFormRef}
+                initialData={client}
+                onSave={handleSaveClient}
+                onCancel={() => setShowClientModal(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contractor Modal */}
+      {showContractorModal && (
+        <ContractorProfileModal
+          onClose={() => setShowContractorModal(false)}
+          onSave={handleSaveContractor}
+          editingContractor={contractor}
+        />
+      )}
     </div>
   );
 };
 
 export default InvoiceDetailModal;
 
-// Export PDF generation function for use in other components
 export { InvoiceDetailModal };

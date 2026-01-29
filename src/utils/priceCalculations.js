@@ -10,6 +10,40 @@ import {
 import { getMaterialKey, findMaterialByKey, getAdhesiveKey, findAdhesiveByKey } from '../config/materialKeys';
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
 
+// Canonical English names by propertyId, used to normalize complementary item names
+// regardless of the price list language (iOS sync or old data may have Slovak names)
+const PROPERTY_ID_TO_ENGLISH_NAME = {
+  [WORK_ITEM_PROPERTY_IDS.PREPARATORY]: 'Preparatory and demolition works',
+  [WORK_ITEM_PROPERTY_IDS.WIRING]: 'Electrical installation work',
+  [WORK_ITEM_PROPERTY_IDS.PLUMBING]: 'Plumbing work',
+  [WORK_ITEM_PROPERTY_IDS.BRICK_PARTITIONS]: 'Brick partitions',
+  [WORK_ITEM_PROPERTY_IDS.BRICK_LOAD_BEARING]: 'Brick load-bearing wall',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION]: 'Plasterboarding',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET]: 'Plasterboarding',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_CEILING]: 'Plasterboarding',
+  [WORK_ITEM_PROPERTY_IDS.NETTING_WALL]: 'Netting',
+  [WORK_ITEM_PROPERTY_IDS.NETTING_CEILING]: 'Netting',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL]: 'Plastering',
+  [WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING]: 'Plastering',
+  [WORK_ITEM_PROPERTY_IDS.FACADE_PLASTERING]: 'Facade Plastering',
+  [WORK_ITEM_PROPERTY_IDS.CORNER_BEAD]: 'Installation of corner bead',
+  [WORK_ITEM_PROPERTY_IDS.WINDOW_SASH]: 'Plastering of window sash',
+  [WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING]: 'Penetration coating',
+  [WORK_ITEM_PROPERTY_IDS.PAINTING_WALL]: 'Painting',
+  [WORK_ITEM_PROPERTY_IDS.PAINTING_CEILING]: 'Painting',
+  [WORK_ITEM_PROPERTY_IDS.LEVELLING]: 'Levelling',
+  [WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR]: 'Floating floor',
+  [WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60]: 'Tiling under 60cm',
+  [WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60]: 'Paving under 60cm',
+  [WORK_ITEM_PROPERTY_IDS.GROUTING]: 'Grouting',
+  [WORK_ITEM_PROPERTY_IDS.SILICONING]: 'Siliconing',
+  [WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION]: 'Sanitary installations',
+  [WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION]: 'Window installation',
+  [WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION]: 'Installation of door jamb',
+  [WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK]: 'Custom work and material',
+  [WORK_ITEM_PROPERTY_IDS.COMMUTE]: 'Commute'
+};
+
 /**
  * Check if a subtitle contains a subtype (handles both English and Slovak)
  * @param {string} subtitle - The subtitle to check
@@ -1008,12 +1042,12 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           quantity: area
         };
 
-        // Use the scaffolding name constant for the subtitle
-        const scaffoldingName = WORK_ITEM_NAMES.SCAFFOLDING_SK;
+        // Use the English scaffolding name constant for the subtitle
+        const scaffoldingName = WORK_ITEM_NAMES.SCAFFOLDING_EN;
 
         othersItems.push({
           ...workItem,
-          subtitle: scaffoldingName + ' - montáž a demontáž',
+          subtitle: scaffoldingName + ' - assembly and disassembly',
           calculation: assemblyCalculation
         });
 
@@ -1028,7 +1062,7 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
         othersItems.push({
           ...workItem,
           id: workItem.id + '_rental',
-          subtitle: scaffoldingName + ' - prenájom',
+          subtitle: scaffoldingName + ' - rental',
           fields: {
             ...workItem.fields,
             [WORK_ITEM_NAMES.RENTAL_DURATION]: duration
@@ -1067,12 +1101,12 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
               calculation
             });
 
-            // Localize name if it matches the default English constant
+            // Use English canonical name for custom work items (translation handled by t())
             let localizedName = workItem.name;
             const defaultName = WORK_ITEM_NAMES.CUSTOM_WORK_AND_MATERIAL;
 
-            if (workItem.name === defaultName || workItem.name === 'Custom work and material') {
-              localizedName = workItem.selectedType === 'Material' ? 'Vlastný materiál' : 'Vlastná práca';
+            if (workItem.name === defaultName || workItem.name === 'Custom work and material' || workItem.name === 'Vlastná práca a materiál') {
+              localizedName = workItem.selectedType === 'Material' ? 'Custom material' : 'Custom work';
             }
 
             if (workItem.selectedType === 'Material') {
@@ -1161,14 +1195,14 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
           };
           if (isLargeFormat) {
             itemToAdd.isLargeFormat = true;
-            // Update subtitle and name to indicate large format
-            itemToAdd.subtitle = 'veľkoformát'; // Use lowercase 'veľkoformát' to match user request/iOS style
+            // Update subtitle and name to indicate large format (use English canonical names, translation handled by t())
+            itemToAdd.subtitle = 'large format';
 
             // Update name based on type
             if (itemToAdd.name.toLowerCase().includes('obklad') || itemToAdd.name.toLowerCase().includes('tiling')) {
-              itemToAdd.name = 'Obklad, veľkoformát';
+              itemToAdd.name = 'Tiling, large format';
             } else if (itemToAdd.name.toLowerCase().includes('dlažba') || itemToAdd.name.toLowerCase().includes('paving')) {
-              itemToAdd.name = 'Dlažba, veľkoformát';
+              itemToAdd.name = 'Paving, large format';
             }
 
             // Modify propertyId to prevent complementary standard tiling from merging into this item
@@ -1424,10 +1458,10 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
       existingItem.calculation.workCost = (existingItem.calculation.workCost || 0) + cost;
       existingItem.calculation.quantity = (existingItem.calculation.quantity || 0) + additiveQuantity;
     } else {
-      // Create new item
+      // Create new item - use canonical English name for consistent translation
       items.push({
         id: `complementary_${propertyIdToFind}`,
-        name: priceItem.name,
+        name: PROPERTY_ID_TO_ENGLISH_NAME[propertyIdToFind] || priceItem.name,
         subtitle: subtitleOverride || priceItem.subtitle || '',
         propertyId: propertyIdToFind,
         calculation: {

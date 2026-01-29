@@ -83,30 +83,36 @@ export function createCommuteWorkItemFromRoom(room) {
   };
 }
 
-// Map iOS unit enum values to display symbols
+// Map iOS unit enum values to display symbols (English canonical)
 // iOS stores: "basicMeter", "squareMeter", etc.
-// Desktop displays: "bm", "m²", etc.
+// Desktop displays: "m", "m²", etc.
 const IOS_UNIT_TO_DISPLAY = {
-  'basicMeter': 'bm',
+  'basicMeter': 'm',
   'squareMeter': 'm²',
   'cubicMeter': 'm³',
-  'piece': 'ks',
-  'package': 'bal',
-  'hour': 'hod',
+  'piece': 'pc',
+  'package': 'pkg',
+  'hour': 'hr',
   'kilometer': 'km',
-  'day': 'deň',
+  'day': 'day',
   'kilogram': 'kg',
   'ton': 't',
   'percentage': '%',
   // Additional mappings for desktop units
-  'pkg': 'bal',
-  'pc': 'ks',
+  'pkg': 'pkg',
+  'pc': 'pc',
   'm2': 'm²',
   'm3': 'm³',
-  'bm': 'bm',
-  'h': 'hod',
+  'bm': 'm',
+  'h': 'hr',
   'km': 'km',
-  'kg': 'kg'
+  'kg': 'kg',
+  // Map old Slovak units to new English ones
+  'ks': 'pc',
+  'bal': 'pkg',
+  'hod': 'hr',
+  'deň': 'day',
+  'dní': 'days'
 };
 
 /**

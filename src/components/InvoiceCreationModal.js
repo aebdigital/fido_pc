@@ -27,93 +27,95 @@ const getWorkItemUnit = (item) => {
   const fields = item.fields || {};
 
   // Check based on propertyId
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.PREPARATORY) return 'h';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.WIRING) return 'ks';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) return 'ks';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE) return 'km';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.CORNER_BEAD) return 'm';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_SASH) return 'm';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.SILICONING) return 'm';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) return 'ks';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) return 'm';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) return 'ks';
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.PREPARATORY) return UNIT_TYPES.HOUR;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WIRING) return UNIT_TYPES.PIECE;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) return UNIT_TYPES.PIECE;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE) return UNIT_TYPES.KM;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.CORNER_BEAD) return UNIT_TYPES.METER;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_SASH) return UNIT_TYPES.METER;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.SILICONING) return UNIT_TYPES.METER;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) return UNIT_TYPES.PIECE;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) return UNIT_TYPES.METER;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) return UNIT_TYPES.PIECE;
   if (propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
     return unitToDisplaySymbol(item.selectedUnit) || UNIT_TYPES.METER_SQUARE;
   }
 
   // Check based on fields to determine unit
-  if (fields[WORK_ITEM_NAMES.DURATION_EN] || fields[WORK_ITEM_NAMES.DURATION_SK]) return 'h';
-  if (fields[WORK_ITEM_NAMES.COUNT] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) return 'ks';
-  if (fields[WORK_ITEM_NAMES.LENGTH] && !fields[WORK_ITEM_NAMES.WIDTH] && !fields[WORK_ITEM_NAMES.HEIGHT]) return 'm';
-  if (fields[WORK_ITEM_NAMES.CIRCUMFERENCE]) return 'm';
+  if (fields[WORK_ITEM_NAMES.DURATION_EN] || fields[WORK_ITEM_NAMES.DURATION_SK]) return UNIT_TYPES.HOUR;
+  if (fields[WORK_ITEM_NAMES.COUNT] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) return UNIT_TYPES.PIECE;
+  if (fields[WORK_ITEM_NAMES.LENGTH] && !fields[WORK_ITEM_NAMES.WIDTH] && !fields[WORK_ITEM_NAMES.HEIGHT]) return UNIT_TYPES.METER;
+  if (fields[WORK_ITEM_NAMES.CIRCUMFERENCE]) return UNIT_TYPES.METER;
 
   // Default to m² for area-based work
-  return 'm²';
+  return UNIT_TYPES.METER_SQUARE;
 };
 
-// Helper to build display name for work items (matching PDF generator logic)
+// Helper to build CANONICAL display name for work items (English - for storage)
+// Translation happens at display time in PDF generator, not at storage time
 const getWorkItemDisplayName = (item, t) => {
   const itemName = item.name || '';
 
   // For electrical and plumbing work, just show the main name (no subtitle with outlet types)
   if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING ||
-      item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
-    return t(itemName);
+    item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
+    return itemName;
   }
 
-  // For plasterboarding items, build full name with subtitle and type
+  // For plasterboarding items, build full name with subtitle and type (lowercase for translation keys)
   if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle) {
     const shouldShowType = item.selectedType && item.propertyId !== 'plasterboarding_ceiling';
     if (shouldShowType) {
-      return `${t(itemName)}, ${t(item.subtitle)}, ${t(item.selectedType).toLowerCase()}`;
+      return `${itemName}, ${item.subtitle}, ${(item.selectedType || '').toLowerCase()}`;
     }
-    return `${t(itemName)}, ${t(item.subtitle)}`;
+    return `${itemName}, ${item.subtitle}`;
   }
 
   // For sanitary installation, show the type name
   if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
-    return t(item.selectedType || item.subtitle);
+    return item.selectedType || item.subtitle;
   }
 
   // For plinth items, show name with subtitle
   if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle) {
-    return `${t(itemName)} - ${t(item.subtitle)}`;
+    return `${itemName} - ${item.subtitle}`;
   }
 
   // For custom work, use the entered name or fallback
   if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
     const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-    return item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
+    return item.fields?.[WORK_ITEM_NAMES.NAME] || fallbackName;
   }
 
-  // For Large Format items, the name already includes "veľkoformát" - don't append subtitle
+  // For Large Format items, the name already includes "Large Format" - don't append subtitle
   if (item.isLargeFormat) {
-    return t(itemName);
+    return itemName;
   }
 
   // For items with subtitle (like wall/ceiling distinction)
   if (item.subtitle) {
-    return `${t(itemName)}, ${t(item.subtitle)}`;
+    return `${itemName}, ${item.subtitle}`;
   }
 
-  // Default: just translate the name
-  return t(itemName) || t('Work item');
+  // Default: just return the canonical English name
+  return itemName || 'Work item';
 };
 
-// Helper to build display name for material items
+// Helper to build CANONICAL display name for material items (English - for storage)
+// Translation happens at display time in PDF generator, not at storage time
 const getMaterialItemDisplayName = (item, t) => {
   // For custom materials
   if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
     const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-    return item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
+    return item.fields?.[WORK_ITEM_NAMES.NAME] || fallbackName;
   }
 
   // For materials with subtitle
   if (item.subtitle) {
-    return `${t(item.name || '')}, ${t(item.subtitle)}`;
+    return `${item.name || ''}, ${item.subtitle}`;
   }
 
-  return t(item.name) || t('Material');
+  return item.name || 'Material';
 };
 
 /**
@@ -360,8 +362,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       if (!currentContractor.city) missing.push(`${t('Contractor')}: ${t('City')}`);
       if (!(currentContractor.postalCode || currentContractor.postal_code)) missing.push(`${t('Contractor')}: ${t('Postal code')}`);
       if (!currentContractor.country) missing.push(`${t('Contractor')}: ${t('Country')}`);
-      if (!(currentContractor.businessId || currentContractor.business_id)) missing.push(`${t('Contractor')}: ${t('Business ID')}`);
-      if (!(currentContractor.taxId || currentContractor.tax_id)) missing.push(`${t('Contractor')}: ${t('Tax ID')}`);
+      if (!(currentContractor.businessId || currentContractor.business_id)) missing.push(`${t('Contractor')}: ${t('BID')}`);
+      if (!(currentContractor.taxId || currentContractor.tax_id)) missing.push(`${t('Contractor')}: ${t('TID')}`);
       if (!(currentContractor.bankAccount || currentContractor.bank_account_number)) missing.push(`${t('Contractor')}: ${t('Bank account number')}`);
     } else {
       missing.push(t('No contractor selected'));
@@ -377,8 +379,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       if (!(currentClient.postalCode || currentClient.postal_code)) missing.push(`${t('Client')}: ${t('Postal code')}`);
       if (!currentClient.country) missing.push(`${t('Client')}: ${t('Country')}`);
       if (currentClient.type === 'business') {
-        if (!(currentClient.businessId || currentClient.business_id)) missing.push(`${t('Client')}: ${t('Business ID')}`);
-        if (!(currentClient.taxId || currentClient.tax_id)) missing.push(`${t('Client')}: ${t('Tax ID')}`);
+        if (!(currentClient.businessId || currentClient.business_id)) missing.push(`${t('Client')}: ${t('BID')}`);
+        if (!(currentClient.taxId || currentClient.tax_id)) missing.push(`${t('Client')}: ${t('TID')}`);
       }
     } else {
       missing.push(t('No client selected'));

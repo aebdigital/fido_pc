@@ -17,7 +17,7 @@ const ThemeLanguageModal = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            {t('Nastavenia')}
+            {t('Settings')}
           </h2>
           <button
             onClick={onClose}
@@ -33,7 +33,7 @@ const ThemeLanguageModal = ({ isOpen, onClose }) => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-              {t('Vzhľad')}
+              {t('Appearance')}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -104,7 +104,7 @@ const ThemeLanguageModal = ({ isOpen, onClose }) => {
             onClick={onClose}
             className="w-full px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
           >
-            {t('Zavrieť')}
+            {t('Close')}
           </button>
         </div>
       </div>

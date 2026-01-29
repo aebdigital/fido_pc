@@ -27,7 +27,7 @@ export const MATERIAL_ITEM_NAMES = {
   PLASTER: 'Plaster',
   PRIMER: 'Primer',
   SELF_LEVELLING_COMPOUND: 'Self-levelling compound',
-  SKIRTING_BOARD: 'Soklové lišty',
+  SKIRTING_BOARD: 'Skirting boards',
   SILICONE: 'Silicone',
   FLOATING_FLOOR: 'Floating floor',
   AUXILIARY_AND_FASTENING_MATERIAL: 'Auxiliary and fastening material'
@@ -93,8 +93,8 @@ export const WORK_ITEM_NAMES = {
 
   // Localized work names
   PREPARATORY_AND_DEMOLITION_WORKS: 'Preparatory and demolition works',
-  ELECTRICAL_INSTALLATION_WORK: 'Elektroinštalačné práce',
-  PLUMBING_WORK: 'Vodoinštalačné práce',
+  ELECTRICAL_INSTALLATION_WORK: 'Electrical installation work',
+  PLUMBING_WORK: 'Plumbing work',
   BRICK_PARTITIONS: 'Brick partitions',
   BRICK_LOAD_BEARING_WALL: 'Brick load-bearing wall',
   PLASTERBOARDING: 'Plasterboarding',
@@ -107,7 +107,7 @@ export const WORK_ITEM_NAMES = {
   PAINTING: 'Painting',
   LEVELLING: 'Levelling',
   FLOATING_FLOOR: 'Floating floor',
-  SKIRTING: 'Lištovanie',
+  SKIRTING: 'Skirting',
   TILING_UNDER_60CM: 'Tiling under 60cm',
   PAVING_UNDER_60CM: 'Paving under 60cm',
   GROUTING: 'Grouting',
@@ -139,8 +139,8 @@ export const WORK_ITEM_NAMES = {
   POMOCNE_A_UKONCOVACIE_PRACE: 'Pomocné a ukončovacie práce',
 
   // Display names for aggregated material items
-  OKNA_DISPLAY_NAME: 'Okná',
-  ZARUBNA_DISPLAY_NAME: 'Zárubne'
+  OKNA_DISPLAY_NAME: 'Windows',
+  ZARUBNA_DISPLAY_NAME: 'Door jambs'
 };
 
 export const WORK_ITEM_PROPERTY_IDS = {
@@ -178,7 +178,7 @@ export const WORK_ITEM_PROPERTY_IDS = {
 };
 
 export const UNIT_TYPES = {
-  HOUR: 'h',
+  HOUR: 'hr',
   PIECE: 'pc',
   METER_SQUARE: 'm2',
   METER: 'm',

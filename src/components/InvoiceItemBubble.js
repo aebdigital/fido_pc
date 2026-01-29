@@ -30,7 +30,7 @@ const InvoiceItemBubble = ({
   const [price, setPrice] = useState(item.price || 0);
   const [active, setActive] = useState(item.active !== false);
   const [taxObligationTransfer, setTaxObligationTransfer] = useState(item.taxObligationTransfer || false);
-  const [unit, setUnit] = useState(item.unit || 'm²');
+  const [unit, setUnit] = useState(item.unit || 'm2');
   const [vatInputString, setVatInputString] = useState(item.vat !== undefined ? String(item.vat) : '23');
 
   // Sync with parent item changes
@@ -42,7 +42,7 @@ const InvoiceItemBubble = ({
     setPrice(item.price || 0);
     setActive(item.active !== false);
     setTaxObligationTransfer(item.taxObligationTransfer || false);
-    setUnit(item.unit || 'm²');
+    setUnit(item.unit || 'm2');
     setVatInputString(item.vat !== undefined ? String(item.vat) : '23'); // Sync vatInputString
   }, [item]);
 
@@ -165,7 +165,7 @@ const InvoiceItemBubble = ({
             )}
             {!isExpanded && (
               <p className={`text-xs ${active ? 'text-gray-600' : 'text-gray-400'}`}>
-                {t('count')}: {pieces} {unit}
+                {t('count')}: {pieces} {t(unit)}
               </p>
             )}
           </div>
@@ -238,7 +238,7 @@ const InvoiceItemBubble = ({
                     min={0}
                     step={0.01}
                   />
-                  <span className="text-sm text-gray-600">{unit}</span>
+                  <span className="text-sm text-gray-600">{t(unit)}</span>
                 </div>
               </div>
 

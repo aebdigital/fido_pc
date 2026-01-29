@@ -169,30 +169,30 @@ const getWorkItemUnit = (item) => {
   const propertyId = item.propertyId;
   const fields = item.fields || {};
 
-  // Check based on propertyId
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.PREPARATORY) return 'h';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.WIRING) return 'pc';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) return 'pc';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE) return 'km';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.CORNER_BEAD) return 'm';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_SASH) return 'm';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.SILICONING) return 'm';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) return 'pc';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) return 'm';
-  if (propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) return 'pc';
+  // Check based on propertyId - use UNIT_TYPES constants (Slovak units)
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.PREPARATORY) return UNIT_TYPES.HOUR;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WIRING) return UNIT_TYPES.PIECE;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) return UNIT_TYPES.PIECE;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.COMMUTE) return UNIT_TYPES.KM;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.CORNER_BEAD) return UNIT_TYPES.METER;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_SASH) return UNIT_TYPES.METER;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.SILICONING) return UNIT_TYPES.METER;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) return UNIT_TYPES.PIECE;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) return UNIT_TYPES.METER;
+  if (propertyId === WORK_ITEM_PROPERTY_IDS.DOOR_JAMB_INSTALLATION) return UNIT_TYPES.PIECE;
   if (propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
     // Convert iOS unit values (e.g., "squareMeter") to display symbols (e.g., "m²")
     return unitToDisplaySymbol(item.selectedUnit) || UNIT_TYPES.METER_SQUARE;
   }
 
   // Check based on fields to determine unit
-  if (fields[WORK_ITEM_NAMES.DURATION_EN] || fields[WORK_ITEM_NAMES.DURATION_SK]) return 'h';
-  if (fields[WORK_ITEM_NAMES.COUNT] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) return 'pc';
-  if (fields[WORK_ITEM_NAMES.LENGTH] && !fields[WORK_ITEM_NAMES.WIDTH] && !fields[WORK_ITEM_NAMES.HEIGHT]) return 'm';
-  if (fields[WORK_ITEM_NAMES.CIRCUMFERENCE]) return 'm';
+  if (fields[WORK_ITEM_NAMES.DURATION_EN] || fields[WORK_ITEM_NAMES.DURATION_SK]) return UNIT_TYPES.HOUR;
+  if (fields[WORK_ITEM_NAMES.COUNT] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_EN] || fields[WORK_ITEM_NAMES.NUMBER_OF_OUTLETS_SK]) return UNIT_TYPES.PIECE;
+  if (fields[WORK_ITEM_NAMES.LENGTH] && !fields[WORK_ITEM_NAMES.WIDTH] && !fields[WORK_ITEM_NAMES.HEIGHT]) return UNIT_TYPES.METER;
+  if (fields[WORK_ITEM_NAMES.CIRCUMFERENCE]) return UNIT_TYPES.METER;
 
   // Default to m2 for area-based work
-  return 'm2';
+  return UNIT_TYPES.METER_SQUARE;
 };
 
 
@@ -247,36 +247,6 @@ const sanitizeText = (text) => {
   return String(text);
 };
 
-// Fix for Slovak work names showing in English mode
-// Maps standard Slovak work names to English equivalent
-const SLOVAK_WORK_NAMES_FIX = {
-  'Prípravné a búracie práce': 'Preparatory and demolition works',
-  'Elektroinštalačné práce': 'Electrical installation work',
-  'Vodoinštalačné práce': 'Plumbing work',
-  'Murovanie priečok': 'Brick partitions',
-  'Murovanie nosného muriva': 'Brick load-bearing wall',
-  'Sádrokartón': 'Plasterboarding',
-  'Sieťkovanie': 'Netting',
-  'Omietka': 'Plastering',
-  'Fasádne omietky': 'Facade Plastering',
-  'Nivelačka': 'Levelling',
-  'Pomocné a ukončovacie práce': 'Auxiliary and finishing work',
-  'Osadenie okna': 'Window installation',
-  'Osadenie zárubne': 'Installation of door jamb',
-  'Samonivelizačná hmota': 'Self-leveling compound',
-  'Pomocný a spojovací materiál': 'Auxiliary and connecting material',
-  'Lepidlo, obklad a dlažba': 'Adhesive, tiling and paving',
-  'Dlažba, veľkoformát': 'Pavings, large format'
-};
-
-// Fix for Slovak units showing in English mode
-const SLOVAK_UNIT_FIX = {
-  'hod': 'h',
-  'ks': 'pc',
-  'bal': 'pkg',
-  'deň': 'day',
-  'dní': 'days'
-};
 
 export const generateInvoicePDF = async ({
   invoice,
@@ -356,8 +326,17 @@ export const generateInvoicePDF = async ({
     doc.setFont('Inter', 'bold');
 
     if (isPriceOffer) {
-      // New format: CP {number} - {name} as MAIN TITLE (same style as invoice)
-      const title = `${t('Price Offer Abbr')} ${projectNumber || ''} - ${invoice.projectName || ''}`;
+      // New format: CP {CategoryPrefix} {number} - {name} as MAIN TITLE (same style as invoice)
+      // Category prefix is the first letter of the translated category name (e.g. "F" for Flats, "H" for Houses)
+      let categoryPrefix = '';
+      if (options.projectCategory) {
+        const translatedCategory = t(options.projectCategory);
+        if (translatedCategory && translatedCategory.length > 0) {
+          categoryPrefix = translatedCategory.charAt(0).toUpperCase() + ' ';
+        }
+      }
+
+      const title = `${t('Price Offer Abbr')} ${categoryPrefix}${projectNumber || ''} - ${invoice.projectName || ''}`;
       doc.text(sanitizeText(title), 12.35, 20);
 
       // Project Notes - same style as invoice subtitle (fontSize 14, 4px below title)
@@ -426,9 +405,9 @@ export const generateInvoicePDF = async ({
     const vatId = client?.vat_registration_number || client?.vatId || client?.vatNumber;
 
     let businessLines = [];
-    if (businessId) businessLines.push(`IČO: ${businessId}`);
-    if (taxId) businessLines.push(`DIČ: ${taxId}`);
-    if (vatId) businessLines.push(`IČ DPH: ${vatId}`);
+    if (businessId) businessLines.push(`${t('BID')}: ${businessId}`);
+    if (taxId) businessLines.push(`${t('TID')}: ${taxId}`);
+    if (vatId) businessLines.push(`${t('VAT ID')}: ${vatId}`);
 
     // Calculate start Y so bottom aligns with address bottom
     const businessStartY = addressBottomY - (businessLines.length * lineHeight);
@@ -448,16 +427,16 @@ export const generateInvoicePDF = async ({
       const validUntil = new Date(today);
       validUntil.setDate(validUntil.getDate() + parseInt(offerValidityPeriod || 30));
       dateLines = [
-        { label: `${t('Issue Date')}:`, value: formatDate(today.toISOString()) },
+        { label: `${t('Date of issue')}:`, value: formatDate(today.toISOString()) },
         { label: `${t('Valid until')}:`, value: formatDate(validUntil.toISOString()) }
       ];
     } else {
-      const paymentText = invoice.paymentMethod === 'cash' ? t('Hotovosť') : t('Prevodom');
+      const paymentText = invoice.paymentMethod === 'cash' ? t('Cash') : t('Bank transfer');
       dateLines = [
-        { label: `${t('Issue Date')}:`, value: formatDate(invoice.issueDate) },
-        { label: `${t('Due Date')}:`, value: formatDate(invoice.dueDate) },
-        { label: `${t('Date of Dispatch')}:`, value: formatDate(invoice.dispatchDate || invoice.issueDate) },
-        { label: `${t('Payment Method')}:`, value: paymentText }
+        { label: `${t('Date of issue')}:`, value: formatDate(invoice.issueDate) },
+        { label: `${t('Maturity date')}:`, value: formatDate(invoice.dueDate) },
+        { label: `${t('Date of dispatch')}:`, value: formatDate(invoice.dispatchDate || invoice.issueDate) },
+        { label: `${t('Payment type')}:`, value: paymentText }
       ];
     }
 
@@ -519,7 +498,7 @@ export const generateInvoicePDF = async ({
       doc.roundedRect(box3X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
       doc.setFontSize(7);
       doc.setFont('Inter', 'normal');
-      doc.text(sanitizeText(t('Due Date')), box3X + 4, boxY + 3.5);
+      doc.text(sanitizeText(t('Maturity date')), box3X + 4, boxY + 3.5);
       doc.setFontSize(8);
       doc.setFont('Inter', 'bold');
       doc.text(sanitizeText(formatDate(invoice.dueDate)), box3X + 4, boxY + 7.5);
@@ -554,10 +533,14 @@ export const generateInvoicePDF = async ({
     // Add work items with category header
     if (projectBreakdown && projectBreakdown.items && projectBreakdown.items.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Work (Table Header)')).charAt(0).toUpperCase() + sanitizeText(t('Work (Table Header)')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
+        { content: sanitizeText(t('Works')).charAt(0).toUpperCase() + sanitizeText(t('Works')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
       ]);
 
-      const sortedItems = sortItemsByMasterList(projectBreakdown.items, options.priceList, 'work');
+      // For Price Offers, sort items by master price list order
+      // For Invoices, items are already sorted by InvoiceCreationModal
+      const sortedItems = (isPriceOffer && options.priceList)
+        ? sortItemsByMasterList(projectBreakdown.items, options.priceList, 'work')
+        : projectBreakdown.items;
 
       sortedItems.forEach(item => {
         const quantity = item.calculation?.quantity || 0;
@@ -565,58 +548,69 @@ export const generateInvoicePDF = async ({
         const pricePerUnit = quantity > 0 ? workCost / quantity : 0;
 
         let unit = getWorkItemUnit(item);
-        // Fix for Slovak units in English mode
-        if (SLOVAK_UNIT_FIX[unit]) unit = SLOVAK_UNIT_FIX[unit];
 
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = workCost * itemVatRate;
 
         // Get the work item name - try multiple sources
+        // The stored name is the canonical English name (possibly compound like "Netting, wall")
         let rawName = item.name || getWorkItemNameByPropertyId(item.propertyId) || '';
-        // Fix for Slovak work names in English mode
-        if (SLOVAK_WORK_NAMES_FIX[rawName]) rawName = SLOVAK_WORK_NAMES_FIX[rawName];
-
         const itemName = rawName;
         let displayName;
-        // For plasterboarding items, build full translated name with subtitle and type
-        if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && item.selectedType) {
-          displayName = `${t(itemName)} ${t(item.subtitle)}, ${t(item.selectedType)}`;
-        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
-          // For sanitary installation, show the type name (e.g., "Rohový ventil") instead of generic name
-          // Use selectedType first, fall back to subtitle (both are set when loading from DB)
-          displayName = t(item.selectedType || item.subtitle);
-        } else if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle) {
-          // For plinth items, show name with subtitle (e.g., "Sokel - rezanie a brúsenie")
-          displayName = `${t(itemName)} - ${t(item.subtitle)}`;
-        } else if (item.isLargeFormat) {
-          // For Large Format, show base name + "veľkoformát" (e.g., "Obklad Veľkoformát" not "Obklad do 60cm Veľkoformát")
-          const baseName = item.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60 ? 'Tiling' : 'Paving';
-          displayName = `${t(baseName)} ${t(WORK_ITEM_NAMES.LARGE_FORMAT)}`;
-        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
-          // For electrical and plumbing work, show just the name without subtitle
-          displayName = t(itemName);
-        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+
+        // For custom work, use the user-entered name (translate it in case it's a standard item
+        // that was tagged as custom_work due to missing originalItem.propertyId)
+        if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
           // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
           const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
 
           // Use user-entered name from fields, OR from item name if it's not generic
-          // This handles cases where fields might be missing but the item name was preserved (e.g. edited title)
           const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
-          // Check if item.name is a specific user-entered string and not a generic fallback
           const isGenericName = !itemName ||
             itemName === 'Custom work' || itemName === 'Custom material' ||
             itemName === 'Vlastná práca' || itemName === 'Vlastný materiál' ||
             itemName === 'Custom work and material';
 
-          displayName = fieldName || (!isGenericName ? itemName : null) || t(fallbackName);
+          // Apply t() to handle items incorrectly tagged as custom_work (e.g., from old invoice data)
+          // For real custom work with user-entered names, t() returns the name as-is (no translation found)
+          displayName = (fieldName ? t(fieldName) : null) || (!isGenericName ? t(itemName) : null) || t(fallbackName);
+        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
+          // For sanitary installation, translate the type name directly
+          displayName = t(item.selectedType || item.subtitle);
+        } else if (item.isLargeFormat) {
+          // For Large Format, show base name + "Large Format"
+          const baseName = item.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60 ? 'Tiling' : 'Paving';
+          displayName = `${t(baseName)} ${t(WORK_ITEM_NAMES.LARGE_FORMAT)}`;
+        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
+          // Electrical/plumbing: show just the main name, no subtitle (outlet types)
+          displayName = t(itemName);
+        } else if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && !itemName.includes(item.subtitle)) {
+          // Raw plasterboarding item: include selectedType (simple/double/triple) if present
+          const shouldShowType = item.selectedType && item.propertyId !== 'plasterboarding_ceiling';
+          if (shouldShowType) {
+            const compoundKey = `${itemName}, ${item.subtitle}, ${(item.selectedType || '').toLowerCase()}`;
+            displayName = t(compoundKey);
+          } else {
+            const compoundKey = `${itemName}, ${item.subtitle}`;
+            displayName = t(compoundKey);
+          }
+        } else if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle && !itemName.includes(item.subtitle)) {
+          // Raw plinth item: use " - " separator (not comma)
+          const compoundKey = `${itemName} - ${item.subtitle}`;
+          displayName = t(compoundKey);
         } else {
-          // Add subtitle for work types (wall/ceiling distinction, etc.)
-          displayName = item.subtitle ? `${t(itemName)} ${t(item.subtitle)}` : t(itemName);
+          // Generic: translate stored compound name or build compound key
+          if (item.subtitle && !itemName.includes(item.subtitle)) {
+            const compoundKey = `${itemName}, ${item.subtitle}`;
+            displayName = t(compoundKey);
+          } else {
+            displayName = t(itemName);
+          }
         }
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${formatSmartDecimal(quantity, 2)}${t(unit)}`),
+          sanitizeText(`${formatSmartDecimal(quantity, 2)} ${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
@@ -628,12 +622,15 @@ export const generateInvoicePDF = async ({
     // Add material items with category header
     if (projectBreakdown && projectBreakdown.materialItems && projectBreakdown.materialItems.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Material (Table Header)')).charAt(0).toUpperCase() + sanitizeText(t('Material (Table Header)')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
+        { content: sanitizeText(t('Materials')).charAt(0).toUpperCase() + sanitizeText(t('Materials')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
       ]);
 
-      const sortedMaterials = sortItemsByMasterList(projectBreakdown.materialItems, options.priceList, 'material');
+      // For Price Offers, sort material items by master price list order
+      const sortedMaterialItems = (isPriceOffer && options.priceList)
+        ? sortItemsByMasterList(projectBreakdown.materialItems || [], options.priceList, 'material')
+        : (projectBreakdown.materialItems || []);
 
-      sortedMaterials.forEach(item => {
+      sortedMaterialItems.forEach(item => {
         const quantity = item.calculation?.quantity || 0;
         const materialCost = item.calculation?.materialCost || 0;
         const pricePerUnit = quantity > 0 ? materialCost / quantity : 0;
@@ -642,25 +639,9 @@ export const generateInvoicePDF = async ({
         if (unit.startsWith('€/')) unit = unit.substring(2);
         // Convert iOS unit values to display symbols
         unit = unitToDisplaySymbol(unit);
-        // Fix for Slovak units in English mode
-        if (SLOVAK_UNIT_FIX[unit]) unit = SLOVAK_UNIT_FIX[unit];
 
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = materialCost * itemVatRate;
-        // Handle ceramic subtitle translation with correct gender based on propertyId
-        let translatedSubtitle = '';
-        if (item.subtitle) {
-          if (item.subtitle.toLowerCase().includes('ceramic')) {
-            // Use masculine for tiling (Obklad), feminine for paving (Dlažba)
-            const isTiling = item.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60;
-            const genderKey = isTiling ? 'ceramic masculine' : 'ceramic feminine';
-            translatedSubtitle = t(genderKey);
-          } else {
-            translatedSubtitle = t(item.subtitle);
-          }
-        }
-
-        if (SLOVAK_WORK_NAMES_FIX[item.name]) item.name = SLOVAK_WORK_NAMES_FIX[item.name];
 
         let displayName;
         if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
@@ -669,20 +650,28 @@ export const generateInvoicePDF = async ({
 
           // Use user-entered name from fields, OR from item name if it's not generic
           const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
-          const itemName = item.name; // Use item.name from loop scope
+          const itemName = item.name;
           const isGenericName = !itemName ||
             itemName === 'Custom work' || itemName === 'Custom material' ||
             itemName === 'Vlastná práca' || itemName === 'Vlastný materiál' ||
             itemName === 'Custom work and material';
 
-          displayName = fieldName || (!isGenericName ? itemName : null) || t(fallbackName);
+          // Apply t() to handle items incorrectly tagged as custom_work
+          displayName = (fieldName ? t(fieldName) : null) || (!isGenericName ? t(itemName) : null) || t(fallbackName);
         } else {
-          displayName = translatedSubtitle ? `${t(item.name)} - ${translatedSubtitle}` : t(item.name);
+          // Translate the item name. Handle both compound and simple names
+          if (item.subtitle && !item.name?.includes(item.subtitle)) {
+            // Raw project item: subtitle not part of the name, build compound key
+            const compoundKey = `${item.name || ''}, ${item.subtitle}`;
+            displayName = t(compoundKey);
+          } else {
+            displayName = t(item.name);
+          }
         }
 
         tableData.push([
           sanitizeText(displayName || ''),
-          sanitizeText(`${formatSmartDecimal(quantity, 2)}${t(unit)}`),
+          sanitizeText(`${formatSmartDecimal(quantity, 2)} ${t(unit)}`),
           sanitizeText(formatCurrency(pricePerUnit)),
           sanitizeText(`${Math.round(itemVatRate * 100)} %`),
           sanitizeText(formatCurrency(vatAmount)),
@@ -694,19 +683,23 @@ export const generateInvoicePDF = async ({
     // Add others items with category header
     if (projectBreakdown && projectBreakdown.othersItems && projectBreakdown.othersItems.length > 0) {
       tableData.push([
-        { content: sanitizeText(t('Others (Table Header)')).charAt(0).toUpperCase() + sanitizeText(t('Others (Table Header)')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
+        { content: sanitizeText(t('Others')).charAt(0).toUpperCase() + sanitizeText(t('Others')).slice(1).toLowerCase(), colSpan: 6, styles: { fontStyle: 'normal', fillColor: [240, 240, 240], fontSize: 8 } }
       ]);
 
-      // Group scaffolding items by their type (montáž/prenájom)
+      // Group scaffolding items by their type (assembly/rental)
       const othersGroups = {};
       const nonGroupedOthers = [];
 
       const checkText = (text) => text && (
-        text.includes('montáž a demontáž') || text.includes('prenájom') ||
         text.includes('assembly and disassembly') || text.includes('rental')
       );
 
-      projectBreakdown.othersItems.forEach(item => {
+      // For Price Offers, sort others items by master price list order
+      const sortedOthersItems = (isPriceOffer && options.priceList)
+        ? sortItemsByMasterList(projectBreakdown.othersItems, options.priceList, 'others')
+        : projectBreakdown.othersItems;
+
+      sortedOthersItems.forEach(item => {
         const isScaffolding = checkText(item.subtitle) || checkText(item.name);
 
         if (isScaffolding) {
@@ -722,7 +715,7 @@ export const generateInvoicePDF = async ({
           const values = item.fields || {};
 
           // Determine unit and quantity for scaffolding based on groupKey
-          if (groupKey.includes('- prenájom') || groupKey.includes('rental') || groupKey.includes('prenájom')) {
+          if (groupKey.includes('rental')) {
             quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || quantity);
             unit = UNIT_TYPES.DAYS;
           } else {
@@ -747,12 +740,12 @@ export const generateInvoicePDF = async ({
         }
       });
 
-      // Sort groups: Rental/Prenájom first, then Assembly/Montáž
+      // Sort groups: Rental first, then Assembly
       const sortedGroups = Object.values(othersGroups).sort((a, b) => {
         const aName = a.name.toLowerCase();
         const bName = b.name.toLowerCase();
-        const aIsRental = aName.includes('rental') || aName.includes('prenájom');
-        const bIsRental = bName.includes('rental') || bName.includes('prenájom');
+        const aIsRental = aName.includes('rental');
+        const bIsRental = bName.includes('rental');
 
         // Rental comes first
         if (aIsRental && !bIsRental) return -1;
@@ -768,7 +761,7 @@ export const generateInvoicePDF = async ({
         const translatedUnit = t(group.unit);
         const formattedQuantity = (group.unit === UNIT_TYPES.DAY || group.unit === UNIT_TYPES.DAYS)
           ? `${Math.round(group.totalQuantity)} ${translatedUnit}`
-          : `${formatSmartDecimal(group.totalQuantity, 2)}${translatedUnit}`;
+          : `${formatSmartDecimal(group.totalQuantity, 2)} ${translatedUnit}`;
 
         tableData.push([
           sanitizeText(t(group.name) || ''),
@@ -796,10 +789,10 @@ export const generateInvoicePDF = async ({
         // Determine unit and quantity based on item type (same logic as RoomPriceSummary)
         if (!item.calculation?.unit) {
           // Check for scaffolding rental (fallback for non-grouped)
-          if (item.subtitle && item.subtitle.includes('- prenájom') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
+          if (item.subtitle && item.subtitle.includes('- rental') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
             quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
             unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
-          } else if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('assembly and disassembly'))) {
+          } else if (item.subtitle && item.subtitle.includes('assembly and disassembly')) {
             // Scaffolding assembly - use m²
             unit = UNIT_TYPES.METER_SQUARE;
           } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) &&
@@ -821,25 +814,29 @@ export const generateInvoicePDF = async ({
         const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
         const vatAmount = othersCost * itemVatRate;
 
-        // For scaffolding items, subtitle contains the full name (e.g., "Lešenie - montáž a demontáž")
-        // so we should use subtitle directly instead of combining name + subtitle
+        // Translate the stored compound name directly
         let displayName;
-        if (item.subtitle && (item.subtitle.includes('montáž a demontáž') || item.subtitle.includes('prenájom') ||
-          item.subtitle.includes('assembly and disassembly') || item.subtitle.includes('rental'))) {
-          displayName = t(item.subtitle);
-        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-          // For custom work, use the user-entered name or specific fallback based on selectedType
+        if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+          // For custom work, use the user-entered name (apply t() for items incorrectly tagged as custom_work)
           const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-          displayName = item.fields?.[WORK_ITEM_NAMES.NAME] || t(fallbackName);
+          const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
+          displayName = (fieldName ? t(fieldName) : null) || t(fallbackName);
         } else {
-          displayName = item.subtitle ? `${t(item.name)} - ${t(item.subtitle)}` : t(item.name);
+          // Translate the item name. Handle both compound and simple names
+          if (item.subtitle && !item.name?.includes(item.subtitle)) {
+            // Raw project item: subtitle not part of the name
+            const compoundKey = `${item.name || ''}, ${item.subtitle}`;
+            displayName = t(compoundKey);
+          } else {
+            displayName = t(item.name);
+          }
         }
 
         // Format quantity with unit
         const translatedUnit = t(unit);
         const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
           ? `${Math.round(quantity)} ${translatedUnit}`
-          : `${formatSmartDecimal(quantity, 2)}${translatedUnit}`;
+          : `${formatSmartDecimal(quantity, 2)} ${translatedUnit}`;
 
         tableData.push([
           sanitizeText(displayName || ''),
@@ -865,24 +862,24 @@ export const generateInvoicePDF = async ({
       ]],
       body: tableData,
       theme: 'plain',
-      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', cellPadding: 1.2, font: 'Inter', fontSize: 9.2 },
-      styles: { fontSize: 9, cellPadding: 1.2, lineColor: [255, 255, 255], lineWidth: 0, font: 'Inter' },
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', cellPadding: 0.5, font: 'Inter', fontSize: 9.2 },
+      styles: { fontSize: 9, cellPadding: 0.5, lineColor: [255, 255, 255], lineWidth: 0, font: 'Inter' },
       tableWidth: 185.3,
       margin: { left: 12.35, right: 12.35 },
       tableLineColor: [255, 255, 255],
       tableLineWidth: 0,
       columnStyles: {
         0: { cellWidth: 'auto', halign: 'left' },
-        1: { cellWidth: 25, halign: 'center' },
+        1: { cellWidth: 28, halign: 'right' }, // Align quantity on right for numbers/units alignment
         2: { cellWidth: 32, halign: 'right' },
-        3: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 22, halign: 'right' }, // Align VAT % on right
         4: { cellWidth: 28, halign: 'right' },
         5: { cellWidth: 32, halign: 'right' }
       },
       didParseCell: (data) => {
         // Force header alignment to match body columns
         if (data.section === 'head') {
-          const alignments = ['left', 'center', 'right', 'center', 'right', 'right'];
+          const alignments = ['left', 'right', 'right', 'right', 'right', 'right'];
           data.cell.styles.halign = alignments[data.column.index];
         }
       },
@@ -993,9 +990,9 @@ export const generateInvoicePDF = async ({
 
         // Center in the box
         const boxX = rightX - 55;
-        const boxY = signatureY + 5;
+        const boxY = signatureY + 1; // Moved up closer to 'Issued by'
         const centeredX = boxX + (55 - sigWidth) / 2;
-        const centeredY = boxY + (30 - sigHeight) / 2;
+        const centeredY = boxY; // Top-aligned within the signature area for closer look
 
         doc.addImage(contractor.signature, format, centeredX, centeredY, sigWidth, sigHeight);
       } catch (e) {
@@ -1023,13 +1020,12 @@ export const generateInvoicePDF = async ({
       doc.addPage();
     }
 
-    // === INVOICE NOTES - Centered above footer icons ===
-    // Notes go above the footer on the same page as the footer
+    // === INVOICE NOTES ===
     if (invoice.notes) {
-      doc.setFontSize(10);
       doc.setFont('Inter', 'normal');
+      doc.setFontSize(9);
       const notesText = doc.splitTextToSize(sanitizeText(invoice.notes), 160);
-      doc.text(notesText, 105, 240, { align: 'center' });
+      doc.text(notesText, 105, 243, { align: 'center' }); // Pushed down from 240
     }
 
     // Top row ABOVE divider: Name | Phone | Web | Email (equally spaced with icons)
@@ -1083,18 +1079,22 @@ export const generateInvoicePDF = async ({
       }
     };
 
-    // Calculate positions spread from left to right edge
-    const totalUsableWidth = 185.3; // 197.65 - 12.35
-    const colWidth = totalUsableWidth / 3; // totalUsableWidth / (nCount - 1)
+    // Calculate positions for truly equal visual gaps (185.3 total usable width)
+    // Usable width = 197.65 - 12.35 = 185.3
+    // We want 4 columns with equal gaps. 
+    // Col 1 at 12.35, Col 4 ending at 197.65.
+    // Center point of gaps: 12.35 + (185.3 * 1/4, 2/4, 3/4) is not ideal because text widths vary.
+    // Let's use fixed step positions to ensure they don't drift too far right.
     const col1 = 12.35;
-    const col2 = 12.35 + colWidth;
-    const col3 = 12.35 + colWidth * 2;
+    const col2 = 58;    // Balanced gap (approx 15mm between content)
+    const col3 = 104;   // Balanced gap (approx 15mm between content)
     const col4 = 197.65; // Flush to right edge
-    const iconOffset = 5;
-    const textMaxWidth = colWidth - iconOffset - 2;
-    const iconLineHeight = 2.5;
+    const colWidth = 45; // Slightly narrower to ensure gaps
+    const iconOffset = 6;
+    const textMaxWidth = colWidth - iconOffset - 1;
+    const iconLineHeight = 4.0;
 
-    doc.setFontSize(7);
+    doc.setFontSize(9);
 
     // Helper to draw wrapped text for footer icons
     const drawWrappedIconText = (text, x, y, maxWidth, bold = false, align = 'left') => {
@@ -1114,25 +1114,26 @@ export const generateInvoicePDF = async ({
     // Column 1: Contact Person (left edge)
     const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
     if (contactPerson) {
-      drawIcon('user', col1, topRowY, 3);
+      drawIcon('user', col1, topRowY, 4);
       drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, false);
     }
 
     // Column 2: Phone
     if (contractor?.phone) {
-      drawIcon('phone', col2, topRowY, 3);
+      drawIcon('phone', col2, topRowY, 4);
       drawWrappedIconText(contractor.phone, col2 + iconOffset, topRowY, textMaxWidth);
     }
 
     // Column 3: Web
     if (contractor?.website) {
-      drawIcon('web', col3, topRowY, 3);
+      // For web and phone, we use left alignment but shift col3 left to avoid touching email
+      drawIcon('web', col3, topRowY, 4);
       drawWrappedIconText(contractor.website, col3 + iconOffset, topRowY, textMaxWidth);
     }
 
     // Column 4: Email (right edge - right aligned for flush look)
     if (contractor?.email) {
-      const emailIconSize = 3;
+      const emailIconSize = 4;
       // Calculate text width to position icon correctly to the left of the text
       // Since it's right aligned, we need: RightEdge(col4) - TextWidth - IconPadding - IconWidth
       const emailText = sanitizeText(contractor.email);
@@ -1192,9 +1193,9 @@ export const generateInvoicePDF = async ({
 
     // Build column 2 lines (Business IDs)
     const col2Lines = [];
-    if (contractorBusinessId) col2Lines.push({ text: `IČO: ${contractorBusinessId}` });
-    if (contractorTaxId) col2Lines.push({ text: `DIČ: ${contractorTaxId}` });
-    if (contractorVatId) col2Lines.push({ text: `IČ DPH: ${contractorVatId}` });
+    if (contractorBusinessId) col2Lines.push({ text: `${t('BID')}: ${contractorBusinessId}` });
+    if (contractorTaxId) col2Lines.push({ text: `${t('TID')}: ${contractorTaxId}` });
+    if (contractorVatId) col2Lines.push({ text: `${t('VAT ID')}: ${contractorVatId}` });
 
     // Build column 3 lines (Bank info)
     const col3Lines = [];
@@ -1231,9 +1232,17 @@ export const generateInvoicePDF = async ({
       doc.text(sanitizeText(line.text), col3X, col3StartY + (i * footerLineHeight));
     });
 
+    // Delivery note notice - Only for Invoices
+    if (!isPriceOffer) {
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text(sanitizeText(t('Invoice also serves as delivery note')), 105, 285, { align: 'center' });
+    }
+
     // App attribution - bottom center
-    doc.setFontSize(8);
-    doc.text(sanitizeText(t('Generated by Fido Building Calcul app.')), 105, 290, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text(sanitizeText(t('Created using Fido Building Calcul app.')), 105, 290, { align: 'center' });
 
     // Generate PDF blob and URL
     const pdfBlob = doc.output('blob');
@@ -1255,6 +1264,7 @@ export const generatePriceOfferPDF = (params, t) => {
       isPriceOffer: true,
       projectNotes: params.projectNotes || '',
       projectNumber: params.projectNumber,
+      projectCategory: params.projectCategory,
       offerValidityPeriod: params.offerValidityPeriod,
       priceList: params.priceList
     }
@@ -1271,6 +1281,7 @@ export const generateCashReceiptPDF = async ({
   contractor,
   client,
   totalWithVAT,
+  vatRate = 0.23,
   formatDate,
   formatPrice,
   t
@@ -1309,11 +1320,11 @@ export const generateCashReceiptPDF = async ({
     let currentY = 25;
 
     // === TITLE ===
-    doc.setFontSize(25);
+    doc.setFontSize(22);
     doc.setFont('Inter', 'bold');
     const title = `${t('Cash Receipt')} ${invoice.invoiceNumber}`;
     doc.text(sanitizeText(title), margin, currentY);
-    currentY += 15;
+    currentY += 12;
 
     // === THREE INFO BOXES ===
     const boxWidth = contentWidth / 3 - 3;
@@ -1415,15 +1426,15 @@ export const generateCashReceiptPDF = async ({
       const taxId = client.tax_id || client.taxId;
       const vatId = client.vat_registration_number || client.vatId || client.vatNumber;
       if (businessId) {
-        doc.text(sanitizeText(`IČO: ${businessId}`), leftColX, clientY);
+        doc.text(sanitizeText(`${t('BID')}: ${businessId}`), leftColX, clientY);
         clientY += 4;
       }
       if (taxId) {
-        doc.text(sanitizeText(`DIČ: ${taxId}`), leftColX, clientY);
+        doc.text(sanitizeText(`${t('TID')}: ${taxId}`), leftColX, clientY);
         clientY += 4;
       }
       if (vatId) {
-        doc.text(sanitizeText(`IČ DPH: ${vatId}`), leftColX, clientY);
+        doc.text(sanitizeText(`${t('VAT ID')}: ${vatId}`), leftColX, clientY);
         clientY += 4;
       }
     } else {
@@ -1450,24 +1461,23 @@ export const generateCashReceiptPDF = async ({
     rightY += 8;
 
     // Total prices summary
-    doc.setFontSize(13);
+    doc.setFontSize(11); // Slightly smaller
     doc.setFont('Inter', 'normal');
 
-    // Calculate VAT (assuming 23%)
-    const vatRate = 0.23;
     const totalWithoutVAT = totalWithVAT / (1 + vatRate);
     const vatAmount = totalWithVAT - totalWithoutVAT;
+    const vatPercentageLabel = `${Math.round(vatRate * 100)}%`;
 
     doc.text(sanitizeText(t('without VAT')), rightColX, rightY);
     doc.text(sanitizeText(formatCurrency(totalWithoutVAT)), rightColX + rightColWidth, rightY, { align: 'right' });
     rightY += 5;
 
-    doc.text(sanitizeText(t('VAT (23%)')), rightColX, rightY);
+    doc.text(sanitizeText(`${t('VAT')} (${vatPercentageLabel})`), rightColX, rightY);
     doc.text(sanitizeText(formatCurrency(vatAmount)), rightColX + rightColWidth, rightY, { align: 'right' });
-    rightY += 5;
+    rightY += 7;
 
     doc.setFont('Inter', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.text(sanitizeText(t('Total price:')), rightColX, rightY);
     doc.text(sanitizeText(formatCurrency(totalWithVAT)), rightColX + rightColWidth, rightY, { align: 'right' });
     rightY += 12;
@@ -1524,12 +1534,12 @@ export const generateCashReceiptPDF = async ({
       }
     };
 
-    // Calculate positions for 4 columns spread from left to right edge
-    const colWidth = (185.3 - 0) / 3; // totalUsableWidth / (nCount - 1)
+    // Calculate positions for truly equal visual gaps
     const col1 = startX;
-    const col2 = startX + colWidth;
-    const col3 = startX + colWidth * 2;
-    const col4 = 197.65; // Flush to right edge
+    const col2 = startX + 61.7;
+    const col3 = startX + 123.5;
+    const col4 = 197.65;       // Flush to right edge
+    const colWidth = 50;       // New average column width
     const iconOffset = 6;
     const textMaxWidth = colWidth - iconOffset - 3;
     const iconLineHeight = 3.5;
@@ -1556,26 +1566,26 @@ export const generateCashReceiptPDF = async ({
     // Column 1: Contact Person with user icon
     const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
     if (contactPerson) {
-      drawIcon('user', col1, topRowY, 3);
+      drawIcon('user', col1, topRowY, 4);
       drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, false);
     }
 
     // Column 2: Phone with phone icon
     doc.setFont('Inter', 'normal');
     if (contractor?.phone) {
-      drawIcon('phone', col2, topRowY, 3);
+      drawIcon('phone', col2, topRowY, 4);
       drawWrappedIconText(contractor.phone, col2 + iconOffset, topRowY, textMaxWidth);
     }
 
     // Column 3: Web with globe icon
     if (contractor?.website) {
-      drawIcon('web', col3, topRowY, 3);
+      drawIcon('web', col3, topRowY, 4);
       drawWrappedIconText(contractor.website, col3 + iconOffset, topRowY, textMaxWidth);
     }
 
     // Column 4: Email with envelope icon
     if (contractor?.email) {
-      drawIcon('email', col4, topRowY, 3);
+      drawIcon('email', col4, topRowY, 4);
       drawWrappedIconText(contractor.email, col4 + iconOffset, topRowY, textMaxWidth);
     }
 
@@ -1618,9 +1628,9 @@ export const generateCashReceiptPDF = async ({
 
     // Build column 2 lines (Business IDs)
     const footerCol2Lines = [];
-    if (contractorBusinessId) footerCol2Lines.push({ text: `IČO: ${contractorBusinessId}` });
-    if (contractorTaxId) footerCol2Lines.push({ text: `DIČ: ${contractorTaxId}` });
-    if (contractorVatId) footerCol2Lines.push({ text: `IČ DPH: ${contractorVatId}` });
+    if (contractorBusinessId) footerCol2Lines.push({ text: `${t('BID')}: ${contractorBusinessId}` });
+    if (contractorTaxId) footerCol2Lines.push({ text: `${t('TID')}: ${contractorTaxId}` });
+    if (contractorVatId) footerCol2Lines.push({ text: `${t('VAT ID')}: ${contractorVatId}` });
 
     // Build column 3 lines (Bank info)
     const footerCol3Lines = [];
@@ -1657,9 +1667,15 @@ export const generateCashReceiptPDF = async ({
       doc.text(sanitizeText(line.text), col3X, col3StartY + (i * footerLineHeight));
     });
 
+    // Delivery note notice
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('Inter', 'normal');
+    doc.text(sanitizeText(t('Invoice also serves as delivery note')), 105, 285, { align: 'center' });
+
     // App attribution - bottom center
-    doc.setFontSize(8);
-    doc.text(sanitizeText(t('Generated by Fido Building Calcul app.')), 105, 290, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(sanitizeText(t('Created using Fido Building Calcul app.')), 105, 290, { align: 'center' });
 
     // Generate PDF blob and URL
     const pdfBlob = doc.output('blob');
