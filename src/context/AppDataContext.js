@@ -87,6 +87,10 @@ export const AppDataProvider = ({ children }) => {
 
   const [trialEndsAt, setTrialEndsAt] = useState(null);
 
+  const [myTeams, setMyTeams] = useState([]);
+  const [myJobs, setMyJobs] = useState([]);
+  const [myInvitations, setMyInvitations] = useState([]);
+
   const checkProStatus = useCallback(async () => {
     if (!user?.id) return;
 
@@ -1159,6 +1163,63 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
+  // ========== TEAM FUNCTIONS ==========
+  const loadTeamData = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const [teams, jobs, invs] = await Promise.all([
+        api.teams.getMyTeams(),
+        api.teams.getMyJobs(),
+        api.teams.getMyInvitations()
+      ]);
+      setMyTeams(teams || []);
+      setMyJobs(jobs || []);
+      setMyInvitations(invs || []);
+      console.log('Team data loaded:', { teams: teams?.length, jobs: jobs?.length, invitations: invs?.length });
+    } catch (error) {
+      console.error('Error loading team data:', error);
+    }
+  }, [user?.id]);
+
+  const createTeam = async (name) => {
+    const team = await api.teams.create(name);
+    await loadTeamData();
+    return team;
+  };
+
+  const joinTeam = async (teamId) => {
+    await api.teams.join(teamId);
+    await loadTeamData();
+  };
+
+  const respondToInvitation = async (teamId, accept) => {
+    await api.teams.respondToInvitation(teamId, accept);
+    await loadTeamData();
+  };
+
+  const shareProjectToTeam = async (teamId, projectId) => {
+    return await api.teams.shareProject(teamId, projectId);
+  };
+
+  const assignUserToJob = async (assignment) => {
+    return await api.teams.assignJob(assignment);
+  };
+
+  const updateJobAssignment = async (assignmentId, updates) => {
+    try {
+      const data = await api.teams.updateAssignment(assignmentId, updates);
+      await loadTeamData(); // Refresh local list
+      return data;
+    } catch (error) {
+      console.error('Error updating job assignment:', error);
+      throw error;
+    }
+  };
+
+  const searchUsers = async (query) => {
+    return await api.userProfiles.search(query);
+  };
+
   const contextValue = {
     // Data
     clients: appData.clients,
@@ -1255,8 +1316,27 @@ export const AppDataProvider = ({ children }) => {
     rcOfferings,
     stripePublishableKey: STRIPE_PUBLISHABLE_KEY,
     activateTrial,
-    trialEndsAt
+    trialEndsAt,
+
+    // Team management
+    myTeams,
+    myJobs,
+    myInvitations,
+    createTeam,
+    joinTeam,
+    respondToInvitation,
+    shareProjectToTeam,
+    assignUserToJob,
+    updateJobAssignment,
+    searchUsers,
+    loadTeamData
   };
+
+  useEffect(() => {
+    if (user?.id) {
+      loadTeamData();
+    }
+  }, [user?.id, loadTeamData]);
 
   // Show loading screen while data is being fetched
   if (loading) {

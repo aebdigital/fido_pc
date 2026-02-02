@@ -1,11 +1,13 @@
-import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
-import { X, Hammer, Menu, Loader2, Check } from 'lucide-react';
+import React, { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
+import { X, Hammer, Menu, Loader2, Check, UserPlus } from 'lucide-react';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
+import AssignJobModal from './AssignJobModal';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
+import api from '../services/supabaseApi';
 
 // Helper to generate UUID for new work items (prevents duplicate inserts on autosave)
 const generateWorkItemId = () => crypto.randomUUID();
@@ -21,6 +23,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
   const [showingTypeSelector, setShowingTypeSelector] = useState(null);
   const [newlyAddedItems, setNewlyAddedItems] = useState(new Set());
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assigningJob, setAssigningJob] = useState(null);
+  const [projectAssignments, setProjectAssignments] = useState([]);
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
 
@@ -88,6 +93,21 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       });
     }
   }, [room.workItems]);
+
+  // Fetch project assignments
+  const loadAssignments = useCallback(async () => {
+    if (!room.project_id) return;
+    try {
+      const assignments = await api.teams.getProjectAssignments(room.project_id);
+      setProjectAssignments(assignments || []);
+    } catch (error) {
+      console.error('Error loading assignments:', error);
+    }
+  }, [room.project_id]);
+
+  useEffect(() => {
+    loadAssignments();
+  }, [loadAssignments]);
 
   // Autosave Logic with proper debouncing
   useEffect(() => {
@@ -652,6 +672,15 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
     setShowingTypeSelector(null);
   };
 
+  const handleOpenAssignModal = (itemId, itemName, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setAssigningJob({ id: itemId, name: itemName });
+    setShowAssignModal(true);
+  };
+
   // Helper to render work property cards with props passed down
   const renderWorkPropertyCard = (property) => (
     <WorkPropertyCard
@@ -679,6 +708,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
       onToggleAllComplementaryWorks={handleToggleAllComplementaryWorks}
       onToggleComplementaryWork={handleToggleComplementaryWork}
       onCloseSelector={handleCloseSelector}
+      onAssignJob={handleOpenAssignModal}
+      assignments={projectAssignments}
     />
   );
 
@@ -826,6 +857,20 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList }) 
           </div>
         </div>
       </div>
+
+      {assigningJob && (
+        <AssignJobModal
+          isOpen={showAssignModal}
+          onClose={() => {
+            setShowAssignModal(false);
+            loadAssignments(); // Refresh assignments after closing modal
+          }}
+          projectId={room.project_id}
+          roomId={room.id}
+          jobId={assigningJob.id}
+          jobName={assigningJob.name}
+        />
+      )}
     </>
   );
 };

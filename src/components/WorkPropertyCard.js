@@ -6,7 +6,8 @@ import {
   Hammer,
   Package,
   ChevronDown,
-  Copy
+  Copy,
+  UserPlus
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -120,7 +121,9 @@ const WorkPropertyCard = ({
   onToggleAllComplementaryWorks,
   onToggleComplementaryWork,
   onCloseSelector, // For closing type/rental/sanitary selectors
-  onUpdateItemState // For updating top-level item properties like selectedType
+  onUpdateItemState, // For updating top-level item properties like selectedType
+  onAssignJob, // New prop for job assignment
+  assignments = [] // All project assignments
 }) => {
   const { t } = useLanguage();
 
@@ -143,6 +146,67 @@ const WorkPropertyCard = ({
     }
     return item.propertyId === property.id;
   });
+
+  // Helper to find assigned user for an item
+  const getAssignedUser = (itemId) => {
+    const assignment = assignments.find(a => a.job_id === itemId);
+    return assignment?.user_profiles;
+  };
+
+  const renderAssignmentInfo = (itemId, itemName) => {
+    const assignment = assignments.find(a => a.job_id === itemId);
+    const user = assignment?.user_profiles || assignment?.profiles; // Use profiles from DB link
+    const status = assignment?.status || 'pending';
+    const isFinished = status === 'finished';
+
+    return (
+      <div className="flex flex-col gap-2 mb-2 px-1">
+        <div className="flex items-center justify-between">
+          {user ? (
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${isFinished
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800'
+                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
+                }`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold ${isFinished ? 'bg-green-600' : 'bg-blue-600'}`}>
+                  {user.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                </div>
+                <span className={`text-xs font-semibold ${isFinished ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                  {user.full_name || user.email}
+                </span>
+                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${isFinished
+                  ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200'
+                  : 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
+                  }`}>
+                  {t(status)}
+                </span>
+              </div>
+              {/* <button
+                onClick={(e) => onAssignJob(itemId, itemName, e)}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-400 hover:text-blue-600"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+              </button> */}
+            </div>
+          ) : (
+            <button
+              onClick={(e) => onAssignJob(itemId, itemName, e)}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              {/* <UserPlus className="w-3.5 h-3.5" />
+              {t('Assign user')} */}
+            </button>
+          )}
+        </div>
+
+        {assignment?.notes && (
+          <div className={`p-2 rounded-xl text-xs italic ${isFinished ? 'bg-green-100/50 dark:bg-green-900/10 text-green-800 dark:text-green-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+            "{assignment.notes}"
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Helper to get the toggle-all icon state for complementary works
   // Returns the icon that represents what clicking will do (next state)
@@ -385,13 +449,23 @@ const WorkPropertyCard = ({
                 <span className="font-semibold text-gray-900 dark:text-white text-lg">
                   {rentalLabel}
                 </span>
-                <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* <button
+                    onClick={(e) => onAssignJob(item.id, rentalLabel, e)}
+                    className="text-gray-400 hover:text-blue-500 transition-colors"
+                  >
+                    <UserPlus className="w-5 h-5 lg:w-4 lg:h-4" />
+                  </button> */}
+                  <button
+                    onClick={(e) => onRemoveWorkItem(item.id, e)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                  </button>
+                </div>
               </div>
+
+              {/* {renderAssignmentInfo(item.id, rentalLabel)} */}
 
               {/* Rental fields */}
               {item.rentalFields && (
@@ -463,30 +537,45 @@ const WorkPropertyCard = ({
             }
           }}
         >
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col">
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
+            {/* {existingItem && assignments.some(a => a.job_id === existingItem.id) && (
+              <div className={`w-2.5 h-2.5 rounded-full ${assignments.find(a => a.job_id === existingItem.id)?.status === 'finished' ? 'bg-green-500' : 'bg-blue-500'
+                }`} />
+            )} */}
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
           {existingItem && expandedItems[existingItem.id] ? (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onRemoveWorkItem(existingItem.id, e);
-              }}
-              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-              title={t('Delete')}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* <button
+                onClick={(e) => onAssignJob(existingItem.id, t(property.name), e)}
+                className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center hover:text-blue-600 transition-colors"
+                title={t('Assign')}
+              >
+                <UserPlus className="w-4 h-4" />
+              </button> */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onRemoveWorkItem(existingItem.id, e);
+                }}
+                className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+                title={t('Delete')}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           ) : (
             <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
               <ChevronDown className="w-4 h-4" />
             </div>
           )}
         </div>
+
+        {/* {existingItem && renderAssignmentInfo(existingItem.id, t(property.name))} */}
 
         {/* Show fields only when item exists AND is expanded */}
         {existingItem && expandedItems[existingItem.id] && (
@@ -661,13 +750,23 @@ const WorkPropertyCard = ({
               <span className="font-semibold text-gray-900 dark:text-white text-lg">
                 {getItemLabel(property, item, index, existingItems.length, t)}
               </span>
-              <button
-                onClick={(e) => onRemoveWorkItem(item.id, e)}
-                className="text-gray-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-              </button>
+              <div className="flex items-center gap-3">
+                {/* <button
+                  onClick={(e) => onAssignJob(item.id, getItemLabel(property, item, index, existingItems.length, t), e)}
+                  className="text-gray-400 hover:text-blue-500 transition-colors"
+                >
+                  <UserPlus className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button> */}
+                <button
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
+              </div>
             </div>
+
+            {/* {renderAssignmentInfo(item.id, getItemLabel(property, item, index, existingItems.length, t))} */}
 
             {/* Fields */}
             {property.fields && (
@@ -844,13 +943,23 @@ const WorkPropertyCard = ({
               <span className="font-semibold text-gray-900 dark:text-white text-lg">
                 {t(item.selectedType)}
               </span>
-              <button
-                onClick={(e) => onRemoveWorkItem(item.id, e)}
-                className="text-gray-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-              </button>
+              <div className="flex items-center gap-3">
+                {/* <button
+                  onClick={(e) => onAssignJob(item.id, t(item.selectedType), e)}
+                  className="text-gray-400 hover:text-blue-500 transition-colors"
+                >
+                  <UserPlus className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button> */}
+                <button
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
+              </div>
             </div>
+
+            {/* {renderAssignmentInfo(item.id, t(item.selectedType))} */}
 
             {/* Count and Price fields */}
             <div className="space-y-3 lg:space-y-2">

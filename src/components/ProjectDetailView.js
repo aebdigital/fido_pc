@@ -19,7 +19,8 @@ import {
   AlertTriangle,
   Receipt,
   Loader2,
-  Camera
+  Camera,
+  Share2
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -37,6 +38,7 @@ import PDFPreviewModal from './PDFPreviewModal';
 import ClientForm from './ClientForm';
 import ConfirmationModal from './ConfirmationModal';
 import PaywallModal from './PaywallModal';
+import ShareProjectModal from './ShareProjectModal';
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();
@@ -121,6 +123,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [showArchiveConfirmation, setShowArchiveConfirmation] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Touch handling state
   const [touchStart, setTouchStart] = useState(null);
@@ -774,7 +777,10 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
     const formatDate = (dateString) => {
       const date = new Date(dateString);
-      return date.toLocaleDateString('sk-SK');
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}.${month}.${year}`;
     };
 
     try {
@@ -2180,6 +2186,28 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         confirmLabel="ArchiveProjectAction"
         cancelLabel="Cancel"
         icon="info"
+      />
+
+      {project.is_archived && showArchiveConfirmation && (
+        <ConfirmationModal
+          isOpen={showArchiveConfirmation}
+          onClose={() => setShowArchiveConfirmation(false)}
+          onConfirm={() => {
+            deleteArchivedProject(project.id);
+            onBack();
+          }}
+          title={t('Delete Archived Project')}
+          message={t('Are you sure you want to permanently delete this archived project? This action cannot be undone.')}
+          confirmText={t('Delete')}
+          confirmColor="bg-red-600"
+        />
+      )}
+
+      <ShareProjectModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        projectId={project.id}
+        projectName={project.name}
       />
 
       {/* Room Delete Confirmation Modal */}

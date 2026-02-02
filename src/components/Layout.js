@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ClipboardList, FileText, Users, Settings, LogOut, RefreshCw } from 'lucide-react';
+import { ClipboardList, FileText, Users, Settings, LogOut, RefreshCw, Book } from 'lucide-react';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';

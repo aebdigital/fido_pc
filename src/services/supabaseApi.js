@@ -23,7 +23,8 @@ const handleError = (operation, error) => {
     `Failed to ${operation}. Please try again.`
   )
 
-  // Preserve the original error for debugging
+  // Preserve properties from original error
+  if (error?.code) friendlyError.code = error.code
   friendlyError.originalError = error
   friendlyError.userFriendly = true
 
@@ -1617,6 +1618,345 @@ export const profilesApi = {
   }
 }
 
+// ========== TEAMS & COLLABORATION ==========
+
+export const teamsApi = {
+  // Get all teams for current user
+  getMyTeams: async () => {
+    try {
+      const userId = await getCurrentUserId()
+
+      // 1. Get the IDs of teams the user is a member of (status='active')
+      const { data: memberOf, error: memberError } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+
+      if (memberError) throw memberError
+      if (!memberOf || memberOf.length === 0) return []
+
+      const teamIds = memberOf.map(m => m.team_id)
+
+      // 2. Get the full details for those teams, including ALL members
+      const { data, error } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          team_members (
+            role, 
+            joined_at, 
+            status,
+            user_id,
+            profiles!user_id (id, email, full_name, avatar_url)
+          )
+        `)
+        .in('id', teamIds)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getMyTeams', error)
+    }
+  },
+
+  // Search teams by name
+  searchTeams: async (query) => {
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .limit(10)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.searchTeams', error)
+    }
+  },
+
+  // Create new team
+  create: async (name) => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('teams')
+        .insert([{ name, owner_id: userId }])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Automatically add owner as active member
+      await supabase.from('team_members').insert([{
+        team_id: data.id,
+        user_id: userId,
+        role: 'owner',
+        status: 'active'
+      }])
+
+      return data
+    } catch (error) {
+      handleError('teamsApi.create', error)
+    }
+  },
+
+  // Invite a member (status='invited') or Join a team (status='active')
+  join: async (teamId, userId = null) => {
+    try {
+      const isInvitation = !!userId
+      const targetUserId = userId || await getCurrentUserId()
+
+      const { data, error } = await supabase
+        .from('team_members')
+        .insert([{
+          team_id: teamId,
+          user_id: targetUserId,
+          role: 'member',
+          status: isInvitation ? 'invited' : 'active'
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.join', error)
+    }
+  },
+
+  // Respond to invitation
+  respondToInvitation: async (teamId, accept = true) => {
+    try {
+      const userId = await getCurrentUserId()
+      if (accept) {
+        const { error } = await supabase
+          .from('team_members')
+          .update({ status: 'active' })
+          .eq('team_id', teamId)
+          .eq('user_id', userId)
+        if (error) throw error
+        return true
+      } else {
+        const { error } = await supabase
+          .from('team_members')
+          .delete()
+          .eq('team_id', teamId)
+          .eq('user_id', userId)
+        if (error) throw error
+        return true
+      }
+    } catch (error) {
+      handleError('teamsApi.respondToInvitation', error)
+    }
+  },
+
+  // Get pending invitations for current user
+  getMyInvitations: async () => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('team_members')
+        .select(`
+          *,
+          teams (*)
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'invited')
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getMyInvitations', error)
+    }
+  },
+
+  // Get members of a team (counts both active and invited)
+  getMembers: async (teamId) => {
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select(`
+          *,
+          profiles!user_id (id, email, full_name, avatar_url)
+        `)
+        .eq('team_id', teamId)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getMembers', error)
+    }
+  },
+
+  // Share project with team
+  shareProject: async (teamId, projectId) => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('team_projects')
+        .upsert([{
+          team_id: teamId,
+          project_id: projectId,
+          shared_by_id: userId
+        }], { onConflict: 'team_id,project_id' })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.shareProject', error)
+    }
+  },
+
+  // Get shared projects for a team
+  getSharedProjects: async (teamId) => {
+    try {
+      const { data, error } = await supabase
+        .from('team_projects')
+        .select(`
+          *,
+          projects (*)
+        `)
+        .eq('team_id', teamId)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getSharedProjects', error)
+    }
+  },
+
+  // Get eligible assignees for a project (members of all teams the project is shared with)
+  getEligibleAssignees: async (projectId) => {
+    try {
+      // 1. Get all teams this project is shared with
+      const { data: sharedTeams, error: sharedError } = await supabase
+        .from('team_projects')
+        .select('team_id')
+        .eq('project_id', projectId)
+
+      if (sharedError) throw sharedError
+      if (!sharedTeams || sharedTeams.length === 0) return []
+
+      const teamIds = sharedTeams.map(st => st.team_id)
+
+      // 2. Get all members of those teams
+      const { data, error } = await supabase
+        .from('team_members')
+        .select(`
+          *,
+          teams (name),
+          profiles!user_id (id, email, full_name, avatar_url)
+        `)
+        .in('team_id', teamIds)
+        .eq('status', 'active')
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getEligibleAssignees', error)
+    }
+  },
+
+  // Assign job to user
+  assignJob: async (assignment) => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .insert([{
+          ...assignment,
+          assigned_by_id: userId
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.assignJob', error)
+    }
+  },
+
+  // Get jobs assigned to current user
+  getMyJobs: async () => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .select(`
+          *,
+          projects (name),
+          rooms (name)
+        `)
+        .eq('user_id', userId)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getMyJobs', error)
+    }
+  },
+
+  // Get all assignments for a project
+  getProjectAssignments: async (projectId) => {
+    try {
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .select(`
+          *,
+          profiles!user_id (id, email, full_name, avatar_url)
+        `)
+        .eq('project_id', projectId)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getProjectAssignments', error)
+    }
+  },
+
+  // Update a job assignment (status, notes, photos)
+  updateAssignment: async (id, updates) => {
+    try {
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .update({
+          ...updates,
+          assigned_at: new Date().toISOString() // Or use a separate "updated_at" if we add it
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.updateAssignment', error)
+    }
+  }
+}
+
+export const userProfilesApi = {
+  search: async (query) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .or(`email.ilike.%${query}%,full_name.ilike.%${query}%`)
+        .limit(10)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('userProfilesApi.search', error)
+    }
+  }
+}
+
 // Export all APIs
 const api = {
   contractors: contractorsApi,
@@ -1632,6 +1972,8 @@ const api = {
   windows: windowsApi,
   historyEvents: historyEventsApi,
   profiles: profilesApi,
+  teams: teamsApi,
+  userProfiles: userProfilesApi,
 }
 
 export default api

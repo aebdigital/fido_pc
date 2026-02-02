@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { DarkModeProvider, useDarkMode } from './context/DarkModeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AppDataProvider } from './context/AppDataContext';
@@ -11,6 +11,7 @@ import Invoices from './pages/Invoices';
 import Clients from './pages/Clients';
 import Settings from './pages/Settings';
 import ProjectDetail from './pages/ProjectDetail';
+import Dennik from './pages/Dennik';
 import Login from './components/Login';
 
 import './App.css';
@@ -41,9 +42,10 @@ function AppContent() {
           <div className="App">
             <Layout>
               <Routes>
-                <Route path="/" element={<Projects />} />
+                <Route path="/" element={<Navigate to="/projects" replace />} />
                 <Route path="/projects" element={<Projects />} />
                 <Route path="/projects/:id" element={<ProjectDetail />} />
+                <Route path="/dennik" element={<Dennik />} />
                 <Route path="/invoices" element={<Invoices />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/settings" element={<Settings />} />

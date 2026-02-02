@@ -342,9 +342,13 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                   const nonGroupedOthers = [];
 
                   // Helper to check for scaffolding keywords
-                  const checkText = (text) => text && (
-                    text.includes('assembly and disassembly') || text.includes('rental')
-                  );
+                  const checkText = (text) => {
+                    if (!text) return false;
+                    const lower = text.toLowerCase();
+                    // Exclude Tool Rental matched by 'rental' - those should stay non-grouped
+                    if (lower.includes('tool rental') || lower.includes('požičovňa') || lower.includes('pozicovn')) return false;
+                    return text.includes('assembly and disassembly') || text.includes('rental');
+                  };
 
                   calculation.othersItems.forEach(item => {
                     if (!item.calculation?.workCost && !item.calculation?.materialCost) return;
@@ -436,6 +440,21 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                         } else {
                           let { unit, quantity } = determineUnitAndQuantity(item, item.calculation.quantity);
                           let itemNameOthers = item.name || getWorkItemNameByPropertyId(item.propertyId);
+
+                          // Explicitly override unit for Tool Rental to Hours (User request) - priority over calculation
+                          const normalize = (str) => (str || '').toLowerCase();
+                          const nName = normalize(itemNameOthers);
+                          const nSub = normalize(item.subtitle);
+
+                          if (nName.includes('tool rental') || nName.includes('požičovň') || nName.includes('pozicovn') ||
+                            nSub.includes('tool rental') || nSub.includes('požičovň') || nSub.includes('pozicovn')) {
+                            unit = UNIT_TYPES.HOUR;
+                            const fields = item.fields || {};
+                            const duration = parseFloat(fields[WORK_ITEM_NAMES.RENTAL_DURATION] || fields[WORK_ITEM_NAMES.DURATION_EN] || fields[WORK_ITEM_NAMES.DURATION_SK] || 0);
+                            if (duration > 0) {
+                              quantity = duration;
+                            }
+                          }
 
                           const workName = t(itemNameOthers);
                           const translatedUnit = t(unit);
