@@ -60,7 +60,8 @@ export const translations = {
     "Create Team": "Create Team",
     "Team name": "Team name",
     "Share Project": "Share Project",
-    "Variable Symbol": "Variable symbol"
+    "Variable Symbol": "Variable symbol",
+    "Default Invoice Note": "In case of non-payment, the invoice will be automatically handed over to a collection company."
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -730,6 +731,7 @@ export const translations = {
 
     "Bank Account / IBAN": "Číslo účtu / IBAN",
     "Variable Symbol": "Variabilný symbol",
+    "Default Invoice Note": "V prípade neuhradenia faktúry bude pohľadávka automaticky postúpená vymáhacej spoločnosti.",
     "Amount Due": "Suma na úhradu",
     "Works": "PRÁCA",
     "Materials": "MATERIÁL",

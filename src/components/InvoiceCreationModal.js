@@ -308,10 +308,10 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setPaymentMethod('transfer');
         setPaymentDays(30);
         setCustomInputValue('');
-        setNotes('');
+        setNotes(t('Default Invoice Note'));
       }
     }
-  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId]);
+  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t]);
 
   // Calculate totals from invoice items
   const calculateTotals = useMemo(() => {
@@ -730,7 +730,6 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
                     className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none resize-none"
-                    placeholder={t('In case of non-payment of the invoice will automatically claim over to a collections company...')}
                   />
                 </div>
               </div>
