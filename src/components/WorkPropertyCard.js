@@ -6,8 +6,7 @@ import {
   Hammer,
   Package,
   ChevronDown,
-  Copy,
-  UserPlus
+  Copy
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -147,13 +146,15 @@ const WorkPropertyCard = ({
     return item.propertyId === property.id;
   });
 
-  // Helper to find assigned user for an item
-  const getAssignedUser = (itemId) => {
+  // Helper to find assigned user for an item (prefixed with _ to indicate intentionally unused for now)
+  // eslint-disable-next-line no-unused-vars
+  const _getAssignedUser = (itemId) => {
     const assignment = assignments.find(a => a.job_id === itemId);
     return assignment?.user_profiles;
   };
 
-  const renderAssignmentInfo = (itemId, itemName) => {
+  // eslint-disable-next-line no-unused-vars
+  const _renderAssignmentInfo = (itemId, itemName) => {
     const assignment = assignments.find(a => a.job_id === itemId);
     const user = assignment?.user_profiles || assignment?.profiles; // Use profiles from DB link
     const status = assignment?.status || 'pending';

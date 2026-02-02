@@ -13,8 +13,7 @@ import {
     CheckCircle2,
     Clock,
     Camera,
-    FileText,
-    Image as ImageIcon
+    FileText
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -65,6 +64,7 @@ const Dennik = () => {
         }, 500);
 
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery]);
 
     const handleSearch = async (query) => {

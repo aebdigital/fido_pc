@@ -4,8 +4,7 @@ import {
     Share2,
     Search,
     Loader2,
-    Users,
-    Check
+    Users
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';

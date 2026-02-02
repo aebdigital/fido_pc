@@ -19,8 +19,7 @@ import {
   AlertTriangle,
   Receipt,
   Loader2,
-  Camera,
-  Share2
+  Camera
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';

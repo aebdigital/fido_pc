@@ -1499,6 +1499,7 @@ export const generateCashReceiptPDF = async ({
     const boxWidth = (contentWidth - (boxGap * 2)) / 3;
     const boxHeight = 12;
 
+    // eslint-disable-next-line no-control-regex
     const sanitizeText = (text) => text ? String(text).replace(/[\u0000-\u001F\u007F-\u009F]/g, '') : '';
     const formatCurrency = (amount) => formatPrice ? formatPrice(amount) : new Intl.NumberFormat('sk-SK', { style: 'currency', currency: 'EUR' }).format(amount || 0);
 

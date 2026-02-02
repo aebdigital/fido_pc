@@ -4,7 +4,6 @@ import {
     UserPlus,
     Search,
     Loader2,
-    Check,
     Users
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
@@ -13,7 +12,7 @@ import api from '../services/supabaseApi';
 
 const AssignJobModal = ({ isOpen, onClose, projectId, roomId, jobId, jobName }) => {
     const { t } = useLanguage();
-    const { myTeams, assignUserToJob } = useAppData();
+    const { assignUserToJob } = useAppData();
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [assigningId, setAssigningId] = useState(null);
