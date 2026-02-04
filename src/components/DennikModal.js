@@ -35,43 +35,34 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
     // Removed duplicate hourlyRate and isGeneratingInvoice declarations
 
-    // Load data when modal opens
-    useEffect(() => {
-        if (isOpen && project) {
-            loadData();
-            loadAnalyticsData();
+    // Memoized functions (useCallback)
+    const loadMembers = useCallback(async () => {
+        try {
+            const data = await api.dennik.getProjectMembers(project.c_id || project.id);
+            setMembers(data || []);
+        } catch (error) {
+            console.error('Error loading members:', error);
         }
-    }, [isOpen, project, loadData, loadAnalyticsData]);
+    }, [project]);
 
-    useEffect(() => {
-        if (isOpen && project && activeTab === 'analytics') {
-            loadAnalyticsData();
-            loadInvoices();
+    const loadTimeEntries = useCallback(async () => {
+        try {
+            const data = await api.dennik.getTimeEntries(project.c_id || project.id);
+            setTimeEntries(data || []);
+            setAnalyticsEntries(data || []);
+        } catch (error) {
+            console.error('Error loading time entries:', error);
         }
-    }, [analyticsDate, analyticsView, activeTab, isOpen, project, loadAnalyticsData, loadInvoices]);
+    }, [project]);
 
-    // Check for active timer on mount
-    useEffect(() => {
-        if (isOpen && project) {
-            checkActiveTimer();
+    const checkActiveTimer = useCallback(async () => {
+        try {
+            const timer = await api.dennik.getActiveTimer(project.c_id || project.id);
+            setActiveTimer(timer);
+        } catch (error) {
+            console.error('Error checking active timer:', error);
         }
-    }, [isOpen, project, checkActiveTimer]);
-
-    // Load time entries when date changes
-    useEffect(() => {
-        if (isOpen && project) {
-            loadTimeEntries();
-        }
-    }, [selectedDate, isOpen, project, loadTimeEntries]);
-
-    const loadData = useCallback(async () => {
-        await Promise.all([
-            loadMembers(),
-            loadTimeEntries(),
-            checkActiveTimer(),
-            loadOwnerProfile()
-        ]);
-    }, [loadMembers, loadTimeEntries, checkActiveTimer, loadOwnerProfile]);
+    }, [project]);
 
     const loadOwnerProfile = useCallback(async () => {
         console.log('--- loadOwnerProfile Start ---');
@@ -118,24 +109,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         }
     }, [project, isOwner, currentUser]);
 
-    const loadMembers = useCallback(async () => {
-        try {
-            const data = await api.dennik.getProjectMembers(project.c_id || project.id);
-            setMembers(data || []);
-        } catch (error) {
-            console.error('Error loading members:', error);
-        }
-    }, [project]);
-
-    const loadTimeEntries = useCallback(async () => {
-        try {
-            const data = await api.dennik.getTimeEntries(project.c_id || project.id);
-            setTimeEntries(data || []);
-            setAnalyticsEntries(data || []);
-        } catch (error) {
-            console.error('Error loading time entries:', error);
-        }
-    }, [project]);
+    const loadData = useCallback(async () => {
+        await Promise.all([
+            loadMembers(),
+            loadTimeEntries(),
+            checkActiveTimer(),
+            loadOwnerProfile()
+        ]);
+    }, [loadMembers, loadTimeEntries, checkActiveTimer, loadOwnerProfile]);
 
     const loadAnalyticsData = useCallback(async () => {
         try {
@@ -192,6 +173,35 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             console.error('Error loading project invoices:', error);
         }
     }, [project]);
+
+    // Effects
+    useEffect(() => {
+        if (isOpen && project) {
+            loadData();
+            loadAnalyticsData();
+        }
+    }, [isOpen, project, loadData, loadAnalyticsData]);
+
+    useEffect(() => {
+        if (isOpen && project && activeTab === 'analytics') {
+            loadAnalyticsData();
+            loadInvoices();
+        }
+    }, [analyticsDate, analyticsView, activeTab, isOpen, project, loadAnalyticsData, loadInvoices]);
+
+    // Check for active timer on mount
+    useEffect(() => {
+        if (isOpen && project) {
+            checkActiveTimer();
+        }
+    }, [isOpen, project, checkActiveTimer]);
+
+    // Load time entries when date changes
+    useEffect(() => {
+        if (isOpen && project) {
+            loadTimeEntries();
+        }
+    }, [selectedDate, isOpen, project, loadTimeEntries]);
 
     const handlePreviewInvoice = (invoice) => {
         setSelectedInvoice(invoice);
@@ -350,14 +360,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         }
     };
 
-    const checkActiveTimer = useCallback(async () => {
-        try {
-            const timer = await api.dennik.getActiveTimer(project.c_id || project.id);
-            setActiveTimer(timer);
-        } catch (error) {
-            console.error('Error checking active timer:', error);
-        }
-    }, [project]);
+
 
     const handleStartTimer = async () => {
         try {
