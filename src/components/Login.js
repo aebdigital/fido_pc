@@ -96,6 +96,30 @@ const Login = () => {
           />
         </div>
 
+        {/* Form Header */}
+        <div className="text-center mb-8">
+          <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            {recoveryMode
+              ? t('Create New Password')
+              : isForgotPassword
+                ? t('Reset Your Password')
+                : isSignUp
+                  ? t('Create Account')
+                  : t('Welcome Back')
+            }
+          </h2>
+          <p className={`mt-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            {recoveryMode
+              ? t('Please enter a strong new password for your account')
+              : isForgotPassword
+                ? t('Enter your email to receive a password reset link')
+                : isSignUp
+                  ? t('Enter your details to register')
+                  : t('Sign in to manage your budgets')
+            }
+          </p>
+        </div>
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

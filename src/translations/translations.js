@@ -175,7 +175,15 @@ export const translations = {
     "Reset Password": "Reset Password",
     "Enter new password": "Enter new password",
     "Update Password": "Update Password",
-    "Password updated successfully. You can now sign in.": "Password updated successfully. You can now sign in."
+    "Password updated successfully. You can now sign in.": "Password updated successfully. You can now sign in.",
+    "Create New Password": "Create New Password",
+    "Reset Your Password": "Reset Your Password",
+    "Create Account": "Create Account",
+    "Welcome Back": "Welcome Back",
+    "Please enter a strong new password for your account": "Please enter a strong new password for your account",
+    "Enter your email to receive a password reset link": "Enter your email to receive a password reset link",
+    "Enter your details to register": "Enter your details to register",
+    "Sign in to manage your budgets": "Sign in to manage your budgets"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -308,7 +316,15 @@ export const translations = {
     "Reset Password": "Resetovať heslo",
     "Enter new password": "Zadajte nové heslo",
     "Update Password": "Aktualizovať heslo",
-    "Password updated successfully. You can now sign in.": "Heslo bolo úspešne zmenené. Teraz sa môžete prihlásiť."
+    "Password updated successfully. You can now sign in.": "Heslo bolo úspešne zmenené. Teraz sa môžete prihlásiť.",
+    "Create New Password": "Vytvorte si nové heslo",
+    "Reset Your Password": "Resetujte svoje heslo",
+    "Create Account": "Vytvorte si účet",
+    "Welcome Back": "Vitajte späť",
+    "Please enter a strong new password for your account": "Prosím, zadajte silné nové heslo pre váš účet",
+    "Enter your email to receive a password reset link": "Zadajte svoj email a pošleme vám odkaz na obnovu hesla",
+    "Enter your details to register": "Zadajte svoje údaje pre registráciu",
+    "Sign in to manage your budgets": "Prihláste sa pre správu svojich rozpočtov"
     ,
 
     // ========== ROOM TYPES ==========
