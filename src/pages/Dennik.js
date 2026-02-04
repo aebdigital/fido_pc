@@ -13,7 +13,6 @@ import {
     Crown,
     CheckCircle2,
     Clock,
-    Camera,
     FileText,
     Trash2,
     FolderPlus
@@ -60,7 +59,6 @@ const Dennik = () => {
     const [isLoadingTeamDetail, setIsLoadingTeamDetail] = useState(false);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [sharedProjects, setSharedProjects] = useState([]);
-    const [isUpdatingTask, setIsUpdatingTask] = useState(null); // ID of task being updated
     const [taskNotes, setTaskNotes] = useState('');
     const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false);
     const [showRemoveMemberConfirm, setShowRemoveMemberConfirm] = useState(null); // member to remove
@@ -234,16 +232,6 @@ const Dennik = () => {
         }
     };
 
-    const handleSaveTaskDetails = async (taskId) => {
-        try {
-            await updateJobAssignment(taskId, { notes: taskNotes });
-            setIsUpdatingTask(null);
-            setTaskNotes('');
-        } catch (error) {
-            console.error('Error saving task details:', error);
-        }
-    };
-
     const handleDeleteAssignment = async (assignmentId) => {
         if (!window.confirm(t('Are you sure you want to delete this assignment?'))) return;
         try {
@@ -380,16 +368,6 @@ const Dennik = () => {
         } finally {
             setIsLoadingMemberAssignments(false);
         }
-    };
-
-    const handleProjectOpen = (project) => {
-        // Navigate to projects page with the specific project selected
-        navigate('/projects', {
-            state: {
-                selectedProjectId: project.id,
-                selectedCategoryId: project.category
-            }
-        });
     };
 
     // Get all projects from all categories

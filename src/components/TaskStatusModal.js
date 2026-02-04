@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Clock, FileText, Calendar, Camera, Upload, Trash2 } from 'lucide-react';
+import { X, Check, Clock, FileText, Camera, Upload, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { compressImage } from '../utils/imageCompression';
 
@@ -312,9 +312,10 @@ const TaskStatusModal = ({ isOpen, onClose, assignment, onSave, onDelete, isOwne
                         {canEdit && (
                             <button
                                 onClick={handleSave}
+                                disabled={isSaving} // Disable if saving
                                 className="px-4 py-2 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all"
                             >
-                                {t('Save Changes')}
+                                {isSaving ? 'Saving...' : t('Save Changes')}
                             </button>
                         )}
                     </div>

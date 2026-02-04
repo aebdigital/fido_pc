@@ -1,4 +1,4 @@
-import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
+import { WORK_ITEM_PROPERTY_IDS } from '../config/constants';
 
 /**
  * Helper to get the item label based on property type

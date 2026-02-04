@@ -177,7 +177,6 @@ const Projects = () => {
   useEffect(() => {
     if (location.state?.selectedProjectId) {
       const projectId = location.state.selectedProjectId;
-      const client = location.state.selectedClient;
       const categoryId = location.state.selectedCategoryId;
       const fromArchive = location.state.fromArchive;
 

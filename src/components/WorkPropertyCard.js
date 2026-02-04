@@ -8,8 +8,7 @@ import {
   ChevronDown,
   Copy,
   Square,
-  CheckSquare,
-  UserPlus
+  CheckSquare
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
