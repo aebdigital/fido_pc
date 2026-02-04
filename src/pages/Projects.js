@@ -658,7 +658,7 @@ const Projects = () => {
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
                                 {project.is_dennik_enabled && (
-                                  <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-800">
+                                  <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
                                     {t('Denník')}
                                   </span>
                                 )}
