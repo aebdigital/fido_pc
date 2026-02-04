@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { X, Clock, Play, Square, Calendar, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Download } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Download } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useAppData } from '../context/AppDataContext';
-import { generateInvoicePDF } from '../utils/pdfGenerator';
 import InvoiceDetailModal from './InvoiceDetailModal';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
 
 const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
-    const { t, language } = useLanguage();
-    const { currentUser: appUser, activeContractor, getVATRate, invoices, createInvoice, activeContractorId } = useAppData();
+    const { t } = useLanguage();
+    const { activeContractor, getVATRate, invoices, createInvoice, activeContractorId } = useAppData();
 
     // State
     const [activeTab, setActiveTab] = useState('timer'); // 'timer' or 'members'
@@ -23,7 +22,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
+    const [isSearching, setIsSearching] = useState(false); // eslint-disable-line no-unused-vars
     const [customHours, setCustomHours] = useState(null); // For testing/overriding
     const [ownerProfile, setOwnerProfile] = useState(null);
 
@@ -42,39 +41,39 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             loadData();
             loadAnalyticsData();
         }
-    }, [isOpen, project]);
+    }, [isOpen, project, loadData, loadAnalyticsData]);
 
     useEffect(() => {
         if (isOpen && project && activeTab === 'analytics') {
             loadAnalyticsData();
             loadInvoices();
         }
-    }, [analyticsDate, analyticsView, activeTab]);
+    }, [analyticsDate, analyticsView, activeTab, isOpen, project, loadAnalyticsData, loadInvoices]);
 
     // Check for active timer on mount
     useEffect(() => {
         if (isOpen && project) {
             checkActiveTimer();
         }
-    }, [isOpen, project]);
+    }, [isOpen, project, checkActiveTimer]);
 
     // Load time entries when date changes
     useEffect(() => {
         if (isOpen && project) {
             loadTimeEntries();
         }
-    }, [selectedDate, isOpen, project]);
+    }, [selectedDate, isOpen, project, loadTimeEntries]);
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         await Promise.all([
             loadMembers(),
             loadTimeEntries(),
             checkActiveTimer(),
             loadOwnerProfile()
         ]);
-    };
+    }, [loadMembers, loadTimeEntries, checkActiveTimer, loadOwnerProfile]);
 
-    const loadOwnerProfile = async () => {
+    const loadOwnerProfile = useCallback(async () => {
         console.log('--- loadOwnerProfile Start ---');
         console.log('Project prop:', project);
         console.log('isOwner prop:', isOwner);
@@ -117,18 +116,18 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             console.error('loadOwnerProfile Exception:', error);
             setOwnerProfile({ id: ownerId, email: 'Owner (Error)' });
         }
-    };
+    }, [project, isOwner, currentUser]);
 
-    const loadMembers = async () => {
+    const loadMembers = useCallback(async () => {
         try {
             const data = await api.dennik.getProjectMembers(project.c_id || project.id);
             setMembers(data || []);
         } catch (error) {
             console.error('Error loading members:', error);
         }
-    };
+    }, [project]);
 
-    const loadTimeEntries = async () => {
+    const loadTimeEntries = useCallback(async () => {
         try {
             const data = await api.dennik.getTimeEntries(project.c_id || project.id);
             setTimeEntries(data || []);
@@ -136,9 +135,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         } catch (error) {
             console.error('Error loading time entries:', error);
         }
-    };
+    }, [project]);
 
-    const loadAnalyticsData = async () => {
+    const loadAnalyticsData = useCallback(async () => {
         try {
             let startDate, endDate;
             const date = new Date(analyticsDate);
@@ -165,13 +164,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                 endDate = lastDay.toISOString().split('T')[0];
             }
 
-            // Fetch ALL entries for project in range
-            // Then filter by user if I'm not owner? Or show my work only?
-            // "create a pdf invoice for all the work" implies MY work if I'm invoicing.
-            // If Owner views analytics, maybe they want to see EVERYONE'S work?
-            // For now, let's show Current User's work for invoicing purposes. 
-            // BUT api.dennik.getTimeEntries returns ALL entries.
-
             const allEntries = await api.dennik.getTimeEntries(
                 project.c_id || project.id,
                 startDate,
@@ -179,17 +171,15 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             );
 
             // Filter for current user only - for invoicing purposes
-            // If we want to support owner seeing total team hours, we'd need a toggle.
-            // Assuming "Invoicing" context = Me Invoicing You.
             const myEntries = (allEntries || []).filter(e => e.user_id === currentUser.id);
             setAnalyticsEntries(myEntries);
 
         } catch (error) {
             console.error('Error loading analytics data:', error);
         }
-    };
+    }, [analyticsDate, analyticsView, project, currentUser]);
 
-    const loadInvoices = async () => {
+    const loadInvoices = useCallback(async () => {
         try {
             const data = await api.invoices.getInvoicesByProject(project.c_id || project.id);
             // Transform data for frontend compatibility (camelCase)
@@ -201,7 +191,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         } catch (error) {
             console.error('Error loading project invoices:', error);
         }
-    };
+    }, [project]);
 
     const handlePreviewInvoice = (invoice) => {
         setSelectedInvoice(invoice);
@@ -360,14 +350,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         }
     };
 
-    const checkActiveTimer = async () => {
+    const checkActiveTimer = useCallback(async () => {
         try {
             const timer = await api.dennik.getActiveTimer(project.c_id || project.id);
             setActiveTimer(timer);
         } catch (error) {
             console.error('Error checking active timer:', error);
         }
-    };
+    }, [project]);
 
     const handleStartTimer = async () => {
         try {
@@ -486,7 +476,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         return timeEntries.reduce((sum, entry) => sum + (entry.hours_worked || 0), 0);
     };
 
-    const getElapsedTime = () => {
+    const getElapsedTime = useCallback(() => {
         if (!activeTimer?.start_time) return '00:00:00';
         const start = new Date(activeTimer.start_time);
         const now = new Date();
@@ -495,7 +485,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         const minutes = Math.floor((diff % 3600000) / 60000);
         const seconds = Math.floor((diff % 60000) / 1000);
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
+    }, [activeTimer]);
 
     // Update elapsed time every second when timer is active
     const [elapsedTime, setElapsedTime] = useState('00:00:00');
@@ -511,7 +501,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         } else {
             setElapsedTime('00:00:00');
         }
-    }, [activeTimer]);
+    }, [activeTimer, getElapsedTime]);
 
     if (!isOpen) return null;
 

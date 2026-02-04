@@ -3,7 +3,6 @@ import {
     BookOpen,
     ChevronRight,
     Loader2,
-    Clock,
     Users,
     Calendar,
     Search

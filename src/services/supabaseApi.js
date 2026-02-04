@@ -2556,7 +2556,6 @@ const api = {
   profiles: profilesApi,
   teams: teamsApi,
   userProfiles: userProfilesApi,
-  userProfiles: userProfilesApi,
   dennik: dennikApi,
   supabase: supabase,
 }
