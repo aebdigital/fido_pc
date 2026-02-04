@@ -6,96 +6,20 @@ import {
   Hammer,
   Package,
   ChevronDown,
-  Copy
+  Copy,
+  Square,
+  CheckSquare,
+  UserPlus
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 import { SimpleLayerIcon, DoubleLayerIcon, TripleLayerIcon, ActiveLayersIcon } from './LayerIcons';
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
+import { getItemLabel } from '../utils/itemNaming';
 
-// Helper to get the item label based on property type
-const getItemLabel = (property, item, index, totalCount, t) => {
-  // Reverse numbering: newest item (index 0) gets highest number
-  const itemNumber = totalCount - index;
+// Helper to get the item label based on property type - MOVED TO UTILS/ITEMNAMING.JS
 
-  // For brick partitions: "Priečka č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.BRICK_PARTITIONS) {
-    return `${t('Partition no.')} ${itemNumber}`;
-  }
-
-  // For brick load-bearing wall: "Stena č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.BRICK_LOAD_BEARING) {
-    return `${t('Wall no.')} ${itemNumber}`;
-  }
-
-  // For plasterboarding with types: "Jednoduchá č. 1", "Dvojitá č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_PARTITION ||
-    property.id === WORK_ITEM_PROPERTY_IDS.PLASTERBOARDING_OFFSET) {
-    if (item.selectedType) {
-      return `${t(item.selectedType)} ${t('no.')} ${itemNumber}`;
-    }
-    return `${t('no.')} ${itemNumber}`;
-  }
-
-  // For netting wall: "Stena č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.NETTING_WALL) {
-    return `${t('Wall no.')} ${itemNumber}`;
-  }
-
-  // For netting ceiling: "Strop č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.NETTING_CEILING) {
-    return `${t('Ceiling no.')} ${itemNumber}`;
-  }
-
-  // For plastering wall: "Stena č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_WALL) {
-    return `${t('Wall no.')} ${itemNumber}`;
-  }
-
-  // For plastering ceiling: "Strop č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.PLASTERING_CEILING) {
-    return `${t('Ceiling no.')} ${itemNumber}`;
-  }
-
-  // For facade plastering: "Stena č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.FACADE_PLASTERING) {
-    return `${t('Wall no.')} ${itemNumber}`;
-  }
-
-  // For penetration coating: "Náter č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.PENETRATION_COATING) {
-    return `${t('Coating no.')} ${itemNumber}`;
-  }
-
-  // For levelling: "Proces č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.LEVELLING) {
-    return `${t('Process no.')} ${itemNumber}`;
-  }
-
-  // For floating floor: "Pokládka č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.FLOATING_FLOOR) {
-    return `${t('Laying no.')} ${itemNumber}`;
-  }
-
-  // For tiling under 60cm: "Pokládka č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60) {
-    return `${t('Laying no.')} ${itemNumber}`;
-  }
-
-  // For paving under 60cm: "Pokládka č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.PAVING_UNDER_60) {
-    return `${t('Laying no.')} ${itemNumber}`;
-  }
-
-  // For window installation: "Okno č. 1"
-  if (property.id === WORK_ITEM_PROPERTY_IDS.WINDOW_INSTALLATION) {
-    return `${t('Window no.')} ${itemNumber}`;
-  }
-
-  // Default: use property name + no. X
-  return `${t(property.name)} ${t('no.')} ${itemNumber}`;
-};
 
 const WorkPropertyCard = ({
   property,
@@ -122,7 +46,11 @@ const WorkPropertyCard = ({
   onCloseSelector, // For closing type/rental/sanitary selectors
   onUpdateItemState, // For updating top-level item properties like selectedType
   onAssignJob, // New prop for job assignment
-  assignments = [] // All project assignments
+  assignments = [], // All project assignments
+  groupSelectMode = false, // Whether group select mode is active
+  selectedWorkItems = new Set(), // Set of selected work item IDs
+  onToggleWorkItemSelection, // Handler to toggle item selection
+  onOpenStatusModal // New prop for opening status modal
 }) => {
   const { t } = useLanguage();
 
@@ -146,58 +74,50 @@ const WorkPropertyCard = ({
     return item.propertyId === property.id;
   });
 
-  // Helper to find assigned user for an item (prefixed with _ to indicate intentionally unused for now)
+  // Helper to find assigned user for an item
   // eslint-disable-next-line no-unused-vars
-  const _getAssignedUser = (itemId) => {
-    const assignment = assignments.find(a => a.job_id === itemId);
+  const getAssignedUser = (itemId) => {
+    const assignment = assignments.find(a => a.job_id === itemId || a.work_item_id === itemId);
     return assignment?.user_profiles;
   };
 
-  // eslint-disable-next-line no-unused-vars
-  const _renderAssignmentInfo = (itemId, itemName) => {
-    const assignment = assignments.find(a => a.job_id === itemId);
+  const renderAssignmentInfo = (itemId, itemName) => {
+    // Check both job_id (legacy/UI) and work_item_id (DB schema)
+    const assignment = assignments.find(a => a.job_id === itemId || a.work_item_id === itemId);
     const user = assignment?.user_profiles || assignment?.profiles; // Use profiles from DB link
     const status = assignment?.status || 'pending';
     const isFinished = status === 'finished';
 
+    if (!user) return null; // Hide if no user assigned (per user request)
+
     return (
       <div className="flex flex-col gap-2 mb-2 px-1">
         <div className="flex items-center justify-between">
-          {user ? (
-            <div className="flex items-center gap-2">
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${isFinished
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenStatusModal && onOpenStatusModal(itemId);
+              }}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all hover:bg-opacity-80 active:scale-95 cursor-pointer ${isFinished
                 ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800'
                 : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
-                }`}>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold ${isFinished ? 'bg-green-600' : 'bg-blue-600'}`}>
-                  {user.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
-                </div>
-                <span className={`text-xs font-semibold ${isFinished ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
-                  {user.full_name || user.email}
-                </span>
-                <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${isFinished
-                  ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200'
-                  : 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
-                  }`}>
-                  {t(status)}
-                </span>
-              </div>
-              {/* <button
-                onClick={(e) => onAssignJob(itemId, itemName, e)}
-                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-400 hover:text-blue-600"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-              </button> */}
-            </div>
-          ) : (
-            <button
-              onClick={(e) => onAssignJob(itemId, itemName, e)}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors"
+                }`}
             >
-              {/* <UserPlus className="w-3.5 h-3.5" />
-              {t('Assign user')} */}
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold ${isFinished ? 'bg-green-600' : 'bg-blue-600'}`}>
+                {user.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+              </div>
+              <span className={`text-xs font-semibold ${isFinished ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                {user.full_name || user.email}
+              </span>
+              <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${isFinished
+                ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200'
+                : 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
+                }`}>
+                {t(status)}
+              </span>
             </button>
-          )}
+          </div>
         </div>
 
         {assignment?.notes && (
@@ -206,6 +126,35 @@ const WorkPropertyCard = ({
           </div>
         )}
       </div>
+    );
+  };
+
+  // Helper to render compact assigned member icon for headers
+  const renderAssignedMemberIcon = (itemId) => {
+    // Check both job_id (legacy/UI) and work_item_id (DB schema)
+    const assignment = assignments.find(a => a.job_id === itemId || a.work_item_id === itemId);
+    const user = assignment?.user_profiles || assignment?.profiles;
+
+    if (!user) return null;
+
+    const isFinished = assignment.status === 'finished';
+
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // prevent collapsing/expanding
+          onOpenStatusModal && onOpenStatusModal(itemId);
+        }}
+        className={`w-8 h-8 lg:w-8 lg:h-8 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 border-2 ${isFinished
+          ? 'bg-green-100 border-green-500 text-green-700'
+          : 'bg-blue-100 border-blue-500 text-blue-700'
+          }`}
+        title={user.full_name || user.email}
+      >
+        <span className="text-xs font-bold">
+          {user.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+        </span>
+      </button>
     );
   };
 
@@ -445,28 +394,41 @@ const WorkPropertyCard = ({
             : `${t(item.name)} ${t('no.')} ${index + 1}`;
 
           return (
-            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in ${newlyAddedItems.has(item.id) ? '' : ''}`}>
+            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in ${newlyAddedItems.has(item.id) ? '' : ''} ${groupSelectMode && selectedWorkItems.has(item.id) ? 'ring-2 ring-blue-500' : ''}`}>
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-900 dark:text-white text-lg">
+                {groupSelectMode && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onToggleWorkItemSelection(item.id);
+                    }}
+                    className="mr-3 flex-shrink-0"
+                  >
+                    {selectedWorkItems.has(item.id) ? (
+                      <CheckSquare className="w-6 h-6 text-blue-600" />
+                    ) : (
+                      <Square className="w-6 h-6 text-gray-400" />
+                    )}
+                  </button>
+                )}
+                <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
                   {rentalLabel}
                 </span>
-                <div className="flex items-center gap-3">
-                  {/* <button
-                    onClick={(e) => onAssignJob(item.id, rentalLabel, e)}
-                    className="text-gray-400 hover:text-blue-500 transition-colors"
-                  >
-                    <UserPlus className="w-5 h-5 lg:w-4 lg:h-4" />
-                  </button> */}
-                  <button
-                    onClick={(e) => onRemoveWorkItem(item.id, e)}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                  </button>
-                </div>
+                {!groupSelectMode && (
+                  <div className="flex items-center gap-2">
+                    {renderAssignedMemberIcon(item.id)}
+                    <button
+                      onClick={(e) => onRemoveWorkItem(item.id, e)}
+                      className="text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* {renderAssignmentInfo(item.id, rentalLabel)} */}
+              {/* Assignment Info Removed per User Request */}
 
               {/* Rental fields */}
               {item.rentalFields && (
@@ -538,45 +500,50 @@ const WorkPropertyCard = ({
             }
           }}
         >
+          {/* Group Select Checkbox */}
+          {groupSelectMode && existingItem && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleWorkItemSelection(existingItem.id);
+              }}
+              className="mr-3 flex-shrink-0"
+            >
+              {selectedWorkItems.has(existingItem.id) ? (
+                <CheckSquare className="w-6 h-6 text-blue-600" />
+              ) : (
+                <Square className="w-6 h-6 text-gray-400" />
+              )}
+            </button>
+          )}
           <div className="flex-1 flex flex-col">
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
-            {/* {existingItem && assignments.some(a => a.job_id === existingItem.id) && (
-              <div className={`w-2.5 h-2.5 rounded-full ${assignments.find(a => a.job_id === existingItem.id)?.status === 'finished' ? 'bg-green-500' : 'bg-blue-500'
-                }`} />
-            )} */}
+            {!groupSelectMode && existingItem && renderAssignedMemberIcon(existingItem.id)}
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
-          {existingItem && expandedItems[existingItem.id] ? (
-            <div className="flex items-center gap-3">
-              {/* <button
-                onClick={(e) => onAssignJob(existingItem.id, t(property.name), e)}
-                className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center hover:text-blue-600 transition-colors"
-                title={t('Assign')}
-              >
-                <UserPlus className="w-4 h-4" />
-              </button> */}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onRemoveWorkItem(existingItem.id, e);
-                }}
-                className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-                title={t('Delete')}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
+          {!groupSelectMode && existingItem && expandedItems[existingItem.id] ? (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemoveWorkItem(existingItem.id, e);
+              }}
+              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+              title={t('Delete')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          ) : !groupSelectMode && (
             <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
               <ChevronDown className="w-4 h-4" />
             </div>
           )}
         </div>
 
-        {/* {existingItem && renderAssignmentInfo(existingItem.id, t(property.name))} */}
+        {/* Assignment Info Removed per User Request */}
 
         {/* Show fields only when item exists AND is expanded */}
         {existingItem && expandedItems[existingItem.id] && (
@@ -746,28 +713,41 @@ const WorkPropertyCard = ({
 
         {/* Existing type items */}
         {expandedItems[property.id] && existingItems.map((item, index) => (
-          <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''}`}>
+          <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''} ${groupSelectMode && selectedWorkItems.has(item.id) ? 'ring-2 ring-blue-500' : ''}`}>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-900 dark:text-white text-lg">
+              {groupSelectMode && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onToggleWorkItemSelection(item.id);
+                  }}
+                  className="mr-3 flex-shrink-0"
+                >
+                  {selectedWorkItems.has(item.id) ? (
+                    <CheckSquare className="w-6 h-6 text-blue-600" />
+                  ) : (
+                    <Square className="w-6 h-6 text-gray-400" />
+                  )}
+                </button>
+              )}
+              <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
                 {getItemLabel(property, item, index, existingItems.length, t)}
               </span>
-              <div className="flex items-center gap-3">
-                {/* <button
-                  onClick={(e) => onAssignJob(item.id, getItemLabel(property, item, index, existingItems.length, t), e)}
-                  className="text-gray-400 hover:text-blue-500 transition-colors"
-                >
-                  <UserPlus className="w-5 h-5 lg:w-4 lg:h-4" />
-                </button> */}
-                <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                </button>
-              </div>
+              {!groupSelectMode && (
+                <div className="flex items-center gap-2">
+                  {renderAssignedMemberIcon(item.id)}
+                  <button
+                    onClick={(e) => onRemoveWorkItem(item.id, e)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* {renderAssignmentInfo(item.id, getItemLabel(property, item, index, existingItems.length, t))} */}
+            {!groupSelectMode && renderAssignmentInfo(item.id, getItemLabel(property, item, index, existingItems.length, t))}
 
             {/* Fields */}
             {property.fields && (
@@ -939,28 +919,41 @@ const WorkPropertyCard = ({
 
         {/* Existing sanitary items */}
         {expandedItems[property.id] && existingItems.map(item => (
-          <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
+          <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${groupSelectMode && selectedWorkItems.has(item.id) ? 'ring-2 ring-blue-500' : ''}`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-900 dark:text-white text-lg">
+              {groupSelectMode && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onToggleWorkItemSelection(item.id);
+                  }}
+                  className="mr-3 flex-shrink-0"
+                >
+                  {selectedWorkItems.has(item.id) ? (
+                    <CheckSquare className="w-6 h-6 text-blue-600" />
+                  ) : (
+                    <Square className="w-6 h-6 text-gray-400" />
+                  )}
+                </button>
+              )}
+              <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
                 {t(item.selectedType)}
               </span>
-              <div className="flex items-center gap-3">
-                {/* <button
-                  onClick={(e) => onAssignJob(item.id, t(item.selectedType), e)}
-                  className="text-gray-400 hover:text-blue-500 transition-colors"
-                >
-                  <UserPlus className="w-5 h-5 lg:w-4 lg:h-4" />
-                </button> */}
-                <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                </button>
-              </div>
+              {!groupSelectMode && (
+                <div className="flex items-center gap-2">
+                  {renderAssignedMemberIcon(item.id)}
+                  <button
+                    onClick={(e) => onRemoveWorkItem(item.id, e)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* {renderAssignmentInfo(item.id, t(item.selectedType))} */}
+            {/* Assignment Info Removed per User Request */}
 
             {/* Count and Price fields */}
             <div className="space-y-3 lg:space-y-2">
@@ -1029,6 +1022,22 @@ const WorkPropertyCard = ({
           {/* Header Row: Only show if configured (unit selected) OR if we need to show the default header in a non-configuring state (fallback) */}
           {!isConfiguring && (
             <div className="flex items-center justify-between">
+              {groupSelectMode && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onToggleWorkItemSelection(item.id);
+                  }}
+                  className="mr-3 flex-shrink-0"
+                >
+                  {selectedWorkItems.has(item.id) ? (
+                    <CheckSquare className="w-6 h-6 text-blue-600" />
+                  ) : (
+                    <Square className="w-6 h-6 text-gray-400" />
+                  )}
+                </button>
+              )}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <input
                   id={`custom-work-name-${item.id}`}
@@ -1039,12 +1048,17 @@ const WorkPropertyCard = ({
                   placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
                 />
               </div>
-              <button
-                onClick={(e) => onRemoveWorkItem(item.id, e)}
-                className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2"
-              >
-                <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-              </button>
+              {!groupSelectMode && (
+                <div className="flex items-center gap-2">
+                  {!isConfiguring && renderAssignedMemberIcon(item.id)}
+                  <button
+                    onClick={(e) => onRemoveWorkItem(item.id, e)}
+                    className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                  >
+                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1177,8 +1191,24 @@ const WorkPropertyCard = ({
 
       {/* Show existing work items for this property */}
       {expandedItems[property.id] && existingItems.map((item, index) => (
-        <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
+        <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${groupSelectMode && selectedWorkItems.has(item.id) ? 'ring-2 ring-blue-500' : ''}`}>
           <div className="flex items-center justify-between">
+            {groupSelectMode && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggleWorkItemSelection(item.id);
+                }}
+                className="mr-3 flex-shrink-0"
+              >
+                {selectedWorkItems.has(item.id) ? (
+                  <CheckSquare className="w-6 h-6 text-blue-600" />
+                ) : (
+                  <Square className="w-6 h-6 text-gray-400" />
+                )}
+              </button>
+            )}
             {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <input
@@ -1199,12 +1229,17 @@ const WorkPropertyCard = ({
                 {getItemLabel(property, item, index, existingItems.length, t)}
               </span>
             )}
-            <button
-              onClick={(e) => onRemoveWorkItem(item.id, e)}
-              className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
-            >
-              <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-            </button>
+            {!groupSelectMode && (
+              <div className="flex items-center gap-2">
+                {renderAssignedMemberIcon(item.id)}
+                <button
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Property type selection - for custom_work, only show if unit not yet selected */}

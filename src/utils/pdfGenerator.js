@@ -616,9 +616,9 @@ export const generateInvoicePDF = async ({
           // For sanitary installation, translate the type name directly
           displayName = t(item.selectedType || item.subtitle);
         } else if (item.isLargeFormat) {
-          // For Large Format, show base name + "Large Format"
+          // For Large Format, show base name + ", large format"
           const baseName = item.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60 ? 'Tiling' : 'Paving';
-          displayName = `${t(baseName)} ${t(WORK_ITEM_NAMES.LARGE_FORMAT)}`;
+          displayName = `${t(baseName)}, ${t(WORK_ITEM_NAMES.LARGE_FORMAT).toLowerCase()}`;
         } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
           // Electrical/plumbing: show main name only in Price Offer, main name + subtitle in Invoice
           displayName = isPriceOffer ? t(itemName) : `${t(itemName)}\n${t(item.subtitle)}`;
@@ -650,12 +650,17 @@ export const generateInvoicePDF = async ({
         if (displayName) {
           // Remove thickness ranges from masonry items (e.g., ", 75 - 175mm", ", 200 - 450mm")
           displayName = displayName.replace(/, \d+ - \d+mm/g, '');
-          // Remove "2 vrstvy" from painting items
+          // Remove "2 vrstvy" or "2 layers" from painting items
           displayName = displayName.replace(/, 2 vrstvy/g, '');
-          // Fix tiling capitalization: "Veľkoformát" -> "veľkoformát"
-          displayName = displayName.replace(/ Veľkoformát/g, ', veľkoformát');
-          displayName = displayName.replace(/Dlažba Veľkoformát/g, 'Dlažba, veľkoformát');
-          displayName = displayName.replace(/Obklad Veľkoformát/g, 'Obklad, veľkoformát');
+          displayName = displayName.replace(/, 2 layers/g, '');
+          // Fix tiling capitalization/separator if it missed the logic above
+          displayName = displayName.replace(/ (Veľkoformát|Large Format)/g, ', $1').replace(/, (Veľkoformát|Large Format)/g, (match) => match.toLowerCase());
+
+          // Legacy fixes for specific hardcoded strings
+          displayName = displayName.replace(/Dlažba, Veľkoformát/g, 'Dlažba, veľkoformát');
+          displayName = displayName.replace(/Obklad, Veľkoformát/g, 'Obklad, veľkoformát');
+          displayName = displayName.replace(/Paving, Large format/g, 'Paving, large format');
+          displayName = displayName.replace(/Tiling, Large format/g, 'Tiling, large format');
         }
 
         tableData.push([
@@ -734,9 +739,9 @@ export const generateInvoicePDF = async ({
             // Remove thickness ranges from masonry items
             displayName = displayName.replace(/, \d+ - \d+mm/g, '');
             // Fix tiling capitalization
-            displayName = displayName.replace(/ Veľkoformát/g, ', veľkoformát');
-            displayName = displayName.replace(/Dlažba Veľkoformát/g, 'Dlažba, veľkoformát');
-            displayName = displayName.replace(/Obklad Veľkoformát/g, 'Obklad, veľkoformát');
+            displayName = displayName.replace(/ (Veľkoformát|Large Format)/g, ', $1').replace(/, (Veľkoformát|Large Format)/g, (match) => match.toLowerCase());
+            displayName = displayName.replace(/Dlažba, Veľkoformát/g, 'Dlažba, veľkoformát');
+            displayName = displayName.replace(/Obklad, Veľkoformát/g, 'Obklad, veľkoformát');
           }
 
         }

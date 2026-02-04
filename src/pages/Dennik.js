@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Users,
     Search,
@@ -13,16 +14,24 @@ import {
     CheckCircle2,
     Clock,
     Camera,
-    FileText
+    FileText,
+    Trash2,
+    FolderPlus
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
 import api from '../services/supabaseApi';
+import ProjectDetailView from '../components/ProjectDetailView';
+import { useAuth } from '../context/AuthContext';
+import { formatProjectNumber } from '../utils/dataTransformers';
+import { getItemLabel } from '../utils/itemNaming';
+import { workProperties } from '../config/workProperties';
+
 
 const Dennik = () => {
     const { t } = useLanguage();
     const { user } = useAuth();
+    const navigate = useNavigate();
     const {
         myTeams,
         myJobs,
@@ -30,7 +39,12 @@ const Dennik = () => {
         createTeam,
         loadTeamData,
         updateJobAssignment,
-        respondToInvitation
+        respondToInvitation,
+        deleteTeam,
+        removeTeamMember,
+        projectCategories,
+        calculateProjectTotalPrice,
+        formatPrice
     } = useAppData();
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -40,12 +54,24 @@ const Dennik = () => {
     const [newTeamName, setNewTeamName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState(null);
+    const [selectedSharedProject, setSelectedSharedProject] = useState(null);
+    const [isSharedProjectModalOpen, setIsSharedProjectModalOpen] = useState(false);
     const [teamMembers, setTeamMembers] = useState([]);
     const [isLoadingTeamDetail, setIsLoadingTeamDetail] = useState(false);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [sharedProjects, setSharedProjects] = useState([]);
     const [isUpdatingTask, setIsUpdatingTask] = useState(null); // ID of task being updated
     const [taskNotes, setTaskNotes] = useState('');
+    const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false);
+    const [showRemoveMemberConfirm, setShowRemoveMemberConfirm] = useState(null); // member to remove
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showAddProjectModal, setShowAddProjectModal] = useState(false);
+    const [showRemoveProjectConfirm, setShowRemoveProjectConfirm] = useState(null); // project to remove
+    const [projectSearchQuery, setProjectSearchQuery] = useState('');
+    const [selectedMemberForAssignments, setSelectedMemberForAssignments] = useState(null);
+    const [memberAssignments, setMemberAssignments] = useState([]);
+    const [isLoadingMemberAssignments, setIsLoadingMemberAssignments] = useState(false);
+    const [teamAssignments, setTeamAssignments] = useState([]); // All assignments for team's projects
 
     // Load team data on mount
     useEffect(() => {
@@ -105,6 +131,66 @@ const Dennik = () => {
         }
     };
 
+    const handleOpenSharedProject = async (projectId) => {
+        if (!projectId) return;
+
+        // Try to find in shared projects first (fastest)
+        const sharedProject = sharedProjects.find(sp => sp.project_id === projectId);
+
+        // Even if found, we might need full details not just the summary in sharedProjects
+        // But let's check if we have it fully loaded? Usually sharedProjects is joined data.
+        // The ProjectDetailView expects a full project object. 
+        // It does its own loading inside (useEffect) if we pass an object with just an ID.
+        // So we can pass what we have (even if partial) as long as it has an ID, 
+        // OR we can pass just { id: projectId }.
+
+        // However, we want to show it immediately.
+        // Let's pass { id: projectId } and maybe some basic info if we have it.
+        const basicInfo = sharedProject?.projects || {};
+
+        // Parse JSON fields if they are strings
+        let priceListSnapshot = basicInfo.price_list_snapshot || basicInfo.priceListSnapshot;
+        if (typeof priceListSnapshot === 'string') {
+            try {
+                priceListSnapshot = JSON.parse(priceListSnapshot);
+            } catch (e) {
+                console.error("Failed to parse priceListSnapshot", e);
+            }
+        }
+
+        let photos = basicInfo.photos;
+        if (typeof photos === 'string') {
+            try {
+                photos = JSON.parse(photos);
+            } catch (e) {
+                photos = [];
+            }
+        }
+
+        let projectHistory = basicInfo.project_history || basicInfo.projectHistory;
+        if (typeof projectHistory === 'string') {
+            try {
+                projectHistory = JSON.parse(projectHistory);
+            } catch (e) {
+                projectHistory = [];
+            }
+        }
+
+        // Set basic info to show something immediately while ProjectDetailView fetches the rest
+        // IMPORTANT: Map snake_case from DB to camelCase expected by components
+        setSelectedSharedProject({
+            id: projectId,
+            ...basicInfo,
+            priceListSnapshot,
+            photos,
+            projectHistory,
+            // Ensure other camelCase fields if needed
+            clientId: basicInfo.client_id,
+            contractorId: basicInfo.contractor_id
+        });
+        setIsSharedProjectModalOpen(true);
+    };
+
     const handleSelectTeam = async (team) => {
         setSelectedTeam(team);
         setIsLoadingTeamDetail(true);
@@ -115,6 +201,15 @@ const Dennik = () => {
             ]);
             setTeamMembers(members || []);
             setSharedProjects(projects || []);
+
+            // Load all team assignments (for owners to see all tasks)
+            const projectIds = (projects || []).map(p => p.project_id);
+            if (projectIds.length > 0) {
+                const allAssignments = await api.teams.getTeamAssignments(projectIds);
+                setTeamAssignments(allAssignments || []);
+            } else {
+                setTeamAssignments([]);
+            }
         } catch (error) {
             console.error('Error loading team details:', error);
         } finally {
@@ -126,6 +221,14 @@ const Dennik = () => {
         const nextStatus = currentStatus === 'pending' ? 'finished' : 'pending';
         try {
             await updateJobAssignment(taskId, { status: nextStatus });
+            // Refresh team assignments for owners
+            if (selectedTeam && selectedTeam.owner_id === user?.id) {
+                const projectIds = sharedProjects.map(p => p.project_id);
+                if (projectIds.length > 0) {
+                    const allAssignments = await api.teams.getTeamAssignments(projectIds);
+                    setTeamAssignments(allAssignments || []);
+                }
+            }
         } catch (error) {
             console.error('Error updating task:', error);
         }
@@ -138,6 +241,34 @@ const Dennik = () => {
             setTaskNotes('');
         } catch (error) {
             console.error('Error saving task details:', error);
+        }
+    };
+
+    const handleDeleteAssignment = async (assignmentId) => {
+        if (!window.confirm(t('Are you sure you want to delete this assignment?'))) return;
+        try {
+            await api.teams.deleteAssignment(assignmentId);
+            // Refresh team data to update the tasks list
+            await loadTeamData();
+            // Refresh team assignments for the Team Tasks section
+            if (selectedTeam) {
+                const projectIds = sharedProjects.map(p => p.project_id);
+                if (projectIds.length > 0) {
+                    const allAssignments = await api.teams.getTeamAssignments(projectIds);
+                    setTeamAssignments(allAssignments || []);
+                }
+            }
+            // If viewing member assignments, refresh those too
+            if (selectedMemberForAssignments) {
+                const assignments = await api.teams.getMemberAssignments(
+                    selectedMemberForAssignments.user_id,
+                    selectedTeam.id
+                );
+                setMemberAssignments(assignments || []);
+            }
+        } catch (error) {
+            console.error('Error deleting assignment:', error);
+            alert(t('Failed to delete assignment. Please try again.'));
         }
     };
 
@@ -171,6 +302,106 @@ const Dennik = () => {
             }
         }
     };
+
+    const handleDeleteTeam = async () => {
+        if (!selectedTeam) return;
+        setIsDeleting(true);
+        try {
+            await deleteTeam(selectedTeam.id);
+            setShowDeleteTeamConfirm(false);
+            setSelectedTeam(null);
+        } catch (error) {
+            console.error('Error deleting team:', error);
+            alert(t('Failed to delete team. Please try again.'));
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleRemoveMember = async (member) => {
+        if (!selectedTeam) return;
+        setIsDeleting(true);
+        try {
+            await removeTeamMember(selectedTeam.id, member.user_id);
+            // Refresh the member list
+            const members = await api.teams.getMembers(selectedTeam.id);
+            setTeamMembers(members || []);
+            setShowRemoveMemberConfirm(null);
+        } catch (error) {
+            console.error('Error removing member:', error);
+            alert(t('Failed to remove member. Please try again.'));
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleAddProject = async (projectId) => {
+        if (!selectedTeam) return;
+        try {
+            await api.teams.shareProject(selectedTeam.id, projectId);
+            // Refresh shared projects
+            const projects = await api.teams.getSharedProjects(selectedTeam.id);
+            setSharedProjects(projects || []);
+        } catch (error) {
+            console.error('Error adding project:', error);
+            alert(t('Failed to add project. Please try again.'));
+        }
+    };
+
+    const handleRemoveProject = async (projectId) => {
+        if (!selectedTeam) return;
+        setIsDeleting(true);
+        try {
+            await api.teams.unshareProject(selectedTeam.id, projectId);
+            // Refresh shared projects
+            const projects = await api.teams.getSharedProjects(selectedTeam.id);
+            setSharedProjects(projects || []);
+            setShowRemoveProjectConfirm(null);
+        } catch (error) {
+            console.error('Error removing project:', error);
+            alert(t('Failed to remove project. Please try again.'));
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+
+
+    const handleMemberClick = async (member) => {
+        if (!member) return;
+        setSelectedMemberForAssignments(member);
+        setIsLoadingMemberAssignments(true);
+        try {
+            const assignments = await api.teams.getMemberAssignments(member.user_id);
+            setMemberAssignments(assignments || []);
+        } catch (error) {
+            console.error('Error loading member assignments:', error);
+            alert(t('Failed to load assignments.'));
+        } finally {
+            setIsLoadingMemberAssignments(false);
+        }
+    };
+
+    const handleProjectOpen = (project) => {
+        // Navigate to projects page with the specific project selected
+        navigate('/projects', {
+            state: {
+                selectedProjectId: project.id,
+                selectedCategoryId: project.category
+            }
+        });
+    };
+
+    // Get all projects from all categories
+    const allProjects = projectCategories?.flatMap(cat => cat.projects || []) || [];
+
+    // Filter projects for search and exclude already shared ones
+    const sharedProjectIds = sharedProjects.map(sp => sp.project_id);
+    const availableProjects = allProjects.filter(p =>
+        !sharedProjectIds.includes(p.id) &&
+        (p.name?.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
+            p.location?.toLowerCase().includes(projectSearchQuery.toLowerCase()))
+    );
 
     // Prepare unified sorted team list
     const sortedTeams = [...myTeams].sort((a, b) => {
@@ -215,14 +446,158 @@ const Dennik = () => {
                                     <p className="text-gray-500">{selectedTeam.owner_id === user?.id ? t('You are the owner') : t('Team Member')}</p>
                                 </div>
                                 {selectedTeam.owner_id === user?.id && (
-                                    <button
-                                        onClick={() => setShowAddMemberModal(true)}
-                                        className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 w-full sm:w-auto justify-center"
-                                    >
-                                        <UserPlus className="w-5 h-5" />
-                                        <span>{t('Add Member')}</span>
-                                    </button>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <button
+                                            onClick={() => setShowAddMemberModal(true)}
+                                            className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 flex-1 sm:flex-none justify-center"
+                                        >
+                                            <UserPlus className="w-5 h-5" />
+                                            <span>{t('Add Member')}</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setShowDeleteTeamConfirm(true)}
+                                            className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-xl font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center gap-2 justify-center"
+                                            title={t('Delete Team')}
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 )}
+                            </div>
+
+
+                            {/* Team Tasks Section */}
+                            <div className="mb-8 space-y-4">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                    {t('Team Tasks')}
+                                </h3>
+
+                                {/* Filter tasks for this team - owners see all, members see only their own */}
+                                {(() => {
+                                    const teamProjectIds = sharedProjects.map(sp => sp.project_id);
+                                    const isOwner = selectedTeam.owner_id === user?.id;
+                                    // Owners see all team assignments, members see only their own jobs
+                                    const teamTasks = isOwner
+                                        ? teamAssignments
+                                        : myJobs.filter(job => teamProjectIds.includes(job.project_id || job.projectId));
+
+                                    if (teamTasks.length === 0) {
+                                        return (
+                                            <div className="py-8 text-center text-gray-500 bg-gray-50 dark:bg-gray-900/50 rounded-2xl">
+                                                <p>{t('No tasks assigned in this team\'s projects.')}</p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {teamTasks.map(job => {
+                                                // Check if current user is the assigned person for this task
+                                                const isAssignedUser = job.user_id === user?.id;
+                                                // Owner can only view tasks assigned to others, not modify them
+                                                const canModifyTask = isAssignedUser;
+
+                                                return (
+                                                <div
+                                                    key={job.id}
+                                                    className={`p-5 rounded-3xl border transition-all ${job.status === 'finished'
+                                                        ? 'bg-green-50/50 border-green-100 dark:bg-green-900/10 dark:border-green-900/30'
+                                                        : 'bg-white border-gray-100 dark:bg-gray-800 dark:border-gray-700 shadow-sm'
+                                                        }`}
+                                                >
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                            {/* Status indicator - only clickable for assigned user */}
+                                                            {canModifyTask ? (
+                                                                <button
+                                                                    onClick={() => handleUpdateTaskStatus(job.id, job.status)}
+                                                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${job.status === 'finished'
+                                                                        ? 'bg-green-500 text-white'
+                                                                        : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-500 dark:bg-gray-700'
+                                                                        }`}
+                                                                >
+                                                                    {job.status === 'finished' ? <CheckCircle2 className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+                                                                </button>
+                                                            ) : (
+                                                                <div
+                                                                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${job.status === 'finished'
+                                                                        ? 'bg-green-500 text-white'
+                                                                        : 'bg-gray-100 text-gray-400 dark:bg-gray-700'
+                                                                        }`}
+                                                                    title={t('Only assigned member can change status')}
+                                                                >
+                                                                    {job.status === 'finished' ? <CheckCircle2 className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+                                                                </div>
+                                                            )}
+                                                            <div className="min-w-0">
+                                                                <h4
+                                                                    className="font-bold text-gray-900 dark:text-white line-clamp-1 hover:text-blue-500 cursor-pointer"
+                                                                    onClick={() => handleOpenSharedProject(job.project_id || job.projectId)}
+                                                                >
+                                                                    {job.job_name}
+                                                                </h4>
+                                                                <p className="text-xs text-gray-500 truncate">
+                                                                    {job.projects?.name || sharedProjects.find(sp => sp.project_id === (job.project_id || job.projectId))?.projects?.name || t('Unknown Project')}
+                                                                    • {job.rooms?.name}
+                                                                </p>
+                                                                {/* Show assigned user for owners viewing all tasks */}
+                                                                {isOwner && job.profiles && (
+                                                                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-0.5">
+                                                                        → {job.profiles.full_name || job.profiles.email}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {selectedTeam.owner_id === user?.id && (
+                                                            <button
+                                                                onClick={() => handleDeleteAssignment(job.id)}
+                                                                className="text-gray-400 hover:text-red-500 transition-colors p-1 flex-shrink-0"
+                                                                title={t('Delete assignment')}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        {job.notes && (
+                                                            <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400 italic">"{job.notes}"</p>
+                                                            </div>
+                                                        )}
+                                                        {(() => {
+                                                            // Parse photos if stored as JSON string
+                                                            let parsedPhotos = job.photos || [];
+                                                            if (typeof parsedPhotos === 'string') {
+                                                                try {
+                                                                    parsedPhotos = JSON.parse(parsedPhotos);
+                                                                } catch (e) {
+                                                                    parsedPhotos = [];
+                                                                }
+                                                            }
+                                                            if (!Array.isArray(parsedPhotos) || parsedPhotos.length === 0) return null;
+                                                            return (
+                                                                <div className="flex gap-2 overflow-x-auto pb-1 mt-2">
+                                                                    {parsedPhotos.map((photo, idx) => {
+                                                                        const photoUrl = typeof photo === 'string' ? photo : photo?.url;
+                                                                        if (!photoUrl) return null;
+                                                                        return (
+                                                                            <div key={idx} className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+                                                                                <img src={photoUrl} alt="Task" className="w-full h-full object-cover" />
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -237,7 +612,11 @@ const Dennik = () => {
                                             <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-300" /></div>
                                         ) : (
                                             teamMembers.map(member => (
-                                                <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl">
+                                                <div
+                                                    key={member.id}
+                                                    onClick={() => handleMemberClick(member)}
+                                                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                >
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 font-bold">
                                                             {member.profiles?.full_name?.charAt(0).toUpperCase() || member.profiles?.email?.charAt(0).toUpperCase()}
@@ -258,7 +637,14 @@ const Dennik = () => {
                                                         </div>
                                                     </div>
                                                     {selectedTeam.owner_id === user?.id && member.user_id !== user?.id && (
-                                                        <button className="text-gray-400 hover:text-red-500 transition-colors">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setShowRemoveMemberConfirm(member);
+                                                            }}
+                                                            className="text-gray-400 hover:text-red-500 transition-colors"
+                                                            title={t('Remove member')}
+                                                        >
                                                             <UserMinus className="w-5 h-5" />
                                                         </button>
                                                     )}
@@ -270,29 +656,70 @@ const Dennik = () => {
 
                                 {/* Shared Projects */}
                                 <div className="space-y-4">
-                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                        <ClipboardList className="w-5 h-5" />
-                                        {t('Shared Projects')}
-                                    </h3>
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <ClipboardList className="w-5 h-5" />
+                                            {t('Shared Projects')}
+                                        </h3>
+                                        {selectedTeam.owner_id === user?.id && (
+                                            <button
+                                                onClick={() => setShowAddProjectModal(true)}
+                                                className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                                            >
+                                                <FolderPlus className="w-4 h-4" />
+                                                {t('Add Project')}
+                                            </button>
+                                        )}
+                                    </div>
                                     <div className="space-y-2">
                                         {sharedProjects.length > 0 ? (
                                             sharedProjects.map(sp => (
-                                                <div key={sp.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl group">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-600">
-                                                            <ClipboardList className="w-5 h-5" />
+                                                <div
+                                                    key={sp.id}
+                                                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl group cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                                    onClick={() => handleOpenSharedProject(sp.project_id)}
+                                                >
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                                            {formatProjectNumber(sp.projects) || sp.project_id}
                                                         </div>
-                                                        <div>
-                                                            <div className="font-bold text-gray-900 dark:text-white">{sp.projects?.name}</div>
-                                                            <div className="text-xs text-gray-500">{sp.projects?.location || t('No location')}</div>
-                                                        </div>
+                                                        <div className="font-bold text-gray-900 dark:text-white truncate">{sp.projects?.name}</div>
+                                                        {sp.projects?.location && (
+                                                            <div className="text-xs text-gray-500 truncate mt-1">{sp.projects.location}</div>
+                                                        )}
                                                     </div>
-                                                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-600 transition-colors" />
+                                                    <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                                                        <div className="text-right">
+                                                            <div className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(sp.project_id))}</div>
+                                                            <div className="text-xs text-gray-500">{t('VAT not included')}</div>
+                                                        </div>
+                                                        {selectedTeam.owner_id === user?.id && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setShowRemoveProjectConfirm(sp);
+                                                                }}
+                                                                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                                title={t('Remove from team')}
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-600 transition-colors" />
+                                                    </div>
                                                 </div>
                                             ))
                                         ) : (
                                             <div className="py-8 text-center text-gray-500 bg-gray-50 dark:bg-gray-900/50 rounded-2xl">
                                                 <p>{t('No projects shared with this team yet.')}</p>
+                                                {selectedTeam.owner_id === user?.id && (
+                                                    <button
+                                                        onClick={() => setShowAddProjectModal(true)}
+                                                        className="mt-3 text-blue-600 hover:text-blue-700 font-bold text-sm"
+                                                    >
+                                                        {t('Add your first project')}
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -342,103 +769,8 @@ const Dennik = () => {
                             </div>
                         )}
 
-                        {/* My Tasks Section */}
-                        {myJobs?.length > 0 && (
-                            <div className="space-y-4">
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <CheckCircle2 className="w-6 h-6 text-green-500" />
-                                    {t('My Tasks')}
-                                </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {myJobs.map(job => (
-                                        <div
-                                            key={job.id}
-                                            className={`p-5 rounded-3xl border transition-all ${job.status === 'finished'
-                                                ? 'bg-green-50/50 border-green-100 dark:bg-green-900/10 dark:border-green-900/30'
-                                                : 'bg-white border-gray-100 dark:bg-gray-800 dark:border-gray-700 shadow-sm'
-                                                }`}
-                                        >
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <button
-                                                        onClick={() => handleUpdateTaskStatus(job.id, job.status)}
-                                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${job.status === 'finished'
-                                                            ? 'bg-green-500 text-white'
-                                                            : 'bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-500 dark:bg-gray-700'
-                                                            }`}
-                                                    >
-                                                        {job.status === 'finished' ? <CheckCircle2 className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
-                                                    </button>
-                                                    <div>
-                                                        <h4 className="font-bold text-gray-900 dark:text-white line-clamp-1">{job.job_name}</h4>
-                                                        <p className="text-xs text-gray-500">{job.projects?.name} • {job.rooms?.name}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsUpdatingTask(job.id);
-                                                            setTaskNotes(job.notes || '');
-                                                        }}
-                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-400 hover:text-blue-500"
-                                                    >
-                                                        <FileText className="w-5 h-5" />
-                                                    </button>
-                                                </div>
-                                            </div>
 
-                                            {isUpdatingTask === job.id ? (
-                                                <div className="space-y-3 animate-slide-in">
-                                                    <textarea
-                                                        value={taskNotes}
-                                                        onChange={(e) => setTaskNotes(e.target.value)}
-                                                        className="w-full p-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-900 dark:text-white min-h-[80px]"
-                                                        placeholder={t('Add notes about your task...')}
-                                                    />
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl text-gray-500 hover:text-blue-500 transition-colors"
-                                                            title={t('Add Photo')}
-                                                        >
-                                                            <Camera className="w-5 h-5" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleSaveTaskDetails(job.id)}
-                                                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700"
-                                                        >
-                                                            {t('Save')}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setIsUpdatingTask(null)}
-                                                            className="flex-1 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium"
-                                                        >
-                                                            {t('Cancel')}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-2">
-                                                    {job.notes && (
-                                                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
-                                                            <p className="text-xs text-gray-600 dark:text-gray-400 italic">"{job.notes}"</p>
-                                                        </div>
-                                                    )}
-                                                    {job.photos?.length > 0 && (
-                                                        <div className="flex gap-2 overflow-x-auto pb-1 mt-2">
-                                                            {job.photos.map((photo, idx) => (
-                                                                <div key={idx} className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
-                                                                    <img src={photo} alt="Task" className="w-full h-full object-cover" />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        {/* Members and Shared Projects columns */}
 
                         <div className="space-y-4">
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -492,111 +824,480 @@ const Dennik = () => {
             </div>
 
             {/* Create Team Modal */}
-            {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-scale-in">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t('Create New Team')}</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Team name')}</label>
+            {
+                showCreateModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-scale-in">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t('Create New Team')}</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Team name')}</label>
+                                    <input
+                                        type="text"
+                                        value={newTeamName}
+                                        onChange={(e) => setNewTeamName(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                        placeholder={t('Enter team name')}
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        onClick={() => setShowCreateModal(false)}
+                                        className="flex-1 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                                    >
+                                        {t('Cancel')}
+                                    </button>
+                                    <button
+                                        onClick={handleCreateTeam}
+                                        disabled={isCreating || !newTeamName.trim()}
+                                        className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {isCreating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t('Create')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Add Member Modal */}
+            {
+                showAddMemberModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-scale-in">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Add Team Member')}</h2>
+                                <button onClick={() => setShowAddMemberModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+
+                            <div className="relative mb-6">
                                 <input
                                     type="text"
-                                    value={newTeamName}
-                                    onChange={(e) => setNewTeamName(e.target.value)}
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
-                                    placeholder={t('Enter team name')}
+                                    placeholder={t('Search by name or email...')}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
                                     autoFocus
                                 />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                             </div>
-                            <div className="flex gap-3 pt-4">
+
+                            <div className="max-h-[40vh] overflow-y-auto pr-2 space-y-2">
+                                {isSearching ? (
+                                    <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" /></div>
+                                ) : searchResults.length > 0 ? (
+                                    searchResults.map(userResult => (
+                                        <button
+                                            key={userResult.id}
+                                            onClick={() => handleAddMember(userResult.id)}
+                                            className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold">
+                                                    {userResult.full_name?.charAt(0).toUpperCase() || userResult.email?.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="text-left">
+                                                    <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                        {userResult.full_name || userResult.email.split('@')[0]}
+                                                        {userResult.isMember && (
+                                                            <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold uppercase">
+                                                                {t('Member')}
+                                                            </span>
+                                                        )}
+                                                        {userResult.isInvited && (
+                                                            <span className="text-[10px] bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase">
+                                                                {t('Pending')}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">{userResult.email}</div>
+                                                </div>
+                                            </div>
+                                            {!(userResult.isMember || userResult.isInvited) && (
+                                                <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                                            )}
+                                        </button>
+                                    ))
+                                ) : searchQuery && (
+                                    <div className="py-8 text-center text-gray-500">
+                                        <p>{t('No users found.')}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Delete Team Confirmation Modal */}
+            {
+                showDeleteTeamConfirm && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-scale-in">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Trash2 className="w-8 h-8 text-red-600" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('Delete Team')}</h2>
+                                <p className="text-gray-500 dark:text-gray-400">
+                                    {t('Are you sure you want to delete')} <span className="font-bold text-gray-900 dark:text-white">{selectedTeam?.name}</span>?
+                                </p>
+                                <p className="text-sm text-red-500 mt-2">{t('This will remove all members and shared projects. This action cannot be undone.')}</p>
+                            </div>
+                            <div className="flex gap-3">
                                 <button
-                                    onClick={() => setShowCreateModal(false)}
+                                    onClick={() => setShowDeleteTeamConfirm(false)}
+                                    disabled={isDeleting}
                                     className="flex-1 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
                                 >
                                     {t('Cancel')}
                                 </button>
                                 <button
-                                    onClick={handleCreateTeam}
-                                    disabled={isCreating || !newTeamName.trim()}
-                                    className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                    onClick={handleDeleteTeam}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
                                 >
-                                    {isCreating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t('Create')}
+                                    {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t('Delete')}
                                 </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {/* Add Member Modal */}
-            {showAddMemberModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-scale-in">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Add Team Member')}</h2>
-                            <button onClick={() => setShowAddMemberModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                                <X className="w-5 h-5 text-gray-500" />
-                            </button>
-                        </div>
-
-                        <div className="relative mb-6">
-                            <input
-                                type="text"
-                                placeholder={t('Search by name or email...')}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
-                                autoFocus
-                            />
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        </div>
-
-                        <div className="max-h-[40vh] overflow-y-auto pr-2 space-y-2">
-                            {isSearching ? (
-                                <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" /></div>
-                            ) : searchResults.length > 0 ? (
-                                searchResults.map(userResult => (
-                                    <button
-                                        key={userResult.id}
-                                        onClick={() => handleAddMember(userResult.id)}
-                                        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold">
-                                                {userResult.full_name?.charAt(0).toUpperCase() || userResult.email?.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className="text-left">
-                                                <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                                    {userResult.full_name || userResult.email.split('@')[0]}
-                                                    {userResult.isMember && (
-                                                        <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold uppercase">
-                                                            {t('Member')}
-                                                        </span>
-                                                    )}
-                                                    {userResult.isInvited && (
-                                                        <span className="text-[10px] bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase">
-                                                            {t('Pending')}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="text-xs text-gray-500">{userResult.email}</div>
-                                            </div>
-                                        </div>
-                                        {!(userResult.isMember || userResult.isInvited) && (
-                                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-                                        )}
-                                    </button>
-                                ))
-                            ) : searchQuery && (
-                                <div className="py-8 text-center text-gray-500">
-                                    <p>{t('No users found.')}</p>
+            {/* Remove Member Confirmation Modal */}
+            {
+                showRemoveMemberConfirm && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-scale-in">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <UserMinus className="w-8 h-8 text-amber-600" />
                                 </div>
-                            )}
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('Remove Member')}</h2>
+                                <p className="text-gray-500 dark:text-gray-400">
+                                    {t('Are you sure you want to remove')} <span className="font-bold text-gray-900 dark:text-white">{showRemoveMemberConfirm.profiles?.full_name || showRemoveMemberConfirm.profiles?.email}</span> {t('from the team')}?
+                                </p>
+                                <p className="text-sm text-gray-500 mt-2">{t('They will no longer have access to shared projects.')}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowRemoveMemberConfirm(null)}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                                >
+                                    {t('Cancel')}
+                                </button>
+                                <button
+                                    onClick={() => handleRemoveMember(showRemoveMemberConfirm)}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+                                >
+                                    {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t('Remove')}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+
+            {/* Add Project Modal */}
+            {
+                showAddProjectModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl shadow-2xl animate-scale-in overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-800">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Add Project')}</h2>
+                                    <button
+                                        onClick={() => {
+                                            setShowAddProjectModal(false);
+                                            setProjectSearchQuery('');
+                                        }}
+                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                                    >
+                                        <X className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
+                                <div className="relative mt-4">
+                                    <input
+                                        type="text"
+                                        placeholder={t('Search projects...')}
+                                        value={projectSearchQuery}
+                                        onChange={(e) => setProjectSearchQuery(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                    />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                </div>
+                            </div>
+                            <div className="max-h-[50vh] overflow-y-auto p-4">
+                                {availableProjects.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {availableProjects.map(project => (
+                                            <button
+                                                key={project.id}
+                                                onClick={() => handleAddProject(project.id)}
+                                                className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left group"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                                        {formatProjectNumber(project) || project.id}
+                                                    </div>
+                                                    <div className="text-lg font-bold text-gray-900 dark:text-white truncate">{project.name}</div>
+                                                    {project.location && (
+                                                        <div className="text-xs text-gray-500 truncate mt-1">
+                                                            {project.location}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                                                    <div className="text-right">
+                                                        <div className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                                                        <div className="text-xs text-gray-500">{t('VAT not included')}</div>
+                                                    </div>
+                                                    <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="py-12 text-center text-gray-500">
+                                        <p>{projectSearchQuery ? t('No projects found.') : t('All projects are already shared.')}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Remove Project Confirmation Modal */}
+            {
+                showRemoveProjectConfirm && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-scale-in">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <ClipboardList className="w-8 h-8 text-amber-600" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('Remove Project')}</h2>
+                                <p className="text-gray-500 dark:text-gray-400">
+                                    {t('Are you sure you want to remove')} <span className="font-bold text-gray-900 dark:text-white">{showRemoveProjectConfirm.projects?.name}</span> {t('from the team')}?
+                                </p>
+                                <p className="text-sm text-gray-500 mt-2">{t('Team members will no longer see this project.')}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowRemoveProjectConfirm(null)}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                                >
+                                    {t('Cancel')}
+                                </button>
+                                <button
+                                    onClick={() => handleRemoveProject(showRemoveProjectConfirm.project_id)}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+                                >
+                                    {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t('Remove')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Member Assignments Modal */}
+            {
+                selectedMemberForAssignments && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white dark:bg-gray-900 w-full max-w-2xl rounded-3xl p-8 shadow-2xl animate-scale-in max-h-[80vh] flex flex-col">
+                            <div className="flex justify-between items-center mb-6 flex-shrink-0">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {selectedMemberForAssignments.profiles?.full_name || selectedMemberForAssignments.profiles?.email}
+                                    </h2>
+                                    <p className="text-gray-500">{t('Work Assignments')}</p>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedMemberForAssignments(null)}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                                >
+                                    <X className="w-6 h-6 text-gray-500" />
+                                </button>
+                            </div>
+
+                            <div className="overflow-y-auto pr-2 space-y-4">
+                                {isLoadingMemberAssignments ? (
+                                    <div className="py-12 text-center">
+                                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-4" />
+                                        <p className="text-gray-500">{t('Loading assignments...')}</p>
+                                    </div>
+                                ) : (
+                                    (() => {
+                                        const teamProjectIds = sharedProjects.map(sp => sp.project_id);
+                                        const filteredAssignments = memberAssignments.filter(job =>
+                                            teamProjectIds.includes(job.project_id)
+                                        );
+
+                                        const projectGroups = filteredAssignments.reduce((acc, job) => {
+                                            const projectId = job.project_id || job.projectId;
+                                            if (!acc[projectId]) {
+                                                acc[projectId] = {
+                                                    id: projectId,
+                                                    name: job.projects?.name || t('Unknown Project'),
+                                                    rooms: {}
+                                                };
+                                            }
+                                            const roomId = job.rooms?.id || 'no-room';
+                                            if (!acc[projectId].rooms[roomId]) {
+                                                acc[projectId].rooms[roomId] = {
+                                                    id: roomId,
+                                                    name: job.rooms?.name || t('No room'),
+                                                    jobs: []
+                                                };
+                                            }
+                                            acc[projectId].rooms[roomId].jobs.push(job);
+                                            return acc;
+                                        }, {});
+
+                                        const groupedArray = Object.values(projectGroups);
+
+                                        if (groupedArray.length > 0) {
+                                            return (
+                                                <div className="space-y-8 pb-4">
+                                                    {groupedArray.map((project) => (
+                                                        <div key={project.id} className="space-y-4">
+                                                            {/* Project Level */}
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200 dark:shadow-none">
+                                                                    <FileText className="w-5 h-5" />
+                                                                </div>
+                                                                <h3 className="font-bold text-gray-900 dark:text-white text-xl leading-tight">{project.name}</h3>
+                                                            </div>
+
+                                                            <div className="ml-5 border-l-2 border-gray-100 dark:border-gray-800 pl-8 space-y-6">
+                                                                {Object.values(project.rooms).map((room) => (
+                                                                    <div key={room.id} className="relative">
+                                                                        {/* Room Horizontal Connector */}
+                                                                        <div className="absolute -left-[34px] top-5 w-8 h-0.5 bg-gray-100 dark:bg-gray-800"></div>
+
+                                                                        <div className="flex items-center gap-2 mb-4">
+                                                                            <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                                                                                <span className="font-bold text-gray-800 dark:text-gray-200">{room.name}</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Jobs Level */}
+                                                                        <div className="ml-4 border-l-2 border-gray-100 dark:border-gray-800 pl-8 space-y-3">
+                                                                            {room.jobs.map((job) => (
+                                                                                <div key={job.id} className="relative">
+                                                                                    {/* Job Horizontal Connector */}
+                                                                                    <div className="absolute -left-[34px] top-1/2 -translate-y-1/2 w-8 h-0.5 bg-gray-100 dark:bg-gray-800"></div>
+
+                                                                                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all group hover:border-blue-100 dark:hover:border-blue-900">
+                                                                                        <div className="flex-1 min-w-0 pr-4">
+                                                                                            <div className="font-bold text-gray-900 dark:text-white truncate">
+                                                                                                {(() => {
+                                                                                                    if (job.job_name) return job.job_name;
+
+                                                                                                    // Try to reconstruct name from room's work_items
+                                                                                                    const workItems = job.rooms?.work_items;
+                                                                                                    if (workItems && Array.isArray(workItems)) {
+                                                                                                        try {
+                                                                                                            const workItem = workItems.find(w => w.id === job.work_item_id || w.id === job.job_id);
+                                                                                                            const property = workProperties.find(p => p.id === workItem?.propertyId);
+                                                                                                            if (property && workItem) {
+                                                                                                                const itemsOfThisProperty = workItems.filter(w => w.propertyId === property.id);
+                                                                                                                const index = itemsOfThisProperty.findIndex(w => w.id === workItem.id);
+                                                                                                                return getItemLabel(property, workItem, index, itemsOfThisProperty.length, t);
+                                                                                                            }
+                                                                                                        } catch (e) {
+                                                                                                            console.error("Error reconstructing job name:", e);
+                                                                                                        }
+                                                                                                    }
+
+                                                                                                    return t('Work Item');
+                                                                                                })()}
+                                                                                            </div>
+                                                                                            {job.notes && (
+                                                                                                <p className="text-xs text-gray-500 mt-1 italic truncate">"{job.notes}"</p>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                                                                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${job.status === 'finished'
+                                                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                                                                }`}>
+                                                                                                {job.status === 'finished' ? (
+                                                                                                    <><CheckCircle2 className="w-3.5 h-3.5" /> {t('Finished')}</>
+                                                                                                ) : (
+                                                                                                    <><Clock className="w-3.5 h-3.5" /> {t('Pending')}</>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            {selectedTeam.owner_id === user?.id && (
+                                                                                                <button
+                                                                                                    onClick={() => handleDeleteAssignment(job.id)}
+                                                                                                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                                                                    title={t('Delete assignment')}
+                                                                                                >
+                                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                                </button>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        } else {
+                                            return (
+                                                <div className="py-12 text-center text-gray-500 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+                                                    <ClipboardList className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                                    <p className="font-medium">{t('No active assignments')}</p>
+                                                    <p className="text-sm mt-1">{t('This member has no work assigned in this team\'s projects.')}</p>
+                                                </div>
+                                            );
+                                        }
+                                    })()
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Shared Project Detail Modal */}
+            {
+                isSharedProjectModalOpen && selectedSharedProject && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={() => {
+                        setIsSharedProjectModalOpen(false);
+                        setSelectedSharedProject(null);
+                    }}>
+                        <div className="bg-white dark:bg-gray-900 rounded-3xl w-full sm:max-w-[95vw] h-[100dvh] sm:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col overflow-hidden animate-slide-in shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                            <ProjectDetailView
+                                project={selectedSharedProject}
+                                viewSource="team_modal"
+                                onBack={() => {
+                                    setIsSharedProjectModalOpen(false);
+                                    setSelectedSharedProject(null);
+                                }}
+                            />
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

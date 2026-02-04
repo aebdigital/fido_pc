@@ -4,23 +4,24 @@ import {
     UserPlus,
     Search,
     Loader2,
-    Users
+    Users,
+    CheckSquare
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
+import { getItemLabel } from '../utils/itemNaming';
 
-const AssignJobModal = ({ isOpen, onClose, projectId, roomId, jobId, jobName }) => {
+const AssignJobModal = ({ isOpen, onClose, projectId, roomId, jobId, jobName, workData = [], workProperties = [], isMultiple = false }) => {
     const { t } = useLanguage();
     const { assignUserToJob } = useAppData();
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [assigningId, setAssigningId] = useState(null);
     const [teamMembers, setTeamMembers] = useState([]);
+    const [hasFinanceAccess, setHasFinanceAccess] = useState(false);
 
     // In a real app, we'd fetch members of all teams this project is shared with.
-    // For now, we'll show members of "myTeams" as a simplified version,
-    // or ideally we'd have a specific API to get eligible assignees for a project.
     useEffect(() => {
         const fetchMembers = async () => {
             if (!isOpen || !projectId) return;
@@ -56,13 +57,43 @@ const AssignJobModal = ({ isOpen, onClose, projectId, roomId, jobId, jobName }) 
     const handleAssign = async (userId, teamId) => {
         setAssigningId(userId);
         try {
-            await assignUserToJob({
-                project_id: projectId,
-                room_id: roomId,
-                work_item_id: jobId,
-                user_id: userId,
-                team_id: teamId
-            });
+            if (isMultiple && Array.isArray(jobId)) {
+                // Assign to multiple work items
+                for (const id of jobId) {
+                    // Find the work item and its property to get the correct label
+                    const workItem = workData.find(w => w.id === id);
+                    const property = workProperties.find(p => p.id === workItem?.propertyId);
+
+                    // For rentals, we might need special handling or just match core property
+                    let finalJobName = jobName;
+                    if (property && workItem) {
+                        const itemsOfThisProperty = workData.filter(w => w.propertyId === property.id);
+                        const index = itemsOfThisProperty.findIndex(w => w.id === id);
+                        finalJobName = getItemLabel(property, workItem, index, itemsOfThisProperty.length, t);
+                    }
+
+                    await assignUserToJob({
+                        project_id: projectId,
+                        room_id: roomId,
+                        work_item_id: id,
+                        user_id: userId,
+                        team_id: teamId,
+                        job_name: finalJobName,
+                        has_finance_access: hasFinanceAccess
+                    });
+                }
+            } else {
+                // Single work item assignment
+                await assignUserToJob({
+                    project_id: projectId,
+                    room_id: roomId,
+                    work_item_id: jobId,
+                    user_id: userId,
+                    team_id: teamId,
+                    job_name: jobName,
+                    has_finance_access: hasFinanceAccess
+                });
+            }
             onClose();
         } catch (error) {
             console.error('Failed to assign job:', error);
@@ -102,6 +133,24 @@ const AssignJobModal = ({ isOpen, onClose, projectId, roomId, jobId, jobName }) 
                             className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    </div>
+
+                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${hasFinanceAccess ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
+                                <CheckSquare className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <div className="font-bold text-gray-900 dark:text-white text-sm">{t('Pristup k financiam')}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">{t('Allow member to see room total prices')}</div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setHasFinanceAccess(!hasFinanceAccess)}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${hasFinanceAccess ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                        >
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${hasFinanceAccess ? 'left-7' : 'left-1'}`} />
+                        </button>
                     </div>
 
                     <div className="max-h-[40vh] overflow-y-auto pr-2 space-y-2">
@@ -149,14 +198,7 @@ const AssignJobModal = ({ isOpen, onClose, projectId, roomId, jobId, jobName }) 
                     </div>
                 </div>
 
-                <div className="p-6 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-2.5 font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 transition-colors"
-                    >
-                        {t('Cancel')}
-                    </button>
-                </div>
+
             </div>
         </div>
     );

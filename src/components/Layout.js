@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ClipboardList, FileText, Users, Settings, LogOut, RefreshCw } from 'lucide-react';
+import { ClipboardList, FileText, Users, Settings, LogOut, RefreshCw, CalendarDays } from 'lucide-react';
 import { useNavigationBlocker } from '../context/NavigationBlockerContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -57,6 +57,7 @@ const Layout = ({ children }) => {
 
   const menuItems = [
     { path: '/projects', name: t('Projects'), icon: ClipboardList },
+    { path: '/dennik', name: t('Diary'), icon: CalendarDays },
     { path: '/invoices', name: t('Invoices'), icon: FileText },
     { path: '/clients', name: t('Clients'), icon: Users },
     { path: '/settings', name: t('Settings'), icon: Settings }

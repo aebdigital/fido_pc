@@ -831,10 +831,32 @@ export const calculateRoomPriceWithMaterials = (room, priceList) => {
   };
 
   // Use provided price list (mandatory for this utility)
-  const activePriceList = priceList;
-  if (!activePriceList) return {
+  if (!priceList) return {
     workTotal: 0, materialTotal: 0, othersTotal: 0, total: 0, items: [], materialItems: [], othersItems: [],
     baseWorkTotal: 0, baseMaterialTotal: 0, auxiliaryWorkCost: 0, auxiliaryMaterialCost: 0
+  };
+
+  // Safety check: Parse priceList if it's a string
+  let pl = priceList;
+  if (typeof pl === 'string') {
+    try {
+      pl = JSON.parse(pl);
+    } catch (e) {
+      console.error("Failed to parse priceList in calculateRoomPriceWithMaterials", e);
+      return {
+        workTotal: 0, materialTotal: 0, othersTotal: 0, total: 0, items: [], materialItems: [], othersItems: [],
+        baseWorkTotal: 0, baseMaterialTotal: 0, auxiliaryWorkCost: 0, auxiliaryMaterialCost: 0
+      };
+    }
+  }
+
+  // Ensure all categories exist as arrays to prevent .find() crashes
+  const activePriceList = {
+    work: [],
+    material: [],
+    installations: [],
+    others: [],
+    ...pl
   };
 
   let workTotal = 0;

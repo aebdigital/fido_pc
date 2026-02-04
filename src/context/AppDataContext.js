@@ -933,8 +933,10 @@ export const AppDataProvider = ({ children }) => {
     }
 
     if (project && project.priceListSnapshot) {
-      // Use project's frozen price list
-      projectPriceList = project.priceListSnapshot;
+      // Use project's frozen price list (parse if string)
+      projectPriceList = typeof project.priceListSnapshot === 'string'
+        ? JSON.parse(project.priceListSnapshot)
+        : project.priceListSnapshot;
     } else {
       // If no snapshot exists (old projects), fall back to current price list
       projectPriceList = appData.generalPriceList;
@@ -970,8 +972,10 @@ export const AppDataProvider = ({ children }) => {
     }
 
     if (project && project.priceListSnapshot) {
-      // Use project's frozen price list
-      projectPriceList = project.priceListSnapshot;
+      // Use project's frozen price list (parse if string)
+      projectPriceList = typeof project.priceListSnapshot === 'string'
+        ? JSON.parse(project.priceListSnapshot)
+        : project.priceListSnapshot;
     } else {
       projectPriceList = appData.generalPriceList;
     }
@@ -1216,6 +1220,38 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
+  const deleteJobAssignment = async (assignmentId) => {
+    try {
+      await api.teams.deleteAssignment(assignmentId);
+      await loadTeamData(); // Refresh local list
+      return true;
+    } catch (error) {
+      console.error('Error deleting job assignment:', error);
+      throw error;
+    }
+  };
+
+  const deleteTeam = async (teamId) => {
+    try {
+      await api.teams.deleteTeam(teamId);
+      await loadTeamData();
+      return true;
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      throw error;
+    }
+  };
+
+  const removeTeamMember = async (teamId, userId) => {
+    try {
+      await api.teams.removeMember(teamId, userId);
+      return true;
+    } catch (error) {
+      console.error('Error removing team member:', error);
+      throw error;
+    }
+  };
+
   const searchUsers = async (query) => {
     return await api.userProfiles.search(query);
   };
@@ -1328,8 +1364,11 @@ export const AppDataProvider = ({ children }) => {
     shareProjectToTeam,
     assignUserToJob,
     updateJobAssignment,
+    deleteJobAssignment,
     searchUsers,
-    loadTeamData
+    loadTeamData,
+    deleteTeam,
+    removeTeamMember
   };
 
   useEffect(() => {

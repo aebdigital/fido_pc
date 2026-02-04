@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   User,
   ClipboardList,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { generatePriceOfferPDF } from '../utils/pdfGenerator';
 import { compressImage } from '../utils/imageCompression';
 import { calculateWorksCount } from '../utils/priceCalculations';
@@ -78,6 +79,12 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     analyzeReceiptImage,
     isPro // Added Pro check
   } = useAppData();
+  const { user } = useAuth();
+
+  // Check if user can edit this project (owner or viewing their own project)
+  // Team members viewing via team_modal can only view, not edit
+  const isProjectOwner = project?.user_id === user?.id;
+  const canEditProject = !project?.is_archived && (viewSource !== 'team_modal' || isProjectOwner);
 
   // Local state
   const clientFormRef = useRef(null);
@@ -177,6 +184,20 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     setProjectPhotos(project.photos || []);
   }, [project, clients]);
 
+  // Memoized price list with safety parsing
+  const activePriceList = useMemo(() => {
+    let pl = project?.priceListSnapshot || generalPriceList;
+    if (typeof pl === 'string') {
+      try {
+        return JSON.parse(pl);
+      } catch (e) {
+        console.error("Failed to parse project.priceListSnapshot in ProjectDetailView", e);
+        return generalPriceList;
+      }
+    }
+    return pl;
+  }, [project?.priceListSnapshot, generalPriceList]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -197,8 +218,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   // --- Handlers ---
 
   const getVATRate = () => {
-    // Use project's price list first, fall back to general price list
-    const activePriceList = project?.priceListSnapshot || generalPriceList;
+    // Use the memoized active price list
     const vatItem = activePriceList?.others?.find(item => item.name === 'VAT');
     return vatItem ? vatItem.price / 100 : 0.23;
   };
@@ -947,38 +967,51 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       {/* Project Header */}
       <div className="mb-6">
         <div className="flex flex-col gap-2 lg:gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBack}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <ChevronRight className="w-5 h-5 rotate-180" />
-            </button>
-            {isEditingProjectName ? (
-              <input
-                type="text"
-                value={editingProjectName}
-                onChange={(e) => setEditingProjectName(e.target.value)}
-                onBlur={handleSaveProjectName}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveProjectName();
-                  if (e.key === 'Escape') setIsEditingProjectName(false);
-                }}
-                className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
-                autoFocus
-              />
-            ) : (
-              <>
-                <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{project.name}</h1>
-                {!project.is_archived && (
-                  <button
-                    onClick={handleEditProjectName}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    <Edit3 className="w-5 h-5" />
-                  </button>
-                )}
-              </>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {viewSource !== 'team_modal' && (
+                <button
+                  onClick={onBack}
+                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5 rotate-180" />
+                </button>
+              )}
+              {isEditingProjectName ? (
+                <input
+                  type="text"
+                  value={editingProjectName}
+                  onChange={(e) => setEditingProjectName(e.target.value)}
+                  onBlur={handleSaveProjectName}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveProjectName();
+                    if (e.key === 'Escape') setIsEditingProjectName(false);
+                  }}
+                  className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white truncate">{project.name}</h1>
+                  {!project.is_archived && (
+                    <button
+                      onClick={handleEditProjectName}
+                      className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex-shrink-0"
+                    >
+                      <Edit3 className="w-5 h-5" />
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {viewSource === 'team_modal' && (
+              <button
+                onClick={onBack}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors ml-2"
+              >
+                <X className="w-6 h-6" />
+              </button>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -1121,7 +1154,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               ) : (
                 <>
                   {getProjectRooms(project.id).map(room => {
-                    const worksCount = calculateWorksCount(room, project.priceListSnapshot);
+                    const worksCount = calculateWorksCount(room, activePriceList);
                     return (
                       <div
                         key={room.id}
@@ -1152,7 +1185,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                               <div className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('VAT not included')}</div>
                               <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg whitespace-nowrap">
                                 {formatPrice((() => {
-                                  const calc = calculateRoomPriceWithMaterials(room, project.priceListSnapshot);
+                                  const calc = calculateRoomPriceWithMaterials(room, activePriceList);
                                   return calc.workTotal + calc.materialTotal + calc.othersTotal;
                                 })())}
                               </div>
@@ -1184,16 +1217,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900 dark:text-white text-lg">{t('without VAT')}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900 dark:text-white text-lg">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id) * getVATRate())}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project) * getVATRate())}</span>
                 </div>
                 <hr className="border-gray-300 dark:border-gray-600" />
                 <div className="flex justify-between items-center">
                   <span className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Total price')}</span>
-                  <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(project.id) * (1 + getVATRate()))}</span>
+                  <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(project.id, project) * (1 + getVATRate()))}</span>
                 </div>
               </div>
 
@@ -1549,7 +1582,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                 <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Photos')}</h2>
               </div>
-              {!project.is_archived && (
+              {canEditProject && (
                 <div className="flex items-center gap-2">
                   {projectPhotos.length > 0 && (
                     <button
@@ -1572,11 +1605,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             {projectPhotos.length > 0 ? (
               <div
                 className={`relative bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
-                  } ${!project.is_archived && !photoDeleteMode ? 'cursor-pointer' : ''}`}
-                onClick={!project.is_archived && !photoDeleteMode ? () => photoInputRef.current?.click() : undefined}
-                onDrop={!project.is_archived && !photoDeleteMode ? handlePhotoDrop : undefined}
-                onDragOver={!project.is_archived && !photoDeleteMode ? handlePhotoDragOver : undefined}
-                onDragLeave={!project.is_archived && !photoDeleteMode ? handlePhotoDragLeave : undefined}
+                  } ${canEditProject && !photoDeleteMode ? 'cursor-pointer' : ''}`}
+                onClick={canEditProject && !photoDeleteMode ? () => photoInputRef.current?.click() : undefined}
+                onDrop={canEditProject && !photoDeleteMode ? handlePhotoDrop : undefined}
+                onDragOver={canEditProject && !photoDeleteMode ? handlePhotoDragOver : undefined}
+                onDragLeave={canEditProject && !photoDeleteMode ? handlePhotoDragLeave : undefined}
               >
                 {/* Photo Grid - 3 columns, max 7 rows = 21 photos per page */}
                 <div className="grid grid-cols-3 gap-2">
@@ -1644,15 +1677,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             ) : (
               <div
                 className={`min-h-[120px] flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-2xl transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
-                  } ${!project.is_archived ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}`}
-                onClick={!project.is_archived ? () => photoInputRef.current?.click() : undefined}
-                onDrop={!project.is_archived ? handlePhotoDrop : undefined}
-                onDragOver={!project.is_archived ? handlePhotoDragOver : undefined}
-                onDragLeave={!project.is_archived ? handlePhotoDragLeave : undefined}
+                  } ${canEditProject ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}`}
+                onClick={canEditProject ? () => photoInputRef.current?.click() : undefined}
+                onDrop={canEditProject ? handlePhotoDrop : undefined}
+                onDragOver={canEditProject ? handlePhotoDragOver : undefined}
+                onDragLeave={canEditProject ? handlePhotoDragLeave : undefined}
               >
                 <Image className="w-8 h-8 mb-2 text-gray-400" />
                 <span className="text-sm text-gray-500">
-                  {isDraggingPhoto ? t('Drop photos here') : t('Click or drag photos here')}
+                  {canEditProject ? (isDraggingPhoto ? t('Drop photos here') : t('Click or drag photos here')) : t('No photos yet')}
                 </span>
               </div>
             )}
@@ -1849,17 +1882,18 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         <RoomDetailsModal
           room={selectedRoom}
           workProperties={workProperties}
-          onClose={() => setShowRoomDetailsModal(false)}
           onSave={(workData, originalWorkItems) => handleSaveRoomWork(selectedRoom.id, workData, originalWorkItems)}
+          onClose={() => setShowRoomDetailsModal(false)}
           isReadOnly={project.is_archived}
-          priceList={project.priceListSnapshot}
+          priceList={activePriceList}
+          projectOwnerId={project.user_id}
         />
       )}
 
       {showProjectPriceList && (
         <ProjectPriceList
           projectId={project.id}
-          initialData={project.priceListSnapshot}
+          initialData={activePriceList}
           onClose={() => setShowProjectPriceList(false)}
           onSave={handleSaveProjectPriceList}
         />

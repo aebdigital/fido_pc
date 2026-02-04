@@ -11,6 +11,7 @@ import ContractorProfileModal from '../components/ContractorProfileModal';
 import ProjectDetailView from '../components/ProjectDetailView';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import api from '../services/supabaseApi';
 
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -219,9 +220,22 @@ const Projects = () => {
         }
       }
 
-      if (projectFound && client) {
-        // Client selection is handled by ProjectDetailView or context if needed
-        // setSelectedClientForProject(client); 
+      // If still not found, try fetching it directly (e.g., shared project)
+      // If still not found, try fetching it directly (e.g., shared project)
+      if (!projectFound && projectId) {
+        // We need to define an async function inside loading logic
+        const fetchMissingProject = async () => {
+          try {
+            const fetchedProject = await api.projects.getById(projectId);
+            if (fetchedProject) {
+              setSelectedProject(fetchedProject);
+              setCurrentView('details');
+            }
+          } catch (error) {
+            console.error('Error fetching deep-linked project:', error);
+          }
+        };
+        fetchMissingProject();
       }
     }
   }, [location.state, projectCategories, archivedProjects, setActiveCategory, setSelectedProject, setCurrentView]);

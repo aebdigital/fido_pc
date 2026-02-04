@@ -60,6 +60,17 @@
 </head>
 
 <body>
+  <script>
+    // Apply dark mode immediately before anything renders to prevent flash
+    (function() {
+      try {
+        var darkMode = localStorage.getItem('darkMode');
+        if (darkMode && JSON.parse(darkMode)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
   <!--

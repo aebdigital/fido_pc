@@ -1,21 +1,18 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
+import { useDarkMode } from '../context/DarkModeContext'
 import logo from '../logo.png' // Import logo
 
 const Login = () => {
   const { t } = useLanguage()
+  const { isDarkMode } = useDarkMode()
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
-
-  // Force light mode on this page
-  React.useEffect(() => {
-    document.documentElement.classList.remove('dark')
-  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -62,12 +59,12 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full mx-4 p-8 rounded-2xl border bg-white border-gray-200 shadow-sm">
+    <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className={`max-w-md w-full mx-4 p-8 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img
-            src={logo}
+            src={isDarkMode ? '/dark-logo.jpg' : logo}
             alt="Fido"
             className="h-20 w-auto" // Adjusted styling for logo image
           />
@@ -78,7 +75,7 @@ const Login = () => {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium mb-2 text-gray-700"
+              className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
             >
               {t('Email')}
             </label>
@@ -88,7 +85,7 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 rounded-lg border bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+              className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
               placeholder={t('Enter your email')}
             />
           </div>
@@ -96,7 +93,7 @@ const Login = () => {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium mb-2 text-gray-700"
+              className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
             >
               {t('Password')}
             </label>
@@ -107,11 +104,11 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 rounded-lg border bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+              className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
               placeholder={t('Enter your password')}
             />
             {isSignUp && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {t('Password must be at least 6 characters')}
               </p>
             )}
@@ -119,15 +116,15 @@ const Login = () => {
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 animate-in fade-in slide-in-from-top-1 duration-200">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className={`p-3 rounded-lg border animate-in fade-in slide-in-from-top-1 duration-200 ${isDarkMode ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-200'}`}>
+              <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{error}</p>
             </div>
           )}
 
           {/* Success Message */}
           {message && (
-            <div className="p-3 rounded-lg bg-green-50 border border-green-200 animate-in fade-in slide-in-from-top-1 duration-200">
-              <p className="text-sm text-green-600">{message}</p>
+            <div className={`p-3 rounded-lg border animate-in fade-in slide-in-from-top-1 duration-200 ${isDarkMode ? 'bg-green-900/30 border-green-800' : 'bg-green-50 border-green-200'}`}>
+              <p className={`text-sm ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>{message}</p>
             </div>
           )}
 
@@ -137,7 +134,7 @@ const Login = () => {
             disabled={loading}
             className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${loading
               ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gray-900 text-white hover:bg-gray-800'
+              : isDarkMode ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800'
               }`}
           >
             {loading ? t('Loading...') : isSignUp ? t('Sign Up') : t('Sign In')}
@@ -149,7 +146,7 @@ const Login = () => {
           <button
             type="button"
             onClick={toggleMode}
-            className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+            className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
           >
             {isSignUp
               ? t('Already have an account? Sign in')

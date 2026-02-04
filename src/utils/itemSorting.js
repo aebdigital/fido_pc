@@ -11,15 +11,26 @@ import { WORK_ITEM_PROPERTY_IDS } from '../config/constants';
 export const sortItemsByMasterList = (items, masterList, category = 'work') => {
     if (!items || !masterList) return items || [];
 
+    // Safety check: Parse masterList if it's a string
+    let parsedMasterList = masterList;
+    if (typeof masterList === 'string') {
+        try {
+            parsedMasterList = JSON.parse(masterList);
+        } catch (e) {
+            console.error("Failed to parse masterList in sortItemsByMasterList", e);
+            return items;
+        }
+    }
+
     // Create a map of propertyId/name to index in the master list
     const indexMap = new Map();
     let currentIndex = 0;
 
     // Helper to process a category from the price list
     const processCategory = (listCategory) => {
-        if (!masterList[listCategory]) return;
+        if (!parsedMasterList[listCategory]) return;
 
-        masterList[listCategory].forEach(item => {
+        parsedMasterList[listCategory].forEach(item => {
             // Map by generic name
             if (item.name) {
                 indexMap.set(item.name, currentIndex);

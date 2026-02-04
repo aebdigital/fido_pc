@@ -237,9 +237,12 @@ export const clientsApi = {
 
 export const projectsApi = {
   // Get all projects for contractor (excludes soft-deleted)
+  // Get all projects for contractor (excludes soft-deleted)
   getAll: async (contractorId) => {
     try {
       const userId = await getCurrentUserId()
+
+      // 1. Get Owned Projects
       let query = supabase
         .from('projects')
         .select('*')
@@ -251,11 +254,62 @@ export const projectsApi = {
         query = query.eq('contractor_id', contractorId)
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false })
+      const { data: ownedProjects, error: ownedError } = await query.order('created_at', { ascending: false })
+      if (ownedError) throw ownedError
 
-      if (error) throw error
+      // 2. Get Shared Projects
+      // a. Get my active teams
+      const { data: myTeams, error: teamsError } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+
+      if (teamsError) console.warn('Error fetching teams for shared projects:', teamsError)
+
+      let sharedProjects = []
+      const teamIds = (myTeams || []).map(t => t.team_id)
+
+      if (teamIds.length > 0) {
+        // b. Get projects shared with these teams
+        const { data: sharedLinks, error: linksError } = await supabase
+          .from('team_projects')
+          .select('project_id')
+          .in('team_id', teamIds)
+
+        if (linksError) console.warn('Error fetching team project links:', linksError)
+
+        const sharedProjectIds = (sharedLinks || []).map(l => l.project_id)
+
+        if (sharedProjectIds.length > 0) {
+          let sharedQuery = supabase
+            .from('projects')
+            .select('*')
+            .in('c_id', sharedProjectIds)
+            .or('is_deleted.is.null,is_deleted.eq.false')
+
+          if (contractorId) {
+            sharedQuery = sharedQuery.eq('contractor_id', contractorId)
+          }
+
+          const { data: shared, error: sharedError } = await sharedQuery
+          if (sharedError) {
+            console.warn('Error fetching specific shared projects:', sharedError)
+          } else {
+            sharedProjects = shared || []
+          }
+        }
+      }
+
+      // 3. Merge and deduplicate (prioritize owned if duplicates exist, though they shouldn't)
+      const allProjects = [...(ownedProjects || []), ...sharedProjects]
+      // dedupe by c_id
+      const uniqueProjectsMap = new Map()
+      allProjects.forEach(p => uniqueProjectsMap.set(p.c_id, p))
+      const uniqueProjects = Array.from(uniqueProjectsMap.values())
+
       // Map c_id to id for app compatibility
-      return (data || []).map(item => ({ ...item, id: item.c_id }))
+      return uniqueProjects.map(item => ({ ...item, id: item.c_id }))
     } catch (error) {
       handleError('projectsApi.getAll', error)
     }
@@ -1811,6 +1865,22 @@ export const teamsApi = {
     }
   },
 
+  // Unshare project from team
+  unshareProject: async (teamId, projectId) => {
+    try {
+      const { error } = await supabase
+        .from('team_projects')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('project_id', projectId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('teamsApi.unshareProject', error)
+    }
+  },
+
   // Get shared projects for a team
   getSharedProjects: async (teamId) => {
     try {
@@ -1919,6 +1989,27 @@ export const teamsApi = {
     }
   },
 
+  // Get all assignments for multiple projects (for team view)
+  getTeamAssignments: async (projectIds) => {
+    try {
+      if (!projectIds || projectIds.length === 0) return []
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .select(`
+          *,
+          projects (name),
+          rooms (name),
+          profiles:user_id (id, email, full_name, avatar_url)
+        `)
+        .in('project_id', projectIds)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getTeamAssignments', error)
+    }
+  },
+
   // Update a job assignment (status, notes, photos)
   updateAssignment: async (id, updates) => {
     try {
@@ -1936,6 +2027,90 @@ export const teamsApi = {
       return data
     } catch (error) {
       handleError('teamsApi.updateAssignment', error)
+    }
+  },
+
+  // Delete a job assignment (revoke task)
+  deleteAssignment: async (id) => {
+    try {
+      const { error } = await supabase
+        .from('job_assignments')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('teamsApi.deleteAssignment', error)
+    }
+  },
+
+  // Remove a member from a team (owner only)
+  removeMember: async (teamId, userId) => {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('teamsApi.removeMember', error)
+    }
+  },
+
+  // Delete a team (owner only) - cascades to team_members and team_projects
+  deleteTeam: async (teamId) => {
+    try {
+      // Delete team_projects first
+      await supabase
+        .from('team_projects')
+        .delete()
+        .eq('team_id', teamId)
+
+      // Delete team_members
+      await supabase
+        .from('team_members')
+        .delete()
+        .eq('team_id', teamId)
+
+      // Delete the team itself
+      const { error } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('teamsApi.deleteTeam', error)
+    }
+  },
+
+  // Get assignments for a specific member
+  getMemberAssignments: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .select(`
+          *,
+          projects (name),
+          rooms (name, work_items)
+        `)
+        .eq('user_id', userId)
+        .order('status', { ascending: false }) // Show pending first (pending > finished alphabetically? No, P > F. Wait. finished < pending. To show pending first, we want descending? pending > finished is true. )
+      // Let's sort by status so 'pending' comes before 'finished' if we want active first.
+      // Or just let the UI handle sorting.
+      // Let's just order by created_at desc for now or similar.
+      // Actually, let's stick to status if we want pending first. 'pending' > 'finished'.
+      // So descending order of status puts pending first.
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('teamsApi.getMemberAssignments', error)
     }
   }
 }

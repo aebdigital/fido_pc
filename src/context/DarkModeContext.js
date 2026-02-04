@@ -1,6 +1,24 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useLayoutEffect } from 'react';
 
 const DarkModeContext = createContext();
+
+// Apply dark mode class immediately on page load (before React renders)
+const applyDarkModeClass = (isDark) => {
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+};
+
+// Get initial dark mode value and apply class immediately
+const getInitialDarkMode = () => {
+  const saved = localStorage.getItem('darkMode');
+  const isDark = saved ? JSON.parse(saved) : false;
+  // Apply immediately before first render
+  applyDarkModeClass(isDark);
+  return isDark;
+};
 
 export const useDarkMode = () => {
   const context = useContext(DarkModeContext);
@@ -11,18 +29,12 @@ export const useDarkMode = () => {
 };
 
 export const DarkModeProvider = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(getInitialDarkMode);
 
-  useEffect(() => {
+  // Use layoutEffect to apply changes synchronously before paint
+  useLayoutEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    applyDarkModeClass(isDarkMode);
   }, [isDarkMode]);
 
   const toggleDarkMode = () => {
@@ -30,7 +42,7 @@ export const DarkModeProvider = ({ children }) => {
   };
 
   return (
-    <DarkModeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
+    <DarkModeContext.Provider value={{ isDarkMode, darkMode: isDarkMode, toggleDarkMode }}>
       {children}
     </DarkModeContext.Provider>
   );
