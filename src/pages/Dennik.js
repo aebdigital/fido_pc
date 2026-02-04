@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
     Users,
     Search,
@@ -30,7 +29,6 @@ import { workProperties } from '../config/workProperties';
 const Dennik = () => {
     const { t } = useLanguage();
     const { user } = useAuth();
-    const navigate = useNavigate();
     const {
         myTeams,
         myJobs,
@@ -59,7 +57,6 @@ const Dennik = () => {
     const [isLoadingTeamDetail, setIsLoadingTeamDetail] = useState(false);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [sharedProjects, setSharedProjects] = useState([]);
-    const [taskNotes, setTaskNotes] = useState('');
     const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false);
     const [showRemoveMemberConfirm, setShowRemoveMemberConfirm] = useState(null); // member to remove
     const [isDeleting, setIsDeleting] = useState(false);
