@@ -245,7 +245,7 @@ export const projectsApi = {
       // 1. Get Owned Projects
       let query = supabase
         .from('projects')
-        .select('*')
+        .select('*, owner:profiles (id, email, full_name, avatar_url)')
         .eq('user_id', userId)
         .or('is_deleted.is.null,is_deleted.eq.false')
 
@@ -284,7 +284,7 @@ export const projectsApi = {
         if (sharedProjectIds.length > 0) {
           let sharedQuery = supabase
             .from('projects')
-            .select('*')
+            .select('*, owner:profiles (id, email, full_name, avatar_url)')
             .in('c_id', sharedProjectIds)
             .or('is_deleted.is.null,is_deleted.eq.false')
 
@@ -586,6 +586,34 @@ export const invoicesApi = {
       return null
     } catch (error) {
       handleError('invoicesApi.getById', error)
+    }
+  },
+
+  // Get all invoices by project ID
+  getInvoicesByProject: async (projectId) => {
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+            *,
+            projects!invoices_project_id_fkey (*),
+            contractors (*)
+        `)
+        .eq('project_id', projectId)
+        .order('date_created', { ascending: false })
+
+      if (error) throw error
+      // Map c_id to id for app compatibility
+      return (data || []).map(item => ({
+        ...item,
+        id: item.c_id,
+        issue_date: item.date_created, // Provide alias for frontend compatibility
+        projects: item.projects ? { ...item.projects, id: item.projects.c_id } : null,
+        contractors: item.contractors ? { ...item.contractors, id: item.contractors.c_id } : null
+      }))
+    } catch (error) {
+      handleError('invoicesApi.getInvoicesByProject', error)
+      return []
     }
   },
 
@@ -2129,6 +2157,385 @@ export const userProfilesApi = {
     } catch (error) {
       handleError('userProfilesApi.search', error)
     }
+  },
+
+  // Get profiles by IDs
+  getByIds: async (userIds) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', userIds)
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('userProfilesApi.getByIds', error)
+      return []
+    }
+  }
+}
+
+// ========== DENNIK (PROJECT-BASED TIME TRACKING) ==========
+
+export const dennikApi = {
+  // ===== PROJECT MEMBERS =====
+
+  // Get all members for a project
+  getProjectMembers: async (projectId) => {
+    try {
+      const { data: members, error } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+
+      // Fetch user profiles separately from profiles table
+      if (members && members.length > 0) {
+        const userIds = members.map(m => m.user_id)
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, avatar_url')
+          .in('id', userIds)
+
+        // Merge profile data with members
+        return members.map(member => ({
+          ...member,
+          profiles: profiles?.find(p => p.id === member.user_id) || null
+        }))
+      }
+
+      return members || []
+    } catch (error) {
+      handleError('dennikApi.getProjectMembers', error)
+      return []
+    }
+  },
+
+  // Add a member to a project
+  addProjectMember: async (projectId, userId, role = 'member') => {
+    try {
+      const { data, error } = await supabase
+        .from('project_members')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          role
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Fetch user profile separately
+      if (data) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, avatar_url')
+          .eq('id', userId)
+          .single()
+
+        return {
+          ...data,
+          profiles: profile || null
+        }
+      }
+
+      return data
+    } catch (error) {
+      handleError('dennikApi.addProjectMember', error)
+    }
+  },
+
+  // Remove a member from a project
+  removeProjectMember: async (projectId, userId) => {
+    try {
+      const { error } = await supabase
+        .from('project_members')
+        .delete()
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('dennikApi.removeProjectMember', error)
+    }
+  },
+
+  // ===== TIME ENTRIES =====
+
+  // Get time entries for a project within a date range
+  getTimeEntries: async (projectId, startDate, endDate) => {
+    try {
+      const query = supabase
+        .from('dennik_time_entries')
+        .select(`
+          *,
+          profiles (id, email, full_name, avatar_url)
+        `)
+        .eq('project_id', projectId)
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false })
+
+      if (startDate) {
+        query.gte('date', startDate)
+      }
+      if (endDate) {
+        query.lte('date', endDate)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.getTimeEntries', error)
+    }
+  },
+
+  // Get time entries for a specific user on a specific date
+  getUserTimeEntries: async (projectId, userId, date) => {
+    try {
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .eq('date', date)
+        .order('start_time', { ascending: true })
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.getUserTimeEntries', error)
+    }
+  },
+
+  // Get active timer for current user (entry with start_time but no end_time)
+  getActiveTimer: async (projectId) => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .is('end_time', null)
+        .order('start_time', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.getActiveTimer', error)
+    }
+  },
+
+  // Start a timer (create entry with start_time only)
+  startTimer: async (projectId, date = null) => {
+    try {
+      const userId = await getCurrentUserId()
+      const now = new Date().toISOString()
+      const entryDate = date || new Date().toISOString().split('T')[0]
+
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          date: entryDate,
+          start_time: now
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.startTimer', error)
+    }
+  },
+
+  // End a timer (update entry with end_time)
+  endTimer: async (entryId) => {
+    try {
+      const now = new Date().toISOString()
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .update({ end_time: now })
+        .eq('id', entryId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.endTimer', error)
+    }
+  },
+
+  // Create a time entry manually
+  createTimeEntry: async (projectId, entryData) => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .insert({
+          project_id: projectId,
+          user_id: userId,
+          ...entryData
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.createTimeEntry', error)
+    }
+  },
+
+  // Update a time entry
+  updateTimeEntry: async (entryId, updates) => {
+    try {
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .update(updates)
+        .eq('id', entryId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.updateTimeEntry', error)
+    }
+  },
+
+  // Delete a time entry
+  deleteTimeEntry: async (entryId) => {
+    try {
+      const { error } = await supabase
+        .from('dennik_time_entries')
+        .delete()
+        .eq('id', entryId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('dennikApi.deleteTimeEntry', error)
+    }
+  },
+
+  // ===== PROJECT DENNIK MANAGEMENT =====
+
+  // Enable dennik for a project
+  enableDennik: async (projectId) => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ is_dennik_enabled: true })
+        .eq('c_id', projectId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.enableDennik', error)
+    }
+  },
+
+  // Disable dennik for a project
+  disableDennik: async (projectId) => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ is_dennik_enabled: false })
+        .eq('c_id', projectId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.disableDennik', error)
+    }
+  },
+
+  // Get all dennik-enabled projects for current user (owned + member)
+  getDennikProjects: async () => {
+    try {
+      const userId = await getCurrentUserId()
+
+      // Get projects where user is owner and dennik is enabled
+      const { data: ownedProjects, error: ownedError } = await supabase
+        .from('projects')
+        .select('*, owner:profiles (id, email, full_name, avatar_url)')
+        .eq('user_id', userId)
+        .eq('is_dennik_enabled', true)
+        .order('created_at', { ascending: false })
+
+      if (ownedError) throw ownedError
+
+      // Get projects where user is a member
+      const { data: memberProjects, error: memberError } = await supabase
+        .from('project_members')
+        .select(`
+          project_id,
+          role,
+          projects (*, owner:profiles (id, email, full_name, avatar_url))
+        `)
+        .eq('user_id', userId)
+        .eq('projects.is_dennik_enabled', true)
+
+      if (memberError) throw memberError
+
+      // Combine and mark role
+      const owned = (ownedProjects || []).map(p => ({ ...p, userRole: 'owner' }))
+      const member = (memberProjects || []).map(pm => ({ ...pm.projects, userRole: pm.role }))
+
+      return [...owned, ...member]
+    } catch (error) {
+      handleError('dennikApi.getDennikProjects', error)
+    }
+  },
+
+  // Check if user has access to a project (owner or member)
+  hasProjectAccess: async (projectId) => {
+    try {
+      const userId = await getCurrentUserId()
+
+      // Check if owner
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', projectId)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (projectError) throw projectError
+      if (project) return { hasAccess: true, role: 'owner' }
+
+      // Check if member
+      const { data: member, error: memberError } = await supabase
+        .from('project_members')
+        .select('role')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (memberError) throw memberError
+      if (member) return { hasAccess: true, role: member.role }
+
+      return { hasAccess: false, role: null }
+    } catch (error) {
+      handleError('dennikApi.hasProjectAccess', error)
+    }
   }
 }
 
@@ -2149,6 +2556,10 @@ const api = {
   profiles: profilesApi,
   teams: teamsApi,
   userProfiles: userProfilesApi,
+  userProfiles: userProfilesApi,
+  dennik: dennikApi,
+  supabase: supabase,
 }
 
 export default api
+

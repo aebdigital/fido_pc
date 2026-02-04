@@ -16,6 +16,7 @@ import {
   Image,
   X,
   StickyNote,
+  BookOpen,
   AlertTriangle,
   Receipt,
   Loader2,
@@ -28,6 +29,7 @@ import { generatePriceOfferPDF } from '../utils/pdfGenerator';
 import { compressImage } from '../utils/imageCompression';
 import { calculateWorksCount } from '../utils/priceCalculations';
 import { formatProjectNumber, PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS } from '../utils/dataTransformers';
+import api from '../services/supabaseApi';
 import { workProperties } from '../config/workProperties';
 import RoomDetailsModal from './RoomDetailsModal';
 import ProjectPriceList from './ProjectPriceList';
@@ -39,9 +41,14 @@ import ClientForm from './ClientForm';
 import ConfirmationModal from './ConfirmationModal';
 import PaywallModal from './PaywallModal';
 import ShareProjectModal from './ShareProjectModal';
+import DennikModal from './DennikModal';
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();
+
+  // Normalize project ID (Dennik projects use c_id, standard projects use id or c_id)
+  const projectId = project?.id || project?.c_id;
+
   const {
     clients,
     generalPriceList,
@@ -129,6 +136,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [showArchiveConfirmation, setShowArchiveConfirmation] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
+  const [showDennikModal, setShowDennikModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
   // Touch handling state
@@ -152,18 +160,18 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   // Initialize data on mount or project change
   useEffect(() => {
     const initializeData = async () => {
-      if (!project?.id) return;
+      if (!projectId) return;
 
       setIsLoadingDetails(true);
-      await loadProjectDetails(project.id);
+      await loadProjectDetails(projectId);
       // Load receipts for total display in header
-      const projectReceipts = await getProjectReceipts(project.id);
+      const projectReceipts = await getProjectReceipts(projectId);
       setReceipts(projectReceipts);
       setIsLoadingDetails(false);
     };
 
     initializeData();
-  }, [project.id, loadProjectDetails, getProjectReceipts]);
+  }, [projectId, loadProjectDetails, getProjectReceipts]);
 
   // Sync local state with project data
   useEffect(() => {
@@ -240,7 +248,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const handleSaveProjectName = () => {
     if (editingProjectName.trim()) {
-      updateProject(project.category, project.id, { name: editingProjectName.trim() });
+      updateProject(project.category, projectId, { name: editingProjectName.trim() });
       setIsEditingProjectName(false);
     }
   };
@@ -251,7 +259,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const handleSaveProjectNotes = () => {
-    updateProject(project.category, project.id, { notes: editingProjectNotes.trim() });
+    updateProject(project.category, projectId, { notes: editingProjectNotes.trim() });
     setIsEditingProjectNotes(false);
   };
 
@@ -260,8 +268,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     setShowClientSelector(false);
 
     // Update project with client info
-    assignProjectToClient(client.id, project.id, project.name);
-    updateProject(project.category, project.id, {
+    assignProjectToClient(client.id, projectId, project.name);
+    updateProject(project.category, projectId, {
       clientId: client.id,
       clientName: client.name
     });
@@ -277,7 +285,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     const translatedTypes = englishRoomTypes.map(type => t(type));
     const englishRoomType = englishRoomTypes[translatedTypes.indexOf(roomType)] || roomType;
 
-    const newRoom = await addRoomToProject(project.id, { name: englishRoomType });
+    const newRoom = await addRoomToProject(projectId, { name: englishRoomType });
     setShowNewRoomModal(false);
     setSelectedRoom(newRoom);
     setShowRoomDetailsModal(true);
@@ -285,7 +293,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const handleCustomRoomCreate = async () => {
     if (!customRoomName.trim()) return;
-    const newRoom = await addRoomToProject(project.id, { name: customRoomName.trim() });
+    const newRoom = await addRoomToProject(projectId, { name: customRoomName.trim() });
     setShowNewRoomModal(false);
     setShowCustomRoomModal(false);
     setCustomRoomName('');
@@ -294,7 +302,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const handleSaveRoomWork = (roomId, workData, originalWorkItems = null) => {
-    updateProjectRoom(project.id, roomId, { workItems: workData }, originalWorkItems);
+    updateProjectRoom(projectId, roomId, { workItems: workData }, originalWorkItems);
   };
 
   const handleDeleteRoom = (room) => {
@@ -303,13 +311,13 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const confirmDeleteRoom = () => {
     if (roomToDelete) {
-      deleteProjectRoom(project.id, roomToDelete.id);
+      deleteProjectRoom(projectId, roomToDelete.id);
       setRoomToDelete(null);
     }
   };
 
   const handleSaveProjectPriceList = (priceData) => {
-    updateProject(project.category, project.id, { priceListSnapshot: priceData });
+    updateProject(project.category, projectId, { priceListSnapshot: priceData });
     // Don't close the modal - let user continue editing
     // Modal will close when user clicks the X button
   };
@@ -374,11 +382,11 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
       // 2. Fetch all rooms and work items from the ORIGINAL project
       // We need to ensure we have the full details loaded
-      let sourceRooms = projectRoomsData[project.id];
+      let sourceRooms = projectRoomsData[projectId];
       if (!sourceRooms) {
         // Force load if not available
-        await loadProjectDetails(project.id);
-        sourceRooms = projectRoomsData[project.id] || [];
+        await loadProjectDetails(projectId);
+        sourceRooms = projectRoomsData[projectId] || [];
       }
 
       // 3. Duplicate Rooms and Work Items
@@ -423,7 +431,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
       // 4. Duplicate Receipts
       try {
-        const sourceReceipts = await getProjectReceipts(project.id);
+        const sourceReceipts = await getProjectReceipts(projectId);
         if (sourceReceipts && sourceReceipts.length > 0) {
           for (const receipt of sourceReceipts) {
             // Prepare duplicate receipt data
@@ -445,7 +453,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       }
 
       // 5. Add 'Duplicated' history event to both projects
-      await addProjectHistoryEntry(project.id, {
+      await addProjectHistoryEntry(projectId, {
         type: PROJECT_EVENTS.DUPLICATED,
         description: `${t('Duplicated to')} ${newProject.name}`
       });
@@ -470,7 +478,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const handleAssignProjectContractor = async (newContractorId) => {
     try {
-      await updateProject(project.category, project.id, { contractor_id: newContractorId });
+      await updateProject(project.category, projectId, { contractor_id: newContractorId });
       setActiveContractor(newContractorId);
       setShowContractorSelector(false);
       // Removed onBack() to keep user in project detail view
@@ -531,7 +539,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
     const updatedPhotos = [...projectPhotos, ...newPhotos];
     setProjectPhotos(updatedPhotos);
-    updateProject(project.category, project.id, { photos: updatedPhotos });
+    updateProject(project.category, projectId, { photos: updatedPhotos });
   };
 
   const handlePhotoDrop = async (event) => {
@@ -560,7 +568,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
     const updatedPhotos = [...projectPhotos, ...newPhotos];
     setProjectPhotos(updatedPhotos);
-    updateProject(project.category, project.id, { photos: updatedPhotos });
+    updateProject(project.category, projectId, { photos: updatedPhotos });
   };
 
   const handlePhotoDragOver = (event) => {
@@ -578,7 +586,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const handleDeletePhoto = (photoId) => {
     const updatedPhotos = projectPhotos.filter(p => p.id !== photoId);
     setProjectPhotos(updatedPhotos);
-    updateProject(project.category, project.id, { photos: updatedPhotos });
+    updateProject(project.category, projectId, { photos: updatedPhotos });
   };
 
   const handleNotesChange = (e) => {
@@ -590,7 +598,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
     setIsSavingNotes(true);
     try {
-      await updateProject(project.category, project.id, { detailNotes: projectDetailNotes });
+      await updateProject(project.category, projectId, { detailNotes: projectDetailNotes });
     } catch (error) {
       console.error('Error saving notes:', error);
       alert(t('Failed to save notes'));
@@ -633,7 +641,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     if (!project?.id) return;
     setIsLoadingReceipts(true);
     try {
-      const projectReceipts = await getProjectReceipts(project.id);
+      const projectReceipts = await getProjectReceipts(projectId);
       setReceipts(projectReceipts);
     } catch (error) {
       console.error('Error loading receipts:', error);
@@ -708,7 +716,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
           const analysisResult = await analyzeReceiptImage(base64Image);
 
           // Save receipt with analyzed data
-          await addReceipt(project.id, {
+          await addReceipt(projectId, {
             imageUrl: base64Image,
             totalAmount: analysisResult.total_amount || null,
             vendorName: analysisResult.vendor_name || null,
@@ -770,7 +778,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const handlePreviewPriceOffer = async () => {
     if (!isPro) { setShowPaywall(true); return; }
     // Ensure we have a valid project breakdown
-    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(projectId);
 
     // Safety check: ensure breakdown is valid
     if (!projectBreakdown) {
@@ -862,7 +870,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     if (!isPro) { setShowPaywall(true); return; }
     const contractor = getCurrentContractor();
     const client = clients.find(c => c.id === project.clientId);
-    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+    const projectBreakdown = calculateProjectTotalPriceWithBreakdown(projectId);
     const vatRate = getVATRate();
     const totalWithoutVAT = projectBreakdown?.total || 0;
     const vat = totalWithoutVAT * vatRate;
@@ -883,14 +891,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
     `.trim();
 
     // Track history - iOS compatible
-    addProjectHistoryEntry(project.id, {
+    addProjectHistoryEntry(projectId, {
       type: PROJECT_EVENTS.SENT // iOS compatible: 'sent'
     });
 
     // Update project status to SENT (1) - iOS compatible
-    const category = projectCategories.find(cat => cat.projects.some(p => p.id === project.id));
+    const category = projectCategories.find(cat => cat.projects.some(p => p.id === projectId));
     if (category && updateProject) {
-      updateProject(category.id, project.id, {
+      updateProject(category.id, projectId, {
         status: PROJECT_STATUS.SENT // iOS: 1
       });
     }
@@ -901,7 +909,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
         // If we don't have a blob (e.g. user clicked Send without Preview), generate it now
         if (!currentBlob) {
-          const projectBreakdown = calculateProjectTotalPriceWithBreakdown(project.id);
+          const projectBreakdown = calculateProjectTotalPriceWithBreakdown(projectId);
           const result = await generatePriceOfferPDF({
             invoice: {
               invoiceNumber: '',
@@ -1005,6 +1013,23 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               )}
             </div>
 
+            {/* Dennik Button - Top Right */}
+            {!project.is_archived && viewSource !== 'team_modal' && (
+              <button
+                onClick={() => {
+                  // Enable dennik if not already enabled
+                  if (!project.is_dennik_enabled && !project.isDennikEnabled) {
+                    api.dennik.enableDennik(project.c_id || projectId).catch(err => console.error('Error enabling dennik:', err));
+                  }
+                  setShowDennikModal(true);
+                }}
+                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center gap-2 flex-shrink-0 ml-4"
+              >
+                <BookOpen className="w-5 h-5" />
+                <span className="hidden sm:inline">Denník</span>
+              </button>
+            )}
+
             {viewSource === 'team_modal' && (
               <button
                 onClick={onBack}
@@ -1015,7 +1040,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-base lg:text-lg text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || project.id}</span>
+            <span className="text-base lg:text-lg text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || projectId}</span>
             {project.is_archived && (
               <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs lg:text-sm font-semibold rounded-full">
                 {t('Archived')}
@@ -1068,7 +1093,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             )}
           </div>
         </div>
-      </div>
+      </div >
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left column */}
@@ -1105,8 +1130,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeProjectFromClient(selectedClientForProject.id, project.id);
-                      updateProject(project.category, project.id, { clientId: null });
+                      removeProjectFromClient(selectedClientForProject.id, projectId);
+                      updateProject(project.category, projectId, { clientId: null });
                       setSelectedClientForProject(null);
                     }}
                     className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
@@ -1153,7 +1178,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 </div>
               ) : (
                 <>
-                  {getProjectRooms(project.id).map(room => {
+                  {getProjectRooms(projectId).map(room => {
                     const worksCount = calculateWorksCount(room, activePriceList);
                     return (
                       <div
@@ -1197,7 +1222,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     );
                   })}
 
-                  {getProjectRooms(project.id).length === 0 && (
+                  {getProjectRooms(projectId).length === 0 && (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                       <p>{t('No rooms added yet. Click the + button to add a room.')}</p>
                     </div>
@@ -1217,16 +1242,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900 dark:text-white text-lg">{t('without VAT')}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(projectId, project))}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-900 dark:text-white text-lg">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project) * getVATRate())}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(projectId, project) * getVATRate())}</span>
                 </div>
                 <hr className="border-gray-300 dark:border-gray-600" />
                 <div className="flex justify-between items-center">
                   <span className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Total price')}</span>
-                  <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(project.id, project) * (1 + getVATRate()))}</span>
+                  <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(projectId, project) * (1 + getVATRate()))}</span>
                 </div>
               </div>
 
@@ -1252,7 +1277,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
             {/* Create/View Invoice Button - Moved outside and below */}
             {!project.is_archived && (
-              !getInvoiceForProject(project.id) ? (
+              !getInvoiceForProject(projectId) ? (
                 <button
                   onClick={() => {
                     if (!isPro) { setShowPaywall(true); return; }
@@ -1268,9 +1293,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           </div>
 
           {/* Invoices List (if exists) */}
-          {getInvoiceForProject(project.id) && (
+          {getInvoiceForProject(projectId) && (
             <div className="space-y-3">
-              {[getInvoiceForProject(project.id)] // Show the invoice regardless of active contractor
+              {[getInvoiceForProject(projectId)] // Show the invoice regardless of active contractor
                 .filter(Boolean) // Safety check
                 .map(invoice => (
                   <div
@@ -1384,12 +1409,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               </div>
             )}
 
+
+
             <div className="flex gap-3">
               {project.is_archived ? (
                 <>
                   <button
                     onClick={() => {
-                      unarchiveProject(project.id);
+                      unarchiveProject(projectId);
                       onBack();
                     }}
                     className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
@@ -1399,7 +1426,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   </button>
                   <button
                     onClick={() => {
-                      deleteArchivedProject(project.id);
+                      deleteArchivedProject(projectId);
                       onBack();
                     }}
                     className="flex-1 bg-red-600 text-white py-3 px-4 rounded-2xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
@@ -1493,7 +1520,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             </div>
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
               {(() => {
-                const history = getProjectHistory(project.id) || [];
+                const history = getProjectHistory(projectId) || [];
 
                 // Check if history already has a "created" event (case-insensitive)
                 const hasCreatedEvent = history.some(e =>
@@ -1699,7 +1726,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             </div>
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
               {(() => {
-                const history = getProjectHistory(project.id) || [];
+                const history = getProjectHistory(projectId) || [];
 
                 // Check if history already has a "created" event (case-insensitive)
                 const hasCreatedEvent = history.some(e =>
@@ -1735,462 +1762,486 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       </div>
 
       {/* Modals */}
-      {showNewRoomModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowNewRoomModal(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('New room')}</h3>
-              <button
-                onClick={() => setShowNewRoomModal(false)}
-                className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
-                title={t('Cancel')}
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-2">
-              {roomTypes.map((type) => (
-                <button key={type} onClick={() => handleAddRoom(type)} className="p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                  {t(type)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showCustomRoomModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowCustomRoomModal(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
-              <button
-                onClick={() => setShowCustomRoomModal(false)}
-                className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
-                title={t('Cancel')}
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <input
-              type="text"
-              value={customRoomName}
-              onChange={(e) => setCustomRoomName(e.target.value)}
-              className="w-full p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCustomRoomCreate(); }}
-              placeholder={t('Enter room name')}
-            />
-            <button
-              onClick={handleCustomRoomCreate}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-            >
-              {t('Create')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showEditClientModal && selectedClientForProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
-          <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
-              <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Edit client')}</h3>
-              <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
-              <ClientForm
-                ref={clientFormRef}
-                initialData={selectedClientForProject}
-                onSave={handleUpdateClient}
-                onCancel={() => setShowEditClientModal(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showClientSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => {
-          if (showCreateClientInModal && createClientFormRef.current) {
-            createClientFormRef.current.submit();
-          } else {
-            setShowClientSelector(false);
-            setClientSearchQuery('');
-          }
-        }}>
-          <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
-              {showCreateClientInModal && (
-                <button onClick={() => setShowCreateClientInModal(false)} className="text-gray-500 hover:text-gray-700">
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-
-            {showCreateClientInModal ? (
-              <ClientForm
-                ref={createClientFormRef}
-                onSave={handleCreateClientInModal}
-                onCancel={() => setShowCreateClientInModal(false)}
-              />
-            ) : (
-              <>
-                {/* Search bar */}
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    value={clientSearchQuery}
-                    onChange={(e) => setClientSearchQuery(e.target.value)}
-                    placeholder={t('Search')}
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
-                  {clients
-                    .filter(client =>
-                      !clientSearchQuery ||
-                      client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
-                      client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
-                    )
-                    .map(client => (
-                      <button key={client.id} onClick={() => handleClientSelect(client)} className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left">
-                        <div className="font-semibold">{client.name}</div>
-                        <div className="text-sm text-gray-500">{client.email}</div>
-                      </button>
-                    ))}
-                </div>
-
+      {
+        showNewRoomModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowNewRoomModal(false)}>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('New room')}</h3>
                 <button
-                  onClick={() => setShowCreateClientInModal(true)}
-                  className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
+                  onClick={() => setShowNewRoomModal(false)}
+                  className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
+                  title={t('Cancel')}
                 >
-                  <Plus className="w-4 h-4" />
-                  {t('Add client')}
+                  <X className="w-6 h-6" />
                 </button>
-
-                <button onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {showRoomDetailsModal && selectedRoom && (
-        <RoomDetailsModal
-          room={selectedRoom}
-          workProperties={workProperties}
-          onSave={(workData, originalWorkItems) => handleSaveRoomWork(selectedRoom.id, workData, originalWorkItems)}
-          onClose={() => setShowRoomDetailsModal(false)}
-          isReadOnly={project.is_archived}
-          priceList={activePriceList}
-          projectOwnerId={project.user_id}
-        />
-      )}
-
-      {showProjectPriceList && (
-        <ProjectPriceList
-          projectId={project.id}
-          initialData={activePriceList}
-          onClose={() => setShowProjectPriceList(false)}
-          onSave={handleSaveProjectPriceList}
-        />
-      )}
-
-      {showContractorModal && (
-        <ContractorProfileModal
-          onClose={() => setShowContractorModal(false)}
-          onSave={handleSaveContractor}
-        />
-      )}
-
-      {showContractorWarning && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowContractorWarning(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
-              <h3 className="text-xl font-semibold">{t('Contractor Required')}</h3>
-            </div>
-            <p className="text-gray-600 mb-6">{t('A contractor must be assigned to duplicate a project.')}</p>
-            <button onClick={() => setShowContractorWarning(false)} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>
-          </div>
-        </div>
-      )}
-
-      {showInvoiceCreationModal && (
-        <InvoiceCreationModal
-          isOpen={showInvoiceCreationModal}
-          onClose={() => setShowInvoiceCreationModal(false)}
-          project={project}
-          categoryId={project.category}
-        />
-      )}
-
-      {showInvoiceDetailModal && (
-        <InvoiceDetailModal
-          isOpen={showInvoiceDetailModal}
-          onClose={() => setShowInvoiceDetailModal(false)}
-          invoice={getInvoiceForProject(project.id)}
-          hideViewProject={true}
-        />
-      )}
-
-      {/* Receipts Modal */}
-      {showReceiptsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4" onClick={() => setShowReceiptsModal(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[75vh] lg:max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
-              <div>
-                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Receipts')}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('Total')}: {calculateReceiptsTotal().toFixed(2).replace('.', ',')} €
-                </p>
               </div>
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                {roomTypes.map((type) => (
+                  <button key={type} onClick={() => handleAddRoom(type)} className="p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    {t(type)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        showCustomRoomModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowCustomRoomModal(false)}>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
+                <button
+                  onClick={() => setShowCustomRoomModal(false)}
+                  className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
+                  title={t('Cancel')}
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <input
+                type="text"
+                value={customRoomName}
+                onChange={(e) => setCustomRoomName(e.target.value)}
+                className="w-full p-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCustomRoomCreate(); }}
+                placeholder={t('Enter room name')}
+              />
               <button
-                onClick={() => {
-                  setShowReceiptsModal(false);
-                  setSelectedReceipt(null);
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                onClick={handleCustomRoomCreate}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
               >
-                <X className="w-5 h-5 lg:w-6 lg:h-6" />
+                {t('Create')}
               </button>
             </div>
+          </div>
+        )
+      }
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-              {isLoadingReceipts ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                </div>
-              ) : receipts.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>{t('No receipts yet')}</p>
-                  <p className="text-sm mt-2">{t('Upload a receipt photo to track expenses')}</p>
-                </div>
-              ) : selectedReceipt ? (
-                // Receipt Detail View
-                <div className="space-y-4">
-                  <button
-                    onClick={() => setSelectedReceipt(null)}
-                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    {t('Back to list')}
+      {
+        showEditClientModal && selectedClientForProject && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
+            <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
+                <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Edit client')}</h3>
+                <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
+                <ClientForm
+                  ref={clientFormRef}
+                  initialData={selectedClientForProject}
+                  onSave={handleUpdateClient}
+                  onCancel={() => setShowEditClientModal(false)}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        showClientSelector && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => {
+            if (showCreateClientInModal && createClientFormRef.current) {
+              createClientFormRef.current.submit();
+            } else {
+              setShowClientSelector(false);
+              setClientSearchQuery('');
+            }
+          }}>
+            <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0`} onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
+                {showCreateClientInModal && (
+                  <button onClick={() => setShowCreateClientInModal(false)} className="text-gray-500 hover:text-gray-700">
+                    <X className="w-5 h-5" />
                   </button>
+                )}
+              </div>
 
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden">
-                    <img
-                      src={selectedReceipt.image_url}
-                      alt="Receipt"
-                      className="w-full max-h-64 object-contain bg-white dark:bg-gray-900"
+              {showCreateClientInModal ? (
+                <ClientForm
+                  ref={createClientFormRef}
+                  onSave={handleCreateClientInModal}
+                  onCancel={() => setShowCreateClientInModal(false)}
+                />
+              ) : (
+                <>
+                  {/* Search bar */}
+                  <div className="mb-4">
+                    <input
+                      type="text"
+                      value={clientSearchQuery}
+                      onChange={(e) => setClientSearchQuery(e.target.value)}
+                      placeholder={t('Search')}
+                      className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-
-                  <div className="space-y-3">
-                    {selectedReceipt.merchant_name && (
-                      <div>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Vendor')}</span>
-                        <p className="font-semibold text-gray-900 dark:text-white">{selectedReceipt.merchant_name}</p>
-                      </div>
-                    )}
-                    {selectedReceipt.receipt_date && (
-                      <div>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Date')}</span>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {new Date(selectedReceipt.receipt_date).toLocaleDateString('sk-SK')}
-                        </p>
-                      </div>
-                    )}
-                    {selectedReceipt.amount && (
-                      <div>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Amount')}</span>
-                        <p className="font-semibold text-lg text-gray-900 dark:text-white">
-                          {formatPrice(selectedReceipt.amount)}
-                        </p>
-                      </div>
-                    )}
-                    {selectedReceipt.items && selectedReceipt.items.length > 0 && (
-                      <div>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Items')}</span>
-                        <div className="mt-2 space-y-1">
-                          {selectedReceipt.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between text-sm">
-                              <span className="text-gray-700 dark:text-gray-300">
-                                {item.name} {item.quantity > 1 ? `(${item.quantity}x)` : ''}
-                              </span>
-                              <span className="text-gray-900 dark:text-white">{formatPrice(item.price)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
+                    {clients
+                      .filter(client =>
+                        !clientSearchQuery ||
+                        client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                        client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                      )
+                      .map(client => (
+                        <button key={client.id} onClick={() => handleClientSelect(client)} className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 text-left">
+                          <div className="font-semibold">{client.name}</div>
+                          <div className="text-sm text-gray-500">{client.email}</div>
+                        </button>
+                      ))}
                   </div>
 
                   <button
-                    onClick={() => handleDeleteReceipt(selectedReceipt.id)}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl font-semibold hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                    onClick={() => setShowCreateClientInModal(true)}
+                    className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
                   >
-                    <Trash2 className="w-4 h-4" />
-                    {t('Delete receipt')}
+                    <Plus className="w-4 h-4" />
+                    {t('Add client')}
                   </button>
+
+                  <button onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      }
+
+      {
+        showRoomDetailsModal && selectedRoom && (
+          <RoomDetailsModal
+            room={selectedRoom}
+            workProperties={workProperties}
+            onSave={(workData, originalWorkItems) => handleSaveRoomWork(selectedRoom.id, workData, originalWorkItems)}
+            onClose={() => setShowRoomDetailsModal(false)}
+            isReadOnly={project.is_archived}
+            priceList={activePriceList}
+            projectOwnerId={project.user_id}
+          />
+        )
+      }
+
+      {
+        showProjectPriceList && (
+          <ProjectPriceList
+            projectId={projectId}
+            initialData={activePriceList}
+            onClose={() => setShowProjectPriceList(false)}
+            onSave={handleSaveProjectPriceList}
+          />
+        )
+      }
+
+      {
+        showContractorModal && (
+          <ContractorProfileModal
+            onClose={() => setShowContractorModal(false)}
+            onSave={handleSaveContractor}
+          />
+        )
+      }
+
+      {
+        showContractorWarning && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowContractorWarning(false)}>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-4">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                <h3 className="text-xl font-semibold">{t('Contractor Required')}</h3>
+              </div>
+              <p className="text-gray-600 mb-6">{t('A contractor must be assigned to duplicate a project.')}</p>
+              <button onClick={() => setShowContractorWarning(false)} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        showInvoiceCreationModal && (
+          <InvoiceCreationModal
+            isOpen={showInvoiceCreationModal}
+            onClose={() => setShowInvoiceCreationModal(false)}
+            project={project}
+            categoryId={project.category}
+          />
+        )
+      }
+
+      {
+        showInvoiceDetailModal && (
+          <InvoiceDetailModal
+            isOpen={showInvoiceDetailModal}
+            onClose={() => setShowInvoiceDetailModal(false)}
+            invoice={getInvoiceForProject(projectId)}
+            hideViewProject={true}
+          />
+        )
+      }
+
+      {/* Receipts Modal */}
+      {
+        showReceiptsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4" onClick={() => setShowReceiptsModal(false)}>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[75vh] lg:max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                  <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Receipts')}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t('Total')}: {calculateReceiptsTotal().toFixed(2).replace('.', ',')} €
+                  </p>
                 </div>
-              ) : (
-                // Receipts List
-                <div className="space-y-3">
-                  {receipts.map(receipt => (
-                    <div
-                      key={receipt.id}
-                      onClick={() => setSelectedReceipt(receipt)}
-                      className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                <button
+                  onClick={() => {
+                    setShowReceiptsModal(false);
+                    setSelectedReceipt(null);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <X className="w-5 h-5 lg:w-6 lg:h-6" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+                {isLoadingReceipts ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  </div>
+                ) : receipts.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{t('No receipts yet')}</p>
+                    <p className="text-sm mt-2">{t('Upload a receipt photo to track expenses')}</p>
+                  </div>
+                ) : selectedReceipt ? (
+                  // Receipt Detail View
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => setSelectedReceipt(null)}
+                      className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                     >
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-shrink-0">
-                        <img
-                          src={receipt.image_url}
-                          alt="Receipt"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 dark:text-white truncate">
-                          {receipt.merchant_name || t('Unknown vendor')}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {receipt.receipt_date ? new Date(receipt.receipt_date).toLocaleDateString('sk-SK') : t('No date')}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {receipt.amount ? formatPrice(receipt.amount) : '-'}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      <ChevronLeft className="w-4 h-4" />
+                      {t('Back to list')}
+                    </button>
+
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden">
+                      <img
+                        src={selectedReceipt.image_url}
+                        alt="Receipt"
+                        className="w-full max-h-64 object-contain bg-white dark:bg-gray-900"
+                      />
                     </div>
-                  ))}
+
+                    <div className="space-y-3">
+                      {selectedReceipt.merchant_name && (
+                        <div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('Vendor')}</span>
+                          <p className="font-semibold text-gray-900 dark:text-white">{selectedReceipt.merchant_name}</p>
+                        </div>
+                      )}
+                      {selectedReceipt.receipt_date && (
+                        <div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('Date')}</span>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {new Date(selectedReceipt.receipt_date).toLocaleDateString('sk-SK')}
+                          </p>
+                        </div>
+                      )}
+                      {selectedReceipt.amount && (
+                        <div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('Amount')}</span>
+                          <p className="font-semibold text-lg text-gray-900 dark:text-white">
+                            {formatPrice(selectedReceipt.amount)}
+                          </p>
+                        </div>
+                      )}
+                      {selectedReceipt.items && selectedReceipt.items.length > 0 && (
+                        <div>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{t('Items')}</span>
+                          <div className="mt-2 space-y-1">
+                            {selectedReceipt.items.map((item, idx) => (
+                              <div key={idx} className="flex justify-between text-sm">
+                                <span className="text-gray-700 dark:text-gray-300">
+                                  {item.name} {item.quantity > 1 ? `(${item.quantity}x)` : ''}
+                                </span>
+                                <span className="text-gray-900 dark:text-white">{formatPrice(item.price)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteReceipt(selectedReceipt.id)}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl font-semibold hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {t('Delete receipt')}
+                    </button>
+                  </div>
+                ) : (
+                  // Receipts List
+                  <div className="space-y-3">
+                    {receipts.map(receipt => (
+                      <div
+                        key={receipt.id}
+                        onClick={() => setSelectedReceipt(receipt)}
+                        className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-white dark:bg-gray-900 flex-shrink-0">
+                          <img
+                            src={receipt.image_url}
+                            alt="Receipt"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 dark:text-white truncate">
+                            {receipt.merchant_name || t('Unknown vendor')}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {receipt.receipt_date ? new Date(receipt.receipt_date).toLocaleDateString('sk-SK') : t('No date')}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {receipt.amount ? formatPrice(receipt.amount) : '-'}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer with Add Button */}
+              {!selectedReceipt && (
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => receiptInputRef.current?.click()}
+                    disabled={isAnalyzingReceipt}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  >
+                    {isAnalyzingReceipt ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{t('Analyzing...')} ({analyzingProgress.current}/{analyzingProgress.total})</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>{t('Add receipts')}</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
             </div>
-
-            {/* Footer with Add Button */}
-            {!selectedReceipt && (
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={() => receiptInputRef.current?.click()}
-                  disabled={isAnalyzingReceipt}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
-                >
-                  {isAnalyzingReceipt ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{t('Analyzing...')} ({analyzingProgress.current}/{analyzingProgress.total})</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4" />
-                      <span>{t('Add receipts')}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Animated Lightbox */}
-      {selectedPhotoIndex !== null && projectPhotos.length > 0 && (
-        <div
-          className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${lightboxOpen
-            ? 'bg-black/80 backdrop-blur-md opacity-100'
-            : 'bg-black/0 backdrop-blur-none opacity-0'
-            }`}
-          onClick={() => {
-            setLightboxOpen(false);
-            setTimeout(() => setSelectedPhotoIndex(null), 300);
-          }}
-        >
-          {/* Close Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
+      {
+        selectedPhotoIndex !== null && projectPhotos.length > 0 && (
+          <div
+            className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${lightboxOpen
+              ? 'bg-black/80 backdrop-blur-md opacity-100'
+              : 'bg-black/0 backdrop-blur-none opacity-0'
+              }`}
+            onClick={() => {
               setLightboxOpen(false);
               setTimeout(() => setSelectedPhotoIndex(null), 300);
             }}
-            className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
           >
-            <X className="w-6 h-6" />
-          </button>
-
-          {/* Previous Arrow */}
-          {selectedPhotoIndex > 0 && (
+            {/* Close Button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setLightboxDirection(-1);
-                setSelectedPhotoIndex(prev => prev - 1);
+                setLightboxOpen(false);
+                setTimeout(() => setSelectedPhotoIndex(null), 300);
               }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
             >
-              <ChevronLeft className="w-8 h-8" />
+              <X className="w-6 h-6" />
             </button>
-          )}
 
-          {/* Next Arrow */}
-          {selectedPhotoIndex < projectPhotos.length - 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setLightboxDirection(1);
-                setSelectedPhotoIndex(prev => prev + 1);
-              }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
-            >
-              <ChevronRight className="w-8 h-8" />
-            </button>
-          )}
+            {/* Previous Arrow */}
+            {selectedPhotoIndex > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxDirection(-1);
+                  setSelectedPhotoIndex(prev => prev - 1);
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+              >
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+            )}
 
-          {/* Image Container with Slide Animation */}
-          <div
-            className={`transition-all duration-300 ease-out ${lightboxOpen
-              ? 'scale-100 opacity-100'
-              : 'scale-95 opacity-0'
-              }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              // Keep click for next photo for desktop users, but touch users will swipe
-            }}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            style={{
-              transform: currentTranslate ? `translateX(${currentTranslate}px)` : 'none',
-              transition: currentTranslate ? 'none' : 'transform 0.3s ease-out'
-            }}
-          >
-            <img
-              key={selectedPhotoIndex}
-              draggable={false} // Prevent native drag
-              src={projectPhotos[selectedPhotoIndex]?.url}
-              alt={projectPhotos[selectedPhotoIndex]?.name || "Project Photo"}
-              className={`max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl select-none ${!currentTranslate && (lightboxDirection === -1
-                ? 'animate-slide-from-left'
-                : lightboxDirection === 1
-                  ? 'animate-slide-from-right'
-                  : 'animate-fadeSlideIn')
+            {/* Next Arrow */}
+            {selectedPhotoIndex < projectPhotos.length - 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxDirection(1);
+                  setSelectedPhotoIndex(prev => prev + 1);
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+              >
+                <ChevronRight className="w-8 h-8" />
+              </button>
+            )}
+
+            {/* Image Container with Slide Animation */}
+            <div
+              className={`transition-all duration-300 ease-out ${lightboxOpen
+                ? 'scale-100 opacity-100'
+                : 'scale-95 opacity-0'
                 }`}
-            />
-          </div>
+              onClick={(e) => {
+                e.stopPropagation();
+                // Keep click for next photo for desktop users, but touch users will swipe
+              }}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              style={{
+                transform: currentTranslate ? `translateX(${currentTranslate}px)` : 'none',
+                transition: currentTranslate ? 'none' : 'transform 0.3s ease-out'
+              }}
+            >
+              <img
+                key={selectedPhotoIndex}
+                draggable={false} // Prevent native drag
+                src={projectPhotos[selectedPhotoIndex]?.url}
+                alt={projectPhotos[selectedPhotoIndex]?.name || "Project Photo"}
+                className={`max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl select-none ${!currentTranslate && (lightboxDirection === -1
+                  ? 'animate-slide-from-left'
+                  : lightboxDirection === 1
+                    ? 'animate-slide-from-right'
+                    : 'animate-fadeSlideIn')
+                  }`}
+              />
+            </div>
 
-          {/* Photo Counter */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 rounded-full text-white text-sm font-semibold">
-            {selectedPhotoIndex + 1} / {projectPhotos.length}
+            {/* Photo Counter */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 rounded-full text-white text-sm font-semibold">
+              {selectedPhotoIndex + 1} / {projectPhotos.length}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <PDFPreviewModal
         isOpen={showPDFPreview}
@@ -2211,7 +2262,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         isOpen={showArchiveConfirmation}
         onClose={() => setShowArchiveConfirmation(false)}
         onConfirm={() => {
-          archiveProject(project.category, project.id);
+          archiveProject(project.category, projectId);
           onBack();
         }}
         title={t('Archive project {name}?').replace('{name}', project.name)}
@@ -2221,27 +2272,46 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         icon="info"
       />
 
-      {project.is_archived && showArchiveConfirmation && (
-        <ConfirmationModal
-          isOpen={showArchiveConfirmation}
-          onClose={() => setShowArchiveConfirmation(false)}
-          onConfirm={() => {
-            deleteArchivedProject(project.id);
-            onBack();
-          }}
-          title={t('Delete Archived Project')}
-          message={t('Are you sure you want to permanently delete this archived project? This action cannot be undone.')}
-          confirmText={t('Delete')}
-          confirmColor="bg-red-600"
-        />
-      )}
+      {
+        project.is_archived && showArchiveConfirmation && (
+          <ConfirmationModal
+            isOpen={showArchiveConfirmation}
+            onClose={() => setShowArchiveConfirmation(false)}
+            onConfirm={() => {
+              deleteArchivedProject(projectId);
+              onBack();
+            }}
+            title={t('Delete Archived Project')}
+            message={t('Are you sure you want to permanently delete this archived project? This action cannot be undone.')}
+            confirmText={t('Delete')}
+            confirmColor="bg-red-600"
+          />
+        )
+      }
 
-      <ShareProjectModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        projectId={project.id}
-        projectName={project.name}
-      />
+      {
+        showShareModal && (
+          <ShareProjectModal
+            isOpen={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            projectId={projectId}
+            projectName={project.name}
+          />
+        )
+      }
+
+      {/* Dennik Modal */}
+      {
+        showDennikModal && (
+          <DennikModal
+            isOpen={showDennikModal}
+            onClose={() => setShowDennikModal(false)}
+            project={project}
+            isOwner={project.user_id === user?.id}
+            currentUser={user}
+          />
+        )
+      }
 
       {/* Room Delete Confirmation Modal */}
       <ConfirmationModal
@@ -2254,7 +2324,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         cancelLabel="Cancel"
         isDestructive={true}
       />
-    </div>
+    </div >
   );
 };
 

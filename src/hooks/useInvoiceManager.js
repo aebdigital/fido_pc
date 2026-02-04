@@ -49,13 +49,24 @@ const paymentMethodToIOS = (method) => {
 };
 
 export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, updateProject) => {
-  const createInvoice = useCallback(async (projectId, categoryId, invoiceData, findProjectById) => {
+  const createInvoice = useCallback(async (projectOrId, categoryId, invoiceData, findProjectById) => {
     try {
-      // We pass findProjectById as a dependency because useProjectManager owns it
-      const projectResult = findProjectById(projectId);
-      const project = projectResult?.project;
+      let project = null;
+      let projectId = null;
 
-      if (!project) return null;
+      if (typeof projectOrId === 'object' && projectOrId !== null) {
+        project = projectOrId;
+        projectId = project.c_id || project.id;
+      } else {
+        projectId = projectOrId;
+        const projectResult = typeof findProjectById === 'function' ? findProjectById(projectId) : null;
+        project = projectResult?.project;
+      }
+
+      if (!project) {
+        console.error('[SUPABASE] createInvoice: Project not found', projectOrId);
+        return null;
+      }
 
       // Transform invoice items to iOS-compatible format
       const iosItems = transformItemsForIOS(invoiceData.invoiceItems);
