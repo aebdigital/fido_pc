@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+// Force rebuild
 import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
