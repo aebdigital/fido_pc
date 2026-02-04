@@ -168,7 +168,14 @@ export const translations = {
     "Delete assignment": "Delete assignment",
     "Are you sure you want to delete this assignment?": "Are you sure you want to delete this assignment?",
     "Failed to delete assignment. Please try again.": "Failed to delete assignment. Please try again.",
-    "Only assigned member can change status": "Only assigned member can change status"
+    "Only assigned member can change status": "Only assigned member can change status",
+    "Forgot password?": "Forgot password?",
+    "Check your email for the password reset link": "Check your email for the password reset link",
+    "Back to Sign In": "Back to Sign In",
+    "Reset Password": "Reset Password",
+    "Enter new password": "Enter new password",
+    "Update Password": "Update Password",
+    "Password updated successfully. You can now sign in.": "Password updated successfully. You can now sign in."
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -294,7 +301,14 @@ export const translations = {
     "Delete assignment": "Vymazať priradenie",
     "Are you sure you want to delete this assignment?": "Naozaj chcete vymazať toto priradenie?",
     "Failed to delete assignment. Please try again.": "Nepodarilo sa vymazať priradenie. Skúste to znova.",
-    "Only assigned member can change status": "Iba priradený člen môže zmeniť stav"
+    "Only assigned member can change status": "Iba priradený člen môže zmeniť stav",
+    "Forgot password?": "Zabudli ste heslo?",
+    "Check your email for the password reset link": "Skontrolujte si email, poslali sme vám odkaz na zmenu hesla",
+    "Back to Sign In": "Späť na prihlásenie",
+    "Reset Password": "Resetovať heslo",
+    "Enter new password": "Zadajte nové heslo",
+    "Update Password": "Aktualizovať heslo",
+    "Password updated successfully. You can now sign in.": "Heslo bolo úspešne zmenené. Teraz sa môžete prihlásiť."
     ,
 
     // ========== ROOM TYPES ==========

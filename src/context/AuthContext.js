@@ -14,6 +14,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [recoveryMode, setRecoveryMode] = useState(false)
 
   useEffect(() => {
     // Check active session
@@ -23,9 +24,15 @@ export const AuthProvider = ({ children }) => {
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecoveryMode(true)
+      } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setRecoveryMode(false)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -38,6 +45,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    recoveryMode,
+    setRecoveryMode,
     signOut,
   }
 
