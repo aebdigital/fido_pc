@@ -17,7 +17,7 @@ import Login from './components/Login';
 import './App.css';
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, recoveryMode } = useAuth();
   const { darkMode } = useDarkMode();
 
   if (loading) {
