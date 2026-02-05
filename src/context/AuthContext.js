@@ -30,7 +30,13 @@ export const AuthProvider = ({ children }) => {
 
       if (event === 'PASSWORD_RECOVERY') {
         setRecoveryMode(true)
-      } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_IN') {
+        // Only clear recoveryMode if it wasn't just set by PASSWORD_RECOVERY
+        // PASSWORD_RECOVERY is often followed by SIGNED_IN
+        if (!recoveryMode) {
+          setRecoveryMode(false)
+        }
+      } else if (event === 'SIGNED_OUT') {
         setRecoveryMode(false)
       }
     })

@@ -31,7 +31,7 @@ function AppContent() {
     );
   }
 
-  if (!user) {
+  if (!user || recoveryMode) {
     return <Login />;
   }
 
