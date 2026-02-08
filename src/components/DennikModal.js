@@ -1198,7 +1198,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                             </div>
 
                             {/* List Generated Invoices */}
-                            <div className="flex-1 overflow-y-auto min-h-[200px]">
+                            <div>
                                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{t('Generated Invoices')} ({generatedInvoices.length})</h4>
                                 <div className="space-y-2">
                                     {generatedInvoices.length === 0 ? (
