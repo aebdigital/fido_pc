@@ -1303,9 +1303,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     if (!isPro) { setShowPaywall(true); return; }
                     setShowInvoiceCreationModal(true);
                   }}
-                  className="w-full bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                  className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98]"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-4 h-4 text-white" />
                   <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
                 </button>
               ) : null
