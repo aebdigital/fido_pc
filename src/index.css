@@ -216,6 +216,23 @@
   animation: slideFromRight 300ms ease-out;
 }
 
+/* Red glow animation for active timer */
+@keyframes redGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.6), 0 0 10px rgba(239, 68, 68, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 1), 0 0 25px rgba(239, 68, 68, 0.7);
+  }
+}
+
+.animate-glow-red {
+  animation: redGlow 2s infinite ease-in-out;
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -268,7 +285,7 @@
 :root:not(.dark) [class*="bg-white"]:not(button):not(input):not(textarea):not(.no-border),
 :root:not(.dark) [class*="bg-gray-100"]:not(button):not(.no-border),
 :root:not(.dark) [class*="bg-gray-200"]:not(button):not(.no-border) {
-  border: 1px solid rgb(229, 231, 235);
+  border: 0.5px solid rgb(229, 231, 235);
   box-shadow: rgba(255, 255, 255, 0.19) 0px 1px 2px inset, rgba(0, 0, 0, 0.19) 0px 1px 2px, rgba(0, 0, 0, 0.082) 0px 2px 4px;
 }
 
@@ -352,6 +369,14 @@ select {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   /* Prevent auto-zoom on mobile/tablet browsers where font-size < 16px triggers zoom */
   font-size: 16px !important;
+}
+
+/* Inline note textarea - keep small font, transparent bg, matching line-height */
+textarea.inline-note {
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+  background-color: transparent !important;
+  background: transparent !important;
 }
 
 :root:not(.dark) input,

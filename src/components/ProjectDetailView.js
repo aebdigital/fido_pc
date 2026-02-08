@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   User,
   ClipboardList,
@@ -12,7 +12,6 @@ import {
   Eye,
   Send,
   Edit3,
-  FileText,
   Image,
   X,
   StickyNote,
@@ -22,7 +21,9 @@ import {
   Loader2,
   Camera,
   Flag,
-  CheckCircle
+  CheckCircle,
+  Euro,
+  FileText
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -175,6 +176,18 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     initializeData();
   }, [projectId, loadProjectDetails, getProjectReceipts]);
 
+  // Handle event to open Dennik modal remotely (e.g. from quick travel)
+  useEffect(() => {
+    const handleOpenDennik = (e) => {
+      const { projectId: targetId } = e.detail;
+      if (targetId === projectId) {
+        setShowDennikModal(true);
+      }
+    };
+    window.addEventListener('open-dennik-modal', handleOpenDennik);
+    return () => window.removeEventListener('open-dennik-modal', handleOpenDennik);
+  }, [projectId]);
+
   // Sync local state with project data
   useEffect(() => {
     if (!project) return;
@@ -324,16 +337,15 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     // Modal will close when user clicks the X button
   };
 
-  const handleUpdateClient = async (clientData) => {
-    if (!selectedClientForProject) return;
+  const handleUpdateClient = useCallback(async (clientData) => {
     try {
-      await updateClient(selectedClientForProject.id, clientData);
-      setShowEditClientModal(false);
+      await updateClient(clientData.id, clientData);
+      setSelectedClientForProject({ ...selectedClientForProject, ...clientData });
     } catch (error) {
-      console.error('Error updating client:', error);
-      alert(t('Failed to update client'));
+      console.error('[SUPABASE] Error updating client:', error);
     }
-  };
+  }, [updateClient, selectedClientForProject]);
+
 
   const handleDuplicateProject = async () => {
     if (!activeContractorId) {
@@ -972,12 +984,140 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
   };
 
   return (
-    <div className="flex-1 p-0 lg:p-0 overflow-y-auto min-w-0">
+    <div className="flex-1 p-0 lg:p-0 min-w-0">
 
       {/* Project Header */}
       <div className="mb-6">
         <div className="flex flex-col gap-2 lg:gap-4">
-          <div className="flex items-center justify-between">
+
+          {/* Mobile: Back arrow on its own row */}
+          {viewSource !== 'team_modal' && (
+            <div className="lg:hidden">
+              <button
+                onClick={onBack}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 rotate-180" />
+              </button>
+            </div>
+          )}
+
+          {/* Mobile: Project number + status + action buttons */}
+          <div className="flex items-center justify-between lg:hidden">
+            <div className="flex items-center gap-2">
+              <span className="text-base text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || projectId}</span>
+              {project.is_archived && (
+                <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-semibold rounded-full">
+                  {t('Archived')}
+                </span>
+              )}
+              {(() => {
+                const statusConfig = {
+                  [PROJECT_STATUS.NOT_SENT]: { color: '#FF857C', icon: X, label: 'not sent' },
+                  [PROJECT_STATUS.SENT]: { color: '#51A2F7', icon: null, label: 'sent' },
+                  [PROJECT_STATUS.APPROVED]: { color: '#73D38A', icon: CheckCircle, label: 'approved' },
+                  [PROJECT_STATUS.FINISHED]: { color: '#C4C4C4', icon: Flag, label: 'finished' }
+                };
+                const config = statusConfig[project.status] || statusConfig[PROJECT_STATUS.NOT_SENT];
+                const StatusIcon = config.icon;
+                return (
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full shadow-sm"
+                    style={{ backgroundColor: config.color }}>
+                    <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
+                      {project.status === PROJECT_STATUS.SENT ? (
+                        <span className="text-[10px] font-bold" style={{ color: config.color }}>?</span>
+                      ) : (
+                        <StatusIcon size={10} color={config.color} strokeWidth={3} />
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-white">{t(config.label)}</span>
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {!project.is_archived && viewSource !== 'team_modal' && (
+                <>
+                  <button
+                    onClick={() => {
+                      if (!project.is_dennik_enabled && !project.isDennikEnabled) {
+                        api.dennik.enableDennik(project.c_id || projectId).catch(err => console.error('Error enabling dennik:', err));
+                      }
+                      setShowDennikModal(true);
+                    }}
+                    className="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setShowProjectPriceList(true)}
+                    title={t('Project price list')}
+                    className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                  >
+                    <Euro className="w-4 h-4 text-purple-500" />
+                  </button>
+                  <button
+                    onClick={handleDuplicateProject}
+                    disabled={isDuplicating}
+                    title={t('Duplicate')}
+                    className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center"
+                  >
+                    {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                  </button>
+                  <button
+                    onClick={() => setShowArchiveConfirmation(true)}
+                    title={t('ArchiveProjectAction')}
+                    className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                  >
+                    <Archive className="w-4 h-4 text-yellow-500" />
+                  </button>
+                </>
+              )}
+              {viewSource === 'team_modal' && (
+                <button
+                  onClick={onBack}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile: Project name on its own row */}
+          <div className="lg:hidden">
+            {isEditingProjectName ? (
+              <input
+                type="text"
+                value={editingProjectName}
+                onChange={(e) => setEditingProjectName(e.target.value)}
+                onBlur={handleSaveProjectName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveProjectName();
+                  if (e.key === 'Escape') setIsEditingProjectName(false);
+                }}
+                className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none w-full"
+                autoFocus
+              />
+            ) : (
+              <div className="flex items-center gap-2 group">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
+                  {project.name}
+                </h1>
+                {!project.is_archived && canEditProject && (
+                  <button
+                    onClick={handleEditProjectName}
+                    className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: Original layout - name + icons on one row, number + status below */}
+          <div className="hidden lg:flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {viewSource !== 'team_modal' && (
                 <button
@@ -997,12 +1137,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     if (e.key === 'Enter') handleSaveProjectName();
                     if (e.key === 'Escape') setIsEditingProjectName(false);
                   }}
-                  className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none w-full"
+                  className="text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none w-full"
                   autoFocus
                 />
               ) : (
                 <div className="flex items-center gap-2 group">
-                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white truncate">
                     {project.name}
                   </h1>
                   {!project.is_archived && canEditProject && (
@@ -1017,22 +1157,52 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               )}
             </div>
 
-            {/* Dennik Button - Top Right */}
-            {!project.is_archived && viewSource !== 'team_modal' && (
-              <button
-                onClick={() => {
-                  // Enable dennik if not already enabled
-                  if (!project.is_dennik_enabled && !project.isDennikEnabled) {
-                    api.dennik.enableDennik(project.c_id || projectId).catch(err => console.error('Error enabling dennik:', err));
-                  }
-                  setShowDennikModal(true);
-                }}
-                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center gap-2 flex-shrink-0 ml-4"
-              >
-                <BookOpen className="w-5 h-5" />
-                <span className="hidden sm:inline">Denník</span>
-              </button>
-            )}
+            {/* Dennik Button & Management Actions - Desktop */}
+            <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+              {!project.is_archived && viewSource !== 'team_modal' && (
+                <>
+                  <button
+                    onClick={() => {
+                      if (!project.is_dennik_enabled && !project.isDennikEnabled) {
+                        api.dennik.enableDennik(project.c_id || projectId).catch(err => console.error('Error enabling dennik:', err));
+                      }
+                      setShowDennikModal(true);
+                    }}
+                    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    <span>Denník</span>
+                  </button>
+
+                  <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700 mx-1"></div>
+
+                  <button
+                    onClick={() => setShowProjectPriceList(true)}
+                    title={t('Project price list')}
+                    className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                  >
+                    <Euro className="w-5 h-5 text-purple-500" />
+                  </button>
+
+                  <button
+                    onClick={handleDuplicateProject}
+                    disabled={isDuplicating}
+                    title={t('Duplicate')}
+                    className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center"
+                  >
+                    {isDuplicating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Copy className="w-5 h-5 text-blue-500" />}
+                  </button>
+
+                  <button
+                    onClick={() => setShowArchiveConfirmation(true)}
+                    title={t('ArchiveProjectAction')}
+                    className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                  >
+                    <Archive className="w-5 h-5 text-yellow-500" />
+                  </button>
+                </>
+              )}
+            </div>
 
             {viewSource === 'team_modal' && (
               <button
@@ -1043,15 +1213,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base lg:text-lg text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || projectId}</span>
+
+          {/* Desktop: Project number + status below name */}
+          <div className="hidden lg:flex items-center gap-2">
+            <span className="text-lg text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || projectId}</span>
             {project.is_archived && (
-              <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs lg:text-sm font-semibold rounded-full">
+              <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-sm font-semibold rounded-full">
                 {t('Archived')}
               </span>
             )}
-
-            {/* Project Status Badge - Updated to match Projects list exactly */}
             {(() => {
               const statusConfig = {
                 [PROJECT_STATUS.NOT_SENT]: { color: '#FF857C', icon: X, label: 'not sent' },
@@ -1059,10 +1229,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 [PROJECT_STATUS.APPROVED]: { color: '#73D38A', icon: CheckCircle, label: 'approved' },
                 [PROJECT_STATUS.FINISHED]: { color: '#C4C4C4', icon: Flag, label: 'finished' }
               };
-
               const config = statusConfig[project.status] || statusConfig[PROJECT_STATUS.NOT_SENT];
               const StatusIcon = config.icon;
-
               return (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full shadow-sm"
                   style={{ backgroundColor: config.color }}>
@@ -1073,100 +1241,152 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       <StatusIcon size={12} color={config.color} strokeWidth={3} />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-white">
-                    {t(config.label)}
-                  </span>
+                  <span className="text-sm font-medium text-white">{t(config.label)}</span>
                 </div>
               );
             })()}
-
-          </div>
-          <div className="flex items-center gap-3">
-            {isEditingProjectNotes ? (
-              <input
-                type="text"
-                value={editingProjectNotes}
-                onChange={(e) => setEditingProjectNotes(e.target.value)}
-                onBlur={handleSaveProjectNotes}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveProjectNotes();
-                  if (e.key === 'Escape') setIsEditingProjectNotes(false);
-                }}
-                className="text-lg text-gray-500 dark:text-gray-400 bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
-                placeholder={t('Notes_CP')}
-                autoFocus
-              />
-            ) : (
-              <>
-                <p className="text-gray-500 dark:text-gray-400 text-lg">
-                  {project.notes || t('Notes_CP')}
-                </p>
-                {!project.is_archived && (
-                  <button
-                    onClick={handleEditProjectNotes}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                )}
-              </>
-            )}
           </div>
         </div>
-      </div >
+
+        {/* Project Notes mirroring body layout width */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1">
+            <div className="mt-2">
+              <input
+                ref={(el) => { if (el && isEditingProjectNotes) el.focus(); }}
+                type="text"
+                value={isEditingProjectNotes ? editingProjectNotes : (project.notes || '')}
+                onChange={(e) => setEditingProjectNotes(e.target.value)}
+                onFocus={!project.is_archived ? handleEditProjectNotes : undefined}
+                onBlur={handleSaveProjectNotes}
+                readOnly={!isEditingProjectNotes}
+                className={`w-full text-sm font-medium ${isEditingProjectNotes ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'} bg-transparent border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none no-gradient inline-note ${!project.is_archived && !isEditingProjectNotes ? 'cursor-pointer' : ''}`}
+                placeholder={t('Notes_CP')}
+              />
+            </div>
+          </div>
+          {/* Spacer mirroring Sidebar width */}
+          <div className="lg:w-80 xl:w-96 hidden lg:block"></div>
+        </div>
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left column */}
         <div className="flex-1 space-y-4 lg:space-y-6 min-w-0">
 
-          {/* Client Section */}
-          <div className="space-y-4">
+          {/* Client & Supplier Section */}
+          <div className="space-y-2.5">
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Client')}</h2>
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">Klient a Dodávateľ</h2>
             </div>
-            <div
-              onClick={() => {
-                if (!project.is_archived) {
-                  if (selectedClientForProject) {
-                    setShowEditClientModal(true);
-                  } else {
-                    setShowClientSelector(true);
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Client Block */}
+              <div
+                onClick={() => {
+                  if (!project.is_archived) {
+                    if (selectedClientForProject) {
+                      setShowEditClientModal(true);
+                    } else {
+                      setShowClientSelector(true);
+                    }
                   }
-                }
-              }}
-              className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold text-gray-900 dark:text-white text-lg">
-                  {selectedClientForProject ? selectedClientForProject.name : t('No client')}
+                }}
+                className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-gray-900 dark:text-white text-lg">
+                    {selectedClientForProject ? selectedClientForProject.name : t('No client')}
+                  </div>
+                  <div className="text-base text-gray-600 dark:text-gray-400 truncate">
+                    {selectedClientForProject ? selectedClientForProject.email : t('Associate project with a client')}
+                  </div>
                 </div>
-                <div className="text-base text-gray-600 dark:text-gray-400 truncate">
-                  {selectedClientForProject ? selectedClientForProject.email : t('Associate project with a client')}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!project.is_archived && selectedClientForProject && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeProjectFromClient(selectedClientForProject.id, projectId);
+                        updateProject(project.category, projectId, { clientId: null });
+                        setSelectedClientForProject(null);
+                      }}
+                      className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                      title={t('Remove')}
+                    >
+                      <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    </button>
+                  )}
+                  {!project.is_archived && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {!project.is_archived && selectedClientForProject && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeProjectFromClient(selectedClientForProject.id, projectId);
-                      updateProject(project.category, projectId, { clientId: null });
-                      setSelectedClientForProject(null);
-                    }}
-                    className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                    title={t('Remove')}
+
+              {/* Supplier (Contractor) Block - Moved here and made half-width on desktop */}
+              {!project.is_archived && (
+                <div className="relative">
+                  <div
+                    onClick={() => setShowContractorSelector(!showContractorSelector)}
+                    className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md h-full"
                   >
-                    <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  </button>
-                )}
-                {!project.is_archived && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
-              </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
+                      <div className="text-base text-gray-600 dark:text-gray-400 truncate">
+                        {getCurrentContractor()?.name || t('assign contractor to project')}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                  </div>
+
+                  {showContractorSelector && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowContractorSelector(false)}>
+                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
+
+                        <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
+                          {contractors.map(contractor => (
+                            <button
+                              key={contractor.id}
+                              onClick={() => handleAssignProjectContractor(contractor.id)}
+                              className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${(project.contractor_id || activeContractorId) === contractor.id
+                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                                }`}
+                            >
+                              <span className="font-semibold truncate">{contractor.name}</span>
+                              {(project.contractor_id || activeContractorId) === contractor.id && (
+                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setShowContractorSelector(false);
+                            setShowContractorModal(true);
+                          }}
+                          className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          {t('Add contractor')}
+                        </button>
+
+                        <button
+                          onClick={() => setShowContractorSelector(false)}
+                          className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl"
+                        >
+                          {t('Cancel')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Project Rooms Section */}
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -1253,45 +1473,47 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           </div>
 
           {/* Price Overview */}
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h2>
             </div>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-900 dark:text-white text-lg">{t('without VAT')}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(projectId, project))}</span>
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
+              <div className="space-y-2">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-semibold text-gray-900 dark:text-white text-base">{t('without VAT')}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project))}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-900 dark:text-white text-lg">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(projectId, project) * getVATRate())}</span>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-semibold text-gray-900 dark:text-white text-base">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project) * getVATRate())}</span>
                 </div>
-                <hr className="border-gray-300 dark:border-gray-600" />
-                <div className="flex justify-between items-center">
-                  <span className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Total price')}</span>
-                  <span className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(projectId, project) * (1 + getVATRate()))}</span>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-semibold text-gray-900 dark:text-white text-base">{t('Total price')}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project) * (1 + getVATRate()))}</span>
                 </div>
               </div>
 
               {!project.is_archived && (
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={handlePreviewPriceOffer}
-                    className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Preview')}</span>
-                  </button>
-                  <button
-                    onClick={handleSendPriceOffer}
-                    className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 px-4 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Send')}</span>
-                  </button>
-                </div>
+                <>
+                  <hr className="border-gray-300 dark:border-gray-600 my-4" />
+                  <div className="flex gap-2 lg:gap-3">
+                    <button
+                      onClick={handlePreviewPriceOffer}
+                      className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-2.5 lg:py-3 px-4 rounded-xl lg:rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      <span className="text-sm lg:text-lg">{t('Preview')}</span>
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleSendPriceOffer}
+                      className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-2.5 lg:py-3 px-4 rounded-xl lg:rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                    >
+                      <span className="text-sm lg:text-lg">{t('Send')}</span>
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </>
               )}
             </div>
 
@@ -1305,8 +1527,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   }}
                   className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98]"
                 >
-                  <Plus className="w-4 h-4 text-white" />
                   <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
+                  <Plus className="w-4 h-4 text-white" />
                 </button>
               ) : null
             )}
@@ -1323,19 +1545,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     onClick={() => !project.is_archived && setShowInvoiceDetailModal(true)}
                     className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
                   >
-                    <div className="flex items-center gap-3 flex-1">
-                      <FileText className="w-5 h-5 text-gray-700 dark:text-gray-300 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Invoice')} {invoice.invoiceNumber}</div>
-                        <div className="text-base text-gray-600 dark:text-gray-400">{new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</div>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Invoice')} {invoice.invoiceNumber}</div>
+                      <div className="text-base text-gray-600 dark:text-gray-400">{new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 text-sm font-semibold rounded-full ${invoice.status === INVOICE_STATUS.PAID
-                        ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                      <span className={`px-3 py-1.5 text-sm font-semibold rounded-full text-white ${invoice.status === INVOICE_STATUS.PAID
+                        ? 'bg-green-500'
                         : invoice.status === INVOICE_STATUS.AFTER_MATURITY
-                          ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                          : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                          ? 'bg-red-500'
+                          : 'bg-blue-500'
                         }`}>
                         {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
                           : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
@@ -1348,192 +1567,53 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             </div>
           )}
 
-          {/* Project Management */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Project management')}</h2>
-            </div>
-
-            {!project.is_archived && (
-              <div className="space-y-3">
-                <div
-                  onClick={() => setShowProjectPriceList(true)}
-                  className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Project price list')}</div>
-                    <div className="text-base text-gray-600 dark:text-gray-400 truncate">{t('last change')}: 31 Oct 2025</div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                </div>
-
-                <div className="relative">
-                  <div
-                    onClick={() => setShowContractorSelector(!showContractorSelector)}
-                    className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
-                      <div className="text-base text-gray-600 dark:text-gray-400 truncate">
-                        {getCurrentContractor()?.name || t('assign contractor to project')}
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-                  </div>
-
-                  {showContractorSelector && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowContractorSelector(false)}>
-                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
-
-                        <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
-                          {contractors.map(contractor => (
-                            <button
-                              key={contractor.id}
-                              onClick={() => handleAssignProjectContractor(contractor.id)}
-                              className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${(project.contractor_id || activeContractorId) === contractor.id
-                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
-                                }`}
-                            >
-                              <span className="font-semibold truncate">{contractor.name}</span>
-                              {(project.contractor_id || activeContractorId) === contractor.id && (
-                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            setShowContractorSelector(false);
-                            setShowContractorModal(true);
-                          }}
-                          className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          {t('Add contractor')}
-                        </button>
-
-                        <button
-                          onClick={() => setShowContractorSelector(false)}
-                          className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl"
-                        >
-                          {t('Cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-
-
-            <div className="flex gap-3">
-              {project.is_archived ? (
-                <>
-                  <button
-                    onClick={() => {
-                      unarchiveProject(projectId);
-                      onBack();
-                    }}
-                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                  >
-                    <Archive className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm sm:text-lg">{t('Unarchive')}</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      deleteArchivedProject(projectId);
-                      onBack();
-                    }}
-                    className="flex-1 bg-red-600 text-white py-3 px-4 rounded-2xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="text-sm sm:text-lg">{t('Delete Forever')}</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={handleDuplicateProject}
-                    disabled={isDuplicating}
-                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isDuplicating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-sm sm:text-lg">{t('Duplicating...')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        <span className="text-sm sm:text-lg">{t('Duplicate')}</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowArchiveConfirmation(true)}
-                    className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-3 px-4 rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                  >
-                    <Archive className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm sm:text-lg">{t('ArchiveProjectAction')}</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
 
           {/* Receipts Section */}
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             <div className="flex items-center gap-2">
               <Receipt className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
                 {t('Receipts')} - {calculateReceiptsTotal().toFixed(2).replace('.', ',')} €
               </h2>
             </div>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => receiptInputRef.current?.click()}
-                  disabled={isAnalyzingReceipt}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
-                >
-                  {isAnalyzingReceipt ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{t('Analyzing...')} ({analyzingProgress.current}/{analyzingProgress.total})</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-4 h-4" />
-                      <span>{t('Add receipts')}</span>
-                    </>
-                  )}
-                </button>
-                <input
-                  ref={receiptInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleReceiptUpload}
-                />
-                <button
-                  onClick={() => setShowReceiptsModal(true)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>{t('View receipts')}</span>
-                </button>
-              </div>
+            <div className="flex flex-row gap-2">
+              <button
+                onClick={() => receiptInputRef.current?.click()}
+                disabled={isAnalyzingReceipt}
+                className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 px-2 lg:px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm lg:text-base font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {isAnalyzingReceipt ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{t('Analyzing...')} ({analyzingProgress.current}/{analyzingProgress.total})</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{t('Add receipts')}</span>
+                    <Camera className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+              <input
+                ref={receiptInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleReceiptUpload}
+              />
+              <button
+                onClick={() => setShowReceiptsModal(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 px-2 lg:px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl text-sm lg:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+              >
+                <span>{t('View receipts')}</span>
+                <FileText className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
           {/* History - Hidden on mobile, shown on desktop */}
-          <div className="space-y-4 hidden lg:block">
+          <div className="space-y-2.5 hidden lg:block">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
@@ -1577,7 +1657,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         {/* Right column - Notes and Photos */}
         <div className="lg:w-80 xl:w-96 flex-shrink-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
           {/* Notes */}
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             <div className="flex items-center gap-2">
               <StickyNote className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Notes_Project')}</h2>
@@ -1623,7 +1703,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           </div>
 
           {/* Photos */}
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -1651,8 +1731,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
             {projectPhotos.length > 0 ? (
               <div
-                className={`relative bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 shadow-sm transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
+                className={`relative rounded-2xl no-border no-gradient transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
                   } ${canEditProject && !photoDeleteMode ? 'cursor-pointer' : ''}`}
+                style={{ boxShadow: 'none', border: 'none' }}
                 onClick={canEditProject && !photoDeleteMode ? () => photoInputRef.current?.click() : undefined}
                 onDrop={canEditProject && !photoDeleteMode ? handlePhotoDrop : undefined}
                 onDragOver={canEditProject && !photoDeleteMode ? handlePhotoDragOver : undefined}
@@ -1723,8 +1804,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               </div>
             ) : (
               <div
-                className={`min-h-[120px] flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-2xl transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
-                  } ${canEditProject ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''}`}
+                className={`min-h-[120px] flex flex-col items-center justify-center rounded-2xl transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
+                  } ${canEditProject ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30' : ''}`}
                 onClick={canEditProject ? () => photoInputRef.current?.click() : undefined}
                 onDrop={canEditProject ? handlePhotoDrop : undefined}
                 onDragOver={canEditProject ? handlePhotoDragOver : undefined}
@@ -1739,7 +1820,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           </div>
 
           {/* History - Mobile only, shown after Photos */}
-          <div className="space-y-4 lg:hidden">
+          <div className="space-y-2.5 lg:hidden">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
@@ -2278,22 +2359,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
 
       {/* Archive Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showArchiveConfirmation}
-        onClose={() => setShowArchiveConfirmation(false)}
-        onConfirm={() => {
-          archiveProject(project.category, projectId);
-          onBack();
-        }}
-        title={t('Archive project {name}?').replace('{name}', project.name)}
-        message="Archiving this project will not result in data loss. You can find this project in the 'Archive' tab in the app settings."
-        confirmLabel="ArchiveProjectAction"
-        cancelLabel="Cancel"
-        icon="info"
-      />
-
-      {
-        project.is_archived && showArchiveConfirmation && (
+      {showArchiveConfirmation && (
+        project.is_archived ? (
           <ConfirmationModal
             isOpen={showArchiveConfirmation}
             onClose={() => setShowArchiveConfirmation(false)}
@@ -2306,8 +2373,22 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             confirmText={t('Delete')}
             confirmColor="bg-red-600"
           />
+        ) : (
+          <ConfirmationModal
+            isOpen={showArchiveConfirmation}
+            onClose={() => setShowArchiveConfirmation(false)}
+            onConfirm={() => {
+              archiveProject(project.category, projectId);
+              onBack();
+            }}
+            title={t('Archive project {name}?').replace('{name}', project.name)}
+            message="Archiving this project will not result in data loss. You can find this project in the 'Archive' tab in the app settings."
+            confirmLabel="ArchiveProjectAction"
+            cancelLabel="Cancel"
+            icon="info"
+          />
         )
-      }
+      )}
 
       {
         showShareModal && (

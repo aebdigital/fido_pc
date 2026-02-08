@@ -270,6 +270,11 @@ export const useProjectManager = (appData, setAppData) => {
         mappedData.photos = projectData.photos;
       }
       if (projectData.notes !== undefined) mappedData.notes = projectData.notes;
+      if (projectData.hourlyRate !== undefined) {
+        mappedData.hourly_rate = projectData.hourlyRate;
+        // Keep in sync for local state updates
+        projectData.hourly_rate = projectData.hourlyRate;
+      }
 
       if (Object.keys(mappedData).length > 0) {
         await api.projects.update(projectId, mappedData);

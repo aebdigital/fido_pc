@@ -90,6 +90,7 @@ export const AppDataProvider = ({ children }) => {
   const [myTeams, setMyTeams] = useState([]);
   const [myJobs, setMyJobs] = useState([]);
   const [myInvitations, setMyInvitations] = useState([]);
+  const [activeTimer, setActiveTimer] = useState(null); // { projectId, entryId, startTime, project: { name, c_id } }
 
   const checkProStatus = useCallback(async () => {
     if (!user?.id) return;
@@ -251,7 +252,8 @@ export const AppDataProvider = ({ children }) => {
     priceOfferSettings: {
       timeLimit: 30, // Days
       defaultValidityPeriod: 30,
-      archiveRetentionDays: 30 // Default 30 days retention
+      archiveRetentionDays: 30, // Default 30 days retention
+      defaultHourlyRate: 0
     },
     activeContractorId: null, // Currently selected contractor
     projectFilterYear: 'all', // Filter year for projects
@@ -633,6 +635,46 @@ export const AppDataProvider = ({ children }) => {
   const projectManager = useProjectManager(appData, setAppData);
 
   const invoiceManager = useInvoiceManager(appData, setAppData, projectManager.addProjectHistoryEntry, projectManager.updateProject);
+
+  // Denník Helpers
+  const quickTravelToDennik = useCallback(async (projectId) => {
+    // Navigate to projects page and specifically to the project
+    // This is a UI-level navigation, so it might be handled by the component,
+    // but we can provide the "target" here.
+    // For simplicity, we'll use window events or a state flag.
+    console.log('[AppDataContext] Quick traveling to project:', projectId);
+    window.dispatchEvent(new CustomEvent('quick-travel-dennik', { detail: { projectId } }));
+  }, []);
+
+  // Poll for active timer on mount and periodically
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const checkActiveTimer = async () => {
+      try {
+        const timer = await api.dennik.getGlobalActiveTimer();
+        setActiveTimer(timer);
+      } catch (error) {
+        console.error('Error checking active timer:', error);
+      }
+    };
+
+    checkActiveTimer();
+
+    // Check every 5 minutes
+    const interval = setInterval(checkActiveTimer, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
+  const refreshActiveTimer = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const timer = await api.dennik.getGlobalActiveTimer();
+      setActiveTimer(timer);
+    } catch (error) {
+      console.error('Error refreshing active timer:', error);
+    }
+  }, [user?.id]);
 
 
 
@@ -1370,7 +1412,13 @@ export const AppDataProvider = ({ children }) => {
     searchUsers,
     loadTeamData,
     deleteTeam,
-    removeTeamMember
+    removeTeamMember,
+
+    // Denník
+    activeTimer,
+    setActiveTimer,
+    refreshActiveTimer,
+    quickTravelToDennik
   };
 
   useEffect(() => {

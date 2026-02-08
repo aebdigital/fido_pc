@@ -1,21 +1,41 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Download } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Download, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useAppData } from '../context/AppDataContext';
 import InvoiceDetailModal from './InvoiceDetailModal';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
+import ConfirmationModal from './ConfirmationModal';
 
 const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     const { t } = useLanguage();
-    const { activeContractor, getVATRate, invoices, createInvoice, activeContractorId } = useAppData();
+    const {
+        activeContractor,
+        getVATRate,
+        invoices,
+        createInvoice,
+        activeContractorId,
+        activeTimer: globalActiveTimer,
+        updateProject,
+        refreshActiveTimer,
+        priceOfferSettings,
+        updatePriceOfferSettings
+    } = useAppData();
 
     // State
     const [activeTab, setActiveTab] = useState('timer'); // 'timer' or 'members'
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [activeTimer, setActiveTimer] = useState(null);
-    const [hourlyRate, setHourlyRate] = useState('');
+    const [hourlyRate, setHourlyRate] = useState(project?.hourly_rate || priceOfferSettings?.defaultHourlyRate || '');
+    // Ensure we sync if prop changes or global setting becomes available
+    useEffect(() => {
+        if (project?.hourly_rate) {
+            setHourlyRate(project.hourly_rate);
+        } else if (priceOfferSettings?.defaultHourlyRate) {
+            setHourlyRate(priceOfferSettings.defaultHourlyRate);
+        }
+    }, [project?.hourly_rate, priceOfferSettings?.defaultHourlyRate]);
     const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
     const [timeEntries, setTimeEntries] = useState([]);
     const [members, setMembers] = useState([]);
@@ -25,6 +45,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     const [isSearching, setIsSearching] = useState(false); // eslint-disable-line no-unused-vars
     const [customHours, setCustomHours] = useState(null); // For testing/overriding
     const [ownerProfile, setOwnerProfile] = useState(null);
+    const [showBusyModal, setShowBusyModal] = useState(false);
+    const [showCleanupModal, setShowCleanupModal] = useState(false);
 
     // Analytics State
     const [analyticsView, setAnalyticsView] = useState('month'); // 'day', 'week', 'month'
@@ -33,7 +55,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     const [generatedInvoices, setGeneratedInvoices] = useState([]);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
-    // Removed duplicate hourlyRate and isGeneratingInvoice declarations
+    const hourlyRateTimerRef = useRef(null);
 
     // Memoized functions (useCallback)
     const loadMembers = useCallback(async () => {
@@ -179,6 +201,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         if (isOpen && project) {
             loadData();
             loadAnalyticsData();
+            // Only sync from props if we're not currently typing
+            if (project.hourly_rate !== undefined && !hourlyRateTimerRef.current) {
+                setHourlyRate(project.hourly_rate || priceOfferSettings?.defaultHourlyRate || '');
+            }
         }
     }, [isOpen, project, loadData, loadAnalyticsData]);
 
@@ -225,7 +251,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             // 1. Supplier = Active Contractor (Current User)
             let supplier = activeContractor;
             if (!supplier) {
-                alert('Debug: Fetching contractors...');
                 console.log('No active contractor in context, fetching all...');
                 const contractors = await api.contractors.getAll();
                 if (contractors && contractors.length > 0) {
@@ -351,7 +376,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
 
             // Refresh the list so it appears below
             await loadInvoices();
-            alert(t('Invoice generated and saved successfully!'));
+            // alert(t('Invoice generated and saved successfully!'));
         } catch (error) {
             console.error('Invoice generation failed:', error);
             alert(t('Failed to generate invoice: ') + error.message);
@@ -360,17 +385,74 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         }
     };
 
+    const handleUpdateHourlyRate = (value) => {
+        setHourlyRate(value);
+        if (!isOwner) return;
+
+        if (hourlyRateTimerRef.current) clearTimeout(hourlyRateTimerRef.current);
+
+        hourlyRateTimerRef.current = setTimeout(async () => {
+            try {
+                const numericValue = parseFloat(value);
+                if (isNaN(numericValue)) {
+                    hourlyRateTimerRef.current = null;
+                    return;
+                }
+
+                const catId = typeof project.category === 'object' ? project.category.id : project.category;
+                await Promise.all([
+                    updateProject(catId, project.c_id || project.id, { hourlyRate: numericValue }),
+                    updatePriceOfferSettings({ defaultHourlyRate: numericValue })
+                ]);
+            } catch (error) {
+                console.error('Error updating hourly rate:', error);
+            } finally {
+                hourlyRateTimerRef.current = null;
+            }
+        }, 800);
+    };
+
+    const handleCleanup = async () => {
+        setShowCleanupModal(true);
+    };
+
+    const confirmCleanup = async () => {
+
+        try {
+            setIsLoading(true);
+            await api.dennik.cleanupDennik(project.c_id || project.id);
+            onClose();
+            // Project list will refresh via AppDataContext if we trigger a reload or update state
+        } catch (error) {
+            console.error('Error cleaning up Denník:', error);
+            alert(t('Failed to cleanup Denník'));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
 
     const handleStartTimer = async () => {
+        // Check for global active timer first - BEFORE calling startTimer
+        if (globalActiveTimer && globalActiveTimer.project_id !== (project.c_id || project.id)) {
+            setShowBusyModal(true);
+            return;
+        }
+
+        // Also safety check locally
+        if (activeTimer) return;
+
         try {
             setIsLoading(true);
             const entry = await api.dennik.startTimer(
                 project.c_id || project.id,
                 selectedDate.toISOString().split('T')[0]
             );
+
             setActiveTimer(entry);
             await loadTimeEntries();
+            await refreshActiveTimer();
         } catch (error) {
             console.error('Error starting timer:', error);
             alert(t('Failed to start timer'));
@@ -386,6 +468,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             await api.dennik.endTimer(activeTimer.id);
             setActiveTimer(null);
             await loadTimeEntries();
+            await refreshActiveTimer();
         } catch (error) {
             console.error('Error ending timer:', error);
             alert(t('Failed to end timer'));
@@ -536,12 +619,23 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                 {project.location}
                             </p>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-                        >
-                            <X className="w-6 h-6 text-gray-500" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {isOwner && (
+                                <button
+                                    onClick={handleCleanup}
+                                    title={t('Cleanup Denník')}
+                                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors text-gray-400 hover:text-red-500"
+                                >
+                                    <Trash2 className="w-6 h-6" />
+                                </button>
+                            )}
+                            <button
+                                onClick={onClose}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            >
+                                <X className="w-6 h-6 text-gray-500" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Tabs */}
@@ -957,7 +1051,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                         type="number"
                                         value={customHours !== null ? customHours : Number(analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0)).toFixed(2)}
                                         onChange={(e) => setCustomHours(e.target.value)}
-                                        className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-none p-0 focus:ring-0 w-full"
+                                        className="text-2xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900/30 rounded-lg px-2 py-1 w-full transition-all outline-none"
                                     />
                                 </div>
 
@@ -972,8 +1066,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                     <input
                                         type="number"
                                         value={hourlyRate}
-                                        onChange={(e) => setHourlyRate(e.target.value)}
-                                        className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-none p-0 focus:ring-0 w-full"
+                                        onChange={(e) => handleUpdateHourlyRate(e.target.value)}
+                                        className="text-2xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-transparent focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900/30 rounded-lg px-2 py-1 w-full transition-all outline-none"
+                                        placeholder="0.00"
                                     />
                                 </div>
 
@@ -1072,7 +1167,30 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                     />
                 )}
             </div>
-        </div >
+
+            {/* Custom Styled Alerts & Confirmations */}
+            <ConfirmationModal
+                isOpen={showBusyModal}
+                onClose={() => setShowBusyModal(false)}
+                onConfirm={() => setShowBusyModal(false)}
+                title="Active Timer Busy"
+                message={`${t('You already have an active timer on project')}: ${globalActiveTimer?.projects?.name || t('Unknown')}`}
+                confirmLabel="OK"
+                cancelLabel="Close"
+                icon="info"
+            />
+
+            <ConfirmationModal
+                isOpen={showCleanupModal}
+                onClose={() => setShowCleanupModal(false)}
+                onConfirm={confirmCleanup}
+                title="Cleanup Denník"
+                message="Are you sure you want to cleanup Denník for this project? This will delete all time entries and members, and reset the project Denník status."
+                confirmLabel="Cleanup"
+                cancelLabel="Cancel"
+                isDestructive={true}
+            />
+        </div>
     );
 };
 

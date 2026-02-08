@@ -5,7 +5,9 @@ import {
     Loader2,
     Users,
     Calendar,
-    Search
+    Search,
+    Trash2,
+    X
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -13,6 +15,7 @@ import api from '../services/supabaseApi';
 import ProjectDetailView from '../components/ProjectDetailView';
 import { useAuth } from '../context/AuthContext';
 import { formatProjectNumber } from '../utils/dataTransformers';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const Dennik = () => {
     const { t } = useLanguage();
@@ -26,6 +29,9 @@ const Dennik = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedProject, setSelectedProject] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [deleteMode, setDeleteMode] = useState(false);
+    const [showCleanupModal, setShowCleanupModal] = useState(false);
+    const [projectToCleanup, setProjectToCleanup] = useState(null);
 
     // Load dennik projects on mount
     useEffect(() => {
@@ -51,6 +57,19 @@ const Dennik = () => {
     const handleBackToList = () => {
         setSelectedProject(null);
         loadDennikProjects(); // Refresh list
+    };
+
+    const handleCleanup = async () => {
+        if (!projectToCleanup) return;
+        try {
+            await api.dennik.cleanupDennik(projectToCleanup.id || projectToCleanup.c_id);
+            setShowCleanupModal(false);
+            setProjectToCleanup(null);
+            loadDennikProjects();
+        } catch (error) {
+            console.error('Error cleaning up dennik:', error);
+            alert(t('Failed to cleanup Denník'));
+        }
     };
 
     const getProjectMembers = (project) => {
@@ -86,17 +105,31 @@ const Dennik = () => {
 
     return (
         <div className="flex-1 overflow-y-auto">
-            {/* Header */}
-            <div className="mb-2">
-                <div className="flex items-center gap-2 mb-2">
-                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
+            {/* Header Area */}
+            <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
+                    </div>
+                    {dennikProjects.length > 0 && (
+                        <button
+                            onClick={() => setDeleteMode(!deleteMode)}
+                            className={`p-2.5 rounded-xl transition-all ${deleteMode
+                                ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 ring-2 ring-red-500'
+                                : 'bg-gray-100 text-gray-500 hover:text-red-500 dark:bg-gray-800'
+                                } shadow-sm hover:shadow-md`}
+                            title={t('Cleanup Denník')}
+                        >
+                            {deleteMode ? <X className="w-5 h-5" /> : <Trash2 className="w-5 h-5" />}
+                        </button>
+                    )}
                 </div>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-gray-500 dark:text-gray-400 mb-6">
                     {t('Time tracking & project sharing')}
                 </p>
 
                 {/* Search */}
-                <div className="relative mt-4">
+                <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                         type="text"
@@ -108,7 +141,7 @@ const Dennik = () => {
                 </div>
             </div>
 
-            {/* Projects List */}
+            {/* Projects List Container */}
             {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -137,9 +170,27 @@ const Dennik = () => {
                         return (
                             <div
                                 key={project.id || project.c_id}
-                                onClick={() => handleOpenProject(project)}
-                                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700"
+                                onClick={() => !deleteMode && handleOpenProject(project)}
+                                className={`bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm transition-all border border-gray-200 dark:border-gray-700 ${deleteMode
+                                    ? 'border-red-200 dark:border-red-900/50 opacity-90 scale-[0.98]'
+                                    : 'hover:shadow-md cursor-pointer hover:border-purple-300 dark:hover:border-purple-700'
+                                    } relative overflow-hidden`}
                             >
+                                {deleteMode && isOwner && (
+                                    <div className="absolute inset-0 bg-red-500/5 dark:bg-red-500/10 flex items-center justify-center backdrop-blur-[1px] z-10 transition-all animate-fade-in">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setProjectToCleanup(project);
+                                                setShowCleanupModal(true);
+                                            }}
+                                            className="px-6 py-3 bg-red-600 text-white rounded-2xl font-bold shadow-lg hover:bg-red-700 transition-all flex items-center gap-2 transform hover:scale-110 active:scale-95"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                            {t('Remove')}
+                                        </button>
+                                    </div>
+                                )}
                                 {/* Header */}
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex-1 min-w-0">
@@ -217,6 +268,22 @@ const Dennik = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modals */}
+            {showCleanupModal && (
+                <ConfirmationModal
+                    isOpen={showCleanupModal}
+                    onClose={() => {
+                        setShowCleanupModal(false);
+                        setProjectToCleanup(null);
+                    }}
+                    onConfirm={handleCleanup}
+                    title={t('Cleanup Denník')}
+                    message={t('This will permanently delete ALL time entries and members for this project. This project will then be removed from the Diary listing and will remain as a regular project.')}
+                    confirmText={t('Delete All')}
+                    variant="danger"
+                />
             )}
         </div>
     );

@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    "Notes_CP": "Quote Notes",
+    "Notes_CP": "Notes for price offer",
     "Notes_Project": "Project Notes",
 
     "Price Offer Abbr": "PO",
@@ -137,6 +137,11 @@ export const translations = {
     "Sokel - lepenie": "Plinth - bonding",
 
     "Denník": "Diary",
+    "Active Timer Busy": "Active Timer Busy",
+    "You already have an active timer on project": "You already have an active timer on project",
+    "Cleanup Denník": "Cleanup Denník",
+    "Are you sure you want to cleanup Denník for this project? This will delete all time entries and members, and reset the project Denník status.": "Are you sure you want to cleanup Denník for this project? This will delete all time entries and members, and reset the project Denník status.",
+    "Cleanup": "Cleanup",
     "My Teams": "My Teams",
     "Other Teams": "Other Teams",
     "Create Team": "Create Team",
@@ -277,6 +282,11 @@ export const translations = {
     "Cottages": "Chaty",
     "projects": "projekty",
     "Denník": "Denník",
+    "Active Timer Busy": "Aktívny časovač",
+    "You already have an active timer on project": "Už máte aktívny časovač na projekte",
+    "Cleanup Denník": "Vyčistiť Denník",
+    "Are you sure you want to cleanup Denník for this project? This will delete all time entries and members, and reset the project Denník status.": "Naozaj chcete vymazať Denník pre tento projekt? Týmto sa vymažú všetky časové záznamy a členovia a zresetuje sa status Denníka projektu.",
+    "Cleanup": "Vyčistiť",
     "My Teams": "Moje tímy",
     "Other Teams": "Ostatné tímy",
     "Create Team": "Vytvoriť tím",
@@ -1058,7 +1068,7 @@ export const translations = {
 
     "All rights reserved": "Všetky práva vyhradené",
     "Notes": "Poznámky",
-    "Notes_CP": "Poznámky k CP",
+    "Notes_CP": "Poznámky k cenovej ponuke",
     "Notes_Project": "Poznámky k projektu",
 
     "Add notes about this project...": "Pridajte poznámky k tomuto projektu...",

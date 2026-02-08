@@ -2354,6 +2354,26 @@ export const dennikApi = {
     }
   },
 
+  // Get active timer for current user across ALL projects
+  getGlobalActiveTimer: async () => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .select('*, projects (name, c_id)')
+        .eq('user_id', userId)
+        .is('end_time', null)
+        .order('start_time', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.getGlobalActiveTimer', error)
+    }
+  },
+
   // Start a timer (create entry with start_time only)
   startTimer: async (projectId, date = null) => {
     try {
@@ -2483,6 +2503,40 @@ export const dennikApi = {
       return data
     } catch (error) {
       handleError('dennikApi.disableDennik', error)
+    }
+  },
+
+  // Cleanup dennik for a project (remove entries and members, then disable)
+  cleanupDennik: async (projectId) => {
+    try {
+      // 1. Delete all time entries
+      const { error: entriesError } = await supabase
+        .from('dennik_time_entries')
+        .delete()
+        .eq('project_id', projectId)
+
+      if (entriesError) throw entriesError
+
+      // 2. Delete all members
+      const { error: membersError } = await supabase
+        .from('project_members')
+        .delete()
+        .eq('project_id', projectId)
+
+      if (membersError) throw membersError
+
+      // 3. Disable dennik
+      const { data, error: projectError } = await supabase
+        .from('projects')
+        .update({ is_dennik_enabled: false })
+        .eq('c_id', projectId)
+        .select()
+        .single()
+
+      if (projectError) throw projectError
+      return data
+    } catch (error) {
+      handleError('dennikApi.cleanupDennik', error)
     }
   },
 

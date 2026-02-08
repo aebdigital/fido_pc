@@ -7,7 +7,8 @@ import {
   RefreshCw,
   X,
   CheckCircle,
-  Flag
+  Flag,
+  Clock
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ContractorProfileModal from '../components/ContractorProfileModal';
@@ -19,6 +20,36 @@ import api from '../services/supabaseApi';
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { useScrollLock } from '../hooks/useScrollLock';
+
+const LiveTimer = ({ startTime, onClick }) => {
+  const [elapsed, setElapsed] = useState('00:00:00');
+
+  useEffect(() => {
+    const calculate = () => {
+      const start = new Date(startTime);
+      const now = new Date();
+      const diff = Math.max(0, now - start);
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    setElapsed(calculate());
+    const interval = setInterval(() => setElapsed(calculate()), 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return (
+    <div
+      onClick={onClick}
+      className="absolute top-2 right-2 bg-red-500 text-white text-sm font-black px-3 py-1.5 rounded-full shadow-lg z-20 flex items-center gap-1.5 animate-glow-red border-2 border-white dark:border-gray-800 cursor-pointer"
+    >
+      <Clock className="w-4 h-4" />
+      <span>{elapsed}</span>
+    </div>
+  );
+};
 
 const Projects = () => {
   const location = useLocation();
@@ -41,7 +72,10 @@ const Projects = () => {
     hasOrphanProjects,
     clients,
     projectFilterYear: filterYear,
-    updateProjectFilterYear
+    updateProjectFilterYear,
+    activeTimer,
+    quickTravelToDennik,
+    findProjectById
   } = useAppData();
 
   // Special state for viewing orphan projects (projects without contractor)
@@ -136,6 +170,27 @@ const Projects = () => {
       }
     }
   }, [projectCategories, selectedProject]);
+
+  // Handle travel between categories and projects via events
+  useEffect(() => {
+    const handleQuickTravel = async (e) => {
+      const { projectId } = e.detail;
+      const result = findProjectById(projectId);
+      if (result) {
+        setActiveCategory(result.category);
+        setSelectedProject(result.project);
+        setCurrentView('details');
+
+        // Open Dennik modal once details are loaded
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('open-dennik-modal', { detail: { projectId } }));
+        }, 300);
+      }
+    };
+
+    window.addEventListener('quick-travel-dennik', handleQuickTravel);
+    return () => window.removeEventListener('quick-travel-dennik', handleQuickTravel);
+  }, [findProjectById]);
 
   // Track which projects have been loaded to avoid re-fetching
   const loadedProjectsRef = useRef(new Set());
@@ -380,7 +435,7 @@ const Projects = () => {
 
   return (
     <>
-      <div className="pb-20 lg:pb-0 overflow-hidden w-full min-w-0">
+      <div className="pb-20 lg:pb-0 w-full min-w-0">
         {currentView !== 'details' && (
           <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projects')}</h1>
         )}
@@ -487,7 +542,7 @@ const Projects = () => {
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row lg:h-full overflow-hidden w-full">
+        <div className="flex flex-col lg:flex-row lg:h-full w-full">
           {/* Category Selection - Mobile: horizontal scroll, Desktop: sidebar - Hidden when viewing project details */}
           <div className={`flex lg:flex-col w-screen lg:w-48 xl:w-56 2xl:w-72 flex-shrink-0 ${currentView === 'details' ? 'hidden' : currentView === 'categories' ? 'hidden lg:flex' : 'hidden lg:flex'}`} style={{ maxWidth: '100vw' }}>
             <div className="flex lg:flex-1 lg:flex-col overflow-x-auto lg:overflow-visible pl-2 pr-2 lg:px-3 xl:px-4 py-4 space-x-2 lg:space-x-0 lg:space-y-2 xl:space-y-3 scrollbar-hide" style={{ width: '100%' }}>
@@ -501,6 +556,16 @@ const Projects = () => {
                     }`}
                 >
                   <div className="h-24 lg:h-20 xl:h-24 2xl:h-28 relative shadow-lg">
+                    {/* Active Timer Live Display */}
+                    {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) && (
+                      <LiveTimer
+                        startTime={activeTimer.start_time}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          quickTravelToDennik(activeTimer.project_id);
+                        }}
+                      />
+                    )}
                     <img
                       src={category.image}
                       alt={category.name}
@@ -535,6 +600,20 @@ const Projects = () => {
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
+
+                      {/* Active Timer Live Display Mobile */}
+                      {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) && (
+                        <div className="absolute top-6 right-6 z-20 scale-150">
+                          <LiveTimer
+                            startTime={activeTimer.start_time}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              quickTravelToDennik(activeTimer.project_id);
+                            }}
+                          />
+                        </div>
+                      )}
+
                       <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between items-end">
                         <h3 className="text-3xl font-bold text-gray-900">{t(category.name)}</h3>
                         <span className="text-sm font-medium text-gray-900">{category.count} {t('projects')}</span>
@@ -547,7 +626,7 @@ const Projects = () => {
 
             {/* Project List View */}
             {currentView === 'projects' && (
-              <div className="pt-4 pb-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 overflow-hidden w-full">
+              <div className="pt-4 pb-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 w-full">
                 {/* Project List Header */}
                 <div className="flex flex-col gap-4 w-full">
                   <div className="flex items-center justify-between w-full">
@@ -663,9 +742,21 @@ const Projects = () => {
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
                                 {project.is_dennik_enabled && (
-                                  <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
-                                    {t('Denník')}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
+                                      {t('Denník')}
+                                    </span>
+                                    {activeTimer && activeTimer.project_id === project.id && (
+                                      <div
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          quickTravelToDennik(project.id);
+                                        }}
+                                        className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-red-500 animate-glow-red cursor-pointer"
+                                        title={t('Active Timer')}
+                                      />
+                                    )}
+                                  </div>
                                 )}
                               </div>
                               <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white lg:truncate">
