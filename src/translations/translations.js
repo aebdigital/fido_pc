@@ -1220,7 +1220,7 @@ export const translations = {
     "The last item is - Auxiliary and connecting material.\nThis item includes: cover films, tapes, rollers, brushes, knives, pencils...\n\nFrom our experience, we have found that it is appropriate to set this item at 10%.\n\nExample:\nMaterial cost will be               1000€\nAuxiliary and connecting material   10%\nTotal material cost                 1100€": "Poslednou položkou sú - Pomocný a spojovací materiál.\nTáto položka zahŕňa: zakrývacie fólie, pásky, valčeky, štetce, nože, ceruzky...\n\nZ našich skúseností odporúčame nastaviť túto položku na 10%.\n\nPríklad:\nCena materiálu bude               1000€\nPomocný a spojovací materiál   10%\nCelková cena materiálu                 1100€",
     "Next": "Ďalej",
     "Finish": "Dokončiť",
-    "Time Tracking": "Sledovanie času",
+    "Time Tracking": "Dochádzka",
     "Members": "Členovia",
     "Analytics": "Analytika",
     "Total Hours": "Celkový počet hodín",

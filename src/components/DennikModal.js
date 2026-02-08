@@ -1061,7 +1061,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                         /* Analytics Tab */
                         <div className="space-y-6 h-full flex flex-col">
                             {/* Controls */}
-                            <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded-2xl">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div className="flex bg-white dark:bg-gray-900 rounded-xl p-1 shadow-sm">
                                     {['day', 'week', 'month'].map(view => (
                                         <button
@@ -1077,7 +1077,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                     ))}
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center gap-2">
                                     <button
                                         onClick={() => {
                                             const d = new Date(analyticsDate);
@@ -1086,7 +1086,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                             else d.setDate(d.getDate() - 1);
                                             setAnalyticsDate(d);
                                         }}
-                                        className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
+                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                                     >
                                         <ChevronLeft className="w-5 h-5 text-gray-500" />
                                     </button>
@@ -1102,7 +1102,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                                     monday.setDate(diff);
                                                     const sunday = new Date(monday);
                                                     sunday.setDate(monday.getDate() + 6);
-                                                    // ISO week number
                                                     const thursd = new Date(monday);
                                                     thursd.setDate(monday.getDate() + 3);
                                                     const yearStart = new Date(thursd.getFullYear(), 0, 1);
@@ -1120,7 +1119,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                             else d.setDate(d.getDate() + 1);
                                             setAnalyticsDate(d);
                                         }}
-                                        className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors"
+                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                                     >
                                         <ChevronRight className="w-5 h-5 text-gray-500" />
                                     </button>
