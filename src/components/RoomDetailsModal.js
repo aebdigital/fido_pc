@@ -2,7 +2,6 @@ import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { X, Hammer, Menu, Loader2, Check } from 'lucide-react';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useLanguage } from '../context/LanguageContext';
-import { useAppData } from '../context/AppDataContext';
 import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +14,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
   useScrollLock(true);
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { } = useAppData();
   const [workData, setWorkData] = useState(room.workItems || []);
   const [expandedItems, setExpandedItems] = useState({});
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);
