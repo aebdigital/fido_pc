@@ -484,7 +484,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           invoiceData.clientId = null;
           invoiceData.ownerContractorId = dennikData.ownerContractorId || null;
         }
-        const newInvoice = await createInvoice(project.id, categoryId, invoiceData);
+        const newInvoice = await createInvoice(project, categoryId, invoiceData);
         if (newInvoice) {
           // Save note as default for future invoices (Account-wide)
           const settingsToSave = {
