@@ -1515,8 +1515,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               )}
             </div>
 
-            {/* Create/View Invoice Button - Moved outside and below */}
-            {!project.is_archived && (
+            {/* Create/View Invoice Button - Only for project owner */}
+            {isProjectOwner && !project.is_archived && (
               !getInvoiceForProject(projectId) ? (
                 <button
                   onClick={() => {
@@ -1532,8 +1532,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             )}
           </div>
 
-          {/* Invoices List (if exists) */}
-          {getInvoiceForProject(projectId) && (
+          {/* Invoices List (if exists) - Only for project owner */}
+          {isProjectOwner && getInvoiceForProject(projectId) && (
             <div className="space-y-3">
               {[getInvoiceForProject(projectId)] // Show the invoice regardless of active contractor
                 .filter(Boolean) // Safety check

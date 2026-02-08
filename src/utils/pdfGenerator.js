@@ -270,7 +270,7 @@ export const generateInvoicePDF = async ({
   t, // Add t function here
   options = {}
 }) => {
-  const { isPriceOffer = false, projectNotes = '', projectNumber = '', offerValidityPeriod = 30 } = options;
+  const { isPriceOffer = false, isDennik = false, projectNotes = '', projectNumber = '', offerValidityPeriod = 30 } = options;
 
   // Internal helper for PDF currency formatting (7,00 €)
   const formatCurrency = (amount) => {
@@ -366,10 +366,12 @@ export const generateInvoicePDF = async ({
     } else {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
-      doc.setFontSize(13.1); // Scaled from iOS 14pt
-      doc.setFont('SF-Pro', 'medium');
-      doc.setTextColor(51, 51, 51); // matches iOS black.opacity(0.8)
-      doc.text(sanitizeText(`${t('Price offer')} ${projectNumber || invoice.invoiceNumber}`), 12.35, 26.5);
+      if (!isDennik) {
+        doc.setFontSize(13.1); // Scaled from iOS 14pt
+        doc.setFont('SF-Pro', 'medium');
+        doc.setTextColor(51, 51, 51); // matches iOS black.opacity(0.8)
+        doc.text(sanitizeText(`${t('Price offer')} ${projectNumber || invoice.invoiceNumber}`), 12.35, 26.5);
+      }
     }
     doc.setTextColor(0, 0, 0); // reset to black
 
@@ -556,6 +558,26 @@ export const generateInvoicePDF = async ({
     // Build detailed breakdown from project
     const tableData = [];
 
+    // For Denník invoices, build a simple table from invoice items (no price offer breakdown)
+    if (isDennik && invoice.invoiceItems && invoice.invoiceItems.length > 0) {
+      invoice.invoiceItems.forEach(item => {
+        const quantity = item.pieces || 0;
+        const unitPrice = item.pricePerPiece || 0;
+        const total = item.price || (quantity * unitPrice);
+        const itemVat = item.vat !== undefined ? item.vat / 100 : vatRate;
+        const vatAmount = total * itemVat;
+        const unit = item.unit || 'h';
+
+        tableData.push([
+          { content: sanitizeText(item.title || t('Work Hours')) },
+          { content: sanitizeText(`${formatSmartDecimal(quantity, 2)} ${t(unit)}`) },
+          { content: sanitizeText(formatCurrency(unitPrice)) },
+          { content: sanitizeText(`${Math.round(itemVat * 100)} %`) },
+          { content: sanitizeText(formatCurrency(vatAmount)) },
+          { content: sanitizeText(formatCurrency(total)) }
+        ]);
+      });
+    } else {
     // Debug: Log breakdown contents for custom work items
     const customWorkItems = projectBreakdown?.items?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
     const customMaterialItems = projectBreakdown?.materialItems?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
@@ -974,6 +996,7 @@ export const generateInvoicePDF = async ({
       // Push sorted rows to tableData
       allOthersRows.forEach(row => tableData.push(row));
     }
+    } // end of non-Denník breakdown
 
     // Render the items table - only 2 thick black lines (under header and at bottom)
     autoTable(doc, {

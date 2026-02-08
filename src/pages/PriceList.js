@@ -363,7 +363,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
                 </p>
                 <button
                   onClick={() => setShowPaywall(true)}
-                  className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-8 rounded-2xl font-bold text-lg hover:scale-105 transition-transform shadow-xl"
+                  className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 px-8 rounded-2xl font-bold text-lg hover:scale-[1.02] transition-transform shadow-xl"
                 >
                   {t('Unlock')}
                 </button>

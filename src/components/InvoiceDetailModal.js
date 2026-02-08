@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Eye, Send, User, Edit3, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, Trash } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
@@ -12,6 +12,8 @@ import ClientForm from './ClientForm';
 import ContractorProfileModal from './ContractorProfileModal';
 
 import { useScrollLock } from '../hooks/useScrollLock';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/supabaseApi';
 
 /**
  * InvoiceDetailModal - iOS-aligned invoice detail view
@@ -23,8 +25,9 @@ import { useScrollLock } from '../hooks/useScrollLock';
  * 4. PDF section with 3-button row (Preview, Send, Edit)
  * 5. Cash receipt section (if cash payment)
  */
-const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewProject = false }) => {
+const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewProject = false, dennikOwnerContractor = null }) => {
   useScrollLock(true);
+  const { user } = useAuth();
   const { t, language } = useLanguage();
   const { updateInvoice, deleteInvoice, updateClient, updateContractor, contractors, findProjectById, calculateProjectTotalPrice, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
   const navigate = useNavigate();
@@ -45,8 +48,55 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
 
   const clientFormRef = useRef(null);
 
+  // State for owner contractor lookup (Denník invoices)
+  const [ownerContractor, setOwnerContractor] = useState(null);
+
   // Use live invoice data from global state
   const invoice = invoices?.find(inv => inv.id === invoiceProp?.id) || invoiceProp;
+
+  // Detect Denník invoice: all items are hour-based work entries
+  const isDennikInvoice = invoice?.invoiceItems?.length > 0
+    && invoice.invoiceItems.every(item => item.unit === 'h');
+
+  // Fetch owner's contractor for Denník invoices (Odberateľ)
+  useEffect(() => {
+    if (!isDennikInvoice || !invoice?.projectId || invoice?.clientId) return;
+    const fetchOwnerContractor = async () => {
+      try {
+        const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
+        const proj = projectResult?.project;
+        if (!proj) return;
+        // Use the project's contractor_id to get the correct owner contractor
+        const contractorId = proj.contractor_id || proj.contractorId;
+        if (contractorId) {
+          const { data } = await api.supabase
+            .from('contractors')
+            .select('*')
+            .eq('c_id', contractorId)
+            .limit(1);
+          if (data && data.length > 0) {
+            setOwnerContractor({ ...data[0], id: data[0].c_id });
+            return;
+          }
+        }
+        // Fallback: fetch by owner user_id (most recent)
+        if (proj.user_id) {
+          const { data } = await api.supabase
+            .from('contractors')
+            .select('*')
+            .eq('user_id', proj.user_id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (data && data.length > 0) {
+            setOwnerContractor({ ...data[0], id: data[0].c_id });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch owner contractor for Denník invoice:', err);
+      }
+    };
+    fetchOwnerContractor();
+  }, [isDennikInvoice, invoice?.projectId, invoice?.clientId, invoice?.categoryId, findProjectById]);
 
   if (!isOpen || !invoice) return null;
 
@@ -54,7 +104,10 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
   const project = projectResult?.project;
   const rawProjectBreakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
-  const client = clients.find(c => c.id === invoice.clientId);
+  // For Denník invoices with no client_id, use the passed prop or fetched owner contractor
+  const client = clients.find(c => c.id === invoice.clientId)
+    || contractors.find(c => c.id === invoice.clientId)
+    || (isDennikInvoice ? (dennikOwnerContractor || ownerContractor) : null);
 
   // Build projectBreakdown for PDF - reconstruct from saved invoice items if available
   // This ensures we use the exact items, quantities and prices from the invoice
@@ -221,10 +274,10 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const handlePreview = async () => {
     try {
       const result = await generateInvoicePDF({
-        invoice,
+        invoice: invoice,
         contractor,
         client,
-        projectBreakdown,
+        projectBreakdown: isDennikInvoice ? null : projectBreakdown,
         vatRate,
         totalWithoutVAT,
         vat,
@@ -236,7 +289,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
           priceList: generalPriceList,
           projectNumber: formatProjectNumber(project),
           projectCategory: project?.category,
-          language: language
+          language: language,
+          isDennik: isDennikInvoice
         }
       });
 
@@ -425,10 +479,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
         if (!currentBlob) {
           const result = await generateInvoicePDF({
-            invoice,
+            invoice: invoice,
             contractor,
             client,
-            projectBreakdown,
+            projectBreakdown: isDennikInvoice ? null : projectBreakdown,
             vatRate,
             totalWithoutVAT,
             vat,
@@ -438,7 +492,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             t,
             options: {
               priceList: generalPriceList,
-              projectCategory: project?.category
+              projectCategory: project?.category,
+              isDennik: isDennikInvoice
             }
           });
           currentBlob = result.pdfBlob;
@@ -726,7 +781,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             </div>
           )}
 
-          {/* Delete Button - iOS style at bottom */}
+          {/* Delete Button - iOS style at bottom (only show if current user owns the invoice) */}
+          {(!invoice?.user_id || invoice.user_id === user?.id) && (
           <div className="pt-4 flex justify-center pb-8">
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -736,6 +792,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               <span className="text-lg">{t('Delete')}</span>
             </button>
           </div>
+          )}
         </div>
       </div>
 

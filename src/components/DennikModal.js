@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useAppData } from '../context/AppDataContext';
 import InvoiceDetailModal from './InvoiceDetailModal';
+import InvoiceCreationModal from './InvoiceCreationModal';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
 import ConfirmationModal from './ConfirmationModal';
 
@@ -11,10 +12,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     const { t } = useLanguage();
     const {
         activeContractor,
-        getVATRate,
-        invoices,
-        createInvoice,
-        activeContractorId,
         activeTimer: globalActiveTimer,
         updateProject,
         refreshActiveTimer,
@@ -36,7 +33,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             setHourlyRate(priceOfferSettings.defaultHourlyRate);
         }
     }, [project?.hourly_rate, priceOfferSettings?.defaultHourlyRate]);
-    const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+    const [isGeneratingInvoice] = useState(false);
     const [timeEntries, setTimeEntries] = useState([]);
     const [members, setMembers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +52,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     const [generatedInvoices, setGeneratedInvoices] = useState([]);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
+    const [showInvoiceCreation, setShowInvoiceCreation] = useState(false);
+    const [dennikInvoiceData, setDennikInvoiceData] = useState(null);
+    const [ownerContractorData, setOwnerContractorData] = useState(null);
+    const [dailyNotes, setDailyNotes] = useState({}); // { [userId]: noteText }
+    const [noteSaveStatus, setNoteSaveStatus] = useState(null); // null | 'saving' | 'saved'
     const hourlyRateTimerRef = useRef(null);
+    const noteTimerRefs = useRef({}); // Debounce refs for note saves
+    const noteSaveIndicatorRef = useRef(null); // Timeout ref for hiding saved indicator
 
     // Memoized functions (useCallback)
     const loadMembers = useCallback(async () => {
@@ -76,6 +80,47 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             console.error('Error loading time entries:', error);
         }
     }, [project]);
+
+    const loadDailyNotes = useCallback(async (date) => {
+        try {
+            const dateStr = (date || selectedDate).toISOString().split('T')[0];
+            const notes = await api.dennik.getDailyNotes(project.c_id || project.id, dateStr);
+            const notesMap = {};
+            (notes || []).forEach(n => { notesMap[n.user_id] = n.note || ''; });
+            setDailyNotes(notesMap);
+        } catch (error) {
+            console.error('Error loading daily notes:', error);
+        }
+    }, [project, selectedDate]);
+
+    const saveDailyNote = useCallback(async (noteText) => {
+        try {
+            setNoteSaveStatus('saving');
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            const result = await api.dennik.upsertDailyNote(project.c_id || project.id, dateStr, noteText);
+            if (result) {
+                setNoteSaveStatus('saved');
+                if (noteSaveIndicatorRef.current) clearTimeout(noteSaveIndicatorRef.current);
+                noteSaveIndicatorRef.current = setTimeout(() => setNoteSaveStatus(null), 2000);
+            } else {
+                setNoteSaveStatus(null);
+            }
+        } catch (error) {
+            console.error('Error saving daily note:', error);
+            setNoteSaveStatus(null);
+        }
+    }, [project, selectedDate]);
+
+    const handleNoteChange = useCallback((userId, value) => {
+        setDailyNotes(prev => ({ ...prev, [userId]: value }));
+        // Only allow saving own notes
+        if (userId !== currentUser?.id) return;
+        setNoteSaveStatus(null); // Reset while typing
+        if (noteTimerRefs.current[userId]) clearTimeout(noteTimerRefs.current[userId]);
+        noteTimerRefs.current[userId] = setTimeout(() => {
+            saveDailyNote(value);
+        }, 800);
+    }, [currentUser, saveDailyNote]);
 
     const checkActiveTimer = useCallback(async () => {
         try {
@@ -131,14 +176,49 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         }
     }, [project, isOwner, currentUser]);
 
+    const loadOwnerContractor = useCallback(async () => {
+        if (!project) return;
+        try {
+            // Use the project's contractor_id to get the correct owner contractor
+            const contractorId = project.contractor_id || project.contractorId;
+            if (contractorId) {
+                const { data } = await api.supabase
+                    .from('contractors')
+                    .select('*')
+                    .eq('c_id', contractorId)
+                    .limit(1);
+                if (data && data.length > 0) {
+                    setOwnerContractorData(data[0]);
+                    return;
+                }
+            }
+            // Fallback: fetch by owner user_id (last created)
+            if (project.user_id) {
+                const { data } = await api.supabase
+                    .from('contractors')
+                    .select('*')
+                    .eq('user_id', project.user_id)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                if (data && data.length > 0) {
+                    setOwnerContractorData(data[0]);
+                }
+            }
+        } catch (err) {
+            console.warn('Could not fetch owner contractor:', err);
+        }
+    }, [project]);
+
     const loadData = useCallback(async () => {
         await Promise.all([
             loadMembers(),
             loadTimeEntries(),
             checkActiveTimer(),
-            loadOwnerProfile()
+            loadOwnerProfile(),
+            loadOwnerContractor(),
+            loadDailyNotes()
         ]);
-    }, [loadMembers, loadTimeEntries, checkActiveTimer, loadOwnerProfile]);
+    }, [loadMembers, loadTimeEntries, checkActiveTimer, loadOwnerProfile, loadOwnerContractor, loadDailyNotes]);
 
     const loadAnalyticsData = useCallback(async () => {
         try {
@@ -186,15 +266,37 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         try {
             const data = await api.invoices.getInvoicesByProject(project.c_id || project.id);
             // Transform data for frontend compatibility (camelCase)
-            const transformedData = (data || []).map(dbInv => ({
+            let transformedData = (data || []).map(dbInv => ({
                 ...transformInvoiceFromDB(dbInv),
+                user_id: dbInv.user_id, // Preserve creator user ID
                 contractors: dbInv.contractors // Preserve joined contractor data
             }));
+            // Members can only see their own invoices, owners see all
+            if (!isOwner && currentUser?.id) {
+                transformedData = transformedData.filter(inv => inv.user_id === currentUser.id);
+            }
+            // Fetch creator profiles to show email
+            if (transformedData.length > 0) {
+                const userIds = [...new Set(transformedData.map(inv => inv.user_id).filter(Boolean))];
+                if (userIds.length > 0) {
+                    try {
+                        const profiles = await api.userProfiles.getByIds(userIds);
+                        const profileMap = {};
+                        (profiles || []).forEach(p => { profileMap[p.id] = p; });
+                        transformedData = transformedData.map(inv => ({
+                            ...inv,
+                            creatorProfile: profileMap[inv.user_id] || null
+                        }));
+                    } catch (e) {
+                        console.warn('Could not fetch creator profiles:', e);
+                    }
+                }
+            }
             setGeneratedInvoices(transformedData);
         } catch (error) {
             console.error('Error loading project invoices:', error);
         }
-    }, [project]);
+    }, [project, isOwner, currentUser]);
 
     // Effects
     useEffect(() => {
@@ -227,8 +329,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     useEffect(() => {
         if (isOpen && project) {
             loadTimeEntries();
+            loadDailyNotes();
         }
-    }, [selectedDate, isOpen, project, loadTimeEntries]);
+    }, [selectedDate, isOpen, project, loadTimeEntries, loadDailyNotes]);
 
     const handlePreviewInvoice = (invoice) => {
         setSelectedInvoice(invoice);
@@ -236,159 +339,75 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     };
 
     const handleGenerateInvoice = async () => {
-        console.log('handleGenerateInvoice called');
-        console.log('entries:', analyticsEntries.length, 'customHours:', customHours);
-
         // Allow generating invoice if we have overridden hours, even if no entries exist
         if (!analyticsEntries.length && (!customHours || parseFloat(customHours) <= 0)) {
-            console.log('Validation failed: No entries and no custom hours');
             alert(t('No time entries found for this period'));
             return;
         }
 
-        setIsGeneratingInvoice(true);
-        try {
-            console.log('Step 1: Fetching Supplier (Active Contractor)');
-            // 1. Supplier = Active Contractor (Current User)
-            let supplier = activeContractor;
-            if (!supplier) {
-                console.log('No active contractor in context, fetching all...');
-                const contractors = await api.contractors.getAll();
-                if (contractors && contractors.length > 0) {
-                    supplier = contractors[0];
-                }
+        // 1. Supplier check
+        let supplier = activeContractor;
+        if (!supplier) {
+            const contractors = await api.contractors.getAll();
+            if (contractors && contractors.length > 0) {
+                supplier = contractors[0];
             }
-
-            if (!supplier) {
-                console.error('No supplier found');
-                alert(t('Please create a Contractor Profile in Settings first to generate invoices.'));
-                setIsGeneratingInvoice(false);
-                return;
-            }
-            console.log('Supplier found:', supplier.id);
-
-            // 2. Customer = Project Owner's Contractor Profile
-            let customer = null;
-            if (project.user_id) {
-                console.log('Fetching customer for project.user_id:', project.user_id);
-                try {
-                    const { data: ownerContractors, error: ownerError } = await api.supabase
-                        .from('contractors')
-                        .select('*')
-                        .eq('user_id', project.user_id)
-                        .limit(1);
-
-                    if (ownerError) console.error('Error fetching owner contractor:', ownerError);
-
-                    if (ownerContractors && ownerContractors.length > 0) {
-                        customer = ownerContractors[0];
-                    } else {
-                        console.log('No contractor profile for owner, using profile fallback');
-                        if (ownerProfile) {
-                            customer = {
-                                name: ownerProfile.full_name || ownerProfile.email || t('Project Owner'),
-                                email: ownerProfile.email
-                            };
-                        }
-                    }
-                } catch (err) {
-                    console.error('Crash fetching owner contractor:', err);
-                }
-            }
-            console.log('Customer determined:', customer);
-
-            // 3. Prepare Data
-            const calculatedTotalHours = analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
-            const totalHours = customHours !== null ? parseFloat(customHours) : calculatedTotalHours;
-            const amount = totalHours * parseFloat(hourlyRate || 0);
-
-            // Calculate Invoice Number
-            const currentYear = new Date().getFullYear();
-            const yearPrefix = parseInt(`${currentYear}000`);
-            const yearMax = parseInt(`${currentYear}999`);
-            const contractorInvoices = (invoices || []).filter(inv => inv.contractorId === (supplier.id || activeContractorId));
-            const currentYearInvoices = contractorInvoices.filter(inv => {
-                const num = parseInt(inv.invoiceNumber || 0);
-                return num >= yearPrefix && num <= yearMax;
-            });
-
-            let nextNumber;
-            if (currentYearInvoices.length === 0) {
-                nextNumber = parseInt(`${currentYear}001`);
-            } else {
-                const maxNumber = Math.max(...currentYearInvoices.map(inv => parseInt(inv.invoiceNumber || 0)));
-                nextNumber = maxNumber + 1;
-            }
-
-            const invoiceNumber = String(nextNumber);
-            const issueDate = new Date().toISOString().split('T')[0];
-            const paymentDays = 14;
-
-            // Invoice Items (for DB and PDF)
-            // If custom hours are used, we create a single consolidated item
-            const shouldUseConsolidatedItem = customHours !== null;
-
-            const consolidateWorkItem = {
-                id: crypto.randomUUID(),
-                title: `${t('Work Hours')} - ${t('Project')} ${project.name} (${t('Consolidated')})`,
-                pieces: totalHours,
-                pricePerPiece: parseFloat(hourlyRate || 0),
-                price: amount,
-                vat: 23,
-                unit: 'h', // Display unit
-                date: issueDate
-            };
-
-            // If NOT using custom hours, we can use the detailed breakdown (one item per day/entry)
-            // But for now, the existing logic seems to create just one aggregate item called 'workItem'
-            // and then 'invoiceItems' array contains just that one item (see below).
-
-            // Let's ensure we use the correct item description
-            if (shouldUseConsolidatedItem) {
-                consolidateWorkItem.title = `${t('Work Hours')} - ${t('Project')} ${project.name} (${t('Manual Adjustment')})`;
-            } else {
-                consolidateWorkItem.title = `${t('Work Hours')} - ${t('Project')} ${project.name}`;
-            }
-
-            const invoiceItems = [consolidateWorkItem];
-
-            const vatRate = typeof getVATRate === 'function' ? getVATRate() : 0.23;
-            console.log('Using VAT rate:', vatRate);
-
-            const invoiceData = {
-                invoiceNumber,
-                issueDate,
-                dispatchDate: issueDate,
-                paymentMethod: 'transfer',
-                paymentDays,
-                notes: `${t('Period')}: ${analyticsView === 'day' ? analyticsDate.toLocaleDateString() :
-                    analyticsView === 'month' ? analyticsDate.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' }) :
-                        t('Selected Period')}`,
-                invoiceItems: invoiceItems,
-                priceWithoutVat: amount,
-                cumulativeVat: amount * vatRate
-            };
-
-            // Create in DB
-            const catId = typeof project.category === 'object' ? project.category.id : project.category;
-            console.log('Step 4: Calling createInvoice in DB');
-            const newInvoice = await createInvoice(project, catId, invoiceData);
-            console.log('Step 5: createInvoice result:', newInvoice);
-
-            // Refresh the list so it appears below
-            await loadInvoices();
-            // alert(t('Invoice generated and saved successfully!'));
-        } catch (error) {
-            console.error('Invoice generation failed:', error);
-            alert(t('Failed to generate invoice: ') + error.message);
-        } finally {
-            setIsGeneratingInvoice(false);
         }
+        if (!supplier) {
+            alert(t('Please create a Contractor Profile in Settings first to generate invoices.'));
+            return;
+        }
+
+        // 2. Customer = Project Owner's Contractor Profile (already loaded)
+        const customer = ownerContractorData;
+
+        // 3. Prepare the work item
+        const calculatedTotalHours = analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
+        const totalHours = customHours !== null ? parseFloat(customHours) : calculatedTotalHours;
+        const amount = totalHours * parseFloat(hourlyRate || 0);
+        const shouldUseConsolidatedItem = customHours !== null;
+
+        const workItem = {
+            id: crypto.randomUUID(),
+            title: t('Work Hours'),
+            pieces: totalHours,
+            pricePerPiece: parseFloat(hourlyRate || 0),
+            price: amount,
+            vat: 23,
+            unit: 'h',
+            category: 'work',
+            active: true,
+            taxObligationTransfer: false
+        };
+
+        // 4. Build period note
+        const periodNote = `${t('Period')}: ${analyticsView === 'day' ? analyticsDate.toLocaleDateString() :
+            analyticsView === 'month' ? analyticsDate.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' }) :
+                (() => {
+                    const monday = new Date(analyticsDate);
+                    const day = monday.getDay();
+                    const diff = day === 0 ? -6 : 1 - day;
+                    monday.setDate(monday.getDate() + diff);
+                    const sunday = new Date(monday);
+                    sunday.setDate(monday.getDate() + 6);
+                    const thursd = new Date(monday);
+                    thursd.setDate(monday.getDate() + 3);
+                    const yearStart = new Date(thursd.getFullYear(), 0, 1);
+                    const weekNum = Math.ceil((((thursd - yearStart) / 86400000) + 1) / 7);
+                    return `T${weekNum}/${monday.getDate()}-${sunday.getDate()}.${sunday.getMonth() + 1}.${sunday.getFullYear()}`;
+                })()}`;
+
+        // 5. Open the InvoiceCreationModal with pre-filled data
+        setDennikInvoiceData({
+            items: [workItem],
+            notes: periodNote,
+            ownerContractorId: customer?.c_id || customer?.id || null
+        });
+        setShowInvoiceCreation(true);
     };
 
     const handleUpdateHourlyRate = (value) => {
         setHourlyRate(value);
-        if (!isOwner) return;
 
         if (hourlyRateTimerRef.current) clearTimeout(hourlyRateTimerRef.current);
 
@@ -475,6 +494,16 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             alert(t('Failed to end timer'));
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDeleteTimeEntry = async (entryId) => {
+        try {
+            await api.dennik.deleteTimeEntry(entryId);
+            await loadTimeEntries();
+        } catch (error) {
+            console.error('Error deleting time entry:', error);
+            alert(t('Failed to delete time entry'));
         }
     };
 
@@ -607,14 +636,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white dark:bg-gray-900 w-full max-w-6xl h-[800px] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-2 lg:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white dark:bg-gray-900 w-full max-w-6xl h-[100dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[100dvh] sm:max-h-[calc(100dvh-6rem)] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
+                <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2 sm:mb-4">
                         <div>
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {t('Denník')} - {project.name}
+                                {t('Denník')}
                             </h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 {project.location}
@@ -675,11 +704,11 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4">
                     {activeTab === 'timer' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full p-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Left Column: Calendar */}
-                            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 h-fit">
+                            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 h-fit md:sticky md:top-0 md:self-start">
                                 <div className="flex items-center justify-between mb-4">
                                     <button
                                         onClick={() => changeMonth(-1)}
@@ -733,10 +762,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                             </div>
 
                             {/* Right Column: Timer & Entries */}
-                            <div className="space-y-6 overflow-y-auto pr-2 max-h-[700px]">
+                            <div className="space-y-4">
                                 {/* Timer Controls */}
-                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white">
-                                    <div className="flex items-center justify-between mb-4">
+                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white">
+                                    <div className="flex items-center justify-between mb-3">
                                         <div>
                                             <p className="text-blue-100 text-sm mb-1">
                                                 {selectedDate.toLocaleDateString('sk-SK', {
@@ -760,7 +789,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                             <button
                                                 onClick={handleStartTimer}
                                                 disabled={isLoading}
-                                                className="flex-1 bg-white text-blue-600 px-6 py-4 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                className="flex-1 bg-white text-blue-600 px-4 py-3 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
                                                 <Play className="w-5 h-5" />
                                                 {t('Start Timer')}
@@ -769,7 +798,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                             <button
                                                 onClick={handleEndTimer}
                                                 disabled={isLoading}
-                                                className="flex-1 bg-red-500 text-white px-6 py-4 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                className="flex-1 bg-red-500 text-white px-4 py-3 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
                                                 <Square className="w-5 h-5" />
                                                 {t('Stop Timer')}
@@ -790,79 +819,143 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                         </div>
                                     ) : (
                                         <div className="space-y-6">
-                                            {Object.values(timeEntries
-                                                .filter(entry => {
-                                                    // Filter by selected date
-                                                    if (!entry.date) return false;
-                                                    const entryDate = new Date(entry.date).toDateString();
-                                                    const current = selectedDate.toDateString();
-                                                    return entryDate === current;
-                                                })
-                                                .reduce((acc, entry) => {
-                                                    const userId = entry.user_id;
-                                                    if (!acc[userId]) {
-                                                        acc[userId] = {
+                                            {(() => {
+                                                // Build groups from time entries
+                                                const groups = Object.values(timeEntries
+                                                    .filter(entry => {
+                                                        if (!entry.date) return false;
+                                                        const entryDate = new Date(entry.date).toDateString();
+                                                        const current = selectedDate.toDateString();
+                                                        return entryDate === current;
+                                                    })
+                                                    .reduce((acc, entry) => {
+                                                        const userId = entry.user_id;
+                                                        if (!acc[userId]) {
+                                                            acc[userId] = {
+                                                                userId,
+                                                                profile: entry.profiles,
+                                                                entries: [],
+                                                                totalHours: 0
+                                                            };
+                                                        }
+                                                        acc[userId].entries.push(entry);
+                                                        acc[userId].totalHours += Number(entry.hours_worked || 0);
+                                                        return acc;
+                                                    }, {}));
+
+                                                // Add members who have notes but no time entries
+                                                Object.entries(dailyNotes).forEach(([userId, note]) => {
+                                                    if (note && !groups.find(g => g.userId === userId)) {
+                                                        const member = members.find(m => m.user_id === userId);
+                                                        groups.push({
                                                             userId,
-                                                            profile: entry.profiles,
+                                                            profile: member?.profiles || null,
                                                             entries: [],
                                                             totalHours: 0
-                                                        };
+                                                        });
                                                     }
-                                                    acc[userId].entries.push(entry);
-                                                    acc[userId].totalHours += Number(entry.hours_worked || 0);
-                                                    return acc;
-                                                }, {}))
-                                                .sort((a, b) => (a.profile?.full_name || '').localeCompare(b.profile?.full_name || ''))
-                                                .map(group => (
-                                                    <div key={group.userId} className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
-                                                        <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-800 pb-2">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                                                                    <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                                                </div>
-                                                                <div>
-                                                                    <div className="font-bold text-gray-900 dark:text-white">
-                                                                        {group.profile?.full_name || group.profile?.email?.split('@')[0] || t('Unknown User')}
-                                                                    </div>
-                                                                    <div className="text-xs text-gray-500">
-                                                                        {group.profile?.email}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-sm font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
-                                                                {formatDuration(group.totalHours)}
-                                                            </div>
-                                                        </div>
+                                                });
 
-                                                        <div className="grid grid-cols-1 gap-2">
-                                                            {group.entries
-                                                                .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
-                                                                .map(entry => (
-                                                                    <div
-                                                                        key={entry.id}
-                                                                        className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
-                                                                    >
-                                                                        <div className="flex items-center gap-3">
-                                                                            <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                                                                                <Clock className="w-4 h-4 text-gray-500" />
-                                                                            </div>
-                                                                            <div>
-                                                                                <div className="font-medium text-gray-900 dark:text-white">
-                                                                                    {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
-                                                                                </div>
-                                                                                {entry.notes && (
-                                                                                    <div className="text-xs text-gray-500">{entry.notes}</div>
-                                                                                )}
-                                                                            </div>
+                                                // Visibility: members see only their own, owner sees all
+                                                const visibleGroups = isOwner
+                                                    ? groups
+                                                    : groups.filter(g => g.userId === currentUser?.id);
+
+                                                return visibleGroups
+                                                    .sort((a, b) => (a.profile?.full_name || '').localeCompare(b.profile?.full_name || ''))
+                                                    .map(group => {
+                                                        const isOwnGroup = group.userId === currentUser?.id;
+                                                        const noteValue = dailyNotes[group.userId] || '';
+
+                                                        return (
+                                                            <div key={group.userId} className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
+                                                                <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-gray-800 pb-2">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                                                                            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                                                         </div>
-                                                                        <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                                                            {formatDuration(entry.hours_worked)}
+                                                                        <div>
+                                                                            <div className="font-bold text-gray-900 dark:text-white">
+                                                                                {group.profile?.full_name || group.profile?.email?.split('@')[0] || t('Unknown User')}
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-500">
+                                                                                {group.profile?.email}
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-                                                                ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                                    <div className="text-sm font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
+                                                                        {formatDuration(group.totalHours)}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Daily Note */}
+                                                                <div className="mb-3">
+                                                                    {isOwnGroup ? (
+                                                                        <div className="relative">
+                                                                            <textarea
+                                                                                value={noteValue}
+                                                                                onChange={(e) => handleNoteChange(group.userId, e.target.value)}
+                                                                                placeholder={t('Add a note for this day...')}
+                                                                                rows={2}
+                                                                                className="w-full px-3 py-2 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none placeholder-gray-400"
+                                                                            />
+                                                                            {noteSaveStatus && (
+                                                                                <div className="absolute top-2 right-2" title={noteSaveStatus === 'saved' ? t('Saved') : t('Saving...')}>
+                                                                                    <div className={`w-2.5 h-2.5 rounded-full transition-colors ${noteSaveStatus === 'saved' ? 'bg-green-500' : 'bg-yellow-400 animate-pulse'}`} />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : noteValue ? (
+                                                                        <div className="px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                                                            {noteValue}
+                                                                        </div>
+                                                                    ) : null}
+                                                                </div>
+
+                                                                {group.entries.length > 0 && (
+                                                                    <div className="grid grid-cols-1 gap-2">
+                                                                        {group.entries
+                                                                            .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+                                                                            .map(entry => (
+                                                                                <div
+                                                                                    key={entry.id}
+                                                                                    className="group flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
+                                                                                >
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                                                                                            <Clock className="w-4 h-4 text-gray-500" />
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <div className="font-medium text-gray-900 dark:text-white">
+                                                                                                {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
+                                                                                            </div>
+                                                                                            {entry.notes && (
+                                                                                                <div className="text-xs text-gray-500">{entry.notes}</div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                                                            {formatDuration(entry.hours_worked)}
+                                                                                        </div>
+                                                                                        {entry.user_id === currentUser?.id && (
+                                                                                            <button
+                                                                                                onClick={() => handleDeleteTimeEntry(entry.id)}
+                                                                                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
+                                                                                                title={t('Delete')}
+                                                                                            >
+                                                                                                <Trash2 className="w-4 h-4" />
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    });
+                                            })()}
                                         </div>
                                     )}
                                 </div>
@@ -1017,10 +1110,26 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                     >
                                         <ChevronLeft className="w-5 h-5 text-gray-500" />
                                     </button>
-                                    <span className="font-medium text-gray-900 dark:text-white min-w-[150px] text-center">
+                                    <span className="font-medium text-gray-900 dark:text-white min-w-[180px] text-center">
                                         {analyticsView === 'month'
                                             ? analyticsDate.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' })
-                                            : analyticsDate.toLocaleDateString('sk-SK')
+                                            : analyticsView === 'week'
+                                                ? (() => {
+                                                    const d = new Date(analyticsDate);
+                                                    const day = d.getDay();
+                                                    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                                                    const monday = new Date(d);
+                                                    monday.setDate(diff);
+                                                    const sunday = new Date(monday);
+                                                    sunday.setDate(monday.getDate() + 6);
+                                                    // ISO week number
+                                                    const thursd = new Date(monday);
+                                                    thursd.setDate(monday.getDate() + 3);
+                                                    const yearStart = new Date(thursd.getFullYear(), 0, 1);
+                                                    const weekNum = Math.ceil((((thursd - yearStart) / 86400000) + 1) / 7);
+                                                    return `T${weekNum}/${monday.getDate()}-${sunday.getDate()}.${sunday.getMonth() + 1}.${sunday.getFullYear()}`;
+                                                })()
+                                                : `${analyticsDate.getDate()}.${analyticsDate.getMonth() + 1}.${analyticsDate.getFullYear()}`
                                         }
                                     </span>
                                     <button
@@ -1090,34 +1199,24 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                 </div>
                             </div>
 
-                            {/* Invoice Button - Restricted to Owner */}
-                            {isOwner && (
-                                <div className="mt-auto pt-4">
-                                    <button
-                                        onClick={handleGenerateInvoice}
-                                        disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0))}
-                                        className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
-                                    >
-                                        {isGeneratingInvoice ? (
-                                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        ) : (
-                                            <Download className="w-5 h-5" />
-                                        )}
-                                        {t('Generate Invoice')}
-                                    </button>
-                                    <p className="text-center text-xs text-gray-400 mt-2">
-                                        {t('Generates PDF invoice for all hours in selected period')}
-                                    </p>
-                                </div>
-                            )}
-
-                            {!isOwner && (
-                                <div className="mt-auto pt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800 text-center">
-                                    <p className="text-sm text-gray-500">
-                                        {t('Only project owners can generate official invoices.')}
-                                    </p>
-                                </div>
-                            )}
+                            {/* Invoice Button */}
+                            <div className="mt-auto pt-4">
+                                <button
+                                    onClick={handleGenerateInvoice}
+                                    disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0))}
+                                    className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {isGeneratingInvoice ? (
+                                        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <Download className="w-5 h-5" />
+                                    )}
+                                    {t('Generate Invoice')}
+                                </button>
+                                <p className="text-center text-xs text-gray-400 mt-2">
+                                    {t('Generates PDF invoice for all hours in selected period')}
+                                </p>
+                            </div>
 
                             {/* List Generated Invoices */}
                             <div className="flex-1 overflow-y-auto min-h-[200px]">
@@ -1134,10 +1233,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                             >
                                                 <div>
                                                     <div className="font-medium text-gray-900 dark:text-white">
-                                                        {invoice.contractors?.name || t('Unknown Contractor')}
+                                                        {(invoice.notes?.split('\n')[0]?.trim()) || `${t('Invoice')} #${invoice.invoiceNumber}`}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        {invoice.notes || `${t('Invoice')} #${invoice.invoiceNumber}`}
+                                                        {invoice.creatorProfile?.email || invoice.contractors?.email || invoice.contractors?.name || t('Unknown Contractor')}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -1165,6 +1264,24 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                             loadInvoices(); // Refresh list in case of status update
                         }}
                         invoice={selectedInvoice}
+                        dennikOwnerContractor={ownerContractorData}
+                    />
+                )}
+
+                {/* Invoice Creation Modal for Denník */}
+                {showInvoiceCreation && dennikInvoiceData && (
+                    <InvoiceCreationModal
+                        isOpen={showInvoiceCreation}
+                        onClose={(result) => {
+                            setShowInvoiceCreation(false);
+                            setDennikInvoiceData(null);
+                            if (result) {
+                                loadInvoices(); // Refresh list after creation
+                            }
+                        }}
+                        project={project}
+                        categoryId={typeof project.category === 'object' ? project.category.id : project.category}
+                        dennikData={dennikInvoiceData}
                     />
                 )}
             </div>

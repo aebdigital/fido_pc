@@ -3,18 +3,18 @@ import {
     BookOpen,
     ChevronRight,
     Loader2,
-    Users,
-    Calendar,
     Search,
     Trash2,
-    X
+    X,
+    CheckCircle,
+    Flag
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import ProjectDetailView from '../components/ProjectDetailView';
 import { useAuth } from '../context/AuthContext';
-import { formatProjectNumber } from '../utils/dataTransformers';
+import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 const Dennik = () => {
@@ -22,7 +22,10 @@ const Dennik = () => {
     const { user } = useAuth();
     const {
         calculateProjectTotalPrice,
-        formatPrice
+        formatPrice,
+        clients,
+        activeTimer,
+        loadProjectDetails
     } = useAppData();
 
     const [dennikProjects, setDennikProjects] = useState([]);
@@ -43,6 +46,12 @@ const Dennik = () => {
         try {
             const projects = await api.dennik.getDennikProjects();
             setDennikProjects(projects || []);
+            // Load room details for each project so price calculation works
+            if (projects && projects.length > 0) {
+                await Promise.all(
+                    projects.map(p => loadProjectDetails(p.id || p.c_id))
+                );
+            }
         } catch (error) {
             console.error('Error loading dennik projects:', error);
         } finally {
@@ -114,19 +123,13 @@ const Dennik = () => {
                     {dennikProjects.length > 0 && (
                         <button
                             onClick={() => setDeleteMode(!deleteMode)}
-                            className={`p-2.5 rounded-xl transition-all ${deleteMode
-                                ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 ring-2 ring-red-500'
-                                : 'bg-gray-100 text-gray-500 hover:text-red-500 dark:bg-gray-800'
-                                } shadow-sm hover:shadow-md`}
+                            className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-gray-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}`}
                             title={t('Cleanup Denník')}
                         >
-                            {deleteMode ? <X className="w-5 h-5" /> : <Trash2 className="w-5 h-5" />}
+                            {deleteMode ? <X className="w-4 h-4 lg:w-5 lg:h-5" /> : <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />}
                         </button>
                     )}
                 </div>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">
-                    {t('Time tracking & project sharing')}
-                </p>
 
                 {/* Search */}
                 <div className="relative">
@@ -161,88 +164,111 @@ const Dennik = () => {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="space-y-3">
                     {filteredProjects.map(project => {
-                        const members = getProjectMembers(project);
                         const isOwner = isProjectOwner(project);
-                        const memberCount = members.length + 1; // +1 for owner
 
                         return (
                             <div
                                 key={project.id || project.c_id}
                                 onClick={() => !deleteMode && handleOpenProject(project)}
-                                className={`bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm transition-all border border-gray-200 dark:border-gray-700 ${deleteMode
-                                    ? 'border-red-200 dark:border-red-900/50 opacity-90 scale-[0.98]'
-                                    : 'hover:shadow-md cursor-pointer hover:border-purple-300 dark:hover:border-purple-700'
-                                    } relative overflow-hidden`}
+                                className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${deleteMode
+                                    ? 'border-red-200 dark:border-red-900/50 opacity-90 scale-[0.98] justify-between'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
+                                    } relative`}
                             >
                                 {deleteMode && isOwner && (
-                                    <div className="absolute inset-0 bg-red-500/5 dark:bg-red-500/10 flex items-center justify-center backdrop-blur-[1px] z-10 transition-all animate-fade-in">
+                                    <div className="absolute inset-0 bg-red-500/5 dark:bg-red-500/10 flex items-center justify-center backdrop-blur-[1px] z-10 transition-all animate-fade-in rounded-2xl">
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setProjectToCleanup(project);
                                                 setShowCleanupModal(true);
                                             }}
-                                            className="px-6 py-3 bg-red-600 text-white rounded-2xl font-bold shadow-lg hover:bg-red-700 transition-all flex items-center gap-2 transform hover:scale-110 active:scale-95"
+                                            className="px-6 py-3 bg-red-600 text-white rounded-2xl font-bold shadow-lg hover:bg-red-700 transition-all flex items-center gap-2 transform hover:scale-[1.02] active:scale-95"
                                         >
                                             <Trash2 className="w-5 h-5" />
                                             {t('Remove')}
                                         </button>
                                     </div>
                                 )}
-                                {/* Header */}
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-                                                {project.name}
-                                            </h3>
-                                            {isOwner && (
-                                                <div className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 rounded text-xs font-medium text-purple-600 dark:text-purple-400 flex-shrink-0">
-                                                    {t('Owner')}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {formatProjectNumber(project)}
-                                        </p>
-                                    </div>
-                                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
-                                </div>
-
-                                {/* Notes */}
-                                {project.notes && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-                                        {project.notes}
-                                    </p>
-                                )}
-
-                                {/* Stats */}
-                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                    {/* Members */}
-                                    <div className="flex items-center gap-1.5">
-                                        <Users className="w-4 h-4" />
-                                        <span>{memberCount}</span>
-                                    </div>
-
-                                    {/* Total Price */}
-                                    {calculateProjectTotalPrice && (
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="font-semibold text-gray-900 dark:text-white">
-                                                {formatPrice(calculateProjectTotalPrice(project.id || project.c_id, project))}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                        <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
+                                        {isOwner ? (
+                                            <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg border border-purple-200 dark:border-purple-800">
+                                                {t('Owner')}
                                             </span>
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-800">
+                                                {t('Employee')}
+                                            </span>
+                                        )}
+                                        {activeTimer && activeTimer.project_id === (project.id || project.c_id) && (
+                                            <div
+                                                className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-red-500 animate-glow-red"
+                                                title={t('Active Timer')}
+                                            />
+                                        )}
+                                    </div>
+                                    <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white lg:truncate">
+                                        <span className="lg:hidden">{project.name?.length > 17 ? `${project.name.substring(0, 17)}...` : project.name}</span>
+                                        <span className="hidden lg:inline">{project.name}</span>
+                                    </h3>
+                                    <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1 truncate">
+                                        {(project.clientId || project.client_id) ? clients?.find(c => c.id === (project.clientId || project.client_id))?.name || t('No client') : t('No client')}
+                                    </p>
                                 </div>
 
-                                {/* Badge */}
-                                {memberCount > 1 && (
-                                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-xs font-medium text-purple-600 dark:text-purple-400">
-                                            <BookOpen className="w-3.5 h-3.5" />
-                                            {t('Shared')}
+                                {!deleteMode && (
+                                    <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
+                                        <div className="text-right">
+                                            {/* Status Badge */}
+                                            <span
+                                                className="inline-flex items-center gap-1.5 px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 text-white"
+                                                style={{
+                                                    backgroundColor:
+                                                        project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
+                                                            project.status === PROJECT_STATUS.APPROVED ? '#73D38A' :
+                                                                project.status === PROJECT_STATUS.SENT ? '#51A2F7' :
+                                                                    '#FF857C'
+                                                }}
+                                            >
+                                                {project.status === PROJECT_STATUS.FINISHED ? (
+                                                    <>
+                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white">
+                                                            <Flag className="w-2.5 h-2.5" style={{ color: '#C4C4C4' }} />
+                                                        </span>
+                                                        <span>{t('finished')}</span>
+                                                    </>
+                                                ) : project.status === PROJECT_STATUS.APPROVED ? (
+                                                    <>
+                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white">
+                                                            <CheckCircle className="w-2.5 h-2.5" style={{ color: '#73D38A' }} />
+                                                        </span>
+                                                        <span>{t('approved')}</span>
+                                                    </>
+                                                ) : project.status === PROJECT_STATUS.SENT ? (
+                                                    <>
+                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white">
+                                                            <span className="text-[10px] lg:text-xs font-bold" style={{ color: '#51A2F7' }}>?</span>
+                                                        </span>
+                                                        <span>{t('sent')}</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white">
+                                                            <X className="w-2.5 h-2.5" style={{ color: '#FF857C' }} />
+                                                        </span>
+                                                        <span>{t('not sent')}</span>
+                                                    </>
+                                                )}
+                                            </span>
+                                            {/* Price */}
+                                            <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id || project.c_id, project))}</div>
+                                            <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                                         </div>
+                                        <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                                     </div>
                                 )}
                             </div>
@@ -251,24 +277,6 @@ const Dennik = () => {
                 </div>
             )}
 
-            {/* Info Footer */}
-            {!isLoading && filteredProjects.length > 0 && (
-                <div className="mt-8 p-4 bg-purple-50 dark:bg-purple-900/10 rounded-xl border border-purple-200 dark:border-purple-800">
-                    <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <div>
-                            <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">
-                                {t('Track time and collaborate')}
-                            </h4>
-                            <p className="text-sm text-purple-700 dark:text-purple-300">
-                                {t('Click any project to track time, manage members, and view shared project details')}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Modals */}
             {showCleanupModal && (

@@ -28,7 +28,7 @@
   }
 
   button:not(.no-scale) {
-    @apply font-semibold transition-transform duration-200 hover:scale-[1.03];
+    @apply font-semibold transition-transform duration-200 hover:scale-[1.02];
   }
 }
 

@@ -113,7 +113,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         note: invoiceData.notes || null,
         project_id: projectId,
         // c_id will be auto-generated as UUID in supabaseApi.js
-        client_id: project.clientId,
+        client_id: invoiceData.clientId !== undefined ? invoiceData.clientId : project.clientId,
         contractor_id: appData.activeContractorId,
         status: 'unsent',
         // Invoice items data in iOS-compatible format
@@ -134,19 +134,24 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         invoices: [...prev.invoices, transformedInvoice]
       }));
 
-      if (addProjectHistoryEntry) {
-        await addProjectHistoryEntry(projectId, {
-          type: PROJECT_EVENTS.INVOICE_GENERATED,
-          invoiceNumber: transformedInvoice.invoiceNumber
-        });
-      }
+      try {
+        if (addProjectHistoryEntry) {
+          await addProjectHistoryEntry(projectId, {
+            type: PROJECT_EVENTS.INVOICE_GENERATED,
+            invoiceNumber: transformedInvoice.invoiceNumber
+          });
+        }
 
-      if (updateProject) {
-        await updateProject(categoryId, projectId, {
-          hasInvoice: true,
-          invoiceId: transformedInvoice.id,
-          invoiceStatus: INVOICE_STATUS.UNPAID
-        });
+        if (updateProject) {
+          await updateProject(categoryId, projectId, {
+            hasInvoice: true,
+            invoiceId: transformedInvoice.id,
+            invoiceStatus: INVOICE_STATUS.UNPAID
+          });
+        }
+      } catch (projectUpdateError) {
+        // Non-owners may not have permission to update the project - that's OK
+        console.warn('[useInvoiceManager] Could not update project after invoice creation:', projectUpdateError.message);
       }
 
       return transformedInvoice;

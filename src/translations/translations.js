@@ -285,6 +285,9 @@ export const translations = {
     "Active Timer Busy": "Aktívny časovač",
     "You already have an active timer on project": "Už máte aktívny časovač na projekte",
     "Cleanup Denník": "Vyčistiť Denník",
+    "This will permanently delete ALL time entries and members for this project. This project will then be removed from the Diary listing and will remain as a regular project.": "Toto natrvalo vymaže VŠETKY časové záznamy a členov pre tento projekt. Projekt bude odstránený zo zoznamu Denníka a zostane ako bežný projekt.",
+    "Delete All": "Vymazať všetko",
+    "Failed to cleanup Denník": "Nepodarilo sa vyčistiť Denník",
     "Are you sure you want to cleanup Denník for this project? This will delete all time entries and members, and reset the project Denník status.": "Naozaj chcete vymazať Denník pre tento projekt? Týmto sa vymažú všetky časové záznamy a členovia a zresetuje sa status Denníka projektu.",
     "Cleanup": "Vyčistiť",
     "My Teams": "Moje tímy",
@@ -1134,8 +1137,9 @@ export const translations = {
 
     // ========== STATISTICS ==========
     "Statistics": "Štatistiky",
-    "total, including VAT": "celkovo, vrátane DPH",
-    "invoices total": "faktúry celkovo",
+    "total, including VAT": "s DPH",
+    "total, without VAT": "bez DPH",
+    "invoices total": "faktúry",
     "invoices": "faktúry",
 
     // ========== PROJECT STATUS (iOS COMPATIBLE) ==========
@@ -1242,8 +1246,12 @@ export const translations = {
     "Active timer": "Aktívny časovač",
     "Total today": "Dnes celkom",
     "Time Entries": "Záznamy času",
+    "Add a note for this day...": "Pridajte poznámku k tomuto dňu...",
+    "Saved": "Uložené",
+    "Saving...": "Ukladám...",
     "Project Owner": "Vlastník projektu",
     "Owner": "Vlastník",
+    "Employee": "Zamestnanec",
     "Consolidated": "Konsolidované",
     "Manual Adjustment": "Manuálna úprava",
     "Work Hours": "Odpracované hodiny",

@@ -552,7 +552,7 @@ const Projects = () => {
                   onClick={() => handleCategorySelect(category.id)}
                   className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-2xl overflow-hidden transition-all duration-200 ${activeCategory === category.id
                     ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg'
-                    : 'hover:shadow-md hover:scale-105'
+                    : 'hover:shadow-md hover:scale-[1.02]'
                     }`}
                 >
                   <div className="h-24 lg:h-20 xl:h-24 2xl:h-28 relative shadow-lg">
@@ -603,7 +603,7 @@ const Projects = () => {
 
                       {/* Active Timer Live Display Mobile */}
                       {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) && (
-                        <div className="absolute top-6 right-6 z-20 scale-150">
+                        <div className="absolute top-3 right-3 z-20">
                           <LiveTimer
                             startTime={activeTimer.start_time}
                             onClick={(e) => {

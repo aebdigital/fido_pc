@@ -143,11 +143,23 @@ const Invoices = () => {
       // Use stored invoice price if available (preferred), otherwise fall back to 0
       // This ensures we use the snapshot price at the time of invoice creation
       let totalWithVAT = 0;
+      let totalWithoutVAT = 0;
 
       if (invoice.priceWithoutVat !== undefined && invoice.priceWithoutVat !== null) {
         const priceWithoutVat = parseFloat(invoice.priceWithoutVat);
         const cumulativeVat = parseFloat(invoice.cumulativeVat || 0);
-        totalWithVAT = priceWithoutVat + cumulativeVat;
+        if (cumulativeVat > 0) {
+          // New format: both values are stored
+          totalWithVAT = priceWithoutVat + cumulativeVat;
+          totalWithoutVAT = priceWithoutVat;
+        } else {
+          // Old format: cumulativeVat not tracked, priceWithoutVat is actually the base price
+          // Calculate VAT from rate
+          const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
+          const vatRate = vatItem ? vatItem.price / 100 : 0.20;
+          totalWithoutVAT = priceWithoutVat;
+          totalWithVAT = priceWithoutVat * (1 + vatRate);
+        }
       } else {
         // Fallback for very old legacy data if priceWithoutVat is missing
         // Try to calculate from project if possible, otherwise 0
@@ -159,6 +171,7 @@ const Invoices = () => {
             const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
             const vatRate = vatItem ? vatItem.price / 100 : 0.23;
             totalWithVAT = (breakdown.total || 0) * (1 + vatRate);
+            totalWithoutVAT = breakdown.total || 0;
           }
         }
       }
@@ -169,29 +182,33 @@ const Invoices = () => {
       if (!statsByYear[year]) {
         statsByYear[year] = {
           year: year,
-          total: { amount: 0, count: 0 },
-          paid: { amount: 0, count: 0 },
-          unpaid: { amount: 0, count: 0 },
-          overdue: { amount: 0, count: 0 }
+          total: { amount: 0, amountWithoutVAT: 0, count: 0 },
+          paid: { amount: 0, amountWithoutVAT: 0, count: 0 },
+          unpaid: { amount: 0, amountWithoutVAT: 0, count: 0 },
+          overdue: { amount: 0, amountWithoutVAT: 0, count: 0 }
         };
       }
 
       const yearStats = statsByYear[year];
 
       yearStats.total.amount += totalWithVAT;
+      yearStats.total.amountWithoutVAT += totalWithoutVAT;
       yearStats.total.count++;
 
       if (invoice.status === INVOICE_STATUS.PAID) {
         yearStats.paid.amount += totalWithVAT;
+        yearStats.paid.amountWithoutVAT += totalWithoutVAT;
         yearStats.paid.count++;
       } else {
         yearStats.unpaid.amount += totalWithVAT;
+        yearStats.unpaid.amountWithoutVAT += totalWithoutVAT;
         yearStats.unpaid.count++;
 
         // Check if overdue
         const dueDate = new Date(invoice.dueDate);
         if (dueDate < today) {
           yearStats.overdue.amount += totalWithVAT;
+          yearStats.overdue.amountWithoutVAT += totalWithoutVAT;
           yearStats.overdue.count++;
         }
       }
@@ -335,9 +352,9 @@ const Invoices = () => {
           {statusFilters.map(filter => (
             <button
               key={filter}
-              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap bg-transparent px-3 py-1 rounded-full border no-global-border ${selectedStatus === filter
-                ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full border no-global-border ${selectedStatus === filter
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                : 'bg-transparent border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               onClick={() => setSelectedStatus(filter)}
             >
@@ -513,6 +530,14 @@ const Invoices = () => {
                         {t('total, including VAT')}
                       </span>
                     </div>
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="text-lg lg:text-xl font-semibold text-gray-600 dark:text-gray-400">
+                        {formatPrice(yearStats.total.amountWithoutVAT)}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-500">
+                        {t('total, without VAT')}
+                      </span>
+                    </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-gray-600 pb-3">
                       {yearStats.total.count} {t('invoices')}
                     </div>
@@ -528,6 +553,14 @@ const Invoices = () => {
                             </span>
                             <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
                               {t('total, including VAT')}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                              {formatPrice(yearStats.paid.amountWithoutVAT)}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-500">
+                              {t('total, without VAT')}
                             </span>
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -550,6 +583,14 @@ const Invoices = () => {
                               {t('total, including VAT')}
                             </span>
                           </div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                              {formatPrice(yearStats.unpaid.amountWithoutVAT)}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-500">
+                              {t('total, without VAT')}
+                            </span>
+                          </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
                             {yearStats.unpaid.count} {t('invoices total')}
                           </div>
@@ -568,6 +609,14 @@ const Invoices = () => {
                             </span>
                             <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
                               {t('total, including VAT')}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                              {formatPrice(yearStats.overdue.amountWithoutVAT)}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-500">
+                              {t('total, without VAT')}
                             </span>
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">

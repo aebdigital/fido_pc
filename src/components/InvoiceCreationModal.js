@@ -130,7 +130,7 @@ const getMaterialItemDisplayName = (item, t) => {
 // Maturity quick-select options (matching iOS MaturityDuration)
 const maturityOptions = [7, 15, 30, 60, 90];
 
-const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null }) => {
+const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null }) => {
   useScrollLock(true);
   const { t } = useLanguage();
   const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings } = useAppData();
@@ -175,8 +175,14 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     fetchSettings();
   }, [isOpen, getInvoiceSettings]);
 
-  // Initialize invoice items from project breakdown
+  // Initialize invoice items from project breakdown or dennikData
   useEffect(() => {
+    if (isOpen && project && dennikData) {
+      // Denník mode: use pre-built items
+      setInvoiceItems(dennikData.items || []);
+      if (dennikData.notes) setNotes(dennikData.notes);
+      return;
+    }
     if (isOpen && project && projectBreakdown) {
       if (editMode && existingInvoice?.invoiceItems) {
         // Load existing invoice items
@@ -393,21 +399,23 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       missing.push(t('No contractor selected'));
     }
 
-    // Check all client fields
-    if (currentClient) {
-      if (!currentClient.name) missing.push(`${t('Client')}: ${t('Name')}`);
-      if (!currentClient.email) missing.push(`${t('Client')}: ${t('Email')}`);
-      if (!currentClient.phone) missing.push(`${t('Client')}: ${t('Phone')}`);
-      if (!currentClient.street) missing.push(`${t('Client')}: ${t('Street')}`);
-      if (!currentClient.city) missing.push(`${t('Client')}: ${t('City')}`);
-      if (!(currentClient.postalCode || currentClient.postal_code)) missing.push(`${t('Client')}: ${t('Postal code')}`);
-      if (!currentClient.country) missing.push(`${t('Client')}: ${t('Country')}`);
-      if (currentClient.type === 'business') {
-        if (!(currentClient.businessId || currentClient.business_id)) missing.push(`${t('Client')}: ${t('BID')}`);
-        if (!(currentClient.taxId || currentClient.tax_id)) missing.push(`${t('Client')}: ${t('TID')}`);
+    // Check all client fields (skip for Denník invoices - owner contractor is used instead)
+    if (!dennikData) {
+      if (currentClient) {
+        if (!currentClient.name) missing.push(`${t('Client')}: ${t('Name')}`);
+        if (!currentClient.email) missing.push(`${t('Client')}: ${t('Email')}`);
+        if (!currentClient.phone) missing.push(`${t('Client')}: ${t('Phone')}`);
+        if (!currentClient.street) missing.push(`${t('Client')}: ${t('Street')}`);
+        if (!currentClient.city) missing.push(`${t('Client')}: ${t('City')}`);
+        if (!(currentClient.postalCode || currentClient.postal_code)) missing.push(`${t('Client')}: ${t('Postal code')}`);
+        if (!currentClient.country) missing.push(`${t('Client')}: ${t('Country')}`);
+        if (currentClient.type === 'business') {
+          if (!(currentClient.businessId || currentClient.business_id)) missing.push(`${t('Client')}: ${t('BID')}`);
+          if (!(currentClient.taxId || currentClient.tax_id)) missing.push(`${t('Client')}: ${t('TID')}`);
+        }
+      } else {
+        missing.push(t('No client selected'));
       }
-    } else {
-      missing.push(t('No client selected'));
     }
 
     // Check invoice items
@@ -471,6 +479,11 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     } else {
       // Create new invoice
       try {
+        // For Denník invoices, override client_id and pass owner contractor
+        if (dennikData) {
+          invoiceData.clientId = null;
+          invoiceData.ownerContractorId = dennikData.ownerContractorId || null;
+        }
         const newInvoice = await createInvoice(project.id, categoryId, invoiceData);
         if (newInvoice) {
           // Save note as default for future invoices (Account-wide)

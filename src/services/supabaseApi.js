@@ -600,6 +600,7 @@ export const invoicesApi = {
             contractors (*)
         `)
         .eq('project_id', projectId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
         .order('date_created', { ascending: false })
 
       if (error) throw error
@@ -2517,7 +2518,15 @@ export const dennikApi = {
 
       if (entriesError) throw entriesError
 
-      // 2. Delete all members
+      // 2. Delete all daily notes
+      const { error: notesError } = await supabase
+        .from('dennik_daily_notes')
+        .delete()
+        .eq('project_id', projectId)
+
+      if (notesError) console.warn('Could not delete daily notes:', notesError)
+
+      // 3. Delete all members
       const { error: membersError } = await supabase
         .from('project_members')
         .delete()
@@ -2575,6 +2584,60 @@ export const dennikApi = {
       return [...owned, ...member]
     } catch (error) {
       handleError('dennikApi.getDennikProjects', error)
+    }
+  },
+
+  // ===== DAILY NOTES =====
+
+  // Get daily notes for a project on a specific date
+  getDailyNotes: async (projectId, date) => {
+    try {
+      console.log('[dennik] getDailyNotes:', { projectId, date })
+      const { data, error } = await supabase
+        .from('dennik_daily_notes')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('date', date)
+
+      if (error) {
+        console.error('[dennik] getDailyNotes error:', error)
+        throw error
+      }
+      console.log('[dennik] getDailyNotes result:', data?.length, 'notes')
+      return data || []
+    } catch (error) {
+      handleError('dennikApi.getDailyNotes', error)
+      return []
+    }
+  },
+
+  // Upsert a daily note for the current user
+  upsertDailyNote: async (projectId, date, note) => {
+    try {
+      const userId = await getCurrentUserId()
+      console.log('[dennik] upsertDailyNote:', { projectId, userId, date, note: note?.substring(0, 50) })
+      const { data, error } = await supabase
+        .from('dennik_daily_notes')
+        .upsert({
+          project_id: projectId,
+          user_id: userId,
+          date,
+          note,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'project_id,user_id,date' })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[dennik] upsertDailyNote error:', error)
+        throw error
+      }
+      console.log('[dennik] upsertDailyNote success:', data?.id)
+      return data
+    } catch (error) {
+      console.error('[dennik] upsertDailyNote failed:', error)
+      handleError('dennikApi.upsertDailyNote', error)
+      return null
     }
   },
 
