@@ -83,7 +83,8 @@ export const formatProjectNumber = (project) => {
 
   // iOS format: just the sequential number (1, 2, 3...)
   // Compute display as year + 3-digit padded number
-  const createdDate = project.createdDate ? new Date(project.createdDate) : new Date();
+  // Use created_at/createdAt (from Supabase) first, then createdDate, then fallback to now
+  const createdDate = new Date(project.created_at || project.createdAt || project.createdDate || Date.now());
   const year = createdDate.getFullYear();
   const paddedNumber = String(number).padStart(3, '0');
 

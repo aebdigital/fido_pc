@@ -85,22 +85,15 @@ const Dennik = () => {
     }
 
     return (
-        <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
             {/* Header */}
-            <div className="mb-6">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-                            Denník
-                        </h1>
-                        <p className="text-gray-500 dark:text-gray-400">
-                            {t('Time tracking & project sharing')}
-                        </p>
-                    </div>
+            <div className="mb-2">
+                <div className="flex items-center gap-2 mb-2">
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
                 </div>
+                <p className="text-gray-500 dark:text-gray-400">
+                    {t('Time tracking & project sharing')}
+                </p>
 
                 {/* Search */}
                 <div className="relative mt-4">

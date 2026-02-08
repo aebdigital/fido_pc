@@ -1367,8 +1367,8 @@ export const generateInvoicePDF = async ({
 
     // Three columns BELOW divider
     const col1X = 12.35;      // Left column - Address
-    const col2X = 80;      // Middle column - Business IDs
-    const col3X = 145;     // Right column - Bank info
+    const col2X = 58;      // Middle column - Business IDs
+    const col3X = 110;     // Right column - Bank info
     let colY = dividerY + 5;
 
     doc.setFontSize(9.3);

@@ -44,12 +44,6 @@ const WorkPropertyCard = ({
   onToggleComplementaryWork,
   onCloseSelector, // For closing type/rental/sanitary selectors
   onUpdateItemState, // For updating top-level item properties like selectedType
-  onAssignJob, // New prop for job assignment
-  assignments = [], // All project assignments
-  groupSelectMode = false, // Whether group select mode is active
-  selectedWorkItems = new Set(), // Set of selected work item IDs
-  onToggleWorkItemSelection, // Handler to toggle item selection
-  onOpenStatusModal // New prop for opening status modal
 }) => {
   const { t } = useLanguage();
 
@@ -73,89 +67,6 @@ const WorkPropertyCard = ({
     return item.propertyId === property.id;
   });
 
-  // Helper to find assigned user for an item
-  // eslint-disable-next-line no-unused-vars
-  const getAssignedUser = (itemId) => {
-    const assignment = assignments.find(a => a.job_id === itemId || a.work_item_id === itemId);
-    return assignment?.user_profiles;
-  };
-
-  const renderAssignmentInfo = (itemId, itemName) => {
-    // Check both job_id (legacy/UI) and work_item_id (DB schema)
-    const assignment = assignments.find(a => a.job_id === itemId || a.work_item_id === itemId);
-    const user = assignment?.user_profiles || assignment?.profiles; // Use profiles from DB link
-    const status = assignment?.status || 'pending';
-    const isFinished = status === 'finished';
-
-    if (!user) return null; // Hide if no user assigned (per user request)
-
-    return (
-      <div className="flex flex-col gap-2 mb-2 px-1">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenStatusModal && onOpenStatusModal(itemId);
-              }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all hover:bg-opacity-80 active:scale-95 cursor-pointer ${isFinished
-                ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800'
-                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
-                }`}
-            >
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold ${isFinished ? 'bg-green-600' : 'bg-blue-600'}`}>
-                {user.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
-              </div>
-              <span className={`text-xs font-semibold ${isFinished ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
-                {user.full_name || user.email}
-              </span>
-              <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${isFinished
-                ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200'
-                : 'bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
-                }`}>
-                {t(status)}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {assignment?.notes && (
-          <div className={`p-2 rounded-xl text-xs italic ${isFinished ? 'bg-green-100/50 dark:bg-green-900/10 text-green-800 dark:text-green-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
-            "{assignment.notes}"
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Helper to render compact assigned member icon for headers
-  const renderAssignedMemberIcon = (itemId) => {
-    // Check both job_id (legacy/UI) and work_item_id (DB schema)
-    const assignment = assignments.find(a => a.job_id === itemId || a.work_item_id === itemId);
-    const user = assignment?.user_profiles || assignment?.profiles;
-
-    if (!user) return null;
-
-    const isFinished = assignment.status === 'finished';
-
-    return (
-      <button
-        onClick={(e) => {
-          e.stopPropagation(); // prevent collapsing/expanding
-          onOpenStatusModal && onOpenStatusModal(itemId);
-        }}
-        className={`w-8 h-8 lg:w-8 lg:h-8 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 border-2 ${isFinished
-          ? 'bg-green-100 border-green-500 text-green-700'
-          : 'bg-blue-100 border-blue-500 text-blue-700'
-          }`}
-        title={user.full_name || user.email}
-      >
-        <span className="text-xs font-bold">
-          {user.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
-        </span>
-      </button>
-    );
-  };
 
   // Helper to get the toggle-all icon state for complementary works
   // Returns the icon that represents what clicking will do (next state)
@@ -393,41 +304,18 @@ const WorkPropertyCard = ({
             : `${t(item.name)} ${t('no.')} ${index + 1}`;
 
           return (
-            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in ${newlyAddedItems.has(item.id) ? '' : ''} ${groupSelectMode && selectedWorkItems.has(item.id) ? 'ring-2 ring-blue-500' : ''}`}>
-              <div className="flex items-center justify-between">
-                {groupSelectMode && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onToggleWorkItemSelection(item.id);
-                    }}
-                    className="mr-3 flex-shrink-0"
-                  >
-                    {selectedWorkItems.has(item.id) ? (
-                      <CheckSquare className="w-6 h-6 text-blue-600" />
-                    ) : (
-                      <Square className="w-6 h-6 text-gray-400" />
-                    )}
-                  </button>
-                )}
-                <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
-                  {rentalLabel}
-                </span>
-                {!groupSelectMode && (
-                  <div className="flex items-center gap-2">
-                    {renderAssignedMemberIcon(item.id)}
-                    <button
-                      onClick={(e) => onRemoveWorkItem(item.id, e)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                    </button>
-                  </div>
-                )}
+            <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in`}>
+              <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
+                {rentalLabel}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
               </div>
-
-              {/* Assignment Info Removed per User Request */}
 
               {/* Rental fields */}
               {item.rentalFields && (
@@ -499,31 +387,13 @@ const WorkPropertyCard = ({
             }
           }}
         >
-          {/* Group Select Checkbox */}
-          {groupSelectMode && existingItem && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggleWorkItemSelection(existingItem.id);
-              }}
-              className="mr-3 flex-shrink-0"
-            >
-              {selectedWorkItems.has(existingItem.id) ? (
-                <CheckSquare className="w-6 h-6 text-blue-600" />
-              ) : (
-                <Square className="w-6 h-6 text-gray-400" />
-              )}
-            </button>
-          )}
           <div className="flex-1 flex flex-col">
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
-            {!groupSelectMode && existingItem && renderAssignedMemberIcon(existingItem.id)}
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
-          {!groupSelectMode && existingItem && expandedItems[existingItem.id] ? (
+          {existingItem && expandedItems[existingItem.id] ? (
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -535,7 +405,7 @@ const WorkPropertyCard = ({
             >
               <Trash2 className="w-4 h-4" />
             </button>
-          ) : !groupSelectMode && (
+          ) : (
             <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
               <ChevronDown className="w-4 h-4" />
             </div>
@@ -712,41 +582,20 @@ const WorkPropertyCard = ({
 
         {/* Existing type items */}
         {expandedItems[property.id] && existingItems.map((item, index) => (
-          <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${newlyAddedItems.has(item.id) ? '' : ''} ${groupSelectMode && selectedWorkItems.has(item.id) ? 'ring-2 ring-blue-500' : ''}`}>
+          <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3`}>
             <div className="flex items-center justify-between">
-              {groupSelectMode && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onToggleWorkItemSelection(item.id);
-                  }}
-                  className="mr-3 flex-shrink-0"
-                >
-                  {selectedWorkItems.has(item.id) ? (
-                    <CheckSquare className="w-6 h-6 text-blue-600" />
-                  ) : (
-                    <Square className="w-6 h-6 text-gray-400" />
-                  )}
-                </button>
-              )}
               <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
                 {getItemLabel(property, item, index, existingItems.length, t)}
               </span>
-              {!groupSelectMode && (
-                <div className="flex items-center gap-2">
-                  {renderAssignedMemberIcon(item.id)}
-                  <button
-                    onClick={(e) => onRemoveWorkItem(item.id, e)}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
+              </div>
             </div>
-
-            {!groupSelectMode && renderAssignmentInfo(item.id, getItemLabel(property, item, index, existingItems.length, t))}
 
             {/* Fields */}
             {property.fields && (
@@ -918,38 +767,19 @@ const WorkPropertyCard = ({
 
         {/* Existing sanitary items */}
         {expandedItems[property.id] && existingItems.map(item => (
-          <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${groupSelectMode && selectedWorkItems.has(item.id) ? 'ring-2 ring-blue-500' : ''}`} onClick={(e) => e.stopPropagation()}>
+          <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              {groupSelectMode && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onToggleWorkItemSelection(item.id);
-                  }}
-                  className="mr-3 flex-shrink-0"
-                >
-                  {selectedWorkItems.has(item.id) ? (
-                    <CheckSquare className="w-6 h-6 text-blue-600" />
-                  ) : (
-                    <Square className="w-6 h-6 text-gray-400" />
-                  )}
-                </button>
-              )}
               <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
                 {t(item.selectedType)}
               </span>
-              {!groupSelectMode && (
-                <div className="flex items-center gap-2">
-                  {renderAssignedMemberIcon(item.id)}
-                  <button
-                    onClick={(e) => onRemoveWorkItem(item.id, e)}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Assignment Info Removed per User Request */}
@@ -1021,22 +851,6 @@ const WorkPropertyCard = ({
           {/* Header Row: Only show if configured (unit selected) OR if we need to show the default header in a non-configuring state (fallback) */}
           {!isConfiguring && (
             <div className="flex items-center justify-between">
-              {groupSelectMode && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onToggleWorkItemSelection(item.id);
-                  }}
-                  className="mr-3 flex-shrink-0"
-                >
-                  {selectedWorkItems.has(item.id) ? (
-                    <CheckSquare className="w-6 h-6 text-blue-600" />
-                  ) : (
-                    <Square className="w-6 h-6 text-gray-400" />
-                  )}
-                </button>
-              )}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <input
                   id={`custom-work-name-${item.id}`}
@@ -1047,17 +861,14 @@ const WorkPropertyCard = ({
                   placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
                 />
               </div>
-              {!groupSelectMode && (
-                <div className="flex items-center gap-2">
-                  {!isConfiguring && renderAssignedMemberIcon(item.id)}
-                  <button
-                    onClick={(e) => onRemoveWorkItem(item.id, e)}
-                    className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
-                  >
-                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => onRemoveWorkItem(item.id, e)}
+                  className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                >
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -1190,24 +1001,8 @@ const WorkPropertyCard = ({
 
       {/* Show existing work items for this property */}
       {expandedItems[property.id] && existingItems.map((item, index) => (
-        <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 ${groupSelectMode && selectedWorkItems.has(item.id) ? 'ring-2 ring-blue-500' : ''}`}>
+        <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
           <div className="flex items-center justify-between">
-            {groupSelectMode && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onToggleWorkItemSelection(item.id);
-                }}
-                className="mr-3 flex-shrink-0"
-              >
-                {selectedWorkItems.has(item.id) ? (
-                  <CheckSquare className="w-6 h-6 text-blue-600" />
-                ) : (
-                  <Square className="w-6 h-6 text-gray-400" />
-                )}
-              </button>
-            )}
             {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <input
@@ -1228,17 +1023,14 @@ const WorkPropertyCard = ({
                 {getItemLabel(property, item, index, existingItems.length, t)}
               </span>
             )}
-            {!groupSelectMode && (
-              <div className="flex items-center gap-2">
-                {renderAssignedMemberIcon(item.id)}
-                <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
-                >
-                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => onRemoveWorkItem(item.id, e)}
+                className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+              >
+                <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Property type selection - for custom_work, only show if unit not yet selected */}

@@ -134,58 +134,71 @@ const Invoices = () => {
 
   const stats = useMemo(() => {
     const allInvoices = activeContractorId ? getInvoicesForContractor(activeContractorId) : [];
-    const currentYear = new Date().getFullYear();
     const today = new Date();
 
-    // Get VAT rate
-    const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
-    const vatRate = vatItem ? vatItem.price / 100 : 0.23;
-
-    let totalAmount = 0;
-    let paidAmount = 0;
-    let unpaidAmount = 0;
-    let overdueAmount = 0;
-    let totalCount = 0;
-    let paidCount = 0;
-    let unpaidCount = 0;
-    let overdueCount = 0;
+    // Group invoices by year
+    const statsByYear = {};
 
     allInvoices.forEach(invoice => {
-      const project = findProjectById(invoice.projectId, invoice.categoryId);
-      if (!project) return;
+      // Use stored invoice price if available (preferred), otherwise fall back to 0
+      // This ensures we use the snapshot price at the time of invoice creation
+      let totalWithVAT = 0;
 
-      const breakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
-      if (!breakdown) return;
+      if (invoice.priceWithoutVat !== undefined && invoice.priceWithoutVat !== null) {
+        const priceWithoutVat = parseFloat(invoice.priceWithoutVat);
+        const cumulativeVat = parseFloat(invoice.cumulativeVat || 0);
+        totalWithVAT = priceWithoutVat + cumulativeVat;
+      } else {
+        // Fallback for very old legacy data if priceWithoutVat is missing
+        // Try to calculate from project if possible, otherwise 0
+        const project = findProjectById(invoice.projectId, invoice.categoryId);
+        if (project) {
+          const breakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
+          if (breakdown) {
+            // Get VAT rate from general price list or default
+            const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
+            const vatRate = vatItem ? vatItem.price / 100 : 0.23;
+            totalWithVAT = (breakdown.total || 0) * (1 + vatRate);
+          }
+        }
+      }
 
-      const totalWithoutVAT = breakdown.total || 0;
-      const totalWithVAT = totalWithoutVAT * (1 + vatRate);
+      const invoiceDate = new Date(invoice.issueDate || invoice.dateCreated || new Date());
+      const year = invoiceDate.getFullYear();
 
-      totalAmount += totalWithVAT;
-      totalCount++;
+      if (!statsByYear[year]) {
+        statsByYear[year] = {
+          year: year,
+          total: { amount: 0, count: 0 },
+          paid: { amount: 0, count: 0 },
+          unpaid: { amount: 0, count: 0 },
+          overdue: { amount: 0, count: 0 }
+        };
+      }
+
+      const yearStats = statsByYear[year];
+
+      yearStats.total.amount += totalWithVAT;
+      yearStats.total.count++;
 
       if (invoice.status === INVOICE_STATUS.PAID) {
-        paidAmount += totalWithVAT;
-        paidCount++;
+        yearStats.paid.amount += totalWithVAT;
+        yearStats.paid.count++;
       } else {
-        unpaidAmount += totalWithVAT;
-        unpaidCount++;
+        yearStats.unpaid.amount += totalWithVAT;
+        yearStats.unpaid.count++;
 
         // Check if overdue
         const dueDate = new Date(invoice.dueDate);
         if (dueDate < today) {
-          overdueAmount += totalWithVAT;
-          overdueCount++;
+          yearStats.overdue.amount += totalWithVAT;
+          yearStats.overdue.count++;
         }
       }
     });
 
-    return {
-      year: currentYear,
-      total: { amount: totalAmount, count: totalCount },
-      paid: { amount: paidAmount, count: paidCount },
-      unpaid: { amount: unpaidAmount, count: unpaidCount },
-      overdue: { amount: overdueAmount, count: overdueCount }
-    };
+    // Convert to array and sort by year descending
+    return Object.values(statsByYear).sort((a, b) => b.year - a.year);
   }, [activeContractorId, generalPriceList, getInvoicesForContractor, findProjectById, calculateProjectTotalPriceWithBreakdown]);
 
   return (
@@ -395,26 +408,44 @@ const Invoices = () => {
                   <div className="text-right">
                     {/* Status badge - above price (iOS compatible: unpaid, paid, afterMaturity) */}
                     {(() => {
+                      const isPaid = invoice.status === INVOICE_STATUS.PAID;
+
+                      // iOS Logic Recreation
+                      // maturityCutOffDate = issueDate + maturity (in days)
+                      const issueDate = new Date(invoice.issueDate);
+                      issueDate.setHours(0, 0, 0, 0);
+
+                      // Default maturity to 14 days if not specified, matching common defaults or user setting
+                      const maturityDays = invoice.maturity || 14;
+
+                      const maturityCutOffDate = new Date(issueDate);
+                      maturityCutOffDate.setDate(issueDate.getDate() + maturityDays);
+
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
-                      const due = new Date(invoice.dueDate);
-                      due.setHours(0, 0, 0, 0);
-                      const diffTime = due - today;
-                      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                      const isPaid = invoice.status === INVOICE_STATUS.PAID;
-                      const isOverdue = invoice.status === INVOICE_STATUS.AFTER_MATURITY || (!isPaid && days < 0);
+
+                      // Calculate difference in days
+                      const diffTime = maturityCutOffDate - today;
+                      const dayDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      const absDays = Math.abs(dayDiff);
+
+                      // Determine status based on date if not already paid
+                      const isOverdue = !isPaid && dayDiff < 0;
 
                       return (
-                        <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${isPaid
-                          ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                          : isOverdue
-                            ? 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                            : 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                          }`}>
+                        <span
+                          className="inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 text-white"
+                          style={{
+                            backgroundColor: isPaid ? '#73D38A' // brandGreen
+                              : isOverdue ? '#FF857C' // brandRed
+                                : '#51A2F7' // brandBlue
+                          }}
+                        >
                           {isPaid ? t('Paid')
-                            : isOverdue ? t('afterMaturity')
-                              : days === 0 ? t('Matures today')
-                                : `${t('Matures in')} ${days} ${days === 1 ? t('day') : (days >= 2 && days <= 4 ? t('days_2_4') : t('days'))}`}
+                            : isOverdue
+                              ? `${t('Overdue by')} ${absDays} ${absDays === 1 ? t('day') : (absDays >= 2 && absDays <= 4 ? t('days_2_4') : t('days'))}`
+                              : dayDiff === 0 ? t('Matures today')
+                                : `${t('Matures in')} ${absDays} ${absDays === 1 ? t('day') : (absDays >= 2 && absDays <= 4 ? t('days_2_4') : t('days'))}`}
                         </span>
                       );
                     })()}
@@ -466,84 +497,94 @@ const Invoices = () => {
             </div>
 
             {/* Content */}
-            <div className="p-4 lg:p-6">
-              {/* Year Label */}
-              <div className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{stats.year}</div>
+            <div className="p-4 lg:p-6 space-y-8">
+              {stats.map(yearStats => (
+                <div key={yearStats.year}>
+                  {/* Year Label */}
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{yearStats.year}</div>
 
-              {/* Status Filters */}
-              <div className="flex gap-2 overflow-x-auto pb-4 pt-1 px-1 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 py-2">
-                {/* Assuming there will be buttons or other elements here for status filters */}
-                {/* This section seems incomplete in the provided instruction, but I'm inserting the container as requested. */}
-              </div>
-
-              {/* Total Card */}
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 mb-6">
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-                    {formatPrice(stats.total.amount)}
-                  </span>
-                  <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
-                    {t('total, including VAT')}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-gray-600 pb-3">
-                  {stats.total.count} {t('invoices')}
-                </div>
-
-                {/* Paid Section */}
-                <div className="mt-4">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Paid')}</div>
-                  <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-                        {formatPrice(stats.paid.amount)}
+                  {/* Total Card */}
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+                        {formatPrice(yearStats.total.amount)}
                       </span>
-                      <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
                         {t('total, including VAT')}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {stats.paid.count} {t('invoices total')}
+                    <div className="text-sm text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-gray-600 pb-3">
+                      {yearStats.total.count} {t('invoices')}
                     </div>
-                  </div>
-                </div>
 
-                {/* Unpaid Section */}
-                <div className="mt-4">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Unpaid')}</div>
-                  <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-                        {formatPrice(stats.unpaid.amount)}
-                      </span>
-                      <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-                        {t('total, including VAT')}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {stats.unpaid.count} {t('invoices total')}
-                    </div>
-                  </div>
-                </div>
+                    {/* Paid Section */}
+                    {yearStats.paid.count > 0 && (
+                      <div className="mt-4">
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Paid')}</div>
+                        <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                              {formatPrice(yearStats.paid.amount)}
+                            </span>
+                            <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                              {t('total, including VAT')}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {yearStats.paid.count} {t('invoices total')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                {/* Overdue Section */}
-                <div className="mt-4">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Overdue')}</div>
-                  <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-                        {formatPrice(stats.overdue.amount)}
-                      </span>
-                      <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-                        {t('total, including VAT')}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {stats.overdue.count} {t('invoices total')}
-                    </div>
+                    {/* Unpaid Section */}
+                    {yearStats.unpaid.count > 0 && (
+                      <div className="mt-4">
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Unpaid')}</div>
+                        <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                              {formatPrice(yearStats.unpaid.amount)}
+                            </span>
+                            <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                              {t('total, including VAT')}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {yearStats.unpaid.count} {t('invoices total')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Overdue Section */}
+                    {yearStats.overdue.count > 0 && (
+                      <div className="mt-4">
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Overdue')}</div>
+                        <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                              {formatPrice(yearStats.overdue.amount)}
+                            </span>
+                            <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                              {t('total, including VAT')}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {yearStats.overdue.count} {t('invoices total')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              ))}
+
+              {stats.length === 0 && (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  {t('No invoices found')}
+                </div>
+              )}
             </div>
           </div>
         </div>

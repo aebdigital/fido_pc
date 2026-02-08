@@ -4,7 +4,11 @@ import {
   ChevronRight,
   Archive,
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  X,
+  CircleHelp,
+  CheckCircle,
+  Flag
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ContractorProfileModal from '../components/ContractorProfileModal';
@@ -378,7 +382,9 @@ const Projects = () => {
   return (
     <>
       <div className="pb-20 lg:pb-0 overflow-hidden w-full min-w-0">
-        <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projects')}</h1>
+        {currentView !== 'details' && (
+          <h1 className="hidden lg:block text-4xl font-bold text-gray-900 dark:text-white mb-6">{t('Projects')}</h1>
+        )}
 
         {/* Contractor Profile Dropdown */}
         {(currentView === 'categories' || currentView === 'projects') && (
@@ -392,7 +398,7 @@ const Projects = () => {
                 <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
                   {(() => {
                     const name = viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'));
-                    return name.length > 16 ? name.substring(0, 16) + '...' : name;
+                    return name.length > 12 ? name.substring(0, 12) + '...' : name;
                   })()}
                 </span>
                 {/* Desktop: full name */}
@@ -491,8 +497,8 @@ const Projects = () => {
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
                   className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-2xl overflow-hidden transition-all duration-200 ${activeCategory === category.id
-                    ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg transform scale-105'
-                    : 'hover:shadow-md'
+                    ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg'
+                    : 'hover:shadow-md hover:scale-105'
                     }`}
                 >
                   <div className="h-24 lg:h-20 xl:h-24 2xl:h-28 relative shadow-lg">
@@ -566,7 +572,7 @@ const Projects = () => {
                             onClick={toggleProjectDeleteMode}
                             className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${projectDeleteMode
                               ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                              : 'bg-gray-500 text-white hover:bg-gray-600'
+                              : 'bg-gray-900 text-white hover:bg-gray-800'
                               }`}
                           >
                             <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -693,18 +699,45 @@ const Projects = () => {
                               <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
                                 <div className="text-right">
                                   {/* Status Badge */}
-                                  <span className={`inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 ${project.status === PROJECT_STATUS.FINISHED
-                                    ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                                    : project.status === PROJECT_STATUS.APPROVED
-                                      ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                                      : project.status === PROJECT_STATUS.SENT
-                                        ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                                        : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-                                    }`}>
-                                    {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
-                                      : project.status === PROJECT_STATUS.APPROVED ? 'approved'
-                                        : project.status === PROJECT_STATUS.SENT ? 'sent'
-                                          : 'not sent')}
+                                  <span
+                                    className="inline-flex items-center gap-1.5 px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 text-white"
+                                    style={{
+                                      backgroundColor:
+                                        project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
+                                          project.status === PROJECT_STATUS.APPROVED ? '#73D38A' :
+                                            project.status === PROJECT_STATUS.SENT ? '#51A2F7' :
+                                              '#FF857C'
+                                    }}
+                                  >
+                                    {project.status === PROJECT_STATUS.FINISHED ? (
+                                      <>
+                                        <span className="inline-flex items-center justify-center w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full bg-white">
+                                          <Flag className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: '#C4C4C4' }} />
+                                        </span>
+                                        <span>{t('finished')}</span>
+                                      </>
+                                    ) : project.status === PROJECT_STATUS.APPROVED ? (
+                                      <>
+                                        <span className="inline-flex items-center justify-center w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full bg-white">
+                                          <CheckCircle className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: '#73D38A' }} />
+                                        </span>
+                                        <span>{t('approved')}</span>
+                                      </>
+                                    ) : project.status === PROJECT_STATUS.SENT ? (
+                                      <>
+                                        <span className="inline-flex items-center justify-center w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full bg-white">
+                                          <span className="text-[10px] lg:text-xs font-bold" style={{ color: '#51A2F7' }}>?</span>
+                                        </span>
+                                        <span>{t('sent')}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="inline-flex items-center justify-center w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full bg-white">
+                                          <X className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: '#FF857C' }} />
+                                        </span>
+                                        <span>{t('not sent')}</span>
+                                      </>
+                                    )}
                                   </span>
                                   {/* Price */}
                                   <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>

@@ -1094,39 +1094,58 @@ export const priceListsApi = {
 // ========== INVOICE SETTINGS ==========
 
 export const invoiceSettingsApi = {
-  // Get invoice settings for contractor (by contractor's c_id stored in contractor_id column)
+  // Get invoice settings for account (global fallback, ignores contractorId)
   get: async (contractorId) => {
     try {
-      // If no contractor ID provided, return null
-      if (!contractorId) {
-        return null
-      }
-
       const userId = await getCurrentUserId()
+
+      // DISREGARD contractorId: The user wants account-wide notes.
+      // Fetch the single most recent non-deleted record for the user.
       const { data, error } = await supabase
         .from('invoice_settings')
         .select('*')
         .eq('user_id', userId)
-        .eq('contractor_id', contractorId)
-        .single()
+        .or('is_deleted.is.null,is_deleted.eq.false')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-      if (error && error.code !== 'PGRST116') throw error
+      if (error) {
+        console.error('[supabaseApi] Error getting account settings:', error)
+        throw error
+      }
+
       // Map c_id to id for app compatibility
       return data ? { ...data, id: data.c_id } : null
     } catch (error) {
       handleError('invoiceSettingsApi.get', error)
+      return null
     }
   },
 
-  // Create or update invoice settings
+  // Create or update invoice settings (Always saves as account-wide/contractor_id: null)
   upsert: async (settings) => {
     try {
       const userId = await getCurrentUserId()
-      // Generate c_id if not provided
-      const c_id = settings.c_id || crypto.randomUUID()
+
+      // Separate out potential conflict-causing fields or non-database fields
+      // 'id' is used in the frontend (mapped from c_id) but doesn't exist in the DB schema.
+      const { is_deleted, deleted_at, contractor_id, id, ...cleanSettings } = settings;
+
+      // c_id should be stable for the account-wide record if possible, or new one
+      const c_id = cleanSettings.c_id || crypto.randomUUID()
+
       const { data, error } = await supabase
         .from('invoice_settings')
-        .upsert([{ ...settings, c_id, user_id: userId }], {
+        .upsert([{
+          ...cleanSettings,
+          c_id,
+          user_id: userId,
+          contractor_id: null, // FORCE null for account-wide
+          is_deleted: false,
+          deleted_at: null,
+          updated_at: new Date().toISOString()
+        }], {
           onConflict: 'c_id'
         })
         .select()
@@ -1138,7 +1157,7 @@ export const invoiceSettingsApi = {
     } catch (error) {
       handleError('invoiceSettingsApi.upsert', error)
     }
-  }
+  },
 }
 
 // ========== RECEIPTS ==========

@@ -5,11 +5,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
-import AssignJobModal from './AssignJobModal';
-import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
-import api from '../services/supabaseApi';
 import TaskStatusModal from './TaskStatusModal';
 import { useAuth } from '../context/AuthContext';
+import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 
 // Helper to generate UUID for new work items (prevents duplicate inserts on autosave)
 const generateWorkItemId = () => crypto.randomUUID();
@@ -26,13 +24,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
   const [showingTypeSelector, setShowingTypeSelector] = useState(null);
   const [newlyAddedItems, setNewlyAddedItems] = useState(new Set());
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedJobForStatus, setSelectedJobForStatus] = useState(null);
-  const [assigningJob, setAssigningJob] = useState(null);
-  const [projectAssignments, setProjectAssignments] = useState([]);
-  const [groupSelectMode, setGroupSelectMode] = useState(false);
-  const [selectedWorkItems, setSelectedWorkItems] = useState(new Set());
   const [hasFinanceAccess, setHasFinanceAccess] = useState(false);
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);
@@ -102,20 +95,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
     }
   }, [room.workItems]);
 
-  // Fetch project assignments
-  const loadAssignments = useCallback(async () => {
-    if (!room.project_id) return;
-    try {
-      const assignments = await api.teams.getProjectAssignments(room.project_id);
-      setProjectAssignments(assignments || []);
-    } catch (error) {
-      console.error('Error loading assignments:', error);
-    }
-  }, [room.project_id]);
-
-  useEffect(() => {
-    loadAssignments();
-  }, [loadAssignments]);
 
   // Determine finance access
   useEffect(() => {
@@ -130,12 +109,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
       return;
     }
 
-    // Check if user has ANY assignment in this room with finance access enabled
-    const hasAccess = projectAssignments.some(
-      a => a.user_id === user.id && a.room_id === room.id && a.has_finance_access === true
-    );
-    setHasFinanceAccess(hasAccess);
-  }, [user, projectOwnerId, projectAssignments, room.id]);
+    setHasFinanceAccess(false);
+  }, [user, projectOwnerId]);
 
   // Autosave Logic with proper debouncing
   useEffect(() => {
@@ -680,52 +655,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
     setWorkData(items => items.filter(item => item.id !== itemId));
   };
 
-  const handleOpenStatusModal = (itemId) => {
-    // Check both job_id (legacy/UI) and work_item_id (DB schema)
-    const jobAssignment = projectAssignments.find(a => a.job_id === itemId || a.work_item_id === itemId);
-    const workItem = workData.find(i => i.id === itemId);
-
-    if (jobAssignment) {
-      // Find the property to get the localized name
-      let taskName = workItem?.name;
-      // If needed, we can construct a more detailed name here similar to getItemLabel in WorkPropertyCard
-
-      setSelectedJobForStatus({
-        ...jobAssignment,
-        taskName: taskName, // Pass name for display
-        taskItem: workItem // Pass full item if needed
-      });
-      setShowStatusModal(true);
-    }
-  };
-
-  const handleSaveStatus = async (updates) => {
-    if (!selectedJobForStatus) return;
-
-    try {
-      await updateJobAssignment(selectedJobForStatus.id, updates);
-      await loadAssignments(); // Refresh assignments to update UI
-      setShowStatusModal(false);
-      setSelectedJobForStatus(null);
-    } catch (error) {
-      console.error('Error saving status:', error);
-      // Optional: show error toast
-    }
-  };
-
-  const handleDeleteStatus = async () => {
-    if (!selectedJobForStatus) return;
-
-    try {
-      await deleteJobAssignment(selectedJobForStatus.id);
-      await loadAssignments(); // Refresh assignments
-      setShowStatusModal(false);
-      setSelectedJobForStatus(null);
-    } catch (error) {
-      console.error('Error deleting assignment:', error);
-    }
-  };
-
   const toggleExpanded = (itemId, e) => {
     if (e) {
       e.preventDefault();
@@ -746,53 +675,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
     setShowingTypeSelector(null);
   };
 
-  const handleOpenAssignModal = (itemId, itemName, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setAssigningJob({ id: itemId, name: itemName });
-    setShowAssignModal(true);
-  };
-
-  const handleToggleGroupSelectMode = () => {
-    setGroupSelectMode(!groupSelectMode);
-    if (groupSelectMode) {
-      setSelectedWorkItems(new Set()); // Clear selections when exiting
-    }
-  };
-
-  const handleToggleWorkItemSelection = (itemId) => {
-    setSelectedWorkItems(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId);
-      } else {
-        newSet.add(itemId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleAssignSelectedItems = () => {
-    if (selectedWorkItems.size === 0) return;
-    setAssigningJob({ id: Array.from(selectedWorkItems), name: `${selectedWorkItems.size} ${t('items')}`, isMultiple: true });
-    setShowAssignModal(true);
-  };
-
-  const handleAssignJob = async (assignment) => {
-    try {
-      await api.teams.assignJob(assignment);
-      await loadAssignments(); // Refresh assignments
-      setShowAssignModal(false);
-      setAssigningJob(null);
-      setSelectedWorkItems(new Set());
-      setGroupSelectMode(false);
-    } catch (error) {
-      console.error('Error assigning job:', error);
-      // Optional: show error toast
-    }
-  };
 
   // Helper to render work property cards with props passed down
   const renderWorkPropertyCard = (property) => (
@@ -821,13 +703,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
       onToggleAllComplementaryWorks={handleToggleAllComplementaryWorks}
       onToggleComplementaryWork={handleToggleComplementaryWork}
       onCloseSelector={handleCloseSelector}
-      onAssignJob={handleOpenAssignModal}
-      assignments={projectAssignments}
-      groupSelectMode={groupSelectMode}
-      selectedWorkItems={selectedWorkItems}
-      onToggleWorkItemSelection={handleToggleWorkItemSelection}
-      onOpenStatusModal={handleOpenStatusModal}
-      isOwner={room.isOwner} // Use isOwner from room prop which should be passed from parent or derived
+      isOwner={room.isOwner}
     />
   );
 
@@ -845,20 +721,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
           <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t(room.name) !== room.name ? t(room.name) : room.name}</h2>
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Assign Work Button - Only visible to Project Owner */}
-              {projectOwnerId && user?.id === projectOwnerId && (
-                <button
-                  onClick={handleToggleGroupSelectMode}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-medium transition-colors ${groupSelectMode
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                  title={t('Assign Work')}
-                >
-                  <CheckSquare className="w-4 h-4" />
-                  <span className="hidden sm:inline text-sm">{groupSelectMode ? t('Cancel') : t('Assign Work')}</span>
-                </button>
-              )}
               <div
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-medium transition-colors ${saveStatus === 'saved'
                   ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
@@ -992,57 +854,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
             )}
           </div>
 
-          {/* Floating Action Bar for Group Selection */}
-          {groupSelectMode && selectedWorkItems.size > 0 && (
-            <div className="absolute bottom-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto sm:w-auto bg-blue-600 text-white rounded-2xl px-6 py-3 flex items-center gap-4 shadow-xl animate-slide-in-bottom z-10">
-              <span className="font-medium">{selectedWorkItems.size} {t('items selected')}</span>
-              <button
-                onClick={handleAssignSelectedItems}
-                className="bg-white text-blue-600 px-4 py-2 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center gap-2"
-              >
-                <UserPlus className="w-4 h-4" />
-                {t('Assign')}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {showAssignModal && (
-        <AssignJobModal
-          isOpen={showAssignModal}
-          onClose={() => {
-            setShowAssignModal(false);
-            setAssigningJob(null);
-            setSelectedWorkItems(new Set()); // Clear selections
-            setGroupSelectMode(false); // Exit group select mode
-            loadAssignments(); // Refresh assignments after closing modal
-          }}
-          onAssign={handleAssignJob}
-          jobId={assigningJob?.id}
-          jobName={assigningJob?.name}
-          isMultiple={assigningJob?.isMultiple}
-          projectId={room.project_id}
-          roomId={room.id}
-          workData={workData}
-          workProperties={workProperties}
-        />
-      )}
-
-      {showStatusModal && selectedJobForStatus && (
-        <TaskStatusModal
-          isOpen={showStatusModal}
-          onClose={() => {
-            setShowStatusModal(false);
-            setSelectedJobForStatus(null);
-          }}
-          assignment={selectedJobForStatus}
-          onSave={handleSaveStatus}
-          onDelete={handleDeleteStatus}
-          isOwner={selectedJobForStatus.user_id !== user?.id} // Read-only if viewing someone else's task
-          taskName={selectedJobForStatus.taskName}
-        />
-      )}
     </>
   );
 };

@@ -337,7 +337,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                 paymentDays,
                 notes: `${t('Period')}: ${analyticsView === 'day' ? analyticsDate.toLocaleDateString() :
                     analyticsView === 'month' ? analyticsDate.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' }) :
-                        'Selected Period'}`,
+                        t('Selected Period')}`,
                 invoiceItems: invoiceItems,
                 priceWithoutVat: amount,
                 cumulativeVat: amount * vatRate

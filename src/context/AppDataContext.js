@@ -1302,6 +1302,8 @@ export const AppDataProvider = ({ children }) => {
     getInvoiceById: invoiceManager.getInvoiceById,
     getInvoicesForContractor: invoiceManager.getInvoicesForContractor,
     getInvoiceForProject: invoiceManager.getInvoiceForProject,
+    getInvoiceSettings: invoiceManager.getInvoiceSettings,
+    upsertInvoiceSettings: invoiceManager.upsertInvoiceSettings,
 
     // History functions
     getProjectHistory: projectManager.getProjectHistory,

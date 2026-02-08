@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   Receipt,
   Loader2,
-  Camera
+  Camera,
+  Flag,
+  CheckCircle
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -970,7 +972,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
   };
 
   return (
-    <div className="flex-1 p-0 lg:p-6 overflow-y-auto min-w-0">
+    <div className="flex-1 p-0 lg:p-0 overflow-y-auto min-w-0">
 
       {/* Project Header */}
       <div className="mb-6">
@@ -995,21 +997,23 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     if (e.key === 'Enter') handleSaveProjectName();
                     if (e.key === 'Escape') setIsEditingProjectName(false);
                   }}
-                  className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none flex-1"
+                  className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none w-full"
                   autoFocus
                 />
               ) : (
-                <>
-                  <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white truncate">{project.name}</h1>
-                  {!project.is_archived && (
+                <div className="flex items-center gap-2 group">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
+                    {project.name}
+                  </h1>
+                  {!project.is_archived && canEditProject && (
                     <button
                       onClick={handleEditProjectName}
-                      className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex-shrink-0"
+                      className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Edit3 className="w-5 h-5" />
+                      <Edit3 className="w-4 h-4" />
                     </button>
                   )}
-                </>
+                </div>
               )}
             </div>
 
@@ -1046,20 +1050,36 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 {t('Archived')}
               </span>
             )}
-            {/* Project Status Badge - Uses same logic as Projects list */}
-            <span className={`px-2 py-1 text-xs lg:text-sm font-semibold rounded-full ${project.status === PROJECT_STATUS.FINISHED
-              ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-              : project.status === PROJECT_STATUS.APPROVED
-                ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
-                : project.status === PROJECT_STATUS.SENT
-                  ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                  : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
-              }`}>
-              {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
-                : project.status === PROJECT_STATUS.APPROVED ? 'approved'
-                  : project.status === PROJECT_STATUS.SENT ? 'sent'
-                    : 'not sent')}
-            </span>
+
+            {/* Project Status Badge - Updated to match Projects list exactly */}
+            {(() => {
+              const statusConfig = {
+                [PROJECT_STATUS.NOT_SENT]: { color: '#FF857C', icon: X, label: 'not sent' },
+                [PROJECT_STATUS.SENT]: { color: '#51A2F7', icon: null, label: 'sent' },
+                [PROJECT_STATUS.APPROVED]: { color: '#73D38A', icon: CheckCircle, label: 'approved' },
+                [PROJECT_STATUS.FINISHED]: { color: '#C4C4C4', icon: Flag, label: 'finished' }
+              };
+
+              const config = statusConfig[project.status] || statusConfig[PROJECT_STATUS.NOT_SENT];
+              const StatusIcon = config.icon;
+
+              return (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full shadow-sm"
+                  style={{ backgroundColor: config.color }}>
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
+                    {project.status === PROJECT_STATUS.SENT ? (
+                      <span className="text-xs font-bold" style={{ color: config.color }}>?</span>
+                    ) : (
+                      <StatusIcon size={12} color={config.color} strokeWidth={3} />
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-white">
+                    {t(config.label)}
+                  </span>
+                </div>
+              );
+            })()}
+
           </div>
           <div className="flex items-center gap-3">
             {isEditingProjectNotes ? (

@@ -49,6 +49,36 @@ const paymentMethodToIOS = (method) => {
 };
 
 export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, updateProject) => {
+  const getInvoiceById = useCallback((invoiceId) => {
+    return appData.invoices.find(inv => inv.id === invoiceId);
+  }, [appData.invoices]);
+
+  const getInvoicesForContractor = useCallback((contractorId) => {
+    return appData.invoices.filter(inv => inv.contractorId === contractorId);
+  }, [appData.invoices]);
+
+  const getInvoiceForProject = useCallback((projectId) => {
+    return appData.invoices.find(inv => inv.projectId === projectId);
+  }, [appData.invoices]);
+
+  const getInvoiceSettings = useCallback(async (contractorId) => {
+    try {
+      return await api.invoiceSettings.get(contractorId);
+    } catch (error) {
+      console.error('[SUPABASE] Error getting invoice settings:', error);
+      return null;
+    }
+  }, []);
+
+  const upsertInvoiceSettings = useCallback(async (settings) => {
+    try {
+      return await api.invoiceSettings.upsert(settings);
+    } catch (error) {
+      console.error('[SUPABASE] Error upserting invoice settings:', error);
+      throw error;
+    }
+  }, []);
+
   const createInvoice = useCallback(async (projectOrId, categoryId, invoiceData, findProjectById) => {
     try {
       let project = null;
@@ -75,7 +105,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         // Use user's invoice number if provided, otherwise use 0 for auto-assignment
         number: invoiceData.invoiceNumber ? parseInt(invoiceData.invoiceNumber) : 0,
         // Store date_created as YYYY-MM-DD string to avoid timezone conversion issues
-        date_created: invoiceData.issueDate, // Already in YYYY-MM-DD format from the date picker
+        date_created: invoiceData.issueDate,
         date_of_dispatch: invoiceData.dispatchDate,
         // Use iOS-compatible payment type (bankTransfer instead of transfer)
         payment_type: paymentMethodToIOS(invoiceData.paymentMethod),
@@ -93,13 +123,9 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         cumulative_vat: invoiceData.cumulativeVat || 0
       };
 
-      console.log('[DEBUG] Creating invoice with data:', mappedInvoiceData);
-      console.log('[DEBUG] date_created being sent:', mappedInvoiceData.date_created, 'issueDate from invoiceData:', invoiceData.issueDate);
       const dbInvoice = await api.invoices.create(mappedInvoiceData);
-      console.log('[DEBUG] Invoice created from DB:', dbInvoice);
-
       const transformedInvoice = transformInvoiceFromDB(dbInvoice);
-      // Ensure we set these fields which transform might miss if joins aren't perfect
+
       transformedInvoice.projectName = project.name;
       transformedInvoice.categoryId = categoryId;
 
@@ -110,7 +136,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
       if (addProjectHistoryEntry) {
         await addProjectHistoryEntry(projectId, {
-          type: PROJECT_EVENTS.INVOICE_GENERATED, // iOS compatible: 'invoiceGenerated'
+          type: PROJECT_EVENTS.INVOICE_GENERATED,
           invoiceNumber: transformedInvoice.invoiceNumber
         });
       }
@@ -119,7 +145,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         await updateProject(categoryId, projectId, {
           hasInvoice: true,
           invoiceId: transformedInvoice.id,
-          invoiceStatus: INVOICE_STATUS.UNPAID // iOS compatible: 'unpaid'
+          invoiceStatus: INVOICE_STATUS.UNPAID
         });
       }
 
@@ -132,70 +158,40 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
   const updateInvoice = useCallback(async (invoiceId, updates) => {
     try {
-      console.log('[DEBUG updateInvoice] Starting update for invoiceId:', invoiceId);
-      console.log('[DEBUG updateInvoice] Updates received:', updates);
-
       const invoice = appData.invoices.find(inv => inv.id === invoiceId);
-      console.log('[DEBUG updateInvoice] Found existing invoice:', invoice?.id, 'number:', invoice?.invoiceNumber);
-
-      // Map app camelCase fields to DB snake_case fields
       const dbUpdates = {};
 
       if (updates.invoiceNumber !== undefined) dbUpdates.number = updates.invoiceNumber;
       if (updates.issueDate !== undefined) dbUpdates.date_created = updates.issueDate;
       if (updates.dispatchDate !== undefined) dbUpdates.date_of_dispatch = updates.dispatchDate;
-      // Use iOS-compatible payment type (bankTransfer instead of transfer)
       if (updates.paymentMethod !== undefined) dbUpdates.payment_type = paymentMethodToIOS(updates.paymentMethod);
       if (updates.paymentDays !== undefined) dbUpdates.maturity_days = updates.paymentDays;
       if (updates.notes !== undefined) dbUpdates.note = updates.notes;
-      // Convert iOS-compatible status to database status
       if (updates.status !== undefined) dbUpdates.status = invoiceStatusToDatabase(updates.status);
-      // Invoice items data in iOS-compatible format
+
       if (updates.invoiceItems !== undefined) {
         const iosItems = transformItemsForIOS(updates.invoiceItems);
         dbUpdates.invoice_items_data = JSON.stringify(iosItems);
       }
-      // Price data
+
       if (updates.priceWithoutVat !== undefined) dbUpdates.price_without_vat = updates.priceWithoutVat;
       if (updates.cumulativeVat !== undefined) dbUpdates.cumulative_vat = updates.cumulativeVat;
 
-      console.log('[DEBUG updateInvoice] Mapped dbUpdates:', dbUpdates);
-
-      // Only call API if there are mappable updates
       if (Object.keys(dbUpdates).length > 0) {
-        console.log('[DEBUG updateInvoice] Calling api.invoices.update with id:', invoiceId);
-        const result = await api.invoices.update(invoiceId, dbUpdates);
-        console.log('[DEBUG updateInvoice] API result:', result);
-
-        if (!result) {
-          console.error('[DEBUG updateInvoice] API returned null - invoice may not exist in DB');
-          throw new Error('Invoice not found in database');
-        }
+        await api.invoices.update(invoiceId, dbUpdates);
       }
 
-      setAppData(prev => {
-        const updatedState = {
-          ...prev,
-          invoices: prev.invoices.map(inv =>
-            inv.id === invoiceId ? { ...inv, ...updates } : inv
-          )
-        };
-        return updatedState;
-      });
+      setAppData(prev => ({
+        ...prev,
+        invoices: prev.invoices.map(inv =>
+          inv.id === invoiceId ? { ...inv, ...updates } : inv
+        )
+      }));
 
-      if (invoice) {
-        if (updateProject && updates.status) {
-          // Only sync invoiceStatus with project - do NOT change project.status
-          // iOS: marking invoice as paid only changes invoice.status, not project.status
-          // Project status is only changed when SENDING the invoice (to FINISHED=3)
-          await updateProject(invoice.categoryId, invoice.projectId, {
-            invoiceStatus: updates.status
-          });
-        }
-
-        // iOS does NOT add any history event when marking invoice as paid
-        // The 'finished' event is added when SENDING the invoice, not when marking as paid
-        // Note: iOS doesn't have an 'invoice_edited' event, so we skip history tracking here
+      if (invoice && updateProject && updates.status) {
+        await updateProject(invoice.categoryId, invoice.projectId, {
+          invoiceStatus: updates.status
+        });
       }
     } catch (error) {
       console.error('[SUPABASE] Error updating invoice:', error);
@@ -205,24 +201,17 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
   const deleteInvoice = useCallback(async (invoiceId) => {
     try {
-      console.log('[useInvoiceManager] Deleting invoice:', invoiceId);
       const invoice = appData.invoices.find(inv => inv.id === invoiceId);
-
-      // Perform the actual deletion in DB first
       await api.invoices.delete(invoiceId);
 
-      // Update local state immediately
       setAppData(prev => ({
         ...prev,
         invoices: prev.invoices.filter(inv => inv.id !== invoiceId)
       }));
 
-      // Perform secondary cleanup tasks. Wrap in try-catch so they don't 
-      // block the success of the main deletion if they fail.
       if (invoice) {
         try {
           if (updateProject) {
-            console.log('[useInvoiceManager] Cleaning up project status for:', invoice.projectId);
             await updateProject(invoice.categoryId || '', invoice.projectId, {
               hasInvoice: false,
               invoiceId: null,
@@ -238,7 +227,6 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
           }
         } catch (cleanupError) {
           console.warn('[useInvoiceManager] Cleanup after invoice deletion failed:', cleanupError);
-          // Don't rethrow cleanup errors, the invoice IS deleted
         }
       }
     } catch (error) {
@@ -247,24 +235,14 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
     }
   }, [appData.invoices, setAppData, addProjectHistoryEntry, updateProject]);
 
-  const getInvoiceById = useCallback((invoiceId) => {
-    return appData.invoices.find(inv => inv.id === invoiceId);
-  }, [appData.invoices]);
-
-  const getInvoicesForContractor = useCallback((contractorId) => {
-    return appData.invoices.filter(inv => inv.contractorId === contractorId);
-  }, [appData.invoices]);
-
-  const getInvoiceForProject = useCallback((projectId) => {
-    return appData.invoices.find(inv => inv.projectId === projectId);
-  }, [appData.invoices]);
-
   return {
     createInvoice,
     updateInvoice,
     deleteInvoice,
     getInvoiceById,
     getInvoicesForContractor,
-    getInvoiceForProject
+    getInvoiceForProject,
+    getInvoiceSettings,
+    upsertInvoiceSettings
   };
 };

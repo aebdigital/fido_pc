@@ -133,7 +133,7 @@ const maturityOptions = [7, 15, 30, 60, 90];
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null }) => {
   useScrollLock(true);
   const { t } = useLanguage();
-  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices } = useAppData();
+  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings } = useAppData();
 
   // Invoice settings state
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -144,6 +144,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [paymentDays, setPaymentDays] = useState(30);
   const [customInputValue, setCustomInputValue] = useState(''); // Text state for custom input to allow typing "0" freely
   const [notes, setNotes] = useState('');
+  const [persistentSettings, setPersistentSettings] = useState(null);
   const [showUncompletedModal, setShowUncompletedModal] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
   const [showDuplicateNumberModal, setShowDuplicateNumberModal] = useState(false);
@@ -156,6 +157,23 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     if (!project) return null;
     return calculateProjectTotalPriceWithBreakdown(project.id);
   }, [project, calculateProjectTotalPriceWithBreakdown]);
+
+  // Fetch invoice settings (Account-wide)
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (isOpen) {
+        try {
+          const settings = await getInvoiceSettings();
+          if (settings) {
+            setPersistentSettings(settings);
+          }
+        } catch (error) {
+          console.error('Error fetching invoice settings:', error);
+        }
+      }
+    };
+    fetchSettings();
+  }, [isOpen, getInvoiceSettings]);
 
   // Initialize invoice items from project breakdown
   useEffect(() => {
@@ -308,10 +326,16 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setPaymentMethod('transfer');
         setPaymentDays(30);
         setCustomInputValue('');
-        setNotes(t('Default Invoice Note'));
+
+        // Use persistent note if available, otherwise use default translation
+        if (persistentSettings?.note !== undefined && persistentSettings?.note !== null) {
+          setNotes(persistentSettings.note);
+        } else {
+          setNotes(t('Default Invoice Note'));
+        }
       }
     }
-  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t]);
+  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t, persistentSettings]);
 
   // Calculate totals from invoice items
   const calculateTotals = useMemo(() => {
@@ -428,6 +452,16 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           ...invoiceData,
           dueDate: dueDate.toISOString().split('T')[0]
         });
+
+        // Save note as default for future invoices (Account-wide)
+        const settingsToSave = {
+          ...persistentSettings,
+          contractor_id: null,
+          note: notes
+        };
+
+        await upsertInvoiceSettings(settingsToSave);
+
         console.log('[DEBUG proceedWithGeneration] Update successful');
         onClose(true);
       } catch (error) {
@@ -439,6 +473,15 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       try {
         const newInvoice = await createInvoice(project.id, categoryId, invoiceData);
         if (newInvoice) {
+          // Save note as default for future invoices (Account-wide)
+          const settingsToSave = {
+            ...persistentSettings,
+            contractor_id: null,
+            note: notes
+          };
+
+          await upsertInvoiceSettings(settingsToSave);
+
           onClose(newInvoice);
         }
       } catch (error) {
