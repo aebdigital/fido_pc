@@ -180,7 +180,6 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     if (isOpen && project && dennikData) {
       // Denník mode: use pre-built items
       setInvoiceItems(dennikData.items || []);
-      if (dennikData.notes) setNotes(dennikData.notes);
       return;
     }
     if (isOpen && project && projectBreakdown) {
@@ -341,7 +340,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         }
       }
     }
-  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t, persistentSettings]);
+  }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t, persistentSettings, dennikData]);
 
   // Calculate totals from invoice items
   const calculateTotals = useMemo(() => {

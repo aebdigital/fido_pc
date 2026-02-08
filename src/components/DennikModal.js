@@ -378,27 +378,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             taxObligationTransfer: false
         };
 
-        // 4. Build period note
-        const periodNote = `${t('Period')}: ${analyticsView === 'day' ? analyticsDate.toLocaleDateString() :
-            analyticsView === 'month' ? analyticsDate.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' }) :
-                (() => {
-                    const monday = new Date(analyticsDate);
-                    const day = monday.getDay();
-                    const diff = day === 0 ? -6 : 1 - day;
-                    monday.setDate(monday.getDate() + diff);
-                    const sunday = new Date(monday);
-                    sunday.setDate(monday.getDate() + 6);
-                    const thursd = new Date(monday);
-                    thursd.setDate(monday.getDate() + 3);
-                    const yearStart = new Date(thursd.getFullYear(), 0, 1);
-                    const weekNum = Math.ceil((((thursd - yearStart) / 86400000) + 1) / 7);
-                    return `T${weekNum}/${monday.getDate()}-${sunday.getDate()}.${sunday.getMonth() + 1}.${sunday.getFullYear()}`;
-                })()}`;
-
-        // 5. Open the InvoiceCreationModal with pre-filled data
+        // 4. Open the InvoiceCreationModal with pre-filled data
         setDennikInvoiceData({
             items: [workItem],
-            notes: periodNote,
             ownerContractorId: customer?.c_id || customer?.id || null
         });
         setShowInvoiceCreation(true);
@@ -1231,7 +1213,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                             >
                                                 <div>
                                                     <div className="font-medium text-gray-900 dark:text-white">
-                                                        {(invoice.notes?.split('\n')[0]?.trim()) || `${t('Invoice')} #${invoice.invoiceNumber}`}
+                                                        {`${t('Invoice')} #${invoice.invoiceNumber}`}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
                                                         {invoice.creatorProfile?.email || invoice.contractors?.email || invoice.contractors?.name || t('Unknown Contractor')}
