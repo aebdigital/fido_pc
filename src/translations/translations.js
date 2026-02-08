@@ -1247,8 +1247,6 @@ export const translations = {
     "Total today": "Dnes celkom",
     "Time Entries": "Záznamy času",
     "Add a note for this day...": "Pridajte poznámku k tomuto dňu...",
-    "Saved": "Uložené",
-    "Saving...": "Ukladám...",
     "Project Owner": "Vlastník projektu",
     "Owner": "Vlastník",
     "Employee": "Zamestnanec",

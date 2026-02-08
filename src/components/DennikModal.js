@@ -365,8 +365,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         const calculatedTotalHours = analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
         const totalHours = customHours !== null ? parseFloat(customHours) : calculatedTotalHours;
         const amount = totalHours * parseFloat(hourlyRate || 0);
-        const shouldUseConsolidatedItem = customHours !== null;
-
         const workItem = {
             id: crypto.randomUUID(),
             title: t('Work Hours'),

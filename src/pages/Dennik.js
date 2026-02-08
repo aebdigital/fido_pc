@@ -39,6 +39,7 @@ const Dennik = () => {
     // Load dennik projects on mount
     useEffect(() => {
         loadDennikProjects();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const loadDennikProjects = async () => {
@@ -79,11 +80,6 @@ const Dennik = () => {
             console.error('Error cleaning up dennik:', error);
             alert(t('Failed to cleanup Denník'));
         }
-    };
-
-    const getProjectMembers = (project) => {
-        // Get members from the project_members join
-        return project.project_members || [];
     };
 
     const isProjectOwner = (project) => {

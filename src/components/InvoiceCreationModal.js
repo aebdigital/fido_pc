@@ -266,7 +266,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setInvoiceItems(items);
       }
     }
-  }, [isOpen, project, projectBreakdown, editMode, existingInvoice, t]);
+  }, [isOpen, project, projectBreakdown, editMode, existingInvoice, t, dennikData]);
 
   // Initialize invoice settings
   useEffect(() => {
