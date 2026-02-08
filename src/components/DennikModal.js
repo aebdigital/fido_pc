@@ -1062,7 +1062,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                         <div className="space-y-6 h-full flex flex-col">
                             {/* Controls */}
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 dark:bg-gray-800 p-2 rounded-2xl">
-                                <div className="flex bg-white dark:bg-gray-900 rounded-xl p-1 shadow-sm">
+                                <div className="flex">
                                     {['day', 'week', 'month'].map(view => (
                                         <button
                                             key={view}
