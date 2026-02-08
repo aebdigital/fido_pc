@@ -652,7 +652,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                     <div className="flex gap-2">
                         <button
                             onClick={() => setActiveTab('timer')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${activeTab === 'timer'
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'timer'
                                 ? 'bg-blue-600 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
@@ -662,7 +662,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                         </button>
                         <button
                             onClick={() => setActiveTab('members')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${activeTab === 'members'
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'members'
                                 ? 'bg-blue-600 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
@@ -672,7 +672,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                         </button>
                         <button
                             onClick={() => setActiveTab('analytics')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${activeTab === 'analytics'
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'analytics'
                                 ? 'bg-blue-600 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
