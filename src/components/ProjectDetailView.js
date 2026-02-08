@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import {
   User,
   ClipboardList,
-  BarChart3,
   Trash2,
   Plus,
   ChevronRight,
@@ -64,7 +63,6 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     projectCategories,
     updateProject,
     archiveProject,
-    unarchiveProject,
     deleteArchivedProject,
     addRoomToProject,
     updateProjectRoom,

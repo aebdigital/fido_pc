@@ -206,6 +206,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                 setHourlyRate(project.hourly_rate || priceOfferSettings?.defaultHourlyRate || '');
             }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, project, loadData, loadAnalyticsData]);
 
     useEffect(() => {
