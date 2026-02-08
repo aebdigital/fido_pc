@@ -1,11 +1,10 @@
-import React, { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
-import { X, Hammer, Menu, Loader2, Check, UserPlus, CheckSquare } from 'lucide-react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import { X, Hammer, Menu, Loader2, Check } from 'lucide-react';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
-import TaskStatusModal from './TaskStatusModal';
 import { useAuth } from '../context/AuthContext';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 
@@ -16,7 +15,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
   useScrollLock(true);
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { updateJobAssignment, deleteJobAssignment } = useAppData();
+  const { } = useAppData();
   const [workData, setWorkData] = useState(room.workItems || []);
   const [expandedItems, setExpandedItems] = useState({});
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);
@@ -24,8 +23,6 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
   const [showingTypeSelector, setShowingTypeSelector] = useState(null);
   const [newlyAddedItems, setNewlyAddedItems] = useState(new Set());
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [selectedJobForStatus, setSelectedJobForStatus] = useState(null);
   const [hasFinanceAccess, setHasFinanceAccess] = useState(false);
   const scrollContainerRef = useRef(null);
   const scrollPositionRef = useRef(0);

@@ -6,7 +6,6 @@ import {
   ChevronDown,
   RefreshCw,
   X,
-  CircleHelp,
   CheckCircle,
   Flag
 } from 'lucide-react';

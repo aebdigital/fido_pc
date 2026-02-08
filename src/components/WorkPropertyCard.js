@@ -6,9 +6,7 @@ import {
   Hammer,
   Package,
   ChevronDown,
-  Copy,
-  Square,
-  CheckSquare
+  Copy
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
