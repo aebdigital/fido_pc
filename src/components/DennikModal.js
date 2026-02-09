@@ -43,7 +43,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const [customHours, setCustomHours] = useState(null); // For testing/overriding
     const [ownerProfile, setOwnerProfile] = useState(null);
     const [showBusyModal, setShowBusyModal] = useState(false);
-    const [showCleanupModal, setShowCleanupModal] = useState(false);
 
     // Analytics State
     const [analyticsView, setAnalyticsView] = useState('month'); // 'day', 'week', 'month'
@@ -439,24 +438,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         }, 800);
     };
 
-    const handleCleanup = async () => {
-        setShowCleanupModal(true);
-    };
-
-    const confirmCleanup = async () => {
-
-        try {
-            setIsLoading(true);
-            await api.dennik.cleanupDennik(project.c_id || project.id);
-            onClose();
-            // Project list will refresh via AppDataContext if we trigger a reload or update state
-        } catch (error) {
-            console.error('Error cleaning up Denník:', error);
-            alert(t('Failed to cleanup Denník'));
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
 
 
@@ -1303,16 +1284,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 icon="info"
             />
 
-            <ConfirmationModal
-                isOpen={showCleanupModal}
-                onClose={() => setShowCleanupModal(false)}
-                onConfirm={confirmCleanup}
-                title="Cleanup Denník"
-                message="Are you sure you want to cleanup Denník for this project? This will delete all time entries and members, and reset the project Denník status."
-                confirmLabel="Cleanup"
-                cancelLabel="Cancel"
-                isDestructive={true}
-            />
         </div>
     );
 };
