@@ -85,7 +85,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     addReceipt,
     deleteReceipt,
     analyzeReceiptImage,
-    isPro // Added Pro check
+    isPro, // Added Pro check
+    findProjectById
   } = useAppData();
   const { user } = useAuth();
 
@@ -190,12 +191,16 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     return () => window.removeEventListener('open-dennik-modal', handleOpenDennik);
   }, [projectId]);
 
-  // Sync local state with project data
+  // Sync local state with project data (also check latest from context for realtime updates)
+  const latestProjectResult = findProjectById(projectId);
+  const latestProject = latestProjectResult?.project || project;
+  const effectiveClientId = latestProject?.clientId || latestProject?.client_id || project?.clientId || project?.client_id;
+
   useEffect(() => {
     if (!project) return;
 
-    if (project.clientId) {
-      const assignedClient = clients.find(client => client.id === project.clientId);
+    if (effectiveClientId) {
+      const assignedClient = clients.find(client => client.id === effectiveClientId);
       if (assignedClient) {
         setSelectedClientForProject(assignedClient);
       } else {
@@ -205,9 +210,9 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       setSelectedClientForProject(null);
     }
 
-    setProjectDetailNotes(project.detailNotes || '');
-    setProjectPhotos(project.photos || []);
-  }, [project, clients]);
+    setProjectDetailNotes(project.detailNotes || latestProject?.detailNotes || '');
+    setProjectPhotos(project.photos || latestProject?.photos || []);
+  }, [project, clients, effectiveClientId, latestProject]);
 
   // Memoized price list with safety parsing
   const activePriceList = useMemo(() => {
@@ -249,7 +254,9 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const getCurrentContractor = () => {
-    return contractors.find(c => c.id === activeContractorId);
+    // Use project's contractor_id first, then fall back to active contractor
+    const cId = project?.contractor_id || project?.contractorId || activeContractorId;
+    return contractors.find(c => c.id === cId);
   };
 
   const roomTypes = [

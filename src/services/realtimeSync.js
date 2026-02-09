@@ -92,29 +92,71 @@ export const subscribeToRealtimeChanges = (userId, onDataChange) => {
   // Event buffer to batch rapid changes
   let eventBuffer = []
 
-  // Create a single channel for all table subscriptions
-  const channel = supabase.channel('desktop-realtime-sync', {
-    config: {
-      broadcast: { self: false },
-    }
-  })
+  // Reconnection state
+  let reconnectTimer = null
+  let reconnectAttempts = 0
+  const MAX_RECONNECT_DELAY = 30000 // 30 seconds max delay
+  const BASE_RECONNECT_DELAY = 1000 // 1 second start delay
 
-  // Subscribe to each table
-  REALTIME_TABLES.forEach(tableName => {
+  const setupSubscription = () => {
+    // exponential backoff calculation
+    const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY)
+
+    // Create a single channel for all table subscriptions (schema level)
+    console.log(`[RealtimeSync] initializing subscription (attempt ${reconnectAttempts + 1})...`)
+
+    const channel = supabase.channel('desktop-realtime-sync-global', {
+      config: {
+        broadcast: { self: false },
+      }
+    })
+
+    // Subscribe to all changes in public schema
     channel.on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
-        table: tableName,
-        filter: `user_id=eq.${userId}`
       },
       (payload) => {
-        // console.log(`[RealtimeSync] Change detected in ${tableName}:`, payload.eventType)
+        // CLIENT-SIDE FILTERING
+
+        // 1. Filter by Table Name
+        if (!REALTIME_TABLES.includes(payload.table)) {
+          // console.log(`[RealtimeSync] Ignoring change in non-monitored table: ${payload.table}`)
+          return
+        }
+
+        // 2. Filter by User ID
+        // We need to check if this record belongs to the current user
+        // For INSERT/UPDATE: check payload.new.user_id
+        // For DELETE: check payload.old.user_id (if available) or assume relevant if we have it in local state
+
+        let recordUserId = null
+
+        if (payload.new && payload.new.user_id) {
+          recordUserId = payload.new.user_id
+        } else if (payload.old && payload.old.user_id) {
+          recordUserId = payload.old.user_id
+        }
+
+        // If we can't determine user_id (e.g. DELETE with only ID), we should process it 
+        // if we have local data, but to be safe/simple for now we'll process it.
+        // Most tables have user_id.
+        // NOTE: RLS Policies on server should prevents us receiving events for other users
+        // even with schema-level subscription if properly configured. 
+        // BUT strict client-side check is good practice.
+
+        if (recordUserId && recordUserId !== userId) {
+          // console.log('[RealtimeSync] Ignoring change from another user')
+          return
+        }
+
+        // console.log(`[RealtimeSync] Change detected in ${payload.table}:`, payload.eventType)
 
         // Add to buffer
         eventBuffer.push({
-          table: tableName,
+          table: payload.table,
           eventType: payload.eventType,
           record: payload.new,
           oldRecord: payload.old,
@@ -137,27 +179,51 @@ export const subscribeToRealtimeChanges = (userId, onDataChange) => {
         }, DEBOUNCE_DELAY)
       }
     )
-  })
 
-  // Subscribe to the channel
-  channel.subscribe((status) => {
-    if (status === 'SUBSCRIBED') {
-      console.log('[RealtimeSync] Successfully subscribed to real-time changes')
-    } else if (status === 'CHANNEL_ERROR') {
-      console.error('[RealtimeSync] Failed to subscribe to channel')
-    } else if (status === 'TIMED_OUT') {
-      console.warn('[RealtimeSync] Subscription timed out, will retry...')
+    // Subscribe to the channel
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[RealtimeSync] Successfully subscribed to real-time changes')
+        reconnectAttempts = 0 // Reset attempts on success
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('[RealtimeSync] Channel error, attempting reconnect...')
+        cleanupAndReconnect()
+      } else if (status === 'TIMED_OUT') {
+        console.warn('[RealtimeSync] Subscription timed out, attempting reconnect...')
+        cleanupAndReconnect()
+      } else if (status === 'CLOSED') {
+        console.log('[RealtimeSync] Channel closed')
+      }
+    })
+
+    activeChannel = channel
+  }
+
+  const cleanupAndReconnect = () => {
+    if (activeChannel) {
+      supabase.removeChannel(activeChannel)
+      activeChannel = null
     }
-  })
+    if (reconnectTimer) clearTimeout(reconnectTimer)
 
-  activeChannel = channel
+    const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY)
+    console.log(`[RealtimeSync] Scheduling reconnect in ${delay}ms`)
+
+    reconnectTimer = setTimeout(() => {
+      reconnectAttempts++
+      setupSubscription()
+    }, delay)
+  }
+
+  // Initial setup
+  setupSubscription()
 
   // Return cleanup function
   return () => {
     console.log('[RealtimeSync] Unsubscribing from real-time changes')
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-    }
+    if (debounceTimer) clearTimeout(debounceTimer)
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+
     if (activeChannel) {
       supabase.removeChannel(activeChannel)
       activeChannel = null

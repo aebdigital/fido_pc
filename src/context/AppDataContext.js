@@ -738,6 +738,18 @@ export const AppDataProvider = ({ children }) => {
     }
   }, [loading, appData.priceOfferSettings?.archiveRetentionDays, appData.archivedProjects, projectManager]);
 
+  // Ref to always have latest loadProjectDetails (avoids stale closure in realtime handler)
+  const loadProjectDetailsRef = useRef(projectManager.loadProjectDetails);
+  useEffect(() => {
+    loadProjectDetailsRef.current = projectManager.loadProjectDetails;
+  }, [projectManager.loadProjectDetails]);
+
+  // Ref to current projectRoomsData for lookups outside state updater
+  const projectRoomsDataRef = useRef(appData.projectRoomsData);
+  useEffect(() => {
+    projectRoomsDataRef.current = appData.projectRoomsData;
+  }, [appData.projectRoomsData]);
+
   // Real-time sync subscription - listen for changes from iOS or other clients
   useEffect(() => {
     if (!user?.id || loading) return;
@@ -800,7 +812,8 @@ export const AppDataProvider = ({ children }) => {
 
           // A. Contractors
           if (categories.includes('contractors')) {
-            const transformed = transformContractorFromDB(record);
+            const recordWithId = { ...record, id: record.c_id || record.id };
+            const transformed = transformContractorFromDB(recordWithId);
             next.contractors = updateEntityArray(next.contractors, record, transformed, eventType);
             // Handle settings update if active
             if ((record.c_id === next.activeContractorId || record.id === next.activeContractorId) && record.price_offer_settings) {
@@ -814,7 +827,8 @@ export const AppDataProvider = ({ children }) => {
 
           // B. Clients
           if (categories.includes('clients')) {
-            next.clients = updateEntityArray(next.clients, record, transformClientFromDB(record), eventType);
+            const clientWithId = { ...record, id: record.c_id || record.id };
+            next.clients = updateEntityArray(next.clients, record, transformClientFromDB(clientWithId), eventType);
           }
 
           // C. Projects
@@ -824,10 +838,18 @@ export const AppDataProvider = ({ children }) => {
             const contractorId = record.contractor_id;
             if (contractorId && next.contractorProjects[contractorId]) {
               const fetchedProject = newRecordMap.get(record.c_id);
-              const projectToUse = eventType === 'INSERT' ? fetchedProject : { ...record, id: record.c_id || record.id };
+              const rawProject = eventType === 'INSERT' ? fetchedProject : { ...record, id: record.c_id || record.id };
+              // Normalize snake_case → camelCase for key fields so ProjectDetailView can read them
+              const projectToUse = rawProject ? {
+                ...rawProject,
+                clientId: rawProject.client_id || rawProject.clientId,
+                clientName: rawProject.client_name || rawProject.clientName,
+                contractorId: rawProject.contractor_id || rawProject.contractorId,
+              } : null;
 
               // Only proceed if we have valid project data
               if (projectToUse) {
+                // 1. Update Contractor Projects
                 const cp = { ...next.contractorProjects[contractorId] };
                 const cats = cp.categories.map(cat => {
                   const projs = updateEntityArray(cat.projects, record, projectToUse, eventType);
@@ -845,13 +867,55 @@ export const AppDataProvider = ({ children }) => {
                   ...next.contractorProjects,
                   [contractorId]: { ...cp, categories: cats, archivedProjects: archived }
                 };
+
+                // Normalize project data to include clientId (matching loadInitialData transform)
+                const normalizedProject = {
+                  ...projectToUse,
+                  clientId: projectToUse.client_id || projectToUse.clientId,
+                  isArchived: projectToUse.is_archived
+                };
+
+                // 2. Global Archived Projects Update (Fix for Archive List Sync)
+                let globalArchived = [...(next.archivedProjects || [])];
+                const pId = normalizedProject.id;
+
+                if (eventType === 'DELETE' || record.is_deleted) {
+                  globalArchived = globalArchived.filter(p => p.id !== pId);
+                } else {
+                  if (normalizedProject.isArchived) {
+                    const idx = globalArchived.findIndex(p => p.id === pId);
+                    if (idx >= 0) {
+                      globalArchived[idx] = normalizedProject;
+                    } else {
+                      globalArchived.push(normalizedProject);
+                    }
+                  } else {
+                    globalArchived = globalArchived.filter(p => p.id !== pId);
+                  }
+                }
+                next.archivedProjects = globalArchived;
+
+                next.clients = next.clients.map(client => {
+                  let clientProjects = [...(client.projects || [])];
+
+                  // Remove project if it exists (to handle updates, moves, or deletes)
+                  clientProjects = clientProjects.filter(p => p.id !== normalizedProject.id);
+
+                  // Add project if it belongs to this client and is not archived/deleted
+                  if (eventType !== 'DELETE' && client.id === normalizedProject.clientId && !normalizedProject.isArchived) {
+                    clientProjects.push(normalizedProject);
+                  }
+
+                  return { ...client, projects: clientProjects };
+                });
               }
             }
           }
 
           // D. Invoices 
           if (categories.includes('invoices')) {
-            const transformed = transformInvoiceFromDB(record);
+            const invoiceWithId = { ...record, id: record.c_id || record.id };
+            const transformed = transformInvoiceFromDB(invoiceWithId);
             if (transformed) {
               next.invoices = updateEntityArray(next.invoices, record, transformed, eventType);
             }
@@ -861,13 +925,14 @@ export const AppDataProvider = ({ children }) => {
           if (categories.includes('rooms')) {
             const projectId = record.project_id;
             if (projectId && next.projectRoomsData[projectId]) {
-              const prd = { ...next.projectRoomsData[projectId] };
+              // projectRoomsData[projectId] is an array of rooms
+              const currentRooms = next.projectRoomsData[projectId];
               const fetchedRoom = newRecordMap.get(record.c_id);
               const roomToUse = eventType === 'INSERT' ? fetchedRoom : { ...record, id: record.c_id || record.id };
 
               if (roomToUse) {
-                prd.rooms = updateEntityArray(prd.rooms, record, roomToUse, eventType);
-                next.projectRoomsData = { ...next.projectRoomsData, [projectId]: prd };
+                const updatedRooms = updateEntityArray(currentRooms, record, roomToUse, eventType);
+                next.projectRoomsData = { ...next.projectRoomsData, [projectId]: updatedRooms };
               }
             }
           }
@@ -878,62 +943,99 @@ export const AppDataProvider = ({ children }) => {
           }
         }
 
-        // G. WorkItems Invalidation (Processing all workItem changes in one pass)
-        // Optimization: Collect all affected/stale rooms first
-        const staleRoomIds = new Set();
-        let staleAll = false;
-
-        for (const change of changes) {
-          const { table, record } = change;
-          if (getRefreshCategories(table).includes('workItems') && record) {
-            if (record.room_id) {
-              staleRoomIds.add(record.room_id);
-            } else if (!staleAll) {
-              // Logic to find room for doors/windows etc
-              // Fallback to staleAll if we can't efficiently find it
-              // NOTE: Implementing deep search in client memory is risky if data isn't loaded. 
-              // Safest medium-fix is to mark all staled if we can't ID the room.
-              staleAll = true;
-            }
-          }
-        }
-
-        if (staleAll || staleRoomIds.size > 0) {
-          const newPRD = { ...next.projectRoomsData };
-          let changed = false;
-
-          for (const pid in newPRD) {
-            const pData = newPRD[pid];
-            if (!pData?.rooms) continue;
-
-            if (staleAll) {
-              // Mark all rooms stale
-              const newRooms = pData.rooms.map(r => r._workItemsStale ? r : { ...r, _workItemsStale: true });
-              if (newRooms !== pData.rooms) {
-                newPRD[pid] = { ...pData, rooms: newRooms };
-                changed = true;
-              }
-            } else {
-              // Mark specific rooms stale
-              const newRooms = pData.rooms.map(r => {
-                if (staleRoomIds.has(r.id) || staleRoomIds.has(r.c_id)) {
-                  return { ...r, _workItemsStale: true };
-                }
-                return r;
-              });
-              // Only update object if actually changed (optimization)
-              const actuallyChanged = newRooms.some((r, i) => r !== pData.rooms[i]);
-              if (actuallyChanged) {
-                newPRD[pid] = { ...pData, rooms: newRooms };
-                changed = true;
-              }
-            }
-          }
-          if (changed) next.projectRoomsData = newPRD;
-        }
-
         return next;
       });
+
+      // G. Project Refresh Logic (OUTSIDE setAppData to avoid stale closures & side effects in updater)
+      // Compute which projects need a full reload (rooms + work items) for correct price calculation
+      const projectsToRefresh = new Set();
+      const unknownRoomIds = new Set();
+      const currentRoomsData = projectRoomsDataRef.current || {};
+
+      for (const change of changes) {
+        const { table, record, eventType, oldRecord } = change;
+        const refreshCats = getRefreshCategories(table);
+
+        // 1. New Projects
+        if (table === 'projects' && eventType === 'INSERT' && record) {
+          projectsToRefresh.add(record.c_id || record.id);
+        }
+
+        // 2. Room Changes
+        if (table === 'rooms' && record && record.project_id) {
+          projectsToRefresh.add(record.project_id);
+        } else if (table === 'rooms' && eventType === 'DELETE' && oldRecord && oldRecord.project_id) {
+          projectsToRefresh.add(oldRecord.project_id);
+        }
+
+        // 3. Work Item Changes - find which project owns this room
+        if (refreshCats.includes('workItems')) {
+          let foundProjectId = null;
+          const roomId = record?.room_id || oldRecord?.room_id;
+
+          if (roomId) {
+            // Look up room→project from current state ref
+            for (const [pid, rooms] of Object.entries(currentRoomsData)) {
+              if (Array.isArray(rooms) && rooms.some(r => r.id === roomId || r.c_id === roomId)) {
+                foundProjectId = pid;
+                break;
+              }
+            }
+            if (!foundProjectId) {
+              unknownRoomIds.add(roomId);
+            }
+          }
+
+          // Fallback: search by work item ID in state
+          if (!foundProjectId && !roomId) {
+            const itemId = record?.c_id || oldRecord?.c_id || record?.id || oldRecord?.id;
+            if (itemId) {
+              for (const [pid, rooms] of Object.entries(currentRoomsData)) {
+                if (Array.isArray(rooms)) {
+                  for (const room of rooms) {
+                    if (room.workItems?.some(item => item.id === itemId || item.c_id === itemId)) {
+                      foundProjectId = pid;
+                      break;
+                    }
+                  }
+                }
+                if (foundProjectId) break;
+              }
+            }
+          }
+
+          if (foundProjectId) {
+            projectsToRefresh.add(foundProjectId);
+          }
+        }
+      }
+
+      // Refresh known projects (uses ref for latest loadProjectDetails)
+      if (projectsToRefresh.size > 0) {
+        console.log(`[RealtimeSync] Refreshing ${projectsToRefresh.size} projects:`, Array.from(projectsToRefresh));
+        // Small delay to let Supabase finish writing all related records
+        setTimeout(() => {
+          projectsToRefresh.forEach(pid => {
+            loadProjectDetailsRef.current(pid).catch(err =>
+              console.warn(`[RealtimeSync] Failed to refresh project ${pid}`, err)
+            );
+          });
+        }, 300);
+      }
+
+      // Handle unknown rooms (fetch room to find project_id, then refresh)
+      if (unknownRoomIds.size > 0) {
+        unknownRoomIds.forEach(roomId => {
+          api.rooms.getById(roomId).then(room => {
+            if (room?.project_id) {
+              console.log(`[RealtimeSync] Found project ${room.project_id} for room ${roomId}`);
+              loadProjectDetailsRef.current(room.project_id).catch(err =>
+                console.warn(`[RealtimeSync] Failed to refresh project ${room.project_id}`, err)
+              );
+            }
+          }).catch(err => console.warn(`[RealtimeSync] Failed to fetch room ${roomId}`, err));
+        });
+      }
     };
 
     // Subscribe to real-time changes
@@ -960,6 +1062,12 @@ export const AppDataProvider = ({ children }) => {
 
   const calculateProjectTotalPrice = (projectId, projectOverride = null) => {
     const rooms = projectManager.getProjectRooms(projectId);
+
+    // Debug logging for 0 price issue - helps identify if rooms are missing
+    if ((!rooms || rooms.length === 0) && projectId) {
+      // console.debug(`[calculateProjectTotalPrice] No rooms found for project ${projectId}`);
+    }
+
     let totalPrice = 0;
 
     // Use provided project or find it
