@@ -2549,6 +2549,28 @@ export const dennikApi = {
     }
   },
 
+  // Get time entries across multiple projects in a date range for the current user
+  getTimeEntriesForProjects: async (projectIds, startDate, endDate) => {
+    try {
+      if (!projectIds || projectIds.length === 0) return []
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .select('id, project_id, user_id, date, start_time, end_time, hours_worked')
+        .in('project_id', projectIds)
+        .eq('user_id', userId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      handleError('dennikApi.getTimeEntriesForProjects', error)
+      return []
+    }
+  },
+
   // Get all dennik-enabled projects for current user (owned + member)
   getDennikProjects: async () => {
     try {

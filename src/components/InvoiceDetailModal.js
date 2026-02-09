@@ -786,7 +786,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           <div className="pt-4 flex justify-center pb-8">
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="w-full max-w-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 rounded-full font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-lg"
+              className="w-full max-w-sm bg-red-600 text-white py-3 rounded-full font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-lg"
             >
               <Trash className="w-5 h-5" />
               <span className="text-lg">{t('Delete')}</span>

@@ -138,6 +138,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [showArchiveConfirmation, setShowArchiveConfirmation] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
   const [showDennikModal, setShowDennikModal] = useState(false);
+  const [dennikInitialDate, setDennikInitialDate] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
 
   // Touch handling state
@@ -177,8 +178,11 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   // Handle event to open Dennik modal remotely (e.g. from quick travel)
   useEffect(() => {
     const handleOpenDennik = (e) => {
-      const { projectId: targetId } = e.detail;
+      const { projectId: targetId, dennikDate } = e.detail;
       if (targetId === projectId) {
+        if (dennikDate) {
+          setDennikInitialDate(new Date(dennikDate + 'T12:00:00'));
+        }
         setShowDennikModal(true);
       }
     };
@@ -2404,10 +2408,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         showDennikModal && (
           <DennikModal
             isOpen={showDennikModal}
-            onClose={() => setShowDennikModal(false)}
+            onClose={() => { setShowDennikModal(false); setDennikInitialDate(null); }}
             project={project}
             isOwner={project.user_id === user?.id}
             currentUser={user}
+            initialDate={dennikInitialDate}
           />
         )
       }

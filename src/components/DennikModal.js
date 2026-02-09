@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Download, Trash2 } from 'lucide-react';
+import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Trash2, Plus } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useAppData } from '../context/AppDataContext';
@@ -8,7 +8,7 @@ import InvoiceCreationModal from './InvoiceCreationModal';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
 import ConfirmationModal from './ConfirmationModal';
 
-const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
+const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDate }) => {
     const { t } = useLanguage();
     const {
         activeContractor,
@@ -21,8 +21,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
 
     // State
     const [activeTab, setActiveTab] = useState('timer'); // 'timer' or 'members'
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(initialDate || new Date());
+    const [currentMonth, setCurrentMonth] = useState(initialDate || new Date());
     const [activeTimer, setActiveTimer] = useState(null);
     const [hourlyRate, setHourlyRate] = useState(project?.hourly_rate || priceOfferSettings?.defaultHourlyRate || '');
     // Ensure we sync if prop changes or global setting becomes available
@@ -57,6 +57,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
     const [ownerContractorData, setOwnerContractorData] = useState(null);
     const [dailyNotes, setDailyNotes] = useState({}); // { [userId]: noteText }
     const [noteSaveStatus, setNoteSaveStatus] = useState(null); // null | 'saving' | 'saved'
+    const [activeDays, setActiveDays] = useState(new Set()); // days with time entries in current month
     const hourlyRateTimerRef = useRef(null);
     const noteTimerRefs = useRef({}); // Debounce refs for note saves
     const noteSaveIndicatorRef = useRef(null); // Timeout ref for hiding saved indicator
@@ -175,6 +176,32 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
             setOwnerProfile({ id: ownerId, email: 'Owner (Error)' });
         }
     }, [project, isOwner, currentUser]);
+
+    const loadActiveDays = useCallback(async (month) => {
+        try {
+            const m = month || currentMonth;
+            const firstDay = new Date(m.getFullYear(), m.getMonth(), 1);
+            const lastDay = new Date(m.getFullYear(), m.getMonth() + 1, 0);
+            const startDate = firstDay.toISOString().split('T')[0];
+            const endDate = lastDay.toISOString().split('T')[0];
+
+            const allEntries = await api.dennik.getTimeEntries(
+                project.c_id || project.id,
+                startDate,
+                endDate
+            );
+
+            // Owner sees all days, member sees only their own
+            const filtered = isOwner
+                ? (allEntries || [])
+                : (allEntries || []).filter(e => e.user_id === currentUser?.id);
+
+            const days = new Set(filtered.map(e => e.date));
+            setActiveDays(days);
+        } catch (error) {
+            console.error('Error loading active days:', error);
+        }
+    }, [currentMonth, project, isOwner, currentUser]);
 
     const loadOwnerContractor = useCallback(async () => {
         if (!project) return;
@@ -555,6 +582,13 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
         setCurrentMonth(newMonth);
     };
 
+    // Load active days when month changes
+    useEffect(() => {
+        if (isOpen && project) {
+            loadActiveDays(currentMonth);
+        }
+    }, [isOpen, currentMonth, project, loadActiveDays]);
+
     const formatTime = (dateString) => {
         if (!dateString) return '--:--';
         const date = new Date(dateString);
@@ -624,28 +658,18 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                         <div>
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                                 {t('Denník')}
+                                <span className="hidden lg:inline text-gray-400 dark:text-gray-500 font-normal"> — {project.name}</span>
                             </h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 {project.location}
                             </p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            {isOwner && (
-                                <button
-                                    onClick={handleCleanup}
-                                    title={t('Cleanup Denník')}
-                                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors text-gray-400 hover:text-red-500"
-                                >
-                                    <Trash2 className="w-6 h-6" />
-                                </button>
-                            )}
-                            <button
-                                onClick={onClose}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-                            >
-                                <X className="w-6 h-6 text-gray-500" />
-                            </button>
-                        </div>
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                        >
+                            <X className="w-6 h-6 text-gray-500" />
+                        </button>
                     </div>
 
                     {/* Tabs */}
@@ -719,6 +743,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                     ))}
                                     {Array.from({ length: daysInMonth }).map((_, i) => {
                                         const day = i + 1;
+                                        const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                        const hasActivity = activeDays.has(dateStr);
                                         return (
                                             <button
                                                 key={day}
@@ -727,7 +753,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                                     newDate.setDate(day);
                                                     setSelectedDate(newDate);
                                                 }}
-                                                className={`aspect-square rounded-lg text-sm font-medium transition-colors ${isSelected(day)
+                                                className={`aspect-square rounded-lg text-sm font-medium transition-colors relative flex flex-col items-center justify-center ${isSelected(day)
                                                     ? 'bg-blue-600 text-white'
                                                     : isToday(day)
                                                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
@@ -735,6 +761,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                                     }`}
                                             >
                                                 {day}
+                                                {hasActivity && (
+                                                    <div className={`absolute bottom-0.5 w-1.5 h-1.5 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500 dark:bg-blue-400'}`} />
+                                                )}
                                             </button>
                                         );
                                     })}
@@ -1006,7 +1035,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                                 <div className="font-bold text-gray-900 dark:text-white">
                                                     {ownerProfile?.full_name || ownerProfile?.email || t('Project Owner')}
                                                 </div>
-                                                {ownerProfile?.full_name && (
+                                                {ownerProfile?.email && (
                                                     <div className="text-xs text-gray-500">{ownerProfile.email}</div>
                                                 )}
                                                 <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
@@ -1030,7 +1059,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                                     <div className="font-medium text-gray-900 dark:text-white">
                                                         {member.profiles?.full_name || member.profiles?.email}
                                                     </div>
-                                                    {member.profiles?.full_name && (
+                                                    {member.profiles?.email && (
                                                         <div className="text-xs text-gray-500">{member.profiles.email}</div>
                                                     )}
                                                 </div>
@@ -1183,18 +1212,15 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser }) => {
                                 <button
                                     onClick={handleGenerateInvoice}
                                     disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0))}
-                                    className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
+                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
                                 >
                                     {isGeneratingInvoice ? (
                                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     ) : (
-                                        <Download className="w-5 h-5" />
+                                        <Plus className="w-4 h-4" />
                                     )}
-                                    {t('Generate Invoice')}
+                                    <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
                                 </button>
-                                <p className="text-center text-xs text-gray-400 mt-2">
-                                    {t('Generates PDF invoice for all hours in selected period')}
-                                </p>
                             </div>
 
                             {/* List Generated Invoices */}

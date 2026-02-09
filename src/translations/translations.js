@@ -266,6 +266,7 @@ export const translations = {
     "Contact": "Kontakt",
     "Archive": "Archív", // Noun (Page title, Settings)
     "ArchiveProjectAction": "Archivovať", // Verb (Button action)
+    "Archive project {name}?": "Archivovať projekt {name}?",
     "No Archived Projects": "Žiadne archivované projekty",
     "Archived projects will appear here": "Archivované projekty sa zobrazia tu",
     "Archived on": "Archivované",
@@ -860,6 +861,7 @@ export const translations = {
 
     // ========== STATUS MESSAGES ==========
     "Loading...": "Načítava...",
+    "Load older months": "Načítať staršie mesiace",
     "Unsaved Changes": "Neuložené zmeny",
     "You have unsaved changes. What would you like to do?": "Máte neuložené zmeny. Čo chcete urobiť?",
     "Save and Proceed": "Uložiť a pokračovať",

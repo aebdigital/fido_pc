@@ -249,7 +249,17 @@ const Projects = () => {
         ? [projectCategories.find(c => c.id === categoryId), ...projectCategories.filter(c => c.id !== categoryId)]
         : projectCategories;
 
+      const openDennik = location.state.openDennik;
+      const dennikDate = location.state.dennikDate;
       let projectFound = false;
+
+      const openDennikAfterMount = () => {
+        if (openDennik) {
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('open-dennik-modal', { detail: { projectId, dennikDate } }));
+          }, 300);
+        }
+      };
 
       for (const category of categoriesToSearch) {
         if (!category) continue;
@@ -259,6 +269,7 @@ const Projects = () => {
           setSelectedProject(project);
           setCurrentView('details');
           projectFound = true;
+          openDennikAfterMount();
           break;
         }
       }
@@ -267,26 +278,25 @@ const Projects = () => {
       if (!projectFound && archivedProjects) {
         const project = archivedProjects.find(p => p.id === projectId);
         if (project) {
-          // For archived projects, we might not set active category, or set it to original
           if (project.originalCategoryId) {
             setActiveCategory(project.originalCategoryId);
           }
           setSelectedProject(project);
           setCurrentView('details');
           projectFound = true;
+          openDennikAfterMount();
         }
       }
 
       // If still not found, try fetching it directly (e.g., shared project)
-      // If still not found, try fetching it directly (e.g., shared project)
       if (!projectFound && projectId) {
-        // We need to define an async function inside loading logic
         const fetchMissingProject = async () => {
           try {
             const fetchedProject = await api.projects.getById(projectId);
             if (fetchedProject) {
               setSelectedProject(fetchedProject);
               setCurrentView('details');
+              openDennikAfterMount();
             }
           } catch (error) {
             console.error('Error fetching deep-linked project:', error);

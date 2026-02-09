@@ -1,294 +1,302 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     BookOpen,
-    ChevronRight,
-    Loader2,
-    Search,
-    Trash2,
-    X,
-    CheckCircle,
-    Flag
+    Loader2
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
-import ProjectDetailView from '../components/ProjectDetailView';
-import { useAuth } from '../context/AuthContext';
-import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
-import ConfirmationModal from '../components/ConfirmationModal';
+import { useNavigate } from 'react-router-dom';
+
+const DAY_NAMES_SK = ['Ne', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So'];
+const toLocalDateStr = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+const FUTURE_DAYS = 60;
+const INITIAL_DAYS = 60;
+const LOAD_MORE_DAYS = 90;
 
 const Dennik = () => {
     const { t } = useLanguage();
-    const { user } = useAuth();
+    const navigate = useNavigate();
     const {
-        calculateProjectTotalPrice,
-        formatPrice,
         clients,
-        activeTimer,
-        loadProjectDetails
+        activeTimer
     } = useAppData();
 
     const [dennikProjects, setDennikProjects] = useState([]);
+    const [entriesByDate, setEntriesByDate] = useState({});
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedProject, setSelectedProject] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [deleteMode, setDeleteMode] = useState(false);
-    const [showCleanupModal, setShowCleanupModal] = useState(false);
-    const [projectToCleanup, setProjectToCleanup] = useState(null);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [totalDays, setTotalDays] = useState(INITIAL_DAYS);
 
-    // Load dennik projects on mount
+    const sentinelRef = useRef(null);
+    const todayRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+
+    // Calculate date range based on total days (past) + future days
+    const getDateRange = useCallback((days) => {
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + FUTURE_DAYS);
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        return {
+            startDate: toLocalDateStr(startDate),
+            endDate: toLocalDateStr(endDate)
+        };
+    }, []);
+
+    // Load dennik projects and their time entries
+    const loadData = useCallback(async (days) => {
+        try {
+            const projects = await api.dennik.getDennikProjects();
+            const validProjects = (projects || []).filter(p => p && (p.id || p.c_id));
+            setDennikProjects(validProjects);
+
+            if (validProjects.length > 0) {
+                const projectIds = validProjects.map(p => p.id || p.c_id);
+                const { startDate, endDate } = getDateRange(days);
+                const entries = await api.dennik.getTimeEntriesForProjects(projectIds, startDate, endDate);
+
+                const grouped = {};
+                for (const entry of entries) {
+                    if (!grouped[entry.date]) {
+                        grouped[entry.date] = new Set();
+                    }
+                    grouped[entry.date].add(entry.project_id);
+                }
+
+                const result = {};
+                for (const [date, projectIdSet] of Object.entries(grouped)) {
+                    result[date] = Array.from(projectIdSet);
+                }
+                setEntriesByDate(result);
+            }
+        } catch (error) {
+            console.error('Error loading dennik data:', error);
+        }
+    }, [getDateRange]);
+
     useEffect(() => {
-        loadDennikProjects();
+        const init = async () => {
+            setIsLoading(true);
+            await loadData(totalDays);
+            setIsLoading(false);
+        };
+        init();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const loadDennikProjects = async () => {
-        setIsLoading(true);
-        try {
-            const projects = await api.dennik.getDennikProjects();
-            setDennikProjects(projects || []);
-            // Load room details for each project so price calculation works
-            if (projects && projects.length > 0) {
-                await Promise.all(
-                    projects.map(p => loadProjectDetails(p.id || p.c_id))
-                );
-            }
-        } catch (error) {
-            console.error('Error loading dennik projects:', error);
-        } finally {
-            setIsLoading(false);
+    // Scroll to today after initial load
+    useEffect(() => {
+        if (!isLoading && todayRef.current && scrollContainerRef.current) {
+            // Wait for DOM layout to complete before scrolling
+            requestAnimationFrame(() => {
+                if (todayRef.current && scrollContainerRef.current) {
+                    todayRef.current.scrollIntoView({ block: 'start' });
+                }
+            });
         }
-    };
+    }, [isLoading]);
 
-    const handleOpenProject = async (project) => {
-        setSelectedProject(project);
-    };
+    // IntersectionObserver for infinite scroll
+    useEffect(() => {
+        if (isLoading || !sentinelRef.current) return;
 
-    const handleBackToList = () => {
-        setSelectedProject(null);
-        loadDennikProjects(); // Refresh list
-    };
-
-    const handleCleanup = async () => {
-        if (!projectToCleanup) return;
-        try {
-            await api.dennik.cleanupDennik(projectToCleanup.id || projectToCleanup.c_id);
-            setShowCleanupModal(false);
-            setProjectToCleanup(null);
-            loadDennikProjects();
-        } catch (error) {
-            console.error('Error cleaning up dennik:', error);
-            alert(t('Failed to cleanup Denník'));
-        }
-    };
-
-    const isProjectOwner = (project) => {
-        return project.user_id === user?.id;
-    };
-
-    // Filter projects by search query
-    const filteredProjects = dennikProjects.filter(project => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            project.name?.toLowerCase().includes(query) ||
-            project.notes?.toLowerCase().includes(query) ||
-            formatProjectNumber(project)?.toLowerCase().includes(query)
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && !isLoadingMore) {
+                    setIsLoadingMore(true);
+                    const newDays = totalDays + LOAD_MORE_DAYS;
+                    setTotalDays(newDays);
+                    loadData(newDays).finally(() => setIsLoadingMore(false));
+                }
+            },
+            { root: scrollContainerRef.current, rootMargin: '200px' }
         );
-    });
 
-    // If a project is selected, show ProjectDetailView
-    if (selectedProject) {
-        return (
-            <ProjectDetailView
-                project={selectedProject}
-                onBack={handleBackToList}
-                viewSource="dennik"
-            />
-        );
+        observer.observe(sentinelRef.current);
+        return () => observer.disconnect();
+    }, [isLoading, isLoadingMore, totalDays, loadData]);
+
+    // Build project lookup map
+    const projectMap = {};
+    for (const p of dennikProjects) {
+        projectMap[p.id || p.c_id] = p;
     }
 
-    return (
-        <div className="flex-1 overflow-y-auto">
-            {/* Header Area */}
-            <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
-                    </div>
-                    {dennikProjects.length > 0 && (
-                        <button
-                            onClick={() => setDeleteMode(!deleteMode)}
-                            className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-gray-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}`}
-                            title={t('Cleanup Denník')}
-                        >
-                            {deleteMode ? <X className="w-4 h-4 lg:w-5 lg:h-5" /> : <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />}
-                        </button>
-                    )}
-                </div>
+    const getClientName = (project) => {
+        const clientId = project?.clientId || project?.client_id;
+        if (!clientId) return null;
+        return clients?.find(c => c.id === clientId)?.name || null;
+    };
 
-                {/* Search */}
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder={t('Search projects...')}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                </div>
-            </div>
+    // Build ALL days from future through today back to totalDays ago
+    const buildCalendarData = () => {
+        const end = new Date();
+        end.setHours(0, 0, 0, 0);
+        end.setDate(end.getDate() + FUTURE_DAYS);
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - totalDays);
 
-            {/* Projects List Container */}
-            {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                </div>
-            ) : filteredProjects.length === 0 ? (
+        const days = [];
+        const current = new Date(end);
+
+        while (current >= start) {
+            const dateStr = toLocalDateStr(current);
+            const projectIds = entriesByDate[dateStr] || [];
+
+            days.push({
+                date: dateStr,
+                month: current.getMonth(),
+                year: current.getFullYear(),
+                dayName: DAY_NAMES_SK[current.getDay()],
+                dayNum: current.getDate(),
+                isWeekend: current.getDay() === 0 || current.getDay() === 6,
+                projectIds
+            });
+
+            current.setDate(current.getDate() - 1);
+        }
+
+        return days;
+    };
+
+    const calendarData = isLoading ? [] : buildCalendarData();
+
+    const renderCalendar = () => {
+        if (dennikProjects.length === 0) {
+            return (
                 <div className="text-center py-12">
                     <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                         <BookOpen className="w-10 h-10 text-purple-600 dark:text-purple-400 opacity-50" />
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                        {searchQuery ? t('No projects found') : t('No denník projects yet')}
+                        {t('No denník projects yet')}
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-6">
-                        {searchQuery
-                            ? t('Try a different search term')
-                            : t('Open any project and click the Denník button to get started')}
+                        {t('Open any project and click the Denník button to get started')}
                     </p>
                 </div>
+            );
+        }
+
+        const elements = [];
+        let lastMonthKey = null;
+        const today = toLocalDateStr(new Date());
+
+        for (const day of calendarData) {
+            const monthKey = `${day.year}-${day.month}`;
+
+            // Month heading
+            if (monthKey !== lastMonthKey) {
+                lastMonthKey = monthKey;
+                const monthName = new Date(day.year, day.month, 1).toLocaleDateString('sk-SK', {
+                    month: 'long',
+                    year: 'numeric'
+                });
+                elements.push(
+                    <div key={`month-${monthKey}`} className="pt-5 pb-1.5 first:pt-0 sticky top-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm z-10 -mx-1 px-1">
+                        <h2 className="text-base font-bold text-gray-900 dark:text-white capitalize">
+                            {monthName}
+                        </h2>
+                    </div>
+                );
+            }
+
+            const isToday = day.date === today;
+            const hasProjects = day.projectIds.length > 0;
+
+            elements.push(
+                <div
+                    key={day.date}
+                    ref={isToday ? todayRef : undefined}
+                    className={`flex items-center gap-3 min-h-[40px] border-b transition-colors
+                        ${isToday
+                            ? 'bg-blue-50/60 dark:bg-blue-900/15 -mx-2 px-2 rounded-lg border-blue-100 dark:border-blue-900/30'
+                            : 'border-gray-100 dark:border-gray-800/60'}
+                        ${day.isWeekend && !hasProjects ? 'opacity-40' : ''}
+                    `}
+                >
+                    {/* Date column */}
+                    <div className={`flex-shrink-0 w-12 flex items-center gap-1.5 py-2 ${isToday ? 'text-blue-600 dark:text-blue-400' : hasProjects ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'}`}>
+                        <span className="text-[11px] font-medium uppercase w-5">{day.dayName}</span>
+                        <span className={`text-sm font-bold ${isToday ? 'bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center' : ''}`}>
+                            {day.dayNum}
+                        </span>
+                    </div>
+
+                    {/* Projects or empty */}
+                    <div className="flex-1 flex flex-wrap gap-1.5 items-center min-w-0 py-1.5">
+                        {day.projectIds.map(projectId => {
+                            const project = projectMap[projectId];
+                            if (!project) return null;
+                            const clientName = getClientName(project);
+                            const hasActiveTimer = activeTimer && activeTimer.project_id === projectId;
+
+                            return (
+                                <button
+                                    key={projectId}
+                                    onClick={() => {
+                                        navigate('/projects', {
+                                            state: {
+                                                selectedProjectId: projectId,
+                                                openDennik: true,
+                                                dennikDate: day.date
+                                            }
+                                        });
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-sm cursor-pointer active:scale-95"
+                                >
+                                    {hasActiveTimer && (
+                                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                                    )}
+                                    <span className="truncate max-w-[140px] lg:max-w-[220px]">{project.name}</span>
+                                    {clientName && (
+                                        <span className="text-gray-400 dark:text-gray-500 text-xs truncate max-w-[80px] hidden sm:inline">
+                                            {clientName}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        return elements;
+    };
+
+    return (
+        <div className="flex flex-col overflow-hidden h-[calc(100dvh-5rem)] lg:h-[calc(100dvh-3rem)]">
+            {/* Header - stays fixed */}
+            <div className="flex-shrink-0 pb-4">
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
+            </div>
+
+            {/* Calendar - scrolls independently */}
+            {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                </div>
             ) : (
-                <div className="space-y-3">
-                    {filteredProjects.map(project => {
-                        const isOwner = isProjectOwner(project);
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+                    {renderCalendar()}
 
-                        return (
-                            <div
-                                key={project.id || project.c_id}
-                                onClick={() => !deleteMode && handleOpenProject(project)}
-                                className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${deleteMode
-                                    ? 'border-red-200 dark:border-red-900/50 opacity-90 scale-[0.98] justify-between'
-                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
-                                    } relative`}
-                            >
-                                {deleteMode && isOwner && (
-                                    <div className="absolute inset-0 bg-red-500/5 dark:bg-red-500/10 flex items-center justify-center backdrop-blur-[1px] z-10 transition-all animate-fade-in rounded-2xl">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setProjectToCleanup(project);
-                                                setShowCleanupModal(true);
-                                            }}
-                                            className="px-6 py-3 bg-red-600 text-white rounded-2xl font-bold shadow-lg hover:bg-red-700 transition-all flex items-center gap-2 transform hover:scale-[1.02] active:scale-95"
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                            {t('Remove')}
-                                        </button>
-                                    </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                        <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
-                                        {isOwner ? (
-                                            <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg border border-purple-200 dark:border-purple-800">
-                                                {t('Owner')}
-                                            </span>
-                                        ) : (
-                                            <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-800">
-                                                {t('Employee')}
-                                            </span>
-                                        )}
-                                        {activeTimer && activeTimer.project_id === (project.id || project.c_id) && (
-                                            <div
-                                                className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-red-500 animate-glow-red"
-                                                title={t('Active Timer')}
-                                            />
-                                        )}
-                                    </div>
-                                    <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white lg:truncate">
-                                        <span className="lg:hidden">{project.name?.length > 17 ? `${project.name.substring(0, 17)}...` : project.name}</span>
-                                        <span className="hidden lg:inline">{project.name}</span>
-                                    </h3>
-                                    <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1 truncate">
-                                        {(project.clientId || project.client_id) ? clients?.find(c => c.id === (project.clientId || project.client_id))?.name || t('No client') : t('No client')}
-                                    </p>
-                                </div>
-
-                                {!deleteMode && (
-                                    <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
-                                        <div className="text-right">
-                                            {/* Status Badge */}
-                                            <span
-                                                className="inline-flex items-center gap-1.5 px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 text-white"
-                                                style={{
-                                                    backgroundColor:
-                                                        project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
-                                                            project.status === PROJECT_STATUS.APPROVED ? '#73D38A' :
-                                                                project.status === PROJECT_STATUS.SENT ? '#51A2F7' :
-                                                                    '#FF857C'
-                                                }}
-                                            >
-                                                {project.status === PROJECT_STATUS.FINISHED ? (
-                                                    <>
-                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white">
-                                                            <Flag className="w-2.5 h-2.5" style={{ color: '#C4C4C4' }} />
-                                                        </span>
-                                                        <span>{t('finished')}</span>
-                                                    </>
-                                                ) : project.status === PROJECT_STATUS.APPROVED ? (
-                                                    <>
-                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white">
-                                                            <CheckCircle className="w-2.5 h-2.5" style={{ color: '#73D38A' }} />
-                                                        </span>
-                                                        <span>{t('approved')}</span>
-                                                    </>
-                                                ) : project.status === PROJECT_STATUS.SENT ? (
-                                                    <>
-                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white">
-                                                            <span className="text-[10px] lg:text-xs font-bold" style={{ color: '#51A2F7' }}>?</span>
-                                                        </span>
-                                                        <span>{t('sent')}</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white">
-                                                            <X className="w-2.5 h-2.5" style={{ color: '#FF857C' }} />
-                                                        </span>
-                                                        <span>{t('not sent')}</span>
-                                                    </>
-                                                )}
-                                            </span>
-                                            {/* Price */}
-                                            <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id || project.c_id, project))}</div>
-                                            <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
-                                        </div>
-                                        <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                    {/* Sentinel for infinite scroll + loading indicator */}
+                    <div ref={sentinelRef} className="flex justify-center py-4">
+                        {isLoadingMore && (
+                            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                        )}
+                    </div>
                 </div>
             )}
 
-
-            {/* Modals */}
-            {showCleanupModal && (
-                <ConfirmationModal
-                    isOpen={showCleanupModal}
-                    onClose={() => {
-                        setShowCleanupModal(false);
-                        setProjectToCleanup(null);
-                    }}
-                    onConfirm={handleCleanup}
-                    title={t('Cleanup Denník')}
-                    message={t('This will permanently delete ALL time entries and members for this project. This project will then be removed from the Diary listing and will remain as a regular project.')}
-                    confirmText={t('Delete All')}
-                    variant="danger"
-                />
-            )}
         </div>
     );
 };
