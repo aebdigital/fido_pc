@@ -2582,6 +2582,8 @@ export const dennikApi = {
         .select('*, owner:profiles (id, email, full_name, avatar_url)')
         .eq('user_id', userId)
         .eq('is_dennik_enabled', true)
+        .neq('is_deleted', true)
+        .neq('is_archived', true)
         .order('created_at', { ascending: false })
 
       if (ownedError) throw ownedError
@@ -2596,6 +2598,8 @@ export const dennikApi = {
         `)
         .eq('user_id', userId)
         .eq('projects.is_dennik_enabled', true)
+        .neq('projects.is_deleted', true)
+        .neq('projects.is_archived', true)
 
       if (memberError) throw memberError
 
