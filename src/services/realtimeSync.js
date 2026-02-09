@@ -99,9 +99,6 @@ export const subscribeToRealtimeChanges = (userId, onDataChange) => {
   const BASE_RECONNECT_DELAY = 1000 // 1 second start delay
 
   const setupSubscription = () => {
-    // exponential backoff calculation
-    const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY)
-
     // Create a single channel for all table subscriptions (schema level)
     console.log(`[RealtimeSync] initializing subscription (attempt ${reconnectAttempts + 1})...`)
 
