@@ -259,6 +259,7 @@ export const translations = {
     // ========== NAVIGATION & MAIN SECTIONS ==========
     "Projects": "Projekty",
     "Diary": "Denník",
+    "Assigned projects": "Pridelené projekty",
     "Invoice": "Faktúra",
     "Invoices": "Faktúry",
     "Clients": "Klienti",

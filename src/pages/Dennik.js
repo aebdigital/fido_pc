@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     BookOpen,
-    Loader2
+    Loader2,
+    Users
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -168,6 +169,9 @@ const Dennik = () => {
 
     const calendarData = isLoading ? [] : buildCalendarData();
 
+    // Member projects (assigned to user but not owned) - show above calendar
+    const memberProjects = dennikProjects.filter(p => p.userRole && p.userRole !== 'owner');
+
     const renderCalendar = () => {
         if (dennikProjects.length === 0) {
             return (
@@ -278,6 +282,47 @@ const Dennik = () => {
             <div className="flex-shrink-0 pb-4">
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
             </div>
+
+            {/* Member Projects - projects assigned to you */}
+            {!isLoading && memberProjects.length > 0 && (
+                <div className="flex-shrink-0 pb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">{t('Assigned projects')}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                        {memberProjects.map(project => {
+                            const pid = project.id || project.c_id;
+                            const clientName = getClientName(project);
+                            const hasActiveTimer = activeTimer && activeTimer.project_id === pid;
+                            return (
+                                <button
+                                    key={pid}
+                                    onClick={() => {
+                                        navigate('/projects', {
+                                            state: {
+                                                selectedProjectId: pid,
+                                                openDennik: true
+                                            }
+                                        });
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium transition-all bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:border-purple-400 dark:hover:border-purple-600 hover:shadow-sm cursor-pointer active:scale-95"
+                                >
+                                    {hasActiveTimer && (
+                                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                                    )}
+                                    <span className="truncate max-w-[140px] lg:max-w-[220px]">{project.name}</span>
+                                    {clientName && (
+                                        <span className="text-purple-400 dark:text-purple-500 text-xs truncate max-w-[80px] hidden sm:inline">
+                                            {clientName}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Calendar - scrolls independently */}
             {isLoading ? (
