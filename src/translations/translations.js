@@ -1289,10 +1289,8 @@ export const translations = {
     "Delete Entry": "Vymazať záznam",
     "Are you sure you want to delete this time entry?": "Naozaj chcete vymazať tento časový záznam?",
     "Search Clients...": "Hľadať klientov...",
-    "Add Client": "Pridať klienta",
     "All projects": "Všetky projekty",
-    "No time entries found for this member": "Pre tohto člena sa nenašli žiadne záznamy",
-    "Assigned projects": "Pridelené projekty"
+    "No time entries found for this member": "Pre tohto člena sa nenašli žiadne záznamy"
   }
 };
 
