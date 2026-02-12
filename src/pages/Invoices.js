@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { INVOICE_STATUS } from '../utils/dataTransformers';
 import InvoiceDetailModal from '../components/InvoiceDetailModal';
+import InvoiceCreationModal from '../components/InvoiceCreationModal';
 import ContractorProfileModal from '../components/ContractorProfileModal';
 
 const Invoices = () => {
@@ -17,6 +18,7 @@ const Invoices = () => {
   const [showContractorSelector, setShowContractorSelector] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [showStandaloneInvoice, setShowStandaloneInvoice] = useState(false);
   const dropdownRef = useRef(null);
   const yearDropdownRef = useRef(null);
 
@@ -223,12 +225,20 @@ const Invoices = () => {
       {/* Header - Desktop Only Title and Stats */}
       <div className="hidden lg:flex items-center justify-between mb-6">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Invoices')}</h1>
-        <button
-          onClick={() => setShowStatsModal(true)}
-          className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md absolute right-6 top-6"
-        >
-          <Hash className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-3 absolute right-6 top-6">
+          <button
+            onClick={() => setShowStandaloneInvoice(true)}
+            className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setShowStatsModal(true)}
+            className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+          >
+            <Hash className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       {/* Contractor and Stats Header */}
@@ -302,8 +312,14 @@ const Invoices = () => {
           )}
         </div>
 
-        {/* Mobile Stats Button */}
-        <div className="lg:hidden">
+        {/* Mobile Action Buttons */}
+        <div className="lg:hidden flex items-center gap-2">
+          <button
+            onClick={() => setShowStandaloneInvoice(true)}
+            className="w-10 h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setShowStatsModal(true)}
             className="w-10 h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
@@ -405,6 +421,13 @@ const Invoices = () => {
                         const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
                         projectName = projectResult?.project?.name;
                       }
+
+                      // Standalone invoice (no project)
+                      if (!projectName && !invoice.projectId) {
+                        const firstItem = invoice.invoiceItems?.[0];
+                        return firstItem?.title || t('Invoice');
+                      }
+
                       projectName = projectName || '';
 
                       if (isDennik) return `${t('Odpracované hodiny')} - ${projectName}`;
@@ -535,6 +558,16 @@ const Invoices = () => {
         }}
         invoice={selectedInvoice}
       />
+
+      {/* Standalone Invoice Creation Modal */}
+      {showStandaloneInvoice && (
+        <InvoiceCreationModal
+          isOpen={showStandaloneInvoice}
+          onClose={() => setShowStandaloneInvoice(false)}
+          project={null}
+          categoryId={null}
+        />
+      )}
 
       {/* Statistics Modal */}
       {showStatsModal && (

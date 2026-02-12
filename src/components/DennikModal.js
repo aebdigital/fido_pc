@@ -60,6 +60,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const [manualStartTime, setManualStartTime] = useState('08:00');
     const [manualEndTime, setManualEndTime] = useState('16:00');
     const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
+    const [editingEntryId, setEditingEntryId] = useState(null);
+    const [editStartTime, setEditStartTime] = useState('');
+    const [editEndTime, setEditEndTime] = useState('');
+    const [showEditConfirm, setShowEditConfirm] = useState(false);
+    const [pendingEditEntry, setPendingEditEntry] = useState(null);
+    const [selectedMemberForEntry, setSelectedMemberForEntry] = useState(null); // owner creates entry for member
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState(null);
     const hourlyRateTimerRef = useRef(null);
     const entryNoteTimerRef = useRef(null);
 
@@ -143,8 +151,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
             const m = month || currentMonth;
             const firstDay = new Date(m.getFullYear(), m.getMonth(), 1);
             const lastDay = new Date(m.getFullYear(), m.getMonth() + 1, 0);
-            const startDate = firstDay.toISOString().split('T')[0];
-            const endDate = lastDay.toISOString().split('T')[0];
+            const startDate = firstDay.toLocaleDateString('en-CA');
+            const endDate = lastDay.toLocaleDateString('en-CA');
 
             const allEntries = await api.dennik.getTimeEntries(
                 project.c_id || project.id,
@@ -448,7 +456,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const handleAddManualEntry = async () => {
         try {
             setIsLoading(true);
-            const dateStr = selectedDate.toISOString().split('T')[0];
+            // Use local date string instead of ISO to avoid one-day offset
+            const dateStr = selectedDate.toLocaleDateString('en-CA');
             const startDateTime = new Date(`${dateStr}T${manualStartTime}:00`);
             const endDateTime = new Date(`${dateStr}T${manualEndTime}:00`);
 
@@ -491,13 +500,108 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         }, 800);
     };
 
-    const handleDeleteTimeEntry = async (entryId) => {
+    const handleRequestDeleteEntry = (entryId) => {
+        setPendingDeleteEntryId(entryId);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDeleteEntry = async () => {
+        if (!pendingDeleteEntryId) return;
         try {
-            await api.dennik.deleteTimeEntry(entryId);
+            await api.dennik.deleteTimeEntry(pendingDeleteEntryId);
             await loadTimeEntries();
         } catch (error) {
             console.error('Error deleting time entry:', error);
             alert(t('Failed to delete time entry'));
+        }
+        setPendingDeleteEntryId(null);
+    };
+
+    // Timestamp editing - ask confirmation first
+    const handleRequestEditTimestamp = (entry) => {
+        setPendingEditEntry(entry);
+        setShowEditConfirm(true);
+    };
+
+    const handleConfirmEditTimestamp = () => {
+        if (!pendingEditEntry) return;
+        const entry = pendingEditEntry;
+        setEditingEntryId(entry.id);
+        setEditStartTime(entry.start_time ? new Date(entry.start_time).toTimeString().slice(0, 5) : '');
+        setEditEndTime(entry.end_time ? new Date(entry.end_time).toTimeString().slice(0, 5) : '');
+        setShowEditConfirm(false);
+        setPendingEditEntry(null);
+    };
+
+    const handleSaveEditTimestamp = async (entryId) => {
+        try {
+            const entry = timeEntries.find(e => e.id === entryId);
+            if (!entry) return;
+            const dateStr = entry.date;
+            const newStart = new Date(`${dateStr}T${editStartTime}:00`);
+            const newEnd = editEndTime ? new Date(`${dateStr}T${editEndTime}:00`) : null;
+
+            if (newEnd && newEnd <= newStart) {
+                alert(t('End time must be after start time'));
+                return;
+            }
+
+            const hoursWorked = newEnd ? (newEnd - newStart) / 3600000 : null;
+            const updates = {
+                start_time: newStart.toISOString(),
+                ...(newEnd ? { end_time: newEnd.toISOString(), hours_worked: hoursWorked } : {})
+            };
+
+            await api.dennik.updateTimeEntry(entryId, updates);
+            setEditingEntryId(null);
+            await loadTimeEntries();
+            await loadActiveDays(currentMonth);
+        } catch (error) {
+            console.error('Error updating time entry:', error);
+            alert(t('Failed to update time entry'));
+        }
+    };
+
+    const handleCancelEditTimestamp = () => {
+        setEditingEntryId(null);
+        setEditStartTime('');
+        setEditEndTime('');
+    };
+
+    // Owner creates entry for a specific member
+    const handleAddManualEntryForMember = async () => {
+        try {
+            setIsLoading(true);
+            // Use local date string instead of ISO to avoid one-day offset
+            const dateStr = selectedDate.toLocaleDateString('en-CA');
+            const startDateTime = new Date(`${dateStr}T${manualStartTime}:00`);
+            const endDateTime = new Date(`${dateStr}T${manualEndTime}:00`);
+
+            if (endDateTime <= startDateTime) {
+                alert(t('End time must be after start time'));
+                return;
+            }
+
+            const hoursWorked = (endDateTime - startDateTime) / 3600000;
+            const userId = selectedMemberForEntry || currentUser?.id;
+
+            await api.dennik.createTimeEntry(project.c_id || project.id, {
+                date: dateStr,
+                start_time: startDateTime.toISOString(),
+                end_time: endDateTime.toISOString(),
+                hours_worked: hoursWorked,
+                user_id: userId
+            });
+
+            setShowManualEntry(false);
+            setSelectedMemberForEntry(null);
+            await loadTimeEntries();
+            await loadActiveDays(currentMonth);
+        } catch (error) {
+            console.error('Error adding manual entry:', error);
+            alert(t('Failed to add time entry'));
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -590,7 +694,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     };
 
     const getTotalHours = () => {
-        return timeEntries.reduce((sum, entry) => sum + (entry.hours_worked || 0), 0);
+        const dateStr = selectedDate.toLocaleDateString('en-CA');
+        return timeEntries
+            .filter(entry => entry.date === dateStr)
+            .reduce((sum, entry) => sum + (entry.hours_worked || 0), 0);
     };
 
     const getElapsedTime = useCallback(() => {
@@ -638,8 +745,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-2 lg:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white dark:bg-gray-900 w-full max-w-6xl h-[100dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[100dvh] sm:max-h-[calc(100dvh-6rem)] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-2 lg:p-4 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-900 w-full max-w-6xl h-[100dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[100dvh] sm:max-h-[calc(100dvh-6rem)] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2 sm:mb-4">
@@ -892,6 +999,24 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                     {/* Manual Entry Form */}
                                     {showManualEntry && !activeTimer && (
                                         <div className="mt-3 bg-white/10 rounded-xl p-3 space-y-3">
+                                            {/* Member selector for owner */}
+                                            {isOwner && members.length > 0 && (
+                                                <div>
+                                                    <label className="text-xs text-blue-100 mb-1 block">{t('Create for')}</label>
+                                                    <select
+                                                        value={selectedMemberForEntry || ''}
+                                                        onChange={(e) => setSelectedMemberForEntry(e.target.value || null)}
+                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-blue-300"
+                                                    >
+                                                        <option value="">{currentUser?.full_name || currentUser?.email || t('Myself')}</option>
+                                                        {members.map(m => (
+                                                            <option key={m.user_id} value={m.user_id}>
+                                                                {m.profiles?.full_name || m.profiles?.email || t('Member')}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
                                             <div className="flex gap-3">
                                                 <div className="flex-1">
                                                     <label className="text-xs text-blue-100 mb-1 block">{t('Start')}</label>
@@ -913,7 +1038,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={handleAddManualEntry}
+                                                onClick={selectedMemberForEntry ? handleAddManualEntryForMember : handleAddManualEntry}
                                                 disabled={isLoading}
                                                 className="w-full bg-white text-blue-600 px-4 py-2 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
@@ -941,9 +1066,12 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                 const groups = Object.values(timeEntries
                                                     .filter(entry => {
                                                         if (!entry.date) return false;
-                                                        const entryDate = new Date(entry.date).toDateString();
-                                                        const current = selectedDate.toDateString();
-                                                        return entryDate === current;
+                                                        // Robust comparison using local YYYY-MM-DD strings
+                                                        const entryDateStr = typeof entry.date === 'string'
+                                                            ? entry.date
+                                                            : new Date(entry.date).toLocaleDateString('en-CA');
+                                                        const currentStr = selectedDate.toLocaleDateString('en-CA');
+                                                        return entryDateStr === currentStr;
                                                     })
                                                     .reduce((acc, entry) => {
                                                         const userId = entry.user_id;
@@ -1005,18 +1133,51 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                                 <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
                                                                                                     <Clock className="w-4 h-4 text-gray-500" />
                                                                                                 </div>
-                                                                                                <div className="font-medium text-gray-900 dark:text-white">
-                                                                                                    {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
-                                                                                                </div>
+                                                                                                {editingEntryId === entry.id ? (
+                                                                                                    <div className="flex items-center gap-2">
+                                                                                                        <input
+                                                                                                            type="time"
+                                                                                                            value={editStartTime}
+                                                                                                            onChange={(e) => setEditStartTime(e.target.value)}
+                                                                                                            className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                                                                                        />
+                                                                                                        <span className="text-gray-400">-</span>
+                                                                                                        <input
+                                                                                                            type="time"
+                                                                                                            value={editEndTime}
+                                                                                                            onChange={(e) => setEditEndTime(e.target.value)}
+                                                                                                            className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                                                                                        />
+                                                                                                        <button
+                                                                                                            onClick={() => handleSaveEditTimestamp(entry.id)}
+                                                                                                            className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
+                                                                                                        >
+                                                                                                            {t('Save')}
+                                                                                                        </button>
+                                                                                                        <button
+                                                                                                            onClick={handleCancelEditTimestamp}
+                                                                                                            className="px-2.5 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                                                                                                        >
+                                                                                                            {t('Cancel')}
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                ) : (
+                                                                                                    <button
+                                                                                                        onClick={() => (isOwnEntry || isOwner) ? handleRequestEditTimestamp(entry) : null}
+                                                                                                        className={`font-medium text-gray-900 dark:text-white ${(isOwnEntry || isOwner) ? 'hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer' : ''}`}
+                                                                                                    >
+                                                                                                        {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
+                                                                                                    </button>
+                                                                                                )}
                                                                                             </div>
                                                                                             <div className="flex items-center gap-2">
                                                                                                 <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
                                                                                                     {formatDuration(entry.hours_worked)}
                                                                                                 </div>
-                                                                                                {isOwnEntry && (
+                                                                                                {(isOwnEntry || isOwner) && (
                                                                                                     <button
-                                                                                                        onClick={() => handleDeleteTimeEntry(entry.id)}
-                                                                                                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
+                                                                                                        onClick={() => handleRequestDeleteEntry(entry.id)}
+                                                                                                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all"
                                                                                                         title={t('Delete')}
                                                                                                     >
                                                                                                         <Trash2 className="w-4 h-4" />
@@ -1025,7 +1186,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                             </div>
                                                                                         </div>
                                                                                         {/* Per-entry note */}
-                                                                                        {isOwnEntry ? (
+                                                                                        {(isOwnEntry || isOwner) ? (
                                                                                             <div className="mt-2 flex items-start gap-2">
                                                                                                 <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-1.5 flex-shrink-0" />
                                                                                                 <div className="flex-1">
@@ -1119,54 +1280,78 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                 </h3>
                                 <div className="space-y-2">
                                     {/* Owner */}
-                                    <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                                                {ownerProfile?.full_name?.charAt(0) || ownerProfile?.email?.charAt(0) || '?'}
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-gray-900 dark:text-white">
-                                                    {ownerProfile?.full_name || ownerProfile?.email || t('Project Owner')}
+                                    {(() => {
+                                        const ownerHours = timeEntries
+                                            .filter(e => e.user_id === (project.user_id || project.owner_id))
+                                            .reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
+                                        return (
+                                            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                                                        {ownerProfile?.full_name?.charAt(0) || ownerProfile?.email?.charAt(0) || '?'}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-gray-900 dark:text-white">
+                                                            {ownerProfile?.full_name || ownerProfile?.email || t('Project Owner')}
+                                                        </div>
+                                                        {ownerProfile?.email && (
+                                                            <div className="text-xs text-gray-500">{ownerProfile.email}</div>
+                                                        )}
+                                                        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
+                                                            {t('Owner')}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                {ownerProfile?.email && (
-                                                    <div className="text-xs text-gray-500">{ownerProfile.email}</div>
+                                                {ownerHours > 0 && (
+                                                    <div className="text-sm font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
+                                                        {formatDuration(ownerHours)}
+                                                    </div>
                                                 )}
-                                                <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
-                                                    {t('Owner')}
-                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
+                                        );
+                                    })()}
 
                                     {/* Members */}
-                                    {members.map(member => (
-                                        <div
-                                            key={member.id}
-                                            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold">
-                                                    {member.profiles?.full_name?.charAt(0) || member.profiles?.email?.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium text-gray-900 dark:text-white">
-                                                        {member.profiles?.full_name || member.profiles?.email}
+                                    {members.map(member => {
+                                        const memberHours = timeEntries
+                                            .filter(e => e.user_id === member.user_id)
+                                            .reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
+                                        return (
+                                            <div
+                                                key={member.id}
+                                                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold">
+                                                        {member.profiles?.full_name?.charAt(0) || member.profiles?.email?.charAt(0)}
                                                     </div>
-                                                    {member.profiles?.email && (
-                                                        <div className="text-xs text-gray-500">{member.profiles.email}</div>
+                                                    <div>
+                                                        <div className="font-medium text-gray-900 dark:text-white">
+                                                            {member.profiles?.full_name || member.profiles?.email}
+                                                        </div>
+                                                        {member.profiles?.email && (
+                                                            <div className="text-xs text-gray-500">{member.profiles.email}</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {memberHours > 0 && (
+                                                        <div className="text-sm font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full">
+                                                            {formatDuration(memberHours)}
+                                                        </div>
+                                                    )}
+                                                    {isOwner && (
+                                                        <button
+                                                            onClick={() => handleRemoveMember(member.user_id)}
+                                                            className="text-gray-400 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <UserMinus className="w-5 h-5" />
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
-                                            {isOwner && (
-                                                <button
-                                                    onClick={() => handleRemoveMember(member.user_id)}
-                                                    className="text-gray-400 hover:text-red-500 transition-colors"
-                                                >
-                                                    <UserMinus className="w-5 h-5" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
 
                                     {members.length === 0 && (
                                         <div className="text-center py-8 text-gray-500">
@@ -1394,6 +1579,30 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 confirmLabel="OK"
                 cancelLabel="Close"
                 icon="info"
+            />
+
+            {/* Edit Timestamp Confirmation */}
+            <ConfirmationModal
+                isOpen={showEditConfirm}
+                onClose={() => { setShowEditConfirm(false); setPendingEditEntry(null); }}
+                onConfirm={handleConfirmEditTimestamp}
+                title={t('Edit Timestamp')}
+                message={t('Are you sure you want to edit this time entry?')}
+                confirmLabel={t('Edit')}
+                cancelLabel={t('Cancel')}
+                icon="warning"
+            />
+
+            {/* Delete Timestamp Confirmation */}
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                onClose={() => { setShowDeleteConfirm(false); setPendingDeleteEntryId(null); }}
+                onConfirm={handleConfirmDeleteEntry}
+                title={t('Delete Entry')}
+                message={t('Are you sure you want to delete this time entry?')}
+                confirmLabel={t('Delete')}
+                cancelLabel={t('Cancel')}
+                isDestructive={true}
             />
 
         </div>

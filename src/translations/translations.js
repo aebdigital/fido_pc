@@ -189,7 +189,14 @@ export const translations = {
     "Please enter a strong new password for your account": "Please enter a strong new password for your account",
     "Enter your email to receive a password reset link": "Enter your email to receive a password reset link",
     "Enter your details to register": "Enter your details to register",
-    "Sign in to manage your budgets": "Sign in to manage your budgets"
+    "Sign in to manage your budgets": "Sign in to manage your budgets",
+    "Delete Entry": "Delete Entry",
+    "Are you sure you want to delete this time entry?": "Are you sure you want to delete this time entry?",
+    "Search Clients...": "Search Clients...",
+    "Add Client": "Add Client",
+    "All projects": "All projects",
+    "No time entries found for this member": "No time entries found for this member",
+    "Assigned projects": "Assigned projects"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -1278,7 +1285,14 @@ export const translations = {
     "Remove this member from the project?": "Odstrániť tohto člena z projektu?",
     "Failed to remove member": "Nepodarilo sa odstrániť člena",
     "Unknown User": "Neznámy užívateľ",
-    "Selected Period": "Vybrané obdobie"
+    "Selected Period": "Vybrané obdobie",
+    "Delete Entry": "Vymazať záznam",
+    "Are you sure you want to delete this time entry?": "Naozaj chcete vymazať tento časový záznam?",
+    "Search Clients...": "Hľadať klientov...",
+    "Add Client": "Pridať klienta",
+    "All projects": "Všetky projekty",
+    "No time entries found for this member": "Pre tohto člena sa nenašli žiadne záznamy",
+    "Assigned projects": "Pridelené projekty"
   }
 };
 

@@ -94,7 +94,12 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       let project = null;
       let projectId = null;
 
-      if (typeof projectOrId === 'object' && projectOrId !== null) {
+      // Allow standalone invoices (no project)
+      if (projectOrId === null || projectOrId === undefined) {
+        // Standalone invoice - no project
+        project = null;
+        projectId = null;
+      } else if (typeof projectOrId === 'object') {
         project = projectOrId;
         projectId = project.c_id || project.id;
       } else {
@@ -103,7 +108,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         project = projectResult?.project;
       }
 
-      if (!project) {
+      if (!project && projectOrId !== null && projectOrId !== undefined) {
         console.error('[SUPABASE] createInvoice: Project not found', projectOrId);
         return null;
       }
@@ -123,7 +128,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         note: invoiceData.notes || null,
         project_id: projectId,
         // c_id will be auto-generated as UUID in supabaseApi.js
-        client_id: invoiceData.clientId !== undefined ? invoiceData.clientId : project.clientId,
+        client_id: invoiceData.clientId !== undefined ? invoiceData.clientId : (project?.clientId || null),
         contractor_id: appData.activeContractorId,
         status: 'unsent',
         // Invoice items data in iOS-compatible format
@@ -139,7 +144,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       const dbInvoice = await api.invoices.create(mappedInvoiceData);
       const transformedInvoice = transformInvoiceFromDB(dbInvoice);
 
-      transformedInvoice.projectName = project.name;
+      transformedInvoice.projectName = invoiceData.projectName || project?.name || '';
       transformedInvoice.categoryId = categoryId;
 
       setAppData(prev => ({
@@ -147,26 +152,28 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         invoices: [...prev.invoices, transformedInvoice]
       }));
 
-      try {
-        // setLoading(true); // REMOVED: setLoading is not available here
-        if (addProjectHistoryEntry) {
-          await addProjectHistoryEntry(projectId, {
-            type: PROJECT_EVENTS.INVOICE_GENERATED,
-            invoiceNumber: transformedInvoice.invoiceNumber
-          });
-        }
+      // Skip project-related updates for standalone invoices
+      if (projectId) {
+        try {
+          if (addProjectHistoryEntry) {
+            await addProjectHistoryEntry(projectId, {
+              type: PROJECT_EVENTS.INVOICE_GENERATED,
+              invoiceNumber: transformedInvoice.invoiceNumber
+            });
+          }
 
-        // Only update project if NOT skipped (e.g. for Dennik invoices)
-        if (updateProject && !options.skipProjectUpdate) {
-          await updateProject(categoryId, projectId, {
-            hasInvoice: true,
-            invoiceId: transformedInvoice.id,
-            invoiceStatus: INVOICE_STATUS.UNPAID
-          });
+          // Only update project if NOT skipped (e.g. for Dennik invoices)
+          if (updateProject && !options.skipProjectUpdate) {
+            await updateProject(categoryId, projectId, {
+              hasInvoice: true,
+              invoiceId: transformedInvoice.id,
+              invoiceStatus: INVOICE_STATUS.UNPAID
+            });
+          }
+        } catch (projectUpdateError) {
+          // Non-owners may not have permission to update the project - that's OK
+          console.warn('[useInvoiceManager] Could not update project after invoice creation:', projectUpdateError.message);
         }
-      } catch (projectUpdateError) {
-        // Non-owners may not have permission to update the project - that's OK
-        console.warn('[useInvoiceManager] Could not update project after invoice creation:', projectUpdateError.message);
       }
 
       return transformedInvoice;

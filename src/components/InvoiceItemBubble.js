@@ -20,7 +20,7 @@ const InvoiceItemBubble = ({
   category = 'work'
 }) => {
   const { t } = useLanguage();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(item.isNew || false);
 
   // Local state for editing
   const [title, setTitle] = useState(item.title || '');
@@ -155,7 +155,7 @@ const InvoiceItemBubble = ({
                 type="text"
                 value={t(title) || title}
                 onChange={handleTitleChange}
-                className="w-full text-lg font-medium text-gray-900 dark:text-gray-900 bg-transparent border-b border-gray-400 focus:border-gray-900 outline-none pb-1"
+                className="w-full text-lg font-medium text-gray-900 dark:text-gray-900 bg-white border border-gray-300 rounded-xl px-3 py-2 focus:border-gray-900 outline-none"
                 placeholder={t('Item name')}
               />
             ) : (

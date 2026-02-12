@@ -2171,7 +2171,7 @@ export const userProfilesApi = {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .or(`email.ilike.% ${query}%, full_name.ilike.% ${query}% `)
+        .or(`email.ilike.%${query}%,full_name.ilike.%${query}%`)
         .limit(10)
 
       if (error) throw error
@@ -2569,6 +2569,56 @@ export const dennikApi = {
       return data || []
     } catch (error) {
       handleError('dennikApi.getTimeEntriesForProjects', error)
+      return []
+    }
+  },
+
+  // Get time entries for a specific user across multiple projects (owner view)
+  getTimeEntriesForMember: async (projectIds, memberId, startDate, endDate) => {
+    try {
+      if (!projectIds || projectIds.length === 0) return []
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .select('id, project_id, user_id, date, start_time, end_time, hours_worked')
+        .in('project_id', projectIds)
+        .eq('user_id', memberId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      handleError('dennikApi.getTimeEntriesForMember', error)
+      return []
+    }
+  },
+
+  // Get all members across multiple projects (for owner filter)
+  getAllMembersForProjects: async (projectIds) => {
+    try {
+      if (!projectIds || projectIds.length === 0) return []
+      const { data: members, error } = await supabase
+        .from('project_members')
+        .select('user_id, project_id')
+        .in('project_id', projectIds)
+
+      if (error) throw error
+      if (!members || members.length === 0) return []
+
+      // Get unique user IDs
+      const uniqueUserIds = [...new Set(members.map(m => m.user_id))]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, avatar_url')
+        .in('id', uniqueUserIds)
+
+      return (profiles || []).map(p => ({
+        ...p,
+        projectIds: members.filter(m => m.user_id === p.id).map(m => m.project_id)
+      }))
+    } catch (error) {
+      handleError('dennikApi.getAllMembersForProjects', error)
       return []
     }
   },

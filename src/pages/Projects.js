@@ -21,7 +21,7 @@ import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { useScrollLock } from '../hooks/useScrollLock';
 
-const LiveTimer = ({ startTime, onClick }) => {
+const LiveTimer = ({ startTime, onClick, className = "", size = "normal" }) => {
   const [elapsed, setElapsed] = useState('00:00:00');
 
   useEffect(() => {
@@ -40,10 +40,22 @@ const LiveTimer = ({ startTime, onClick }) => {
     return () => clearInterval(interval);
   }, [startTime]);
 
+  if (size === "small") {
+    return (
+      <div
+        onClick={onClick}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 bg-red-500 text-white text-[10px] sm:text-xs font-black rounded-lg shadow-sm animate-glow-red cursor-pointer ${className}`}
+      >
+        <Clock className="w-3 h-3" />
+        <span>{elapsed}</span>
+      </div>
+    );
+  }
+
   return (
     <div
       onClick={onClick}
-      className="absolute top-2 right-2 bg-red-500 text-white text-sm font-black px-3 py-1.5 rounded-full shadow-lg z-20 flex items-center gap-1.5 animate-glow-red border-2 border-white dark:border-gray-800 cursor-pointer"
+      className={`absolute top-2 right-2 bg-red-500 text-white text-sm font-black px-3 py-1.5 rounded-full shadow-lg z-20 flex items-center gap-1.5 animate-glow-red border-2 border-white dark:border-gray-800 cursor-pointer ${className}`}
     >
       <Clock className="w-4 h-4" />
       <span>{elapsed}</span>
@@ -757,13 +769,13 @@ const Projects = () => {
                                       {t('Denník')}
                                     </span>
                                     {activeTimer && activeTimer.project_id === project.id && (
-                                      <div
+                                      <LiveTimer
+                                        size="small"
+                                        startTime={activeTimer.start_time}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           quickTravelToDennik(project.id);
                                         }}
-                                        className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-red-500 animate-glow-red cursor-pointer"
-                                        title={t('Active Timer')}
                                       />
                                     )}
                                   </div>

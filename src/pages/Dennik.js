@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     BookOpen,
     Loader2,
-    Users
+    Users,
+    ChevronDown,
+    Clock
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -20,6 +22,13 @@ const FUTURE_DAYS = 60;
 const INITIAL_DAYS = 60;
 const LOAD_MORE_DAYS = 90;
 
+const formatDuration = (hours) => {
+    if (!hours) return '0h';
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+};
+
 const Dennik = () => {
     const { t } = useLanguage();
     const navigate = useNavigate();
@@ -34,9 +43,27 @@ const Dennik = () => {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [totalDays, setTotalDays] = useState(INITIAL_DAYS);
 
+    // Member filter state
+    const [allMembers, setAllMembers] = useState([]); // unique members across all owned projects
+    const [selectedMemberFilter, setSelectedMemberFilter] = useState(null); // null = all projects
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const [memberEntriesByDate, setMemberEntriesByDate] = useState({}); // { date: { projectId: totalHours } }
+    const filterDropdownRef = useRef(null);
+
     const sentinelRef = useRef(null);
     const todayRef = useRef(null);
     const scrollContainerRef = useRef(null);
+
+    // Close filter dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
+                setShowFilterDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Calculate date range based on total days (past) + future days
     const getDateRange = useCallback((days) => {
@@ -75,11 +102,58 @@ const Dennik = () => {
                     result[date] = Array.from(projectIdSet);
                 }
                 setEntriesByDate(result);
+
+                // Load all members across owned projects for filter
+                const ownedProjects = validProjects.filter(p => p.userRole === 'owner');
+                if (ownedProjects.length > 0) {
+                    const ownedIds = ownedProjects.map(p => p.id || p.c_id);
+                    const members = await api.dennik.getAllMembersForProjects(ownedIds);
+                    setAllMembers(members || []);
+                }
             }
         } catch (error) {
             console.error('Error loading dennik data:', error);
         }
     }, [getDateRange]);
+
+    // Load member-specific entries when filter changes
+    const loadMemberEntries = useCallback(async (memberId, days) => {
+        if (!memberId) {
+            setMemberEntriesByDate({});
+            return;
+        }
+        try {
+            const ownedProjects = dennikProjects.filter(p => p.userRole === 'owner');
+            const projectIds = ownedProjects.map(p => p.id || p.c_id);
+            if (projectIds.length === 0) return;
+
+            const { startDate, endDate } = getDateRange(days);
+            const entries = await api.dennik.getTimeEntriesForMember(projectIds, memberId, startDate, endDate);
+
+            // Group by date -> project_id -> total hours
+            const grouped = {};
+            for (const entry of entries) {
+                if (!grouped[entry.date]) {
+                    grouped[entry.date] = {};
+                }
+                if (!grouped[entry.date][entry.project_id]) {
+                    grouped[entry.date][entry.project_id] = 0;
+                }
+                grouped[entry.date][entry.project_id] += Number(entry.hours_worked || 0);
+            }
+            setMemberEntriesByDate(grouped);
+        } catch (error) {
+            console.error('Error loading member entries:', error);
+        }
+    }, [dennikProjects, getDateRange]);
+
+    useEffect(() => {
+        if (selectedMemberFilter) {
+            loadMemberEntries(selectedMemberFilter, totalDays);
+        } else {
+            setMemberEntriesByDate({});
+        }
+    }, [selectedMemberFilter, totalDays, loadMemberEntries]);
 
     useEffect(() => {
         const init = async () => {
@@ -156,6 +230,7 @@ const Dennik = () => {
         while (current >= start) {
             const dateStr = toLocalDateStr(current);
             const projectIds = entriesByDate[dateStr] || [];
+            const dayMemberHours = selectedMemberFilter ? memberEntriesByDate[dateStr] : null;
 
             days.push({
                 date: dateStr,
@@ -164,7 +239,8 @@ const Dennik = () => {
                 dayName: DAY_NAMES_SK[current.getDay()],
                 dayNum: current.getDate(),
                 isWeekend: current.getDay() === 0 || current.getDay() === 6,
-                projectIds
+                projectIds,
+                memberHours: dayMemberHours
             });
 
             current.setDate(current.getDate() - 1);
@@ -177,6 +253,12 @@ const Dennik = () => {
 
     // Member projects (assigned to user but not owned) - show above calendar
     const memberProjects = dennikProjects.filter(p => p.userRole && p.userRole !== 'owner');
+
+    const getSelectedMemberName = () => {
+        if (!selectedMemberFilter) return t('All projects');
+        const member = allMembers.find(m => m.id === selectedMemberFilter);
+        return member?.full_name || member?.email || t('Member');
+    };
 
     const renderCalendar = () => {
         if (dennikProjects.length === 0) {
@@ -191,6 +273,15 @@ const Dennik = () => {
                     <p className="text-gray-500 dark:text-gray-400 mb-6">
                         {t('Open any project and click the Denník button to get started')}
                     </p>
+                </div>
+            );
+        }
+
+        if (selectedMemberFilter && calendarData.length === 0) {
+            return (
+                <div className="text-center py-12">
+                    <Clock className="w-12 h-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                    <p className="text-gray-500 dark:text-gray-400">{t('No time entries found for this member')}</p>
                 </div>
             );
         }
@@ -245,7 +336,11 @@ const Dennik = () => {
                         {day.projectIds.map(projectId => {
                             const project = projectMap[projectId];
                             if (!project) return null;
-                            const clientName = getClientName(project);
+
+                            // In member filter mode, only show projects where this member has hours
+                            const memberHoursForProject = day.memberHours?.[projectId];
+                            if (selectedMemberFilter && !memberHoursForProject) return null;
+
                             const hasActiveTimer = activeTimer && activeTimer.project_id === projectId;
 
                             return (
@@ -266,10 +361,19 @@ const Dennik = () => {
                                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
                                     )}
                                     <span className="truncate max-w-[140px] lg:max-w-[220px]">{project.name}</span>
-                                    {clientName && (
-                                        <span className="text-gray-400 dark:text-gray-500 text-xs truncate max-w-[80px] hidden sm:inline">
-                                            {clientName}
+                                    {selectedMemberFilter && memberHoursForProject ? (
+                                        <span className="text-blue-500 dark:text-blue-400 text-xs font-semibold flex-shrink-0">
+                                            {formatDuration(memberHoursForProject)}
                                         </span>
+                                    ) : (
+                                        (() => {
+                                            const clientName = getClientName(project);
+                                            return clientName ? (
+                                                <span className="text-gray-400 dark:text-gray-500 text-xs truncate max-w-[80px] hidden sm:inline">
+                                                    {clientName}
+                                                </span>
+                                            ) : null;
+                                        })()
                                     )}
                                 </button>
                             );
@@ -285,12 +389,65 @@ const Dennik = () => {
     return (
         <div className="flex flex-col overflow-hidden h-[calc(100dvh-1rem)] lg:h-[calc(100dvh-3rem)] -mb-24 lg:mb-0">
             {/* Header - stays fixed */}
-            <div className="flex-shrink-0 pb-4">
+            <div className="flex-shrink-0 pb-4 flex items-center justify-between">
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
             </div>
 
+            {/* Member Filter */}
+            {!isLoading && allMembers.length > 0 && (
+                <div className="flex-shrink-0 pb-3">
+                    <div className="relative" ref={filterDropdownRef}>
+                        <button
+                            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                            className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <Users className="w-4 h-4 text-purple-500" />
+                            {getSelectedMemberName()}
+                            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showFilterDropdown && (
+                            <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-20 py-1 animate-slide-in-top">
+                                <button
+                                    onClick={() => {
+                                        setSelectedMemberFilter(null);
+                                        setShowFilterDropdown(false);
+                                    }}
+                                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${!selectedMemberFilter
+                                        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                        }`}
+                                >
+                                    <BookOpen className="w-4 h-4" />
+                                    {t('All projects')}
+                                </button>
+                                <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+                                {allMembers.map(member => (
+                                    <button
+                                        key={member.id}
+                                        onClick={() => {
+                                            setSelectedMemberFilter(member.id);
+                                            setShowFilterDropdown(false);
+                                        }}
+                                        className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${selectedMemberFilter === member.id
+                                            ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                            }`}
+                                    >
+                                        <div className="w-6 h-6 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
+                                            {member.full_name?.charAt(0) || member.email?.charAt(0) || '?'}
+                                        </div>
+                                        <span className="truncate">{member.full_name || member.email}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Member Projects - projects assigned to you */}
-            {!isLoading && memberProjects.length > 0 && (
+            {!isLoading && !selectedMemberFilter && memberProjects.length > 0 && (
                 <div className="flex-shrink-0 pb-3">
                     <div className="flex items-center gap-2 mb-2">
                         <Users className="w-4 h-4 text-purple-500" />
