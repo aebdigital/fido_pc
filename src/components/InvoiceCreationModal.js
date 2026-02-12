@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, FileText, Save, RotateCcw } from 'lucide-react';
+import { X, FileText, Save, RotateCcw, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import UncompletedFieldsModal from './UncompletedFieldsModal';
@@ -133,7 +133,7 @@ const maturityOptions = [7, 15, 30, 60, 90];
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null }) => {
   useScrollLock(true);
   const { t } = useLanguage();
-  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings } = useAppData();
+  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings, findProjectById } = useAppData();
 
   // Invoice settings state
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -148,6 +148,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [showUncompletedModal, setShowUncompletedModal] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
   const [showDuplicateNumberModal, setShowDuplicateNumberModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Invoice items state
   const [invoiceItems, setInvoiceItems] = useState([]);
@@ -478,12 +479,18 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     } else {
       // Create new invoice
       try {
+        setIsSubmitting(true);
+        const options = {};
+
         // For Denník invoices, override client_id and pass owner contractor
         if (dennikData) {
           invoiceData.clientId = null;
           invoiceData.ownerContractorId = dennikData.ownerContractorId || null;
+          // IMPORTANT: Do NOT update the main project status/invoiceId when creating a Dennik (hours) invoice
+          options.skipProjectUpdate = true;
         }
-        const newInvoice = await createInvoice(project, categoryId, invoiceData);
+
+        const newInvoice = await createInvoice(project, categoryId, invoiceData, findProjectById, options);
         if (newInvoice) {
           // Save note as default for future invoices (Account-wide)
           const settingsToSave = {
@@ -499,6 +506,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       } catch (error) {
         console.error('Error creating invoice:', error);
         alert(t('Failed to create invoice'));
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -626,10 +635,20 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 {/* Generate Invoice Button */}
                 <button
                   onClick={handleGenerate}
-                  className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-full font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 mt-2"
+                  disabled={isSubmitting}
+                  className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-full font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                  {editMode ? t('Save Changes') : t('Generate Invoice')}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {t('Processing...')}
+                    </>
+                  ) : (
+                    <>
+                      {editMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                      {editMode ? t('Save Changes') : t('Generate Invoice')}
+                    </>
+                  )}
                 </button>
               </div>
             </div>

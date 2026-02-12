@@ -97,7 +97,13 @@ const Dennik = () => {
             // Wait for DOM layout to complete before scrolling
             requestAnimationFrame(() => {
                 if (todayRef.current && scrollContainerRef.current) {
-                    todayRef.current.scrollIntoView({ block: 'start' });
+                    const container = scrollContainerRef.current;
+                    const todayEl = todayRef.current;
+                    const containerRect = container.getBoundingClientRect();
+                    const todayRect = todayEl.getBoundingClientRect();
+                    // Scroll so today appears with some offset below the sticky month header (~240px = 6 rows)
+                    const offset = todayRect.top - containerRect.top + container.scrollTop - 240;
+                    container.scrollTo({ top: offset });
                 }
             });
         }
@@ -204,7 +210,7 @@ const Dennik = () => {
                     year: 'numeric'
                 });
                 elements.push(
-                    <div key={`month-${monthKey}`} className="pt-5 pb-1.5 first:pt-0 sticky top-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm z-10 -mx-1 px-1">
+                    <div key={`month-${monthKey}`} className="pt-5 pb-1.5 first:pt-0 sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-10 -mx-1 px-1 no-border">
                         <h2 className="text-base font-bold text-gray-900 dark:text-white capitalize">
                             {monthName}
                         </h2>
@@ -219,10 +225,10 @@ const Dennik = () => {
                 <div
                     key={day.date}
                     ref={isToday ? todayRef : undefined}
-                    className={`flex items-center gap-3 min-h-[40px] border-b transition-colors
+                    className={`flex items-center gap-3 min-h-[40px] border-b transition-colors pl-2
                         ${isToday
-                            ? 'bg-blue-50/60 dark:bg-blue-900/15 -mx-2 px-2 rounded-lg border-blue-100 dark:border-blue-900/30'
-                            : 'border-gray-100 dark:border-gray-800/60'}
+                            ? 'bg-blue-50/60 dark:bg-blue-900/15 -mx-2 pl-4 pr-2 rounded-lg border-blue-100 dark:border-blue-900/30'
+                            : 'border-gray-50 dark:border-gray-800/40'}
                         ${day.isWeekend && !hasProjects ? 'opacity-40' : ''}
                     `}
                 >
@@ -277,7 +283,7 @@ const Dennik = () => {
     };
 
     return (
-        <div className="flex flex-col overflow-hidden h-[calc(100dvh-5rem)] lg:h-[calc(100dvh-3rem)]">
+        <div className="flex flex-col overflow-hidden h-[calc(100dvh-1rem)] lg:h-[calc(100dvh-3rem)] -mb-24 lg:mb-0">
             {/* Header - stays fixed */}
             <div className="flex-shrink-0 pb-4">
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
@@ -330,7 +336,7 @@ const Dennik = () => {
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                 </div>
             ) : (
-                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-24 lg:pb-0">
                     {renderCalendar()}
 
                     {/* Sentinel for infinite scroll + loading indicator */}

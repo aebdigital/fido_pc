@@ -58,7 +58,17 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
   }, [appData.invoices]);
 
   const getInvoiceForProject = useCallback((projectId) => {
-    return appData.invoices.find(inv => inv.projectId === projectId);
+    return appData.invoices.find(inv => {
+      // Basic check: must belong to project
+      if (inv.projectId !== projectId) return false;
+
+      // Filter out Dennik/Instruction invoices (unit='h' or 'hour')
+      // These are "work logs" and should not be treated as the main project invoice
+      const isDennik = inv.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
+      if (isDennik) return false;
+
+      return true;
+    });
   }, [appData.invoices]);
 
   const getInvoiceSettings = useCallback(async (contractorId) => {
@@ -79,7 +89,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
     }
   }, []);
 
-  const createInvoice = useCallback(async (projectOrId, categoryId, invoiceData, findProjectById) => {
+  const createInvoice = useCallback(async (projectOrId, categoryId, invoiceData, findProjectById, options = {}) => {
     try {
       let project = null;
       let projectId = null;
@@ -123,6 +133,9 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         cumulative_vat: invoiceData.cumulativeVat || 0
       };
 
+      // For Denník invoices (owner contractor), override client_id if needed
+      // Logic handled in component, passing data here
+
       const dbInvoice = await api.invoices.create(mappedInvoiceData);
       const transformedInvoice = transformInvoiceFromDB(dbInvoice);
 
@@ -135,6 +148,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       }));
 
       try {
+        // setLoading(true); // REMOVED: setLoading is not available here
         if (addProjectHistoryEntry) {
           await addProjectHistoryEntry(projectId, {
             type: PROJECT_EVENTS.INVOICE_GENERATED,
@@ -142,7 +156,8 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
           });
         }
 
-        if (updateProject) {
+        // Only update project if NOT skipped (e.g. for Dennik invoices)
+        if (updateProject && !options.skipProjectUpdate) {
           await updateProject(categoryId, projectId, {
             hasInvoice: true,
             invoiceId: transformedInvoice.id,

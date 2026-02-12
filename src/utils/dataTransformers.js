@@ -189,7 +189,8 @@ export const transformInvoiceFromDB = (dbInvoice) => {
     // Invoice items data (matching iOS invoiceItemsData)
     invoiceItems: invoiceItems,
     priceWithoutVat: dbInvoice.price_without_vat || 0,
-    cumulativeVat: dbInvoice.cumulative_vat || 0
+    cumulativeVat: dbInvoice.cumulative_vat || 0,
+    contractors: dbInvoice.contractors // Pass through contractors object for display logic
   };
 };
 

@@ -96,8 +96,8 @@ const Invoices = () => {
     }
 
     // FALLBACK: Calculate from project data (legacy behavior / fallback)
-    const project = findProjectById(invoice.projectId, invoice.categoryId);
-    if (!project) return '0,00';
+    const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
+    if (!projectResult?.project) return '0,00';
 
     const breakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
     if (!breakdown) return '0,00';
@@ -163,8 +163,8 @@ const Invoices = () => {
       } else {
         // Fallback for very old legacy data if priceWithoutVat is missing
         // Try to calculate from project if possible, otherwise 0
-        const project = findProjectById(invoice.projectId, invoice.categoryId);
-        if (project) {
+        const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
+        if (projectResult?.project) {
           const breakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
           if (breakdown) {
             // Get VAT rate from general price list or default
@@ -395,7 +395,21 @@ const Invoices = () => {
                   </div>
                   {/* Project name */}
                   <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-1">
-                    {invoice.projectName}
+                    {(() => {
+                      // Robust check for Dennik invoice
+                      const isDennik = invoice.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
+
+                      // Get project name with fallback
+                      let projectName = invoice.projectName;
+                      if (!projectName && invoice.projectId) {
+                        const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
+                        projectName = projectResult?.project?.name;
+                      }
+                      projectName = projectName || '';
+
+                      if (isDennik) return `${t('Odpracované hodiny')} - ${projectName}`;
+                      return projectName;
+                    })()}
                   </h3>
                   {/* Client name - below project name */}
                   <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -405,12 +419,37 @@ const Invoices = () => {
                         const client = clients.find(c => c.id === invoice.clientId);
                         if (client?.name) return client.name;
                       }
-                      // Fallback: check project's clientId
-                      const project = findProjectById(invoice.projectId, invoice.categoryId);
-                      if (project?.clientId) {
-                        const client = clients.find(c => c.id === project.clientId);
-                        return client?.name || t('No client');
+
+                      // Find project for fallback info
+                      const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
+                      const project = projectResult?.project;
+
+                      // Check if it's a Dennik invoice (worked hours only)
+                      const isDennikInvoice = invoice.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
+
+                      if (isDennikInvoice) {
+                        // Prioritize contractor name if available from invoice object
+                        if (invoice.contractors?.name) return invoice.contractors.name;
+
+                        // Fallback to project owner from context-provided project data
+                        if (project?.owner) {
+                          return project.owner.full_name || project.owner.email || t('No client');
+                        }
                       }
+
+                      if (project) {
+                        // 1. Check project's clientId
+                        if (project.clientId) {
+                          const client = clients.find(c => c.id === project.clientId);
+                          if (client?.name) return client.name;
+                        }
+
+                        // 2. Fallback: Check project owner
+                        if (project.owner) {
+                          return project.owner.full_name || project.owner.email || t('No client');
+                        }
+                      }
+
                       return t('No client');
                     })()}
                   </div>

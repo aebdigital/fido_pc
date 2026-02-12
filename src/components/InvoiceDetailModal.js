@@ -14,6 +14,7 @@ import ContractorProfileModal from './ContractorProfileModal';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/supabaseApi';
+import Linkify from '../utils/linkify';
 
 /**
  * InvoiceDetailModal - iOS-aligned invoice detail view
@@ -721,6 +722,15 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 </div>
                 <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white flex-shrink-0" />
               </button>
+            </div>
+          )}
+
+          {/* Notes Section - show if invoice has notes */}
+          {invoice.notes && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                <Linkify>{invoice.notes}</Linkify>
+              </p>
             </div>
           )}
 

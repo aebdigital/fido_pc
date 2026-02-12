@@ -796,6 +796,18 @@ export const AppDataProvider = ({ children }) => {
           if (eventType === 'DELETE' || record.is_deleted) {
             return arr.filter(i => i.id !== record.c_id && i.id !== record.id);
           } else if (eventType === 'INSERT') {
+            const exists = arr.find(i => i.id === transformed.id);
+            if (exists) {
+              // Merge: preserve fields that transformed might be missing (like joined projects/contractors)
+              // if they exist in the optimistic record
+              const merged = { ...exists, ...transformed };
+              // Ensure we don't lose joined data from optimistic update if transformed is just a raw record
+              if (!transformed.projects && exists.projects) merged.projects = exists.projects;
+              if (!transformed.projectName && exists.projectName) merged.projectName = exists.projectName;
+              if (!transformed.contractors && exists.contractors) merged.contractors = exists.contractors;
+
+              return arr.map(i => i.id === transformed.id ? merged : i);
+            }
             return [...arr, transformed];
           } else {
             const idx = arr.findIndex(i => i.id === record.c_id || i.id === record.id);
@@ -1446,7 +1458,7 @@ export const AppDataProvider = ({ children }) => {
     updatePriceOfferSettings: contractorManager.updatePriceOfferSettings,
 
     // Invoice functions
-    createInvoice: (projectId, categoryId, invoiceData) => invoiceManager.createInvoice(projectId, categoryId, invoiceData, projectManager.findProjectById),
+    createInvoice: (projectId, categoryId, invoiceData, options) => invoiceManager.createInvoice(projectId, categoryId, invoiceData, projectManager.findProjectById, options),
     updateInvoice: invoiceManager.updateInvoice,
     deleteInvoice: invoiceManager.deleteInvoice,
     getInvoiceById: invoiceManager.getInvoiceById,

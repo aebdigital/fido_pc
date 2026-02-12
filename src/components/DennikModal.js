@@ -7,6 +7,7 @@ import InvoiceDetailModal from './InvoiceDetailModal';
 import InvoiceCreationModal from './InvoiceCreationModal';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
 import ConfirmationModal from './ConfirmationModal';
+import Linkify from '../utils/linkify';
 
 const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDate }) => {
     const { t } = useLanguage();
@@ -294,7 +295,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 setHourlyRate(project.hourly_rate || priceOfferSettings?.defaultHourlyRate || '');
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, project, loadData, loadAnalyticsData]);
 
     useEffect(() => {
@@ -352,7 +353,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         const amount = totalHours * parseFloat(hourlyRate || 0);
         const workItem = {
             id: crypto.randomUUID(),
-            title: t('Work Hours'),
+            title: `${t('Work Hours')}${project?.name ? ` - ${project.name}` : ''}`,
             pieces: totalHours,
             pricePerPiece: parseFloat(hourlyRate || 0),
             price: amount,
@@ -760,7 +761,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     >
                                                         {day}
                                                         {hasActivity && (
-                                                            <div className={`absolute bottom-0.5 w-1.5 h-1.5 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500 dark:bg-blue-400'}`} />
+                                                            <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-[1px] ${isSelected(day) ? 'bg-white' : 'bg-blue-500 dark:bg-blue-400'}`} />
                                                         )}
                                                     </button>
                                                 );
@@ -821,7 +822,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             >
                                                 {day}
                                                 {hasActivity && (
-                                                    <div className={`absolute bottom-0.5 w-1.5 h-1.5 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500 dark:bg-blue-400'}`} />
+                                                    <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-[1px] ${isSelected(day) ? 'bg-white' : 'bg-blue-500 dark:bg-blue-400'}`} />
                                                 )}
                                             </button>
                                         );
@@ -898,7 +899,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                         type="time"
                                                         value={manualStartTime}
                                                         onChange={(e) => setManualStartTime(e.target.value)}
-                                                        className="w-full px-3 py-2 bg-white/20 text-white rounded-lg outline-none focus:ring-2 focus:ring-white/50 [color-scheme:dark]"
+                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-blue-300"
                                                     />
                                                 </div>
                                                 <div className="flex-1">
@@ -907,7 +908,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                         type="time"
                                                         value={manualEndTime}
                                                         onChange={(e) => setManualEndTime(e.target.value)}
-                                                        className="w-full px-3 py-2 bg-white/20 text-white rounded-lg outline-none focus:ring-2 focus:ring-white/50 [color-scheme:dark]"
+                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-blue-300"
                                                     />
                                                 </div>
                                             </div>
@@ -1027,18 +1028,25 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                         {isOwnEntry ? (
                                                                                             <div className="mt-2 flex items-start gap-2">
                                                                                                 <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-1.5 flex-shrink-0" />
-                                                                                                <input
-                                                                                                    type="text"
-                                                                                                    value={entry.notes || ''}
-                                                                                                    onChange={(e) => handleEntryNoteChange(entry.id, e.target.value)}
-                                                                                                    placeholder={t('Add note...')}
-                                                                                                    className="flex-1 text-xs text-gray-600 dark:text-gray-400 bg-transparent border-b border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-blue-400 dark:focus:border-blue-500 outline-none py-0.5 placeholder-gray-400 transition-colors"
-                                                                                                />
+                                                                                                <div className="flex-1">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        value={entry.notes || ''}
+                                                                                                        onChange={(e) => handleEntryNoteChange(entry.id, e.target.value)}
+                                                                                                        placeholder={t('Add note...')}
+                                                                                                        className="w-full text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-2.5 py-1.5 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-blue-400 dark:focus:border-blue-500 outline-none placeholder-gray-400 transition-colors"
+                                                                                                    />
+                                                                                                    {entry.notes && /https?:\/\//.test(entry.notes) && (
+                                                                                                        <div className="mt-1 text-xs">
+                                                                                                            <Linkify>{entry.notes}</Linkify>
+                                                                                                        </div>
+                                                                                                    )}
+                                                                                                </div>
                                                                                             </div>
                                                                                         ) : entry.notes ? (
                                                                                             <div className="mt-2 flex items-start gap-2">
                                                                                                 <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
-                                                                                                <span className="text-xs text-gray-500">{entry.notes}</span>
+                                                                                                <span className="text-xs text-gray-500"><Linkify>{entry.notes}</Linkify></span>
                                                                                             </div>
                                                                                         ) : null}
                                                                                     </div>

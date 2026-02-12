@@ -553,7 +553,8 @@ export const invoicesApi = {
         ...item,
         id: item.c_id,
         projects: item.projects ? { ...item.projects, id: item.projects.c_id } : null,
-        contractors: item.contractors ? { ...item.contractors, id: item.contractors.c_id } : null
+        contractors: item.contractors ? { ...item.contractors, id: item.contractors.c_id } : null,
+        invoiceItems: item.invoice_items_data ? (typeof item.invoice_items_data === 'string' ? JSON.parse(item.invoice_items_data) : item.invoice_items_data) : []
       }))
     } catch (error) {
       handleError('invoicesApi.getAll', error)
@@ -610,7 +611,8 @@ export const invoicesApi = {
         id: item.c_id,
         issue_date: item.date_created, // Provide alias for frontend compatibility
         projects: item.projects ? { ...item.projects, id: item.projects.c_id } : null,
-        contractors: item.contractors ? { ...item.contractors, id: item.contractors.c_id } : null
+        contractors: item.contractors ? { ...item.contractors, id: item.contractors.c_id } : null,
+        invoiceItems: item.invoice_items_data ? (typeof item.invoice_items_data === 'string' ? JSON.parse(item.invoice_items_data) : item.invoice_items_data) : []
       }))
     } catch (error) {
       handleError('invoicesApi.getInvoicesByProject', error)
@@ -644,7 +646,7 @@ export const invoicesApi = {
       const { data, error } = await supabase
         .from('invoices')
         .insert([{ ...invoice, c_id, user_id: userId }])
-        .select()
+        .select('*, contractors(c_id, name)')
         .single()
 
       if (error) throw error
@@ -1768,7 +1770,7 @@ export const teamsApi = {
       const { data, error } = await supabase
         .from('teams')
         .select('*')
-        .ilike('name', `%${query}%`)
+        .ilike('name', `% ${query}% `)
         .limit(10)
 
       if (error) throw error
@@ -1862,8 +1864,8 @@ export const teamsApi = {
         .from('team_members')
         .select(`
           *,
-          teams (*)
-        `)
+          teams(*)
+            `)
         .eq('user_id', userId)
         .eq('status', 'invited')
 
@@ -1881,8 +1883,8 @@ export const teamsApi = {
         .from('team_members')
         .select(`
           *,
-          profiles!user_id (id, email, full_name, avatar_url)
-        `)
+          profiles!user_id(id, email, full_name, avatar_url)
+            `)
         .eq('team_id', teamId)
 
       if (error) throw error
@@ -1935,9 +1937,9 @@ export const teamsApi = {
       const { data, error } = await supabase
         .from('team_projects')
         .select(`
-          *,
-          projects (*)
-        `)
+            *,
+            projects(*)
+              `)
         .eq('team_id', teamId)
 
       if (error) throw error
@@ -1965,10 +1967,10 @@ export const teamsApi = {
       const { data, error } = await supabase
         .from('team_members')
         .select(`
-          *,
-          teams (name),
-          profiles!user_id (id, email, full_name, avatar_url)
-        `)
+            *,
+            teams(name),
+            profiles!user_id(id, email, full_name, avatar_url)
+              `)
         .in('team_id', teamIds)
         .eq('status', 'active')
 
@@ -2006,10 +2008,10 @@ export const teamsApi = {
       const { data, error } = await supabase
         .from('job_assignments')
         .select(`
-          *,
-          projects (name),
-          rooms (name)
-        `)
+              *,
+              projects(name),
+              rooms(name)
+                `)
         .eq('user_id', userId)
 
       if (error) throw error
@@ -2025,9 +2027,9 @@ export const teamsApi = {
       const { data, error } = await supabase
         .from('job_assignments')
         .select(`
-          *,
-          profiles!user_id (id, email, full_name, avatar_url)
-        `)
+              *,
+              profiles!user_id(id, email, full_name, avatar_url)
+                `)
         .eq('project_id', projectId)
 
       if (error) throw error
@@ -2044,11 +2046,11 @@ export const teamsApi = {
       const { data, error } = await supabase
         .from('job_assignments')
         .select(`
-          *,
-          projects (name),
-          rooms (name),
-          profiles:user_id (id, email, full_name, avatar_url)
-        `)
+                *,
+                projects(name),
+                rooms(name),
+                profiles: user_id(id, email, full_name, avatar_url)
+                  `)
         .in('project_id', projectIds)
 
       if (error) throw error
@@ -2143,10 +2145,10 @@ export const teamsApi = {
       const { data, error } = await supabase
         .from('job_assignments')
         .select(`
-          *,
-          projects (name),
-          rooms (name, work_items)
-        `)
+                  *,
+                  projects(name),
+                  rooms(name, work_items)
+                    `)
         .eq('user_id', userId)
         .order('status', { ascending: false }) // Show pending first (pending > finished alphabetically? No, P > F. Wait. finished < pending. To show pending first, we want descending? pending > finished is true. )
       // Let's sort by status so 'pending' comes before 'finished' if we want active first.
@@ -2169,7 +2171,7 @@ export const userProfilesApi = {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .or(`email.ilike.%${query}%,full_name.ilike.%${query}%`)
+        .or(`email.ilike.% ${query}%, full_name.ilike.% ${query}% `)
         .limit(10)
 
       if (error) throw error
@@ -2294,8 +2296,8 @@ export const dennikApi = {
         .from('dennik_time_entries')
         .select(`
           *,
-          profiles (id, email, full_name, avatar_url)
-        `)
+          profiles(id, email, full_name, avatar_url)
+            `)
         .eq('project_id', projectId)
         .order('date', { ascending: false })
         .order('start_time', { ascending: false })
@@ -2592,10 +2594,10 @@ export const dennikApi = {
       const { data: memberProjects, error: memberError } = await supabase
         .from('project_members')
         .select(`
-          project_id,
+        project_id,
           role,
-          projects (*, owner:profiles (id, email, full_name, avatar_url))
-        `)
+          projects(*, owner: profiles(id, email, full_name, avatar_url))
+            `)
         .eq('user_id', userId)
         .eq('projects.is_dennik_enabled', true)
         .neq('projects.is_deleted', true)

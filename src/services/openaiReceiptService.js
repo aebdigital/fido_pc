@@ -113,9 +113,9 @@ Rules:
       items: receiptData.items,
       raw_text: receiptData.extractedText
     };
-
   } catch (error) {
     console.error('Receipt analysis failed:', error);
     throw error;
   }
 }
+
