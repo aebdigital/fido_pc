@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Trash2, Plus } from 'lucide-react';
+import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Trash2, Plus, CalendarDays, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useAppData } from '../context/AppDataContext';
@@ -54,12 +54,13 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const [showInvoiceCreation, setShowInvoiceCreation] = useState(false);
     const [dennikInvoiceData, setDennikInvoiceData] = useState(null);
     const [ownerContractorData, setOwnerContractorData] = useState(null);
-    const [dailyNotes, setDailyNotes] = useState({}); // { [userId]: noteText }
-    const [noteSaveStatus, setNoteSaveStatus] = useState(null); // null | 'saving' | 'saved'
     const [activeDays, setActiveDays] = useState(new Set()); // days with time entries in current month
+    const [showManualEntry, setShowManualEntry] = useState(false);
+    const [manualStartTime, setManualStartTime] = useState('08:00');
+    const [manualEndTime, setManualEndTime] = useState('16:00');
+    const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
     const hourlyRateTimerRef = useRef(null);
-    const noteTimerRefs = useRef({}); // Debounce refs for note saves
-    const noteSaveIndicatorRef = useRef(null); // Timeout ref for hiding saved indicator
+    const entryNoteTimerRef = useRef(null);
 
     // Memoized functions (useCallback)
     const loadMembers = useCallback(async () => {
@@ -81,46 +82,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         }
     }, [project]);
 
-    const loadDailyNotes = useCallback(async (date) => {
-        try {
-            const dateStr = (date || selectedDate).toISOString().split('T')[0];
-            const notes = await api.dennik.getDailyNotes(project.c_id || project.id, dateStr);
-            const notesMap = {};
-            (notes || []).forEach(n => { notesMap[n.user_id] = n.note || ''; });
-            setDailyNotes(notesMap);
-        } catch (error) {
-            console.error('Error loading daily notes:', error);
-        }
-    }, [project, selectedDate]);
-
-    const saveDailyNote = useCallback(async (noteText) => {
-        try {
-            setNoteSaveStatus('saving');
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            const result = await api.dennik.upsertDailyNote(project.c_id || project.id, dateStr, noteText);
-            if (result) {
-                setNoteSaveStatus('saved');
-                if (noteSaveIndicatorRef.current) clearTimeout(noteSaveIndicatorRef.current);
-                noteSaveIndicatorRef.current = setTimeout(() => setNoteSaveStatus(null), 2000);
-            } else {
-                setNoteSaveStatus(null);
-            }
-        } catch (error) {
-            console.error('Error saving daily note:', error);
-            setNoteSaveStatus(null);
-        }
-    }, [project, selectedDate]);
-
-    const handleNoteChange = useCallback((userId, value) => {
-        setDailyNotes(prev => ({ ...prev, [userId]: value }));
-        // Only allow saving own notes
-        if (userId !== currentUser?.id) return;
-        setNoteSaveStatus(null); // Reset while typing
-        if (noteTimerRefs.current[userId]) clearTimeout(noteTimerRefs.current[userId]);
-        noteTimerRefs.current[userId] = setTimeout(() => {
-            saveDailyNote(value);
-        }, 800);
-    }, [currentUser, saveDailyNote]);
 
     const checkActiveTimer = useCallback(async () => {
         try {
@@ -241,10 +202,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
             loadTimeEntries(),
             checkActiveTimer(),
             loadOwnerProfile(),
-            loadOwnerContractor(),
-            loadDailyNotes()
+            loadOwnerContractor()
         ]);
-    }, [loadMembers, loadTimeEntries, checkActiveTimer, loadOwnerProfile, loadOwnerContractor, loadDailyNotes]);
+    }, [loadMembers, loadTimeEntries, checkActiveTimer, loadOwnerProfile, loadOwnerContractor]);
 
     const loadAnalyticsData = useCallback(async () => {
         try {
@@ -355,9 +315,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     useEffect(() => {
         if (isOpen && project) {
             loadTimeEntries();
-            loadDailyNotes();
         }
-    }, [selectedDate, isOpen, project, loadTimeEntries, loadDailyNotes]);
+    }, [selectedDate, isOpen, project, loadTimeEntries]);
 
     const handlePreviewInvoice = (invoice) => {
         setSelectedInvoice(invoice);
@@ -483,6 +442,52 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleAddManualEntry = async () => {
+        try {
+            setIsLoading(true);
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            const startDateTime = new Date(`${dateStr}T${manualStartTime}:00`);
+            const endDateTime = new Date(`${dateStr}T${manualEndTime}:00`);
+
+            if (endDateTime <= startDateTime) {
+                alert(t('End time must be after start time'));
+                return;
+            }
+
+            const hoursWorked = (endDateTime - startDateTime) / 3600000;
+
+            await api.dennik.createTimeEntry(project.c_id || project.id, {
+                date: dateStr,
+                start_time: startDateTime.toISOString(),
+                end_time: endDateTime.toISOString(),
+                hours_worked: hoursWorked
+            });
+
+            setShowManualEntry(false);
+            await loadTimeEntries();
+            await loadActiveDays(currentMonth);
+        } catch (error) {
+            console.error('Error adding manual entry:', error);
+            alert(t('Failed to add time entry'));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleEntryNoteChange = (entryId, value) => {
+        // Update local state immediately
+        setTimeEntries(prev => prev.map(e => e.id === entryId ? { ...e, notes: value } : e));
+        // Debounce save
+        if (entryNoteTimerRef.current) clearTimeout(entryNoteTimerRef.current);
+        entryNoteTimerRef.current = setTimeout(async () => {
+            try {
+                await api.dennik.updateTimeEntry(entryId, { notes: value });
+            } catch (error) {
+                console.error('Error saving entry note:', error);
+            }
+        }, 800);
     };
 
     const handleDeleteTimeEntry = async (entryId) => {
@@ -617,6 +622,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     if (!isOpen) return null;
 
     const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentMonth);
+    const isSelectedToday = selectedDate.toDateString() === new Date().toDateString();
     const isToday = (day) => {
         const today = new Date();
         return day === today.getDate() &&
@@ -693,7 +699,79 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                     {activeTab === 'timer' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Left Column: Calendar */}
-                            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 h-fit md:sticky md:top-0 md:self-start">
+                            {/* Mobile: compact date selector */}
+                            <div className="md:hidden">
+                                <button
+                                    onClick={() => setMobileCalendarOpen(!mobileCalendarOpen)}
+                                    className="w-full flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-2xl p-3"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <CalendarDays className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                        <span className="font-bold text-gray-900 dark:text-white">
+                                            {selectedDate.toLocaleDateString('sk-SK', {
+                                                weekday: 'long',
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric'
+                                            })}
+                                        </span>
+                                    </div>
+                                    <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${mobileCalendarOpen ? 'rotate-90' : ''}`} />
+                                </button>
+                                {mobileCalendarOpen && (
+                                    <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 mt-2 animate-fade-in">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+                                                <ChevronLeft className="w-5 h-5" />
+                                            </button>
+                                            <h3 className="font-bold text-gray-900 dark:text-white">
+                                                {currentMonth.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' })}
+                                            </h3>
+                                            <button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
+                                                <ChevronRight className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-1">
+                                            {['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'].map(day => (
+                                                <div key={day} className="text-center text-xs font-medium text-gray-500 pb-2">{day}</div>
+                                            ))}
+                                            {Array.from({ length: startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1 }).map((_, i) => (
+                                                <div key={`empty-${i}`} />
+                                            ))}
+                                            {Array.from({ length: daysInMonth }).map((_, i) => {
+                                                const day = i + 1;
+                                                const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                                const hasActivity = activeDays.has(dateStr);
+                                                return (
+                                                    <button
+                                                        key={day}
+                                                        onClick={() => {
+                                                            const newDate = new Date(currentMonth);
+                                                            newDate.setDate(day);
+                                                            setSelectedDate(newDate);
+                                                            setMobileCalendarOpen(false);
+                                                        }}
+                                                        className={`aspect-square rounded-lg text-sm font-medium transition-colors relative flex flex-col items-center justify-center ${isSelected(day)
+                                                            ? 'bg-blue-600 text-white'
+                                                            : isToday(day)
+                                                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                            }`}
+                                                    >
+                                                        {day}
+                                                        {hasActivity && (
+                                                            <div className={`absolute bottom-0.5 w-1.5 h-1.5 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500 dark:bg-blue-400'}`} />
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Desktop: full calendar */}
+                            <div className="hidden md:block bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 h-fit md:sticky md:top-0 md:self-start">
                                 <div className="flex items-center justify-between mb-4">
                                     <button
                                         onClick={() => changeMonth(-1)}
@@ -776,14 +854,28 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
 
                                     <div className="flex gap-3">
                                         {!activeTimer ? (
-                                            <button
-                                                onClick={handleStartTimer}
-                                                disabled={isLoading}
-                                                className="flex-1 bg-white text-blue-600 px-4 py-3 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                                            >
-                                                <Play className="w-5 h-5" />
-                                                {t('Start Timer')}
-                                            </button>
+                                            <>
+                                                {isSelectedToday ? (
+                                                    <button
+                                                        onClick={handleStartTimer}
+                                                        disabled={isLoading}
+                                                        className="flex-1 bg-white text-blue-600 px-4 py-3 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                    >
+                                                        <Play className="w-5 h-5" />
+                                                        {t('Start Timer')}
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex-1 bg-white/20 text-white/70 px-4 py-3 rounded-xl font-medium text-center text-sm">
+                                                        {t('Timer available only for today')}
+                                                    </div>
+                                                )}
+                                                <button
+                                                    onClick={() => setShowManualEntry(!showManualEntry)}
+                                                    className="bg-white/20 text-white px-4 py-3 rounded-xl font-bold hover:bg-white/30 transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Plus className="w-5 h-5" />
+                                                </button>
+                                            </>
                                         ) : (
                                             <button
                                                 onClick={handleEndTimer}
@@ -795,6 +887,40 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             </button>
                                         )}
                                     </div>
+
+                                    {/* Manual Entry Form */}
+                                    {showManualEntry && !activeTimer && (
+                                        <div className="mt-3 bg-white/10 rounded-xl p-3 space-y-3">
+                                            <div className="flex gap-3">
+                                                <div className="flex-1">
+                                                    <label className="text-xs text-blue-100 mb-1 block">{t('Start')}</label>
+                                                    <input
+                                                        type="time"
+                                                        value={manualStartTime}
+                                                        onChange={(e) => setManualStartTime(e.target.value)}
+                                                        className="w-full px-3 py-2 bg-white/20 text-white rounded-lg outline-none focus:ring-2 focus:ring-white/50 [color-scheme:dark]"
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="text-xs text-blue-100 mb-1 block">{t('End')}</label>
+                                                    <input
+                                                        type="time"
+                                                        value={manualEndTime}
+                                                        onChange={(e) => setManualEndTime(e.target.value)}
+                                                        className="w-full px-3 py-2 bg-white/20 text-white rounded-lg outline-none focus:ring-2 focus:ring-white/50 [color-scheme:dark]"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={handleAddManualEntry}
+                                                disabled={isLoading}
+                                                className="w-full bg-white text-blue-600 px-4 py-2 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                {t('Add Entry')}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Time Entries */}
@@ -833,19 +959,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                         return acc;
                                                     }, {}));
 
-                                                // Add members who have notes but no time entries
-                                                Object.entries(dailyNotes).forEach(([userId, note]) => {
-                                                    if (note && !groups.find(g => g.userId === userId)) {
-                                                        const member = members.find(m => m.user_id === userId);
-                                                        groups.push({
-                                                            userId,
-                                                            profile: member?.profiles || null,
-                                                            entries: [],
-                                                            totalHours: 0
-                                                        });
-                                                    }
-                                                });
-
                                                 // Visibility: members see only their own, owner sees all
                                                 const visibleGroups = isOwner
                                                     ? groups
@@ -854,9 +967,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                 return visibleGroups
                                                     .sort((a, b) => (a.profile?.full_name || '').localeCompare(b.profile?.full_name || ''))
                                                     .map(group => {
-                                                        const isOwnGroup = group.userId === currentUser?.id;
-                                                        const noteValue = dailyNotes[group.userId] || '';
-
                                                         return (
                                                             <div key={group.userId} className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
                                                                 <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-gray-800 pb-2">
@@ -878,68 +988,62 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Daily Note */}
-                                                                <div className="mb-3">
-                                                                    {isOwnGroup ? (
-                                                                        <div className="relative">
-                                                                            <textarea
-                                                                                value={noteValue}
-                                                                                onChange={(e) => handleNoteChange(group.userId, e.target.value)}
-                                                                                placeholder={t('Add a note for this day...')}
-                                                                                rows={2}
-                                                                                className="w-full px-3 py-2 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none placeholder-gray-400"
-                                                                            />
-                                                                            {noteSaveStatus && (
-                                                                                <div className="absolute top-2 right-2" title={noteSaveStatus === 'saved' ? t('Saved') : t('Saving...')}>
-                                                                                    <div className={`w-2.5 h-2.5 rounded-full transition-colors ${noteSaveStatus === 'saved' ? 'bg-green-500' : 'bg-yellow-400 animate-pulse'}`} />
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    ) : noteValue ? (
-                                                                        <div className="px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                                                            {noteValue}
-                                                                        </div>
-                                                                    ) : null}
-                                                                </div>
-
                                                                 {group.entries.length > 0 && (
                                                                     <div className="grid grid-cols-1 gap-2">
                                                                         {group.entries
                                                                             .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
-                                                                            .map(entry => (
-                                                                                <div
-                                                                                    key={entry.id}
-                                                                                    className="group flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
-                                                                                >
-                                                                                    <div className="flex items-center gap-3">
-                                                                                        <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                                                                                            <Clock className="w-4 h-4 text-gray-500" />
-                                                                                        </div>
-                                                                                        <div>
-                                                                                            <div className="font-medium text-gray-900 dark:text-white">
-                                                                                                {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
+                                                                            .map(entry => {
+                                                                                const isOwnEntry = entry.user_id === currentUser?.id;
+                                                                                return (
+                                                                                    <div
+                                                                                        key={entry.id}
+                                                                                        className="group p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
+                                                                                    >
+                                                                                        <div className="flex items-center justify-between">
+                                                                                            <div className="flex items-center gap-3">
+                                                                                                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                                                                                                    <Clock className="w-4 h-4 text-gray-500" />
+                                                                                                </div>
+                                                                                                <div className="font-medium text-gray-900 dark:text-white">
+                                                                                                    {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
+                                                                                                </div>
                                                                                             </div>
-                                                                                            {entry.notes && (
-                                                                                                <div className="text-xs text-gray-500">{entry.notes}</div>
-                                                                                            )}
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                                                                    {formatDuration(entry.hours_worked)}
+                                                                                                </div>
+                                                                                                {isOwnEntry && (
+                                                                                                    <button
+                                                                                                        onClick={() => handleDeleteTimeEntry(entry.id)}
+                                                                                                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
+                                                                                                        title={t('Delete')}
+                                                                                                    >
+                                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                                    </button>
+                                                                                                )}
+                                                                                            </div>
                                                                                         </div>
+                                                                                        {/* Per-entry note */}
+                                                                                        {isOwnEntry ? (
+                                                                                            <div className="mt-2 flex items-start gap-2">
+                                                                                                <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-1.5 flex-shrink-0" />
+                                                                                                <input
+                                                                                                    type="text"
+                                                                                                    value={entry.notes || ''}
+                                                                                                    onChange={(e) => handleEntryNoteChange(entry.id, e.target.value)}
+                                                                                                    placeholder={t('Add note...')}
+                                                                                                    className="flex-1 text-xs text-gray-600 dark:text-gray-400 bg-transparent border-b border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-blue-400 dark:focus:border-blue-500 outline-none py-0.5 placeholder-gray-400 transition-colors"
+                                                                                                />
+                                                                                            </div>
+                                                                                        ) : entry.notes ? (
+                                                                                            <div className="mt-2 flex items-start gap-2">
+                                                                                                <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                                                                                                <span className="text-xs text-gray-500">{entry.notes}</span>
+                                                                                            </div>
+                                                                                        ) : null}
                                                                                     </div>
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                                                                            {formatDuration(entry.hours_worked)}
-                                                                                        </div>
-                                                                                        {entry.user_id === currentUser?.id && (
-                                                                                            <button
-                                                                                                onClick={() => handleDeleteTimeEntry(entry.id)}
-                                                                                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
-                                                                                                title={t('Delete')}
-                                                                                            >
-                                                                                                <Trash2 className="w-4 h-4" />
-                                                                                            </button>
-                                                                                        )}
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
+                                                                                );
+                                                                            })}
                                                                     </div>
                                                                 )}
                                                             </div>
