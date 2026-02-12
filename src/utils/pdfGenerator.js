@@ -578,424 +578,424 @@ export const generateInvoicePDF = async ({
         ]);
       });
     } else {
-    // Debug: Log breakdown contents for custom work items
-    const customWorkItems = projectBreakdown?.items?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
-    const customMaterialItems = projectBreakdown?.materialItems?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
-    console.log('[PDF] Custom work items in breakdown:', customWorkItems.length, customWorkItems);
-    console.log('[PDF] Custom material items in breakdown:', customMaterialItems.length, customMaterialItems);
+      // Debug: Log breakdown contents for custom work items
+      const customWorkItems = projectBreakdown?.items?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
+      const customMaterialItems = projectBreakdown?.materialItems?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
+      console.log('[PDF] Custom work items in breakdown:', customWorkItems.length, customWorkItems);
+      console.log('[PDF] Custom material items in breakdown:', customMaterialItems.length, customMaterialItems);
 
-    // Add work items with category header
-    if (projectBreakdown && projectBreakdown.items && projectBreakdown.items.length > 0) {
-      tableData.push([
-        {
-          content: sanitizeText(t('Works')).charAt(0).toUpperCase() + sanitizeText(t('Works')).slice(1).toLowerCase(),
-          colSpan: 6,
-          styles: { fontStyle: 'normal', fontSize: 8, cellPadding: { top: 1.5, bottom: 0.1 } },
-          isCategoryHeader: true,
-          categoryKey: 'Works'
-        }
-      ]);
-
-      // For Price Offers, sort items by master price list order
-      // For Invoices, items are already sorted by InvoiceCreationModal
-      const sortedItems = (isPriceOffer && options.priceList)
-        ? sortItemsByMasterList(projectBreakdown.items, options.priceList, 'work')
-        : projectBreakdown.items;
-
-      sortedItems.forEach(item => {
-        const quantity = item.calculation?.quantity || 0;
-        const workCost = item.calculation?.workCost || 0;
-        const pricePerUnit = quantity > 0 ? workCost / quantity : 0;
-
-        let unit = getWorkItemUnit(item);
-
-        const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
-        const vatAmount = workCost * itemVatRate;
-
-        // Get the work item name - try multiple sources
-        // The stored name is the canonical English name (possibly compound like "Netting, wall")
-        let rawName = item.name || getWorkItemNameByPropertyId(item.propertyId) || '';
-        const itemName = rawName;
-        let displayName;
-
-        // For custom work, use the user-entered name (translate it in case it's a standard item
-        // that was tagged as custom_work due to missing originalItem.propertyId)
-        if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-          // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
-          const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-
-          // Use user-entered name from fields, OR from item name if it's not generic
-          const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
-          const isGenericName = !itemName ||
-            itemName === 'Custom work' || itemName === 'Custom material' ||
-            itemName === 'Vlastná práca' || itemName === 'Vlastný materiál' ||
-            itemName === 'Custom work and material';
-
-          // Apply t() to handle items incorrectly tagged as custom_work (e.g., from old invoice data)
-          // For real custom work with user-entered names, t() returns the name as-is (no translation found)
-          displayName = (fieldName ? t(fieldName) : null) || (!isGenericName ? t(itemName) : null) || t(fallbackName);
-        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
-          // For sanitary installation, translate the type name directly
-          displayName = t(item.selectedType || item.subtitle);
-        } else if (item.isLargeFormat) {
-          // For Large Format, show base name + ", large format"
-          const baseName = item.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60 ? 'Tiling' : 'Paving';
-          displayName = `${t(baseName)}, ${t(WORK_ITEM_NAMES.LARGE_FORMAT).toLowerCase()}`;
-        } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
-          // Electrical/plumbing: show main name only in Price Offer, main name + subtitle in Invoice
-          displayName = isPriceOffer ? t(itemName) : `${t(itemName)}\n${t(item.subtitle)}`;
-        } else if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && !itemName.includes(item.subtitle)) {
-          // Plasterboarding: use simple key with selectedType only (no subtitle)
-          // This matches Invoice format: "Sádrokartón, jednoduchý" instead of "Sádrokartón, priečka, jednoduchá"
-          const shouldShowType = item.selectedType && item.propertyId !== 'plasterboarding_ceiling';
-          if (shouldShowType) {
-            const compoundKey = `${itemName}, ${(item.selectedType || '').toLowerCase()}`;
-            displayName = t(compoundKey);
-          } else {
-            displayName = t(itemName);
-          }
-        } else if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle && !itemName.includes(item.subtitle)) {
-          // Raw plinth item: use " - " separator (not comma)
-          const compoundKey = `${itemName} - ${item.subtitle}`;
-          displayName = t(compoundKey);
-        } else {
-          // Generic: translate stored compound name or build compound key with comma separator
-          if (item.subtitle && !itemName.includes(item.subtitle)) {
-            // Use comma separator to match Invoice format (e.g., "Omietka, stena" not "Omietka\nstena")
-            displayName = `${t(itemName)}, ${t(item.subtitle)}`;
-          } else {
-            displayName = t(itemName);
-          }
-        }
-
-        // Post-process to match Invoice format exactly
-        if (displayName) {
-          // Remove thickness ranges from masonry items (e.g., ", 75 - 175mm", ", 200 - 450mm")
-          displayName = displayName.replace(/, \d+ - \d+mm/g, '');
-          // Remove "2 vrstvy" or "2 layers" from painting items
-          displayName = displayName.replace(/, 2 vrstvy/g, '');
-          displayName = displayName.replace(/, 2 layers/g, '');
-          // Fix tiling capitalization/separator if it missed the logic above
-          displayName = displayName.replace(/ (Veľkoformát|Large Format)/g, ', $1').replace(/, (Veľkoformát|Large Format)/g, (match) => match.toLowerCase());
-
-          // Legacy fixes for specific hardcoded strings
-          displayName = displayName.replace(/Dlažba, Veľkoformát/g, 'Dlažba, veľkoformát');
-          displayName = displayName.replace(/Obklad, Veľkoformát/g, 'Obklad, veľkoformát');
-          displayName = displayName.replace(/Paving, Large format/g, 'Paving, large format');
-          displayName = displayName.replace(/Tiling, Large format/g, 'Tiling, large format');
-        }
-
+      // Add work items with category header
+      if (projectBreakdown && projectBreakdown.items && projectBreakdown.items.length > 0) {
         tableData.push([
-          { content: sanitizeText(displayName || ''), parentCategoryKey: 'Works' },
-          { content: sanitizeText(`${formatSmartDecimal(quantity, 2)} ${t(unit)}`), parentCategoryKey: 'Works' },
-          { content: sanitizeText(formatCurrency(pricePerUnit)), parentCategoryKey: 'Works' },
-          { content: sanitizeText(`${Math.round(itemVatRate * 100)} %`), parentCategoryKey: 'Works' },
-          { content: sanitizeText(formatCurrency(vatAmount)), parentCategoryKey: 'Works' },
-          { content: sanitizeText(formatCurrency(workCost)), parentCategoryKey: 'Works' }
+          {
+            content: sanitizeText(t('Works')).charAt(0).toUpperCase() + sanitizeText(t('Works')).slice(1).toLowerCase(),
+            colSpan: 6,
+            styles: { fontStyle: 'normal', fontSize: 8, cellPadding: { top: 1.5, bottom: 0.1 } },
+            isCategoryHeader: true,
+            categoryKey: 'Works'
+          }
         ]);
-      });
-    }
 
-    // Add material items with category header
-    if (projectBreakdown && projectBreakdown.materialItems && projectBreakdown.materialItems.length > 0) {
-      tableData.push([
-        {
-          content: sanitizeText(t('Materials')).charAt(0).toUpperCase() + sanitizeText(t('Materials')).slice(1).toLowerCase(),
-          colSpan: 6,
-          styles: { fontStyle: 'normal', fontSize: 8, cellPadding: { top: 0.4, bottom: 0.1 } },
-          isCategoryHeader: true,
-          categoryKey: 'Materials'
-        }
-      ]);
+        // For Price Offers, sort items by master price list order
+        // For Invoices, items are already sorted by InvoiceCreationModal
+        const sortedItems = (isPriceOffer && options.priceList)
+          ? sortItemsByMasterList(projectBreakdown.items, options.priceList, 'work')
+          : projectBreakdown.items;
 
-      // For Price Offers, sort material items by master price list order
-      const sortedMaterialItems = (isPriceOffer && options.priceList)
-        ? sortItemsByMasterList(projectBreakdown.materialItems || [], options.priceList, 'material')
-        : (projectBreakdown.materialItems || []);
+        sortedItems.forEach(item => {
+          const quantity = item.calculation?.quantity || 0;
+          const workCost = item.calculation?.workCost || 0;
+          const pricePerUnit = quantity > 0 ? workCost / quantity : 0;
 
-      sortedMaterialItems.forEach(item => {
-        const quantity = item.calculation?.quantity || 0;
-        const materialCost = item.calculation?.materialCost || 0;
-        const pricePerUnit = quantity > 0 ? materialCost / quantity : 0;
-        let unit = item.calculation?.unit || item.unit || '';
-        // Strip €/ prefix from unit if present (e.g. "€/m2" -> "m2")
-        if (unit.startsWith('€/')) unit = unit.substring(2);
-        // Convert iOS unit values to display symbols
-        unit = unitToDisplaySymbol(unit);
+          let unit = getWorkItemUnit(item);
 
-        const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
-        const vatAmount = materialCost * itemVatRate;
+          const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
+          const vatAmount = workCost * itemVatRate;
 
-        let displayName;
-        if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-          // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
-          const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+          // Get the work item name - try multiple sources
+          // The stored name is the canonical English name (possibly compound like "Netting, wall")
+          let rawName = item.name || getWorkItemNameByPropertyId(item.propertyId) || '';
+          const itemName = rawName;
+          let displayName;
 
-          // Use user-entered name from fields, OR from item name if it's not generic
-          const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
-          const itemName = item.name;
-          const isGenericName = !itemName ||
-            itemName === 'Custom work' || itemName === 'Custom material' ||
-            itemName === 'Vlastná práca' || itemName === 'Vlastný materiál' ||
-            itemName === 'Custom work and material';
+          // For custom work, use the user-entered name (translate it in case it's a standard item
+          // that was tagged as custom_work due to missing originalItem.propertyId)
+          if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+            // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
+            const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
 
-          // Apply t() to handle items incorrectly tagged as custom_work
-          displayName = (fieldName ? t(fieldName) : null) || (!isGenericName ? t(itemName) : null) || t(fallbackName);
-        } else {
-          // Translate the item name. Handle both compound and simple names
-          if (item.subtitle && !item.name?.includes(item.subtitle)) {
-            // Raw project item: subtitle not part of the name, build compound key
-            const compoundKey = `${item.name || ''}, ${item.subtitle}`;
+            // Use user-entered name from fields, OR from item name if it's not generic
+            const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
+            const isGenericName = !itemName ||
+              itemName === 'Custom work' || itemName === 'Custom material' ||
+              itemName === 'Vlastná práca' || itemName === 'Vlastný materiál' ||
+              itemName === 'Custom work and material';
+
+            // Apply t() to handle items incorrectly tagged as custom_work (e.g., from old invoice data)
+            // For real custom work with user-entered names, t() returns the name as-is (no translation found)
+            displayName = (fieldName ? t(fieldName) : null) || (!isGenericName ? t(itemName) : null) || t(fallbackName);
+          } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
+            // For sanitary installation, translate the type name directly
+            displayName = t(item.selectedType || item.subtitle);
+          } else if (item.isLargeFormat) {
+            // For Large Format, show base name + ", large format"
+            const baseName = item.propertyId === WORK_ITEM_PROPERTY_IDS.TILING_UNDER_60 ? 'Tiling' : 'Paving';
+            displayName = `${t(baseName)}, ${t(WORK_ITEM_NAMES.LARGE_FORMAT).toLowerCase()}`;
+          } else if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING || item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
+            // Electrical/plumbing: show main name only in Price Offer, main name + subtitle in Invoice
+            displayName = isPriceOffer ? t(itemName) : `${t(itemName)}\n${t(item.subtitle)}`;
+          } else if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle && !itemName.includes(item.subtitle)) {
+            // Plasterboarding: use simple key with selectedType only (no subtitle)
+            // This matches Invoice format: "Sádrokartón, jednoduchý" instead of "Sádrokartón, priečka, jednoduchá"
+            const shouldShowType = item.selectedType && item.propertyId !== 'plasterboarding_ceiling';
+            if (shouldShowType) {
+              const compoundKey = `${itemName}, ${(item.selectedType || '').toLowerCase()}`;
+              displayName = t(compoundKey);
+            } else {
+              displayName = t(itemName);
+            }
+          } else if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle && !itemName.includes(item.subtitle)) {
+            // Raw plinth item: use " - " separator (not comma)
+            const compoundKey = `${itemName} - ${item.subtitle}`;
             displayName = t(compoundKey);
           } else {
-            displayName = t(item.name);
-          }
-
-          // Override for iOS parity: "Sádrokartón" -> "Kartón" in PDF/Invoice
-          if (displayName && displayName.includes('Sádrokartón')) {
-            displayName = displayName.replace('Sádrokartón', 'Kartón');
+            // Generic: translate stored compound name or build compound key with comma separator
+            if (item.subtitle && !itemName.includes(item.subtitle)) {
+              // Use comma separator to match Invoice format (e.g., "Omietka, stena" not "Omietka\nstena")
+              displayName = `${t(itemName)}, ${t(item.subtitle)}`;
+            } else {
+              displayName = t(itemName);
+            }
           }
 
           // Post-process to match Invoice format exactly
           if (displayName) {
-            // Remove thickness ranges from masonry items
+            // Remove thickness ranges from masonry items (e.g., ", 75 - 175mm", ", 200 - 450mm")
             displayName = displayName.replace(/, \d+ - \d+mm/g, '');
-            // Fix tiling capitalization
+            // Remove "2 vrstvy" or "2 layers" from painting items
+            displayName = displayName.replace(/, 2 vrstvy/g, '');
+            displayName = displayName.replace(/, 2 layers/g, '');
+            // Fix tiling capitalization/separator if it missed the logic above
             displayName = displayName.replace(/ (Veľkoformát|Large Format)/g, ', $1').replace(/, (Veľkoformát|Large Format)/g, (match) => match.toLowerCase());
+
+            // Legacy fixes for specific hardcoded strings
             displayName = displayName.replace(/Dlažba, Veľkoformát/g, 'Dlažba, veľkoformát');
             displayName = displayName.replace(/Obklad, Veľkoformát/g, 'Obklad, veľkoformát');
+            displayName = displayName.replace(/Paving, Large format/g, 'Paving, large format');
+            displayName = displayName.replace(/Tiling, Large format/g, 'Tiling, large format');
           }
 
-        }
+          tableData.push([
+            { content: sanitizeText(displayName || ''), parentCategoryKey: 'Works' },
+            { content: sanitizeText(`${formatSmartDecimal(quantity, 2)} ${t(unit)}`), parentCategoryKey: 'Works' },
+            { content: sanitizeText(formatCurrency(pricePerUnit)), parentCategoryKey: 'Works' },
+            { content: sanitizeText(`${Math.round(itemVatRate * 100)} %`), parentCategoryKey: 'Works' },
+            { content: sanitizeText(formatCurrency(vatAmount)), parentCategoryKey: 'Works' },
+            { content: sanitizeText(formatCurrency(workCost)), parentCategoryKey: 'Works' }
+          ]);
+        });
+      }
 
+      // Add material items with category header
+      if (projectBreakdown && projectBreakdown.materialItems && projectBreakdown.materialItems.length > 0) {
         tableData.push([
-          { content: sanitizeText(displayName || ''), parentCategoryKey: 'Materials' },
-          { content: sanitizeText(`${formatSmartDecimal(quantity, 2)} ${t(unit)}`), parentCategoryKey: 'Materials' },
-          { content: sanitizeText(formatCurrency(pricePerUnit)), parentCategoryKey: 'Materials' },
-          { content: sanitizeText(`${Math.round(itemVatRate * 100)} %`), parentCategoryKey: 'Materials' },
-          { content: sanitizeText(formatCurrency(vatAmount)), parentCategoryKey: 'Materials' },
-          { content: sanitizeText(formatCurrency(materialCost)), parentCategoryKey: 'Materials' }
+          {
+            content: sanitizeText(t('Materials')).charAt(0).toUpperCase() + sanitizeText(t('Materials')).slice(1).toLowerCase(),
+            colSpan: 6,
+            styles: { fontStyle: 'normal', fontSize: 8, cellPadding: { top: 0.4, bottom: 0.1 } },
+            isCategoryHeader: true,
+            categoryKey: 'Materials'
+          }
         ]);
-      });
-    }
 
-    // Add others items with category header
-    if (projectBreakdown && projectBreakdown.othersItems && projectBreakdown.othersItems.length > 0) {
-      tableData.push([
-        {
-          content: sanitizeText(t('Others')).charAt(0).toUpperCase() + sanitizeText(t('Others')).slice(1).toLowerCase(),
-          colSpan: 6,
-          styles: { fontStyle: 'normal', fontSize: 8, cellPadding: { top: 0.4, bottom: 0.1 } },
-          isCategoryHeader: true,
-          categoryKey: 'Others'
-        }
-      ]);
+        // For Price Offers, sort material items by master price list order
+        const sortedMaterialItems = (isPriceOffer && options.priceList)
+          ? sortItemsByMasterList(projectBreakdown.materialItems || [], options.priceList, 'material')
+          : (projectBreakdown.materialItems || []);
 
-      // Group scaffolding items by their type (assembly/rental)
-      const othersGroups = {};
-      const nonGroupedOthers = [];
+        sortedMaterialItems.forEach(item => {
+          const quantity = item.calculation?.quantity || 0;
+          const materialCost = item.calculation?.materialCost || 0;
+          const pricePerUnit = quantity > 0 ? materialCost / quantity : 0;
+          let unit = item.calculation?.unit || item.unit || '';
+          // Strip €/ prefix from unit if present (e.g. "€/m2" -> "m2")
+          if (unit.startsWith('€/')) unit = unit.substring(2);
+          // Convert iOS unit values to display symbols
+          unit = unitToDisplaySymbol(unit);
 
-      const checkText = (text) => {
-        if (!text) return false;
-        const lower = text.toLowerCase();
-        // Exclude Tool Rental matched by 'rental' - those should stay non-grouped
-        if (lower.includes('tool rental') || lower.includes('požičovňa') || lower.includes('pozicovn')) return false;
-        return text.includes('assembly and disassembly') || text.includes('rental');
-      };
+          const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
+          const vatAmount = materialCost * itemVatRate;
 
-      // For Price Offers, sort others items by master price list order
-      const sortedOthersItems = (isPriceOffer && options.priceList)
-        ? sortItemsByMasterList(projectBreakdown.othersItems, options.priceList, 'others')
-        : projectBreakdown.othersItems;
+          let displayName;
+          if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+            // Use specific fallback based on selectedType: 'Custom work' or 'Custom material'
+            const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
 
-      sortedOthersItems.forEach(item => {
-        const isScaffolding = checkText(item.subtitle) || checkText(item.name);
+            // Use user-entered name from fields, OR from item name if it's not generic
+            const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
+            const itemName = item.name;
+            const isGenericName = !itemName ||
+              itemName === 'Custom work' || itemName === 'Custom material' ||
+              itemName === 'Vlastná práca' || itemName === 'Vlastný materiál' ||
+              itemName === 'Custom work and material';
 
-        if (isScaffolding) {
-          // Determine group key - prefer the one with the keywords
-          const groupKey = checkText(item.name) ? item.name : item.subtitle;
+            // Apply t() to handle items incorrectly tagged as custom_work
+            displayName = (fieldName ? t(fieldName) : null) || (!isGenericName ? t(itemName) : null) || t(fallbackName);
+          } else {
+            // Translate the item name. Handle both compound and simple names
+            if (item.subtitle && !item.name?.includes(item.subtitle)) {
+              // Raw project item: subtitle not part of the name, build compound key
+              const compoundKey = `${item.name || ''}, ${item.subtitle}`;
+              displayName = t(compoundKey);
+            } else {
+              displayName = t(item.name);
+            }
 
+            // Override for iOS parity: "Sádrokartón" -> "Kartón" in PDF/Invoice
+            if (displayName && displayName.includes('Sádrokartón')) {
+              displayName = displayName.replace('Sádrokartón', 'Kartón');
+            }
+
+            // Post-process to match Invoice format exactly
+            if (displayName) {
+              // Remove thickness ranges from masonry items
+              displayName = displayName.replace(/, \d+ - \d+mm/g, '');
+              // Fix tiling capitalization
+              displayName = displayName.replace(/ (Veľkoformát|Large Format)/g, ', $1').replace(/, (Veľkoformát|Large Format)/g, (match) => match.toLowerCase());
+              displayName = displayName.replace(/Dlažba, Veľkoformát/g, 'Dlažba, veľkoformát');
+              displayName = displayName.replace(/Obklad, Veľkoformát/g, 'Obklad, veľkoformát');
+            }
+
+          }
+
+          tableData.push([
+            { content: sanitizeText(displayName || ''), parentCategoryKey: 'Materials' },
+            { content: sanitizeText(`${formatSmartDecimal(quantity, 2)} ${t(unit)}`), parentCategoryKey: 'Materials' },
+            { content: sanitizeText(formatCurrency(pricePerUnit)), parentCategoryKey: 'Materials' },
+            { content: sanitizeText(`${Math.round(itemVatRate * 100)} %`), parentCategoryKey: 'Materials' },
+            { content: sanitizeText(formatCurrency(vatAmount)), parentCategoryKey: 'Materials' },
+            { content: sanitizeText(formatCurrency(materialCost)), parentCategoryKey: 'Materials' }
+          ]);
+        });
+      }
+
+      // Add others items with category header
+      if (projectBreakdown && projectBreakdown.othersItems && projectBreakdown.othersItems.length > 0) {
+        tableData.push([
+          {
+            content: sanitizeText(t('Others')).charAt(0).toUpperCase() + sanitizeText(t('Others')).slice(1).toLowerCase(),
+            colSpan: 6,
+            styles: { fontStyle: 'normal', fontSize: 8, cellPadding: { top: 0.4, bottom: 0.1 } },
+            isCategoryHeader: true,
+            categoryKey: 'Others'
+          }
+        ]);
+
+        // Group scaffolding items by their type (assembly/rental)
+        const othersGroups = {};
+        const nonGroupedOthers = [];
+
+        const checkText = (text) => {
+          if (!text) return false;
+          const lower = text.toLowerCase();
+          // Exclude Tool Rental matched by 'rental' - those should stay non-grouped
+          if (lower.includes('tool rental') || lower.includes('požičovňa') || lower.includes('pozicovn')) return false;
+          return text.includes('assembly and disassembly') || text.includes('rental');
+        };
+
+        // For Price Offers, sort others items by master price list order
+        const sortedOthersItems = (isPriceOffer && options.priceList)
+          ? sortItemsByMasterList(projectBreakdown.othersItems, options.priceList, 'others')
+          : projectBreakdown.othersItems;
+
+        sortedOthersItems.forEach(item => {
+          const isScaffolding = checkText(item.subtitle) || checkText(item.name);
+
+          if (isScaffolding) {
+            // Determine group key - prefer the one with the keywords
+            const groupKey = checkText(item.name) ? item.name : item.subtitle;
+
+            let quantity = item.calculation?.quantity || 0;
+            let unit = item.calculation?.unit || '';
+            if (unit.startsWith('€/')) unit = unit.substring(2);
+            // Convert iOS unit values to display symbols
+            unit = unitToDisplaySymbol(unit);
+
+            const values = item.fields || {};
+
+            // Determine unit and quantity for scaffolding based on groupKey
+            if (groupKey.includes('rental')) {
+              quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || quantity);
+              unit = UNIT_TYPES.DAYS;
+            } else {
+              unit = UNIT_TYPES.METER_SQUARE;
+            }
+
+            const itemCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
+
+            if (!othersGroups[groupKey]) {
+              othersGroups[groupKey] = {
+                name: groupKey, // Use normalized group key as name
+                unit: unit,
+                totalQuantity: 0,
+                totalCost: 0,
+                vatRate: (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate
+              };
+            }
+            othersGroups[groupKey].totalQuantity += quantity;
+            othersGroups[groupKey].totalCost += itemCost;
+          } else {
+            nonGroupedOthers.push(item);
+          }
+        });
+
+        // Sort groups: Rental first, then Assembly
+        const sortedGroups = Object.values(othersGroups).sort((a, b) => {
+          const aName = a.name.toLowerCase();
+          const bName = b.name.toLowerCase();
+          const aIsRental = aName.includes('rental');
+          const bIsRental = bName.includes('rental');
+
+          // Rental comes first
+          if (aIsRental && !bIsRental) return -1;
+          if (!aIsRental && bIsRental) return 1;
+          return 0;
+        });
+
+        // Print grouped scaffolding items
+        // Collate all Others items for sorting (Groups + NonGrouped)
+        const allOthersRows = [];
+
+        // Add grouped items
+        sortedGroups.forEach(group => {
+          const pricePerUnit = group.totalQuantity > 0 ? group.totalCost / group.totalQuantity : 0;
+          const vatAmount = group.totalCost * group.vatRate;
+          const translatedUnit = t(group.unit);
+          const formattedQuantity = (group.unit === UNIT_TYPES.DAY || group.unit === UNIT_TYPES.DAYS)
+            ? `${Math.round(group.totalQuantity)} ${translatedUnit}`
+            : `${formatSmartDecimal(group.totalQuantity, 2)} ${translatedUnit}`;
+
+          allOthersRows.push([
+            { content: sanitizeText(t(group.name) || ''), parentCategoryKey: 'Others' },
+            { content: sanitizeText(formattedQuantity), parentCategoryKey: 'Others' },
+            { content: sanitizeText(formatCurrency(pricePerUnit)), parentCategoryKey: 'Others' },
+            { content: sanitizeText(`${Math.round(group.vatRate * 100)} %`), parentCategoryKey: 'Others' },
+            { content: sanitizeText(formatCurrency(vatAmount)), parentCategoryKey: 'Others' },
+            { content: sanitizeText(formatCurrency(group.totalCost)), parentCategoryKey: 'Others' }
+          ]);
+        });
+
+        // Add non-grouped items
+        const sortedNonGroupedOthers = sortItemsByMasterList(nonGroupedOthers, options.priceList, 'others');
+        sortedNonGroupedOthers.forEach(item => {
           let quantity = item.calculation?.quantity || 0;
-          let unit = item.calculation?.unit || '';
+          const othersCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
+          let unit = item.calculation?.unit || item.unit || '';
+          // Strip €/ prefix from unit if present (e.g. "€/h" -> "h")
           if (unit.startsWith('€/')) unit = unit.substring(2);
           // Convert iOS unit values to display symbols
           unit = unitToDisplaySymbol(unit);
 
           const values = item.fields || {};
 
-          // Determine unit and quantity for scaffolding based on groupKey
-          if (groupKey.includes('rental')) {
-            quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || quantity);
-            unit = UNIT_TYPES.DAYS;
-          } else {
-            unit = UNIT_TYPES.METER_SQUARE;
-          }
+          // Explicitly override unit for Tool Rental to Hours (User request) - priority over calculation
+          const normalize = (str) => (str || '').toLowerCase();
+          const itemName = normalize(item.name);
+          const itemSubtitle = normalize(item.subtitle);
 
-          const itemCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
-
-          if (!othersGroups[groupKey]) {
-            othersGroups[groupKey] = {
-              name: groupKey, // Use normalized group key as name
-              unit: unit,
-              totalQuantity: 0,
-              totalCost: 0,
-              vatRate: (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate
-            };
-          }
-          othersGroups[groupKey].totalQuantity += quantity;
-          othersGroups[groupKey].totalCost += itemCost;
-        } else {
-          nonGroupedOthers.push(item);
-        }
-      });
-
-      // Sort groups: Rental first, then Assembly
-      const sortedGroups = Object.values(othersGroups).sort((a, b) => {
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-        const aIsRental = aName.includes('rental');
-        const bIsRental = bName.includes('rental');
-
-        // Rental comes first
-        if (aIsRental && !bIsRental) return -1;
-        if (!aIsRental && bIsRental) return 1;
-        return 0;
-      });
-
-      // Print grouped scaffolding items
-      // Collate all Others items for sorting (Groups + NonGrouped)
-      const allOthersRows = [];
-
-      // Add grouped items
-      sortedGroups.forEach(group => {
-        const pricePerUnit = group.totalQuantity > 0 ? group.totalCost / group.totalQuantity : 0;
-        const vatAmount = group.totalCost * group.vatRate;
-        const translatedUnit = t(group.unit);
-        const formattedQuantity = (group.unit === UNIT_TYPES.DAY || group.unit === UNIT_TYPES.DAYS)
-          ? `${Math.round(group.totalQuantity)} ${translatedUnit}`
-          : `${formatSmartDecimal(group.totalQuantity, 2)} ${translatedUnit}`;
-
-        allOthersRows.push([
-          { content: sanitizeText(t(group.name) || ''), parentCategoryKey: 'Others' },
-          { content: sanitizeText(formattedQuantity), parentCategoryKey: 'Others' },
-          { content: sanitizeText(formatCurrency(pricePerUnit)), parentCategoryKey: 'Others' },
-          { content: sanitizeText(`${Math.round(group.vatRate * 100)} %`), parentCategoryKey: 'Others' },
-          { content: sanitizeText(formatCurrency(vatAmount)), parentCategoryKey: 'Others' },
-          { content: sanitizeText(formatCurrency(group.totalCost)), parentCategoryKey: 'Others' }
-        ]);
-      });
-
-      // Add non-grouped items
-      const sortedNonGroupedOthers = sortItemsByMasterList(nonGroupedOthers, options.priceList, 'others');
-      sortedNonGroupedOthers.forEach(item => {
-        let quantity = item.calculation?.quantity || 0;
-        const othersCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
-        let unit = item.calculation?.unit || item.unit || '';
-        // Strip €/ prefix from unit if present (e.g. "€/h" -> "h")
-        if (unit.startsWith('€/')) unit = unit.substring(2);
-        // Convert iOS unit values to display symbols
-        unit = unitToDisplaySymbol(unit);
-
-        const values = item.fields || {};
-
-        // Explicitly override unit for Tool Rental to Hours (User request) - priority over calculation
-        const normalize = (str) => (str || '').toLowerCase();
-        const itemName = normalize(item.name);
-        const itemSubtitle = normalize(item.subtitle);
-
-        if ((itemName.includes('tool rental') || itemName.includes('požičovň') || itemName.includes('pozicovn') ||
-          itemSubtitle.includes('tool rental') || itemSubtitle.includes('požičovň') || itemSubtitle.includes('pozicovn'))) {
-          // Force HOUR regardless of whether specific duration fields are found (User wants 'hod')
-          unit = UNIT_TYPES.HOUR;
-
-          // Try to find specific duration if available to override quantity, otherwise rely on existing quantity
-          const duration = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
-          if (duration > 0) {
-            quantity = duration;
-          }
-        }
-
-        // Determine unit and quantity based on item type (using existing logic)
-        if (!item.calculation?.unit) {
-          if (item.subtitle && item.subtitle.includes('- rental') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
-            quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
-            unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
-          } else if (item.subtitle && item.subtitle.includes('assembly and disassembly')) {
-            unit = UNIT_TYPES.METER_SQUARE;
-          } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) &&
-            (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
-            unit = UNIT_TYPES.KM;
-            const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
-            const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
-            quantity = distance * (days > 0 ? days : 1);
-          } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK]) {
+          if ((itemName.includes('tool rental') || itemName.includes('požičovň') || itemName.includes('pozicovn') ||
+            itemSubtitle.includes('tool rental') || itemSubtitle.includes('požičovň') || itemSubtitle.includes('pozicovn'))) {
+            // Force HOUR regardless of whether specific duration fields are found (User wants 'hod')
             unit = UNIT_TYPES.HOUR;
-            quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
-          } else if (!unit) {
-            unit = UNIT_TYPES.METER_SQUARE;
+
+            // Try to find specific duration if available to override quantity, otherwise rely on existing quantity
+            const duration = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
+            if (duration > 0) {
+              quantity = duration;
+            }
           }
-        }
 
-        const pricePerUnit = quantity > 0 ? othersCost / quantity : 0;
-        const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
-        const vatAmount = othersCost * itemVatRate;
+          // Determine unit and quantity based on item type (using existing logic)
+          if (!item.calculation?.unit) {
+            if (item.subtitle && item.subtitle.includes('- rental') && values[WORK_ITEM_NAMES.RENTAL_DURATION]) {
+              quantity = parseFloat(values[WORK_ITEM_NAMES.RENTAL_DURATION] || 0);
+              unit = quantity > 1 ? UNIT_TYPES.DAYS : UNIT_TYPES.DAY;
+            } else if (item.subtitle && item.subtitle.includes('assembly and disassembly')) {
+              unit = UNIT_TYPES.METER_SQUARE;
+            } else if ((values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK]) &&
+              (item.name === WORK_ITEM_NAMES.JOURNEY || item.name === WORK_ITEM_NAMES.COMMUTE || item.name === 'Cesta')) {
+              unit = UNIT_TYPES.KM;
+              const distance = parseFloat(values[WORK_ITEM_NAMES.DISTANCE_EN] || values[WORK_ITEM_NAMES.DISTANCE_SK] || 0);
+              const days = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
+              quantity = distance * (days > 0 ? days : 1);
+            } else if (values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK]) {
+              unit = UNIT_TYPES.HOUR;
+              quantity = parseFloat(values[WORK_ITEM_NAMES.DURATION_EN] || values[WORK_ITEM_NAMES.DURATION_SK] || 0);
+            } else if (!unit) {
+              unit = UNIT_TYPES.METER_SQUARE;
+            }
+          }
 
-        // Name resolution
-        let displayName;
-        if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-          const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-          const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
-          displayName = (fieldName ? t(fieldName) : null) || t(fallbackName);
-        } else {
-          if (item.subtitle && !item.name?.includes(item.subtitle)) {
-            // Use comma separator to match Invoice format
-            displayName = `${t(item.name)}, ${t(item.subtitle)}`;
+          const pricePerUnit = quantity > 0 ? othersCost / quantity : 0;
+          const itemVatRate = (item.vatRate !== undefined && item.vatRate !== null) ? item.vatRate : vatRate;
+          const vatAmount = othersCost * itemVatRate;
+
+          // Name resolution
+          let displayName;
+          if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
+            const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
+            const fieldName = item.fields?.[WORK_ITEM_NAMES.NAME];
+            displayName = (fieldName ? t(fieldName) : null) || t(fallbackName);
           } else {
-            displayName = t(item.name);
+            if (item.subtitle && !item.name?.includes(item.subtitle)) {
+              // Use comma separator to match Invoice format
+              displayName = `${t(item.name)}, ${t(item.subtitle)}`;
+            } else {
+              displayName = t(item.name);
+            }
           }
-        }
 
-        // Post-process to match Invoice format exactly
-        if (displayName) {
-          // Remove " - prenájom" suffix from scaffolding rental
-          displayName = displayName.replace(/ - prenájom/g, '');
-        }
+          // Post-process to match Invoice format exactly
+          if (displayName) {
+            // Remove " - prenájom" suffix from scaffolding rental
+            displayName = displayName.replace(/ - prenájom/g, '');
+          }
 
-        const translatedUnit = t(unit);
-        const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
-          ? `${Math.round(quantity)} ${translatedUnit}`
-          : `${formatSmartDecimal(quantity, 2)} ${translatedUnit}`;
+          const translatedUnit = t(unit);
+          const formattedQuantity = (unit === UNIT_TYPES.DAY || unit === UNIT_TYPES.DAYS)
+            ? `${Math.round(quantity)} ${translatedUnit}`
+            : `${formatSmartDecimal(quantity, 2)} ${translatedUnit}`;
 
-        allOthersRows.push([
-          { content: sanitizeText(displayName || ''), parentCategoryKey: 'Others' },
-          { content: sanitizeText(formattedQuantity), parentCategoryKey: 'Others' },
-          { content: sanitizeText(formatCurrency(pricePerUnit)), parentCategoryKey: 'Others' },
-          { content: sanitizeText(`${Math.round(itemVatRate * 100)} %`), parentCategoryKey: 'Others' },
-          { content: sanitizeText(formatCurrency(vatAmount)), parentCategoryKey: 'Others' },
-          { content: sanitizeText(formatCurrency(othersCost)), parentCategoryKey: 'Others' }
-        ]);
-      });
+          allOthersRows.push([
+            { content: sanitizeText(displayName || ''), parentCategoryKey: 'Others' },
+            { content: sanitizeText(formattedQuantity), parentCategoryKey: 'Others' },
+            { content: sanitizeText(formatCurrency(pricePerUnit)), parentCategoryKey: 'Others' },
+            { content: sanitizeText(`${Math.round(itemVatRate * 100)} %`), parentCategoryKey: 'Others' },
+            { content: sanitizeText(formatCurrency(vatAmount)), parentCategoryKey: 'Others' },
+            { content: sanitizeText(formatCurrency(othersCost)), parentCategoryKey: 'Others' }
+          ]);
+        });
 
-      // Apply Custom Sort: Cesta (Travel) -> Lešenie (Scaffolding) -> Montáž (Assembly) -> Vŕtačka (Drill) -> Požičovňa (Rental)
-      const getSortPriority = (text) => {
-        const t = text.toLowerCase();
-        if (t.includes('cesta') || t.includes('travel') || t.includes('journey')) return 1;
-        if (t.includes('lešenie') && !t.includes('montáž')) return 2; // Scaffolding (rental/base)
-        if (t.includes('lešenie') && t.includes('montáž')) return 3; // Scaffolding Assembly
-        if (t.includes('jadrová') || t.includes('drill')) return 4;
-        if (t.includes('požičovňa') || t.includes('tool rental')) return 5;
-        return 100; // Others
-      };
+        // Apply Custom Sort: Cesta (Travel) -> Lešenie (Scaffolding) -> Montáž (Assembly) -> Vŕtačka (Drill) -> Požičovňa (Rental)
+        const getSortPriority = (text) => {
+          const t = text.toLowerCase();
+          if (t.includes('cesta') || t.includes('travel') || t.includes('journey')) return 1;
+          if (t.includes('lešenie') && !t.includes('montáž')) return 2; // Scaffolding (rental/base)
+          if (t.includes('lešenie') && t.includes('montáž')) return 3; // Scaffolding Assembly
+          if (t.includes('jadrová') || t.includes('drill')) return 4;
+          if (t.includes('požičovňa') || t.includes('tool rental')) return 5;
+          return 100; // Others
+        };
 
-      allOthersRows.sort((a, b) => {
-        const nameA = a[0].content; // Assuming index 0 is Description
-        const nameB = b[0].content;
-        return getSortPriority(nameA) - getSortPriority(nameB);
-      });
+        allOthersRows.sort((a, b) => {
+          const nameA = a[0].content; // Assuming index 0 is Description
+          const nameB = b[0].content;
+          return getSortPriority(nameA) - getSortPriority(nameB);
+        });
 
-      // Push sorted rows to tableData
-      allOthersRows.forEach(row => tableData.push(row));
-    }
+        // Push sorted rows to tableData
+        allOthersRows.forEach(row => tableData.push(row));
+      }
     } // end of non-Denník breakdown
 
     // Render the items table - only 2 thick black lines (under header and at bottom)
@@ -1307,22 +1307,7 @@ export const generateInvoicePDF = async ({
       }
     };
 
-    // Calculate positions for truly equal visual gaps (185.3 total usable width)
-    // Usable width = 197.65 - 12.35 = 185.3
-    // We want 4 columns with equal gaps. 
-    // Col 1 at 12.35, Col 4 ending at 197.65.
-    // Center point of gaps: 12.35 + (185.3 * 1/4, 2/4, 3/4) is not ideal because text widths vary.
-    // Let's use fixed step positions to ensure they don't drift too far right.
-    const col1 = 12.35;
-    const col2 = 70;     // Nudged slightly left from 74.12
-    const col3 = 118;    // Nudged further left from 125
-    const col4 = 197.65; // Flush to right edge
-    const colWidth = 45; // Slightly narrower to ensure gaps
-    const iconOffset = 6;
-    const textMaxWidth = colWidth - iconOffset - 1;
     const iconLineHeight = 4.0;
-
-    doc.setFontSize(9.3); // Scaled from iOS 10pt
 
     // Helper to draw wrapped text for footer icons
     const drawWrappedIconText = (text, x, y, maxWidth, medium = false, align = 'left') => {
@@ -1339,47 +1324,77 @@ export const generateInvoicePDF = async ({
       return lines.length;
     };
 
-    // Column 1: Contact Person (left edge)
+    // Dynamic distribution for the top row (Name | Phone | Web | Email)
+    const totalUsableWidth = 185.3;
+    const startX = 12.35;
+    const endX = 197.65;
+    const iconWidth = 6;
+    const minGap = 4; // Absolute minimum gap between sections
+
+    // Collect available info and calculate widths
+    const footerSections = [];
     const contactPerson = contractor?.contactPerson || contractor?.contact_person_name || '';
-    if (contactPerson) {
-      drawIcon('user', col1, topRowY, 3);
-      drawWrappedIconText(contactPerson, col1 + iconOffset, topRowY, textMaxWidth, false);
-    }
+    if (contactPerson) footerSections.push({ type: 'user', text: contactPerson });
+    if (contractor?.phone) footerSections.push({ type: 'phone', text: contractor.phone });
+    if (contractor?.website) footerSections.push({ type: 'web', text: contractor.website });
+    if (contractor?.email) footerSections.push({ type: 'email', text: contractor.email, isEmail: true });
 
-    // Column 2: Phone
-    if (contractor?.phone) {
-      drawIcon('phone', col2, topRowY, 3);
-      drawWrappedIconText(contractor.phone, col2 + iconOffset, topRowY, textMaxWidth);
-    }
+    doc.setFontSize(9.3);
+    doc.setFont('SF-Pro', 'normal');
 
-    // Column 3: Web
-    if (contractor?.website) {
-      // For web and phone, we use left alignment
-      drawIcon('web', col3, topRowY, 3);
-      drawWrappedIconText(contractor.website, col3 + iconOffset, topRowY, textMaxWidth);
-    }
+    // Calculate actual widths needed
+    let totalTextWidth = 0;
+    footerSections.forEach(section => {
+      section.width = doc.getTextWidth(sanitizeText(section.text)) + iconWidth;
+      totalTextWidth += section.width;
+    });
 
-    // Column 4: Email (right edge - right aligned for flush look)
-    if (contractor?.email) {
-      const emailIconSize = 4;
-      // Calculate text width to position icon correctly to the left of the text
-      // Since it's right aligned, we need: RightEdge(col4) - TextWidth - IconPadding - IconWidth
-      const emailText = sanitizeText(contractor.email);
-      doc.setFont('SF-Pro', 'normal');
-      // If text wraps, getting accurate width is harder, but for email it usually fits.
-      // Use splitTextToSize to check if it wraps.
-      const lines = doc.splitTextToSize(emailText, textMaxWidth);
-      // Use the width of the longest line (or just the first/only line)
-      let maxLineWidth = 0;
-      lines.forEach(line => {
-        const w = doc.getTextWidth(line);
-        if (w > maxLineWidth) maxLineWidth = w;
+    // Space out or compress gaps based on available room
+    let currentX = startX;
+    const sectionCount = footerSections.length;
+
+    if (sectionCount > 0) {
+      const remainingSpace = totalUsableWidth - totalTextWidth;
+      // If we have plenty of space, use a generous gap, but if cramped, use minGap
+      const gap = sectionCount > 1
+        ? Math.max(minGap, Math.min(15, remainingSpace / (sectionCount - 1)))
+        : 0;
+
+      footerSections.forEach((section, i) => {
+        const isLast = i === sectionCount - 1;
+
+        // If it's the rightmost info (usually email), align it to the right edge
+        if (isLast && sectionCount > 1) {
+          const rightX = endX;
+
+          if (section.isEmail) {
+            const emailIconSize = 4;
+            // Allow email to take up to 70mm, but calculate its actual current width for icon positioning
+            const emailMaxWidth = 70;
+            const lines = doc.splitTextToSize(sanitizeText(section.text), emailMaxWidth);
+            let maxLineWidth = 0;
+            lines.forEach(line => {
+              const w = doc.getTextWidth(line);
+              if (w > maxLineWidth) maxLineWidth = w;
+            });
+            const iconX = rightX - maxLineWidth - emailIconSize - 2;
+            drawIcon('email', iconX, topRowY, emailIconSize);
+            drawWrappedIconText(section.text, rightX, topRowY, emailMaxWidth, false, 'right');
+          } else {
+            // For non-email last items, just right align
+            drawIcon(section.type, rightX - section.width, topRowY, 3);
+            drawWrappedIconText(section.text, rightX, topRowY, 60, false, 'right');
+          }
+        } else {
+          // Normal left-to-right distribution
+          drawIcon(section.type, currentX, topRowY, 3);
+          // Allow wider text if there's space (up to next section or page edge)
+          const sectionMaxWidth = 60; // Allow up to 60mm per section
+
+          drawWrappedIconText(section.text, currentX + iconWidth, topRowY, sectionMaxWidth, false);
+          currentX += section.width + gap;
+        }
       });
-
-      const iconX = col4 - maxLineWidth - emailIconSize - 2; // 2mm padding between icon and text
-
-      drawIcon('email', iconX, topRowY, emailIconSize);
-      drawWrappedIconText(contractor.email, col4, topRowY, textMaxWidth, false, 'right');
     }
 
     // Divider line - equal spacing above and below
