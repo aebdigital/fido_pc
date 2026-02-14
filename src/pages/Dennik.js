@@ -7,6 +7,7 @@ import {
     Clock
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +33,7 @@ const formatDuration = (hours) => {
 const Dennik = () => {
     const { t } = useLanguage();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const {
         clients,
         activeTimer
@@ -108,13 +110,29 @@ const Dennik = () => {
                 if (ownedProjects.length > 0) {
                     const ownedIds = ownedProjects.map(p => p.id || p.c_id);
                     const members = await api.dennik.getAllMembersForProjects(ownedIds);
+
+                    // Add current user (Owner) if not present
+                    if (user?.id) {
+                        const isPresent = members.some(m => m.id === user.id);
+                        if (!isPresent) {
+                            try {
+                                const userProfile = await api.profiles.getProfile();
+                                if (userProfile) {
+                                    members.unshift({ ...userProfile, isOwner: true, member_name: t('Me (Owner)') });
+                                }
+                            } catch (e) { console.warn('Failed to load owner profile', e); }
+                        } else {
+                            // If present, mark/rename as needed? Or just let it be.
+                        }
+                    }
+
                     setAllMembers(members || []);
                 }
             }
         } catch (error) {
             console.error('Error loading dennik data:', error);
         }
-    }, [getDateRange]);
+    }, [getDateRange, user?.id]);
 
     // Load member-specific entries when filter changes
     const loadMemberEntries = useCallback(async (memberId, days) => {
@@ -257,7 +275,8 @@ const Dennik = () => {
     const getSelectedMemberName = () => {
         if (!selectedMemberFilter) return t('All projects');
         const member = allMembers.find(m => m.id === selectedMemberFilter);
-        return member?.full_name || member?.email || t('Member');
+        const displayName = member?.memberRecords?.[0]?.member_name || member?.member_name || member?.full_name || member?.email || t('Member');
+        return displayName;
     };
 
     const renderCalendar = () => {
@@ -435,9 +454,14 @@ const Dennik = () => {
                                             }`}
                                     >
                                         <div className="w-6 h-6 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
-                                            {member.full_name?.charAt(0) || member.email?.charAt(0) || '?'}
+                                            {(member.member_name || member.full_name || member.email || '?').charAt(0)}
                                         </div>
-                                        <span className="truncate">{member.full_name || member.email}</span>
+                                        <span className="truncate">
+                                            {member.member_name || member.full_name || member.email}
+                                            {member.isOwner && !((member.member_name || '').includes(t('Owner'))) && (
+                                                <span className="ml-1 text-xs text-blue-500 font-bold">({t('Owner')})</span>
+                                            )}
+                                        </span>
                                     </button>
                                 ))}
                             </div>

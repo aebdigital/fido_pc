@@ -2225,7 +2225,8 @@ export const dennikApi = {
         // Merge profile data with members
         return members.map(member => ({
           ...member,
-          profiles: profiles?.find(p => p.id === member.user_id) || null
+          profiles: profiles?.find(p => p.id === member.user_id) || null,
+          member_name: member.member_name // Explicitly ensure it's here
         }))
       }
 
@@ -2239,12 +2240,22 @@ export const dennikApi = {
   // Add a member to a project
   addProjectMember: async (projectId, userId, role = 'member') => {
     try {
+      // Check for existing alias
+      let memberName = null
+      try {
+        const { data: alias } = await supabase.rpc('get_member_alias', { target_user_id: userId })
+        if (alias) memberName = alias
+      } catch (e) {
+        console.warn('Failed to fetch alias', e)
+      }
+
       const { data, error } = await supabase
         .from('project_members')
         .insert({
           project_id: projectId,
           user_id: userId,
-          role
+          role,
+          member_name: memberName
         })
         .select()
         .single()
@@ -2272,13 +2283,17 @@ export const dennikApi = {
   },
 
   // Remove a member from a project
-  removeProjectMember: async (projectId, userId) => {
+  removeProjectMember: async (projectId, userId, memberId = null) => {
     try {
-      const { error } = await supabase
-        .from('project_members')
-        .delete()
-        .eq('project_id', projectId)
-        .eq('user_id', userId)
+      const query = supabase.from('project_members').delete()
+
+      if (memberId) {
+        query.eq('id', memberId)
+      } else {
+        query.eq('project_id', projectId).eq('user_id', userId)
+      }
+
+      const { error } = await query
 
       if (error) throw error
       return true
@@ -2600,7 +2615,7 @@ export const dennikApi = {
       if (!projectIds || projectIds.length === 0) return []
       const { data: members, error } = await supabase
         .from('project_members')
-        .select('user_id, project_id')
+        .select('user_id, project_id, member_name')
         .in('project_id', projectIds)
 
       if (error) throw error
@@ -2613,13 +2628,39 @@ export const dennikApi = {
         .select('id, email, full_name, avatar_url')
         .in('id', uniqueUserIds)
 
-      return (profiles || []).map(p => ({
-        ...p,
-        projectIds: members.filter(m => m.user_id === p.id).map(m => m.project_id)
-      }))
+      return (profiles || []).map(p => {
+        const memberRecs = members.filter(m => m.user_id === p.id);
+        const firstWithName = memberRecs.find(m => m.member_name);
+        return {
+          ...p,
+          memberRecords: memberRecs,
+          projectIds: memberRecs.map(m => m.project_id),
+          member_name: firstWithName ? firstWithName.member_name : null // Expose alias at top level
+        };
+      })
     } catch (error) {
       handleError('dennikApi.getAllMembersForProjects', error)
       return []
+    }
+  },
+
+  // Update a project member (e.g. rename)
+  updateProjectMember: async (projectId, userId, updates, memberId = null) => {
+    try {
+      const query = supabase.from('project_members').update(updates)
+
+      if (memberId) {
+        query.eq('id', memberId)
+      } else {
+        query.eq('project_id', projectId).eq('user_id', userId)
+      }
+
+      const { data, error } = await query.select()
+
+      if (error) throw error
+      return data && data.length > 0 ? data[0] : null
+    } catch (error) {
+      handleError('dennikApi.updateProjectMember', error)
     }
   },
 

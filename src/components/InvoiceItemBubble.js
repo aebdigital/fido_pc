@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FileText, Pencil } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -17,10 +17,12 @@ import NumberInput from './NumberInput';
 const InvoiceItemBubble = ({
   item,
   onUpdate,
-  category = 'work'
+  category = 'work',
+  suggestions = []
 }) => {
   const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(item.isNew || false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Local state for editing
   const [title, setTitle] = useState(item.title || '');
@@ -32,6 +34,47 @@ const InvoiceItemBubble = ({
   const [taxObligationTransfer, setTaxObligationTransfer] = useState(item.taxObligationTransfer || false);
   const [unit, setUnit] = useState(item.unit || 'm2');
   const [vatInputString, setVatInputString] = useState(item.vat !== undefined ? String(item.vat) : '23');
+
+  // Filter suggestions based on title input
+  const filteredSuggestions = useMemo(() => {
+    // Show suggestions only after user types at least one non-space character
+    if (!suggestions || suggestions.length === 0 || !title || title.trim().length === 0) return [];
+
+    const lower = title.toLowerCase();
+    // Filter by name match, limit results to 6 to fit screen
+    return suggestions
+      .filter(s => s.title && s.title.toLowerCase().includes(lower) && s.title !== title)
+      .slice(0, 6);
+  }, [title, suggestions]);
+
+  const handleSuggestionClick = (suggestion) => {
+    setTitle(suggestion.title);
+    setPricePerPiece(suggestion.price || 0);
+    setUnit(suggestion.unit || 'ks');
+
+    // Update VAT if present in suggestion
+    const newVat = suggestion.vat !== undefined ? suggestion.vat : vat;
+    if (suggestion.vat !== undefined) {
+      setVat(suggestion.vat);
+      setVatInputString(String(suggestion.vat));
+    }
+
+    const newPrice = pieces * (suggestion.price || 0);
+    setPrice(newPrice);
+    setShowSuggestions(false);
+
+    if (onUpdate) {
+      onUpdate(item.id, {
+        ...item,
+        title: suggestion.title,
+        pricePerPiece: suggestion.price || 0,
+        unit: suggestion.unit || 'ks',
+        price: newPrice,
+        vat: newVat
+      });
+    }
+  };
+
 
   // Sync with parent item changes
   useEffect(() => {
@@ -151,13 +194,39 @@ const InvoiceItemBubble = ({
           {/* Title and count */}
           <div className="flex-1 min-w-0">
             {isExpanded ? (
-              <input
-                type="text"
-                value={t(title) || title}
-                onChange={handleTitleChange}
-                className="w-full text-lg font-medium text-gray-900 dark:text-gray-900 bg-white border border-gray-300 rounded-xl px-3 py-2 focus:border-gray-900 outline-none"
-                placeholder={t('Item name')}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => {
+                    handleTitleChange(e);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  className="w-full text-lg font-medium text-gray-900 dark:text-gray-900 bg-white border border-gray-300 rounded-xl px-3 py-2 focus:border-gray-900 outline-none"
+                  placeholder={t('Item name')}
+                />
+                {showSuggestions && filteredSuggestions.length > 0 && (
+                  <div className="absolute z-50 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mt-1 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                    {filteredSuggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        onClick={(e) => {
+                          e.preventDefault(); // Prevent blur from closing before click
+                          handleSuggestionClick(s);
+                        }}
+                        className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b last:border-0 border-gray-100 dark:border-gray-700"
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white">{s.title}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex justify-between mt-1">
+                          <span>{formatCurrency(s.price)} / {t(s.unit)} {s.vat !== undefined ? `(${s.vat}%)` : ''}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               <h4 className={`text-lg font-medium truncate ${active ? 'text-gray-900' : 'text-gray-500'}`}>
                 {t(title) || title}

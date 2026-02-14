@@ -811,8 +811,21 @@ export const AppDataProvider = ({ children }) => {
             return [...arr, transformed];
           } else {
             const idx = arr.findIndex(i => i.id === record.c_id || i.id === record.id);
-            if (idx >= 0) arr[idx] = transformed;
-            else arr.push(transformed);
+            if (idx >= 0) {
+              const exists = arr[idx];
+              const merged = { ...exists, ...transformed };
+              // Ensure we don't lose joined data
+              if (!transformed.projects && exists.projects) merged.projects = exists.projects;
+              if (!transformed.projectName && exists.projectName) merged.projectName = exists.projectName;
+              if (!transformed.contractors && exists.contractors) merged.contractors = exists.contractors;
+              if (!transformed.priceListSnapshot && exists.priceListSnapshot) merged.priceListSnapshot = exists.priceListSnapshot;
+              if (!transformed.photos && exists.photos) merged.photos = exists.photos;
+              if (!transformed.projectHistory && exists.projectHistory) merged.projectHistory = exists.projectHistory;
+
+              arr[idx] = merged;
+            } else {
+              arr.push(transformed);
+            }
             return arr;
           }
         };
@@ -851,12 +864,15 @@ export const AppDataProvider = ({ children }) => {
             if (contractorId && next.contractorProjects[contractorId]) {
               const fetchedProject = newRecordMap.get(record.c_id);
               const rawProject = eventType === 'INSERT' ? fetchedProject : { ...record, id: record.c_id || record.id };
-              // Normalize snake_case → camelCase for key fields so ProjectDetailView can read them
+              // Normalize snake_case → camelCase and parse JSON fields for UI compatibility
               const projectToUse = rawProject ? {
                 ...rawProject,
                 clientId: rawProject.client_id || rawProject.clientId,
                 clientName: rawProject.client_name || rawProject.clientName,
                 contractorId: rawProject.contractor_id || rawProject.contractorId,
+                isArchived: rawProject.is_archived,
+                photos: rawProject.photos ? (typeof rawProject.photos === 'string' ? JSON.parse(rawProject.photos) : rawProject.photos) : undefined,
+                projectHistory: rawProject.project_history ? (typeof rawProject.project_history === 'string' ? JSON.parse(rawProject.project_history) : rawProject.project_history) : undefined,
               } : null;
 
               // Only proceed if we have valid project data

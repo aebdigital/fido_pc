@@ -86,7 +86,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     deleteReceipt,
     analyzeReceiptImage,
     isPro, // Added Pro check
-    findProjectById
+    findProjectById,
+    invoices
   } = useAppData();
   const { user } = useAuth();
 
@@ -141,6 +142,19 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [showDennikModal, setShowDennikModal] = useState(false);
   const [dennikInitialDate, setDennikInitialDate] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Invoices for this project to show in ClientForm
+  const projectInvoices = useMemo(() => {
+    // Use current project ID
+    if (!projectId || !invoices) return [];
+    return invoices.filter(inv => inv.projectId === projectId).sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate));
+  }, [projectId, invoices]);
+
+  const clientWithInvoices = useMemo(() => {
+    if (!selectedClientForProject) return null;
+    return { ...selectedClientForProject, invoices: projectInvoices, projectName: project?.name };
+  }, [selectedClientForProject, projectInvoices, project?.name]);
 
   // Touch handling state
   const [touchStart, setTouchStart] = useState(null);
@@ -546,18 +560,35 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
     const newPhotos = [];
     for (const file of files) {
-      // Compress image before storing (max 1200px, 70% quality)
-      const compressedBase64 = await compressImage(file, {
-        maxWidth: 1200,
-        maxHeight: 1200,
-        quality: 0.7
-      });
-      newPhotos.push({
-        id: crypto.randomUUID(), // Use string UUID for iOS compatibility
-        url: compressedBase64,
-        name: file.name,
-        createdAt: new Date().toISOString()
-      });
+      if (file.type === 'application/pdf') {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        newPhotos.push({
+          id: crypto.randomUUID(),
+          url: base64, // Data URI
+          name: file.name,
+          type: 'pdf',
+          createdAt: new Date().toISOString()
+        });
+      } else {
+        // Compress image before storing
+        const compressedBase64 = await compressImage(file, {
+          maxWidth: 1200,
+          maxHeight: 1200,
+          quality: 0.7
+        });
+        newPhotos.push({
+          id: crypto.randomUUID(),
+          url: compressedBase64,
+          name: file.name,
+          type: 'image',
+          createdAt: new Date().toISOString()
+        });
+      }
     }
 
     const updatedPhotos = [...projectPhotos, ...newPhotos];
@@ -570,23 +601,39 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     event.stopPropagation();
     setIsDraggingPhoto(false);
 
-    const files = Array.from(event.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+    const files = Array.from(event.dataTransfer.files);
     if (!files.length) return;
 
     const newPhotos = [];
     for (const file of files) {
-      // Compress image before storing (max 1200px, 70% quality)
-      const compressedBase64 = await compressImage(file, {
-        maxWidth: 1200,
-        maxHeight: 1200,
-        quality: 0.7
-      });
-      newPhotos.push({
-        id: crypto.randomUUID(), // Use string UUID for iOS compatibility
-        url: compressedBase64,
-        name: file.name,
-        createdAt: new Date().toISOString()
-      });
+      if (file.type === 'application/pdf') {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        newPhotos.push({
+          id: crypto.randomUUID(),
+          url: base64,
+          name: file.name,
+          type: 'pdf',
+          createdAt: new Date().toISOString()
+        });
+      } else if (file.type.startsWith('image/')) {
+        const compressedBase64 = await compressImage(file, {
+          maxWidth: 1200,
+          maxHeight: 1200,
+          quality: 0.7
+        });
+        newPhotos.push({
+          id: crypto.randomUUID(),
+          url: compressedBase64,
+          name: file.name,
+          type: 'image',
+          createdAt: new Date().toISOString()
+        });
+      }
     }
 
     const updatedPhotos = [...projectPhotos, ...newPhotos];
@@ -891,6 +938,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const handleSendPriceOffer = async () => {
     if (!isPro) { setShowPaywall(true); return; }
+    if (isSharing) return;
+
     const contractor = getCurrentContractor();
     const client = clients.find(c => c.id === project.clientId);
     const projectBreakdown = calculateProjectTotalPriceWithBreakdown(projectId);
@@ -927,12 +976,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
     }
 
     if (navigator.share) {
+      setIsSharing(true);
       try {
         let currentBlob = pdfBlob;
 
         // If we don't have a blob (e.g. user clicked Send without Preview), generate it now
         if (!currentBlob) {
-          const projectBreakdown = calculateProjectTotalPriceWithBreakdown(projectId);
           const result = await generatePriceOfferPDF({
             invoice: {
               invoiceNumber: '',
@@ -950,11 +999,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             totalWithVAT,
             formatDate: (dateString) => new Date(dateString).toLocaleDateString('sk-SK'),
             formatPrice,
-            projectNotes: project.notes,
-            projectNumber: formatProjectNumber(project),
-            projectCategory: project.category,
-            offerValidityPeriod: priceOfferSettings?.timeLimit || 30,
-            priceList: project.priceListSnapshot
+            projectNotes: project.notes
           }, t);
           currentBlob = result.pdfBlob;
           setPdfBlob(currentBlob);
@@ -980,6 +1025,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           console.error('Error sharing:', error);
           alert(t('Unable to share. Please try again.'));
         }
+      } finally {
+        setIsSharing(false);
       }
     } else {
       if (navigator.clipboard) {
@@ -1716,7 +1763,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Photos')}</h2>
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Files')}</h2>
               </div>
               {canEditProject && (
                 <div className="flex items-center gap-2">
@@ -1737,7 +1784,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 </div>
               )}
             </div>
-            <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+            <input ref={photoInputRef} type="file" accept="image/*,application/pdf" multiple onChange={handlePhotoUpload} className="hidden" />
             {projectPhotos.length > 0 ? (
               <div
                 className={`relative rounded-2xl no-border no-gradient transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
@@ -1753,21 +1800,33 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   {projectPhotos.slice(photoPage * 21, (photoPage + 1) * 21).map((photo, index) => (
                     <div
                       key={photo.id}
-                      className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
+                      className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (photoDeleteMode) {
                           handleDeletePhoto(photo.id);
                         } else {
-                          setSelectedPhotoIndex(photoPage * 21 + index);
-                          setLightboxOpen(true);
-                          setLightboxDirection(0);
+                          if (photo.type === 'pdf' || photo.name?.toLowerCase().endsWith('.pdf') || photo.url?.startsWith('data:application/pdf')) {
+                            setPdfUrl(photo.url);
+                            setShowPDFPreview(true);
+                          } else {
+                            setSelectedPhotoIndex(photoPage * 21 + index);
+                            setLightboxOpen(true);
+                            setLightboxDirection(0);
+                          }
                         }
                       }}
                     >
-                      <img src={photo.url} alt={photo.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      {photo.type === 'pdf' || photo.name?.toLowerCase().endsWith('.pdf') || photo.url?.startsWith('data:application/pdf') ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                          <FileText className="w-10 h-10 text-red-500 mb-2" />
+                          <span className="text-xs text-center text-gray-600 dark:text-gray-300 truncate w-full px-1">{photo.name}</span>
+                        </div>
+                      ) : (
+                        <img src={photo.url} alt={photo.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      )}
                       {photoDeleteMode && (
-                        <div className="absolute inset-0 bg-red-500/40 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-red-500/40 flex items-center justify-center z-10">
                           <Trash2 className="w-8 h-8 text-white" />
                         </div>
                       )}
@@ -1807,7 +1866,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 {/* Drag overlay hint */}
                 {isDraggingPhoto && (
                   <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-2xl pointer-events-none">
-                    <span className="text-blue-600 dark:text-blue-400 font-semibold">{t('Drop photos here')}</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">{t('Drop files here')}</span>
                   </div>
                 )}
               </div>
@@ -1822,7 +1881,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               >
                 <Image className="w-8 h-8 mb-2 text-gray-400" />
                 <span className="text-sm text-gray-500">
-                  {canEditProject ? (isDraggingPhoto ? t('Drop photos here') : t('Click or drag photos here')) : t('No photos yet')}
+                  {canEditProject ? (isDraggingPhoto ? t('Drop files here') : t('Click or drag files here')) : t('No files yet')}
                 </span>
               </div>
             )}
@@ -1944,7 +2003,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
                 <ClientForm
                   ref={clientFormRef}
-                  initialData={selectedClientForProject}
+                  initialData={clientWithInvoices}
                   onSave={handleUpdateClient}
                   onCancel={() => setShowEditClientModal(false)}
                 />

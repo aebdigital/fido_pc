@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Trash2, Plus, CalendarDays, MessageSquare } from 'lucide-react';
+import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Pencil, Trash2, Plus, CalendarDays, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useAppData } from '../context/AppDataContext';
@@ -8,6 +8,134 @@ import InvoiceCreationModal from './InvoiceCreationModal';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
 import ConfirmationModal from './ConfirmationModal';
 import Linkify from '../utils/linkify';
+
+const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatDuration, t, handleRemoveMember, handleResetName }) => {
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newName, setNewName] = useState(member.member_name || member.profiles?.full_name || member.profiles?.email || '');
+
+    const memberHours = timeEntries
+        .filter(e => e.user_id === member.user_id)
+        .reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
+
+    return (
+        <div
+            key={member.id}
+            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
+        >
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold flex-shrink-0">
+                    {member.member_name?.charAt(0) || member.profiles?.full_name?.charAt(0) || member.profiles?.email?.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                    {isEditingName ? (
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                className="w-full px-2 py-1 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        const pId = project.c_id || project.id;
+                                        if (!pId || !member.user_id) {
+                                            alert(t('Error: Missing ID'));
+                                            return;
+                                        }
+                                        api.dennik.updateProjectMember(pId, member.user_id, { member_name: newName }, member.id)
+                                            .then(() => {
+                                                loadMembers();
+                                                setIsEditingName(false);
+                                            })
+                                            .catch(err => {
+                                                console.error('Rename error:', err);
+                                                alert(t('Failed to rename member'));
+                                            });
+                                    }
+                                }}
+                            />
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={() => {
+                                        const pId = project.c_id || project.id;
+                                        if (!pId || !member.user_id) {
+                                            alert(t('Error: Missing ID'));
+                                            return;
+                                        }
+                                        api.dennik.updateProjectMember(pId, member.user_id, { member_name: newName }, member.id)
+                                            .then(() => {
+                                                loadMembers();
+                                                setIsEditingName(false);
+                                            })
+                                            .catch(err => {
+                                                console.error('Rename error:', err);
+                                                alert(t('Failed to rename member'));
+                                            });
+                                    }}
+                                    className="p-1 text-green-600 bg-green-100 rounded hover:bg-green-200"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setIsEditingName(false);
+                                        setNewName(member.member_name || member.profiles?.full_name || member.profiles?.email || '');
+                                    }}
+                                    className="p-1 text-red-600 bg-red-100 rounded hover:bg-red-200"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 group">
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                                {member.member_name || member.profiles?.full_name || member.profiles?.email}
+                            </div>
+                            {isOwner && (
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => setIsEditingName(true)}
+                                        title={t('Rename Member')}
+                                        className="p-1 text-gray-400 hover:text-blue-600"
+                                    >
+                                        <Pencil className="w-3 h-3" />
+                                    </button>
+                                    {member.member_name && (
+                                        <button
+                                            onClick={() => handleResetName(member)}
+                                            title={t('Reset Name')}
+                                            className="p-1 text-gray-400 hover:text-red-600"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {member.profiles?.email}
+                    </div>
+                </div>
+            </div>
+            {memberHours > 0 && (
+                <div className="text-sm font-medium text-gray-600 dark:text-gray-400 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
+                    {formatDuration(memberHours)}
+                </div>
+            )}
+            {!isEditingName && isOwner && (
+                <button
+                    onClick={() => handleRemoveMember(member.user_id, member.id)}
+                    className="p-2 text-gray-400 hover:text-red-600 transition-colors ml-2"
+                    title={t('Remove Member')}
+                >
+                    <UserMinus className="w-5 h-5" />
+                </button>
+            )}
+        </div>
+    );
+};
 
 const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDate }) => {
     const { t } = useLanguage();
@@ -68,6 +196,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const [selectedMemberForEntry, setSelectedMemberForEntry] = useState(null); // owner creates entry for member
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState(null);
+    const [showRemoveMemberConfirm, setShowRemoveMemberConfirm] = useState(false);
+    const [pendingMemberToRemove, setPendingMemberToRemove] = useState(null);
+    const [showResetNameConfirm, setShowResetNameConfirm] = useState(false);
+    const [pendingMemberToReset, setPendingMemberToReset] = useState(null);
     const hourlyRateTimerRef = useRef(null);
     const entryNoteTimerRef = useRef(null);
 
@@ -644,14 +776,46 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         }
     };
 
-    const handleRemoveMember = async (userId) => {
-        if (!window.confirm(t('Remove this member from the project?'))) return;
+
+
+    const handleRemoveMember = (userId, rowId = null) => {
+        setPendingMemberToRemove({ userId, rowId });
+        setShowRemoveMemberConfirm(true);
+    };
+
+    const handleConfirmRemoveMember = async () => {
+        if (!pendingMemberToRemove) return;
+        const { userId, rowId } = pendingMemberToRemove;
+
         try {
-            await api.dennik.removeProjectMember(project.c_id || project.id, userId);
+            await api.dennik.removeProjectMember(project.c_id || project.id, userId, rowId);
             await loadMembers();
         } catch (error) {
             console.error('Error removing member:', error);
             alert(t('Failed to remove member'));
+        } finally {
+            setShowRemoveMemberConfirm(false);
+            setPendingMemberToRemove(null);
+        }
+    };
+
+    const handleResetName = (member) => {
+        setPendingMemberToReset(member);
+        setShowResetNameConfirm(true);
+    };
+
+    const handleConfirmResetName = async () => {
+        if (!pendingMemberToReset) return;
+
+        try {
+            await api.dennik.updateProjectMember(project.c_id || project.id, pendingMemberToReset.user_id, { member_name: null }, pendingMemberToReset.id);
+            await loadMembers();
+        } catch (error) {
+            console.error('Error resetting member name:', error);
+            alert(t('Failed to reset member name'));
+        } finally {
+            setShowResetNameConfirm(false);
+            setPendingMemberToReset(null);
         }
     };
 
@@ -751,9 +915,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2 sm:mb-4">
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
                                 {t('Denník')}
-                                <span className="hidden lg:inline text-gray-400 dark:text-gray-500 font-normal"> — {project.name}</span>
+                                <span className="text-gray-400 dark:text-gray-500 font-normal"> — </span>
+                                <span className="text-gray-400 dark:text-gray-500 font-normal inline-block max-w-[13ch] lg:max-w-none truncate align-bottom">{project.name}</span>
                             </h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 {project.location}
@@ -1312,46 +1477,19 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                     })()}
 
                                     {/* Members */}
-                                    {members.map(member => {
-                                        const memberHours = timeEntries
-                                            .filter(e => e.user_id === member.user_id)
-                                            .reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
-                                        return (
-                                            <div
-                                                key={member.id}
-                                                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold">
-                                                        {member.profiles?.full_name?.charAt(0) || member.profiles?.email?.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-medium text-gray-900 dark:text-white">
-                                                            {member.profiles?.full_name || member.profiles?.email}
-                                                        </div>
-                                                        {member.profiles?.email && (
-                                                            <div className="text-xs text-gray-500">{member.profiles.email}</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {memberHours > 0 && (
-                                                        <div className="text-sm font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full">
-                                                            {formatDuration(memberHours)}
-                                                        </div>
-                                                    )}
-                                                    {isOwner && (
-                                                        <button
-                                                            onClick={() => handleRemoveMember(member.user_id)}
-                                                            className="text-gray-400 hover:text-red-500 transition-colors"
-                                                        >
-                                                            <UserMinus className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    {members.map(member => (
+                                        <MemberRow
+                                            key={member.id}
+                                            member={member}
+                                            timeEntries={timeEntries}
+                                            project={project}
+                                            isOwner={isOwner}
+                                            loadMembers={loadMembers}
+                                            formatDuration={formatDuration}
+                                            t={t}
+                                            handleRemoveMember={handleRemoveMember}
+                                        />
+                                    ))}
 
                                     {members.length === 0 && (
                                         <div className="text-center py-8 text-gray-500">
@@ -1508,28 +1646,34 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                     {generatedInvoices.length === 0 ? (
                                         <p className="text-gray-500 text-sm text-center py-4">{t('No invoices generated yet')}</p>
                                     ) : (
-                                        generatedInvoices.map(invoice => (
-                                            <button
-                                                key={invoice.id}
-                                                onClick={() => handlePreviewInvoice(invoice)}
-                                                className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
-                                            >
-                                                <div>
-                                                    <div className="font-medium text-gray-900 dark:text-white">
-                                                        {`${t('Invoice')} #${invoice.invoiceNumber}`}
+                                        generatedInvoices.map(invoice => {
+                                            // Determine display name for invoice creator
+                                            const creatorMember = members.find(m => m.user_id === invoice.user_id);
+                                            const displayName = creatorMember?.member_name || invoice.creatorProfile?.email || invoice.contractors?.email || invoice.contractors?.name || t('Unknown Contractor');
+
+                                            return (
+                                                <button
+                                                    key={invoice.id}
+                                                    onClick={() => handlePreviewInvoice(invoice)}
+                                                    className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                                                >
+                                                    <div>
+                                                        <div className="font-medium text-gray-900 dark:text-white">
+                                                            {`${t('Invoice')} #${invoice.invoiceNumber}`}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">
+                                                            {displayName}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {invoice.creatorProfile?.email || invoice.contractors?.email || invoice.contractors?.name || t('Unknown Contractor')}
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-gray-900 dark:text-white">
+                                                            {Number((invoice.priceWithoutVat || 0) + (invoice.cumulativeVat || 0)).toLocaleString('sk-SK', { minimumFractionDigits: 2 })} €
+                                                        </span>
+                                                        <ChevronRight className="w-4 h-4 text-gray-400" />
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-gray-900 dark:text-white">
-                                                        {Number((invoice.priceWithoutVat || 0) + (invoice.cumulativeVat || 0)).toLocaleString('sk-SK', { minimumFractionDigits: 2 })} €
-                                                    </span>
-                                                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                                                </div>
-                                            </button>
-                                        ))
+                                                </button>
+                                            );
+                                        })
                                     )}
                                 </div>
                             </div>
@@ -1601,6 +1745,30 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 title={t('Delete Entry')}
                 message={t('Are you sure you want to delete this time entry?')}
                 confirmLabel={t('Delete')}
+                cancelLabel={t('Cancel')}
+                isDestructive={true}
+            />
+
+            {/* Delete Member Confirmation */}
+            <ConfirmationModal
+                isOpen={showRemoveMemberConfirm}
+                onClose={() => { setShowRemoveMemberConfirm(false); setPendingMemberToRemove(null); }}
+                onConfirm={handleConfirmRemoveMember}
+                title={t('Remove Member')}
+                message={t('Are you sure you want to remove this member from the project?')}
+                confirmLabel={t('Remove')}
+                cancelLabel={t('Cancel')}
+                isDestructive={true}
+            />
+
+            {/* Reset Name Confirmation */}
+            <ConfirmationModal
+                isOpen={showResetNameConfirm}
+                onClose={() => { setShowResetNameConfirm(false); setPendingMemberToReset(null); }}
+                onConfirm={handleConfirmResetName}
+                title={t('Reset Name')}
+                message={t('Are you sure you want to reset the name to original?')}
+                confirmLabel={t('Reset')}
                 cancelLabel={t('Cancel')}
                 isDestructive={true}
             />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, FileText, Save, RotateCcw, Loader2, Plus, Trash2, User, Search, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
@@ -60,46 +60,46 @@ const getWorkItemDisplayName = (item, t) => {
   // For electrical and plumbing work, just show the main name (no subtitle with outlet types)
   if (item.propertyId === WORK_ITEM_PROPERTY_IDS.WIRING ||
     item.propertyId === WORK_ITEM_PROPERTY_IDS.PLUMBING) {
-    return itemName;
+    return t(itemName);
   }
 
   // For plasterboarding items, build full name with subtitle and type (lowercase for translation keys)
   if (item.propertyId && item.propertyId.startsWith('plasterboarding_') && item.subtitle) {
     const shouldShowType = item.selectedType && item.propertyId !== 'plasterboarding_ceiling';
     if (shouldShowType) {
-      return `${itemName}, ${item.subtitle}, ${(item.selectedType || '').toLowerCase()}`;
+      return `${t(itemName)}, ${t(item.subtitle)}, ${t((item.selectedType || '').toLowerCase())}`;
     }
-    return `${itemName}, ${item.subtitle}`;
+    return `${t(itemName)}, ${t(item.subtitle)}`;
   }
 
   // For sanitary installation, show the type name
   if (item.propertyId === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION && (item.selectedType || item.subtitle)) {
-    return item.selectedType || item.subtitle;
+    return t(item.selectedType || item.subtitle);
   }
 
   // For plinth items, show name with subtitle
   if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle) {
-    return `${itemName} - ${item.subtitle}`;
+    return `${t(itemName)} - ${t(item.subtitle)}`;
   }
 
   // For custom work, use the entered name or fallback
   if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-    const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-    return item.fields?.[WORK_ITEM_NAMES.NAME] || fallbackName;
+    const fallbackName = item.selectedType === 'Material' ? t('Custom material') : t('Custom work');
+    return t(item.fields?.[WORK_ITEM_NAMES.NAME]) || fallbackName;
   }
 
   // For Large Format items, the name already includes "Large Format" - don't append subtitle
   if (item.isLargeFormat) {
-    return itemName;
+    return t(itemName);
   }
 
   // For items with subtitle (like wall/ceiling distinction)
   if (item.subtitle) {
-    return `${itemName}, ${item.subtitle}`;
+    return `${t(itemName)}, ${t(item.subtitle)}`;
   }
 
-  // Default: just return the canonical English name
-  return itemName || 'Work item';
+  // Default: return translated name
+  return t(itemName) || t('Work item');
 };
 
 // Helper to build CANONICAL display name for material items (English - for storage)
@@ -107,16 +107,16 @@ const getWorkItemDisplayName = (item, t) => {
 const getMaterialItemDisplayName = (item, t) => {
   // For custom materials
   if (item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) {
-    const fallbackName = item.selectedType === 'Material' ? 'Custom material' : 'Custom work';
-    return item.fields?.[WORK_ITEM_NAMES.NAME] || fallbackName;
+    const fallbackName = item.selectedType === 'Material' ? t('Custom material') : t('Custom work');
+    return t(item.fields?.[WORK_ITEM_NAMES.NAME]) || fallbackName;
   }
 
   // For materials with subtitle
   if (item.subtitle) {
-    return `${item.name || ''}, ${item.subtitle}`;
+    return `${t(item.name || '')}, ${t(item.subtitle)}`;
   }
 
-  return item.name || 'Material';
+  return t(item.name) || t('Material');
 };
 
 /**
@@ -134,7 +134,7 @@ const maturityOptions = [7, 15, 30, 60, 90];
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null }) => {
   useScrollLock(true);
   const { t } = useLanguage();
-  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings, findProjectById, addClient } = useAppData();
+  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings, findProjectById, addClient, generalPriceList } = useAppData();
 
   // Client selection state
   const [selectedClientId, setSelectedClientId] = useState(null);
@@ -166,6 +166,98 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     return calculateProjectTotalPriceWithBreakdown(project.id);
   }, [project, calculateProjectTotalPriceWithBreakdown]);
 
+  // Prepare price list suggestions for autocomplete
+  const allPriceListItems = useMemo(() => {
+    const source = project?.priceListSnapshot || generalPriceList || {};
+    // Helper to map items
+    const mapItems = (items, defaultCat, priceKey) => (items || []).map(i => ({
+      title: t(i.name),
+      unit: unitToDisplaySymbol(i.unit),
+      price: parseFloat(i[priceKey] || 0),
+      category: defaultCat
+    }));
+
+    return {
+      work: mapItems(source.work, 'work', 'price'),
+      material: mapItems(source.material, 'material', 'price'),
+      other: mapItems(source.others, 'other', 'price') // 'others' maps to 'other' category locally
+    };
+  }, [project?.priceListSnapshot, generalPriceList, t]);
+
+  // Extract history items from past invoices for autocomplete
+  const historyItems = useMemo(() => {
+    if (!invoices || !activeContractorId) return [];
+
+    // Sort invoices by date descending to get latest prices first
+    const contractorInvoices = invoices
+      .filter(inv => inv.contractorId === activeContractorId)
+      .sort((a, b) => new Date(b.issueDate || b.date || 0) - new Date(a.issueDate || a.date || 0));
+
+    const itemMap = new Map();
+
+    contractorInvoices.forEach(inv => {
+      if (inv.invoiceItems && Array.isArray(inv.invoiceItems)) {
+        inv.invoiceItems.forEach(item => {
+          if (item.title && !itemMap.has(t(item.title).toLowerCase())) {
+            itemMap.set(t(item.title).toLowerCase(), {
+              title: t(item.title),
+              price: parseFloat(item.pricePerPiece || 0), // Base unit price
+              unit: item.unit || 'ks',
+              vat: item.vat !== undefined ? parseFloat(item.vat) : undefined,
+              // We try to preserve category if available, otherwise it's generic
+              category: item.category ? item.category.toLowerCase() : undefined
+            });
+          }
+        });
+      }
+    });
+
+    return Array.from(itemMap.values());
+  }, [invoices, activeContractorId, t]);
+
+  // Combine standard price list with history items
+  const getSuggestionsForCategory = useCallback((category) => {
+    const standardItems = allPriceListItems[category] || [];
+
+    // Create a map of standard items for easy lookup/override
+    const suggestionsMap = new Map();
+
+    // 1. Add standard items first
+    standardItems.forEach(item => {
+      suggestionsMap.set(item.title.toLowerCase(), item);
+    });
+
+    // 2. Overlay history items (overwriting price if name matches)
+    historyItems.forEach(hItem => {
+      // If the history item has a specific category that DOESN'T match, skip it (unless it has no category, then we might include it globally or heuristic)
+      // For now, allow history items to appear if they match the category OR if they were previously used in this category context
+      // Determining "category context" for a history item is hard if not saved.
+      // Strategy: If history item implies a category override, use it.
+      // Simple Strategy: If it matches a standard item name, update the price.
+      // If it's a NEW item (not in standard), add it to suggestions.
+
+      const key = hItem.title.toLowerCase();
+      const existing = suggestionsMap.get(key);
+
+      if (existing) {
+        // Overwrite with historical price
+        suggestionsMap.set(key, {
+          ...existing,
+          price: hItem.price,
+          unit: hItem.unit,
+          ...(hItem.vat !== undefined && { vat: hItem.vat })
+        });
+      } else {
+        // Only add custom history items if they belong to this category (or have no category)
+        if (!hItem.category || hItem.category === category) {
+          suggestionsMap.set(key, { ...hItem, category: category });
+        }
+      }
+    });
+
+    return Array.from(suggestionsMap.values());
+  }, [allPriceListItems, historyItems]);
+
   // Fetch invoice settings (Account-wide)
   useEffect(() => {
     const fetchSettings = async () => {
@@ -185,98 +277,106 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   // Initialize invoice items from project breakdown or dennikData
   useEffect(() => {
-    if (isOpen && !project && !dennikData) {
-      // Standalone mode: start with empty items
-      if (!editMode) setInvoiceItems([]);
+    if (!isOpen) return;
+
+    // 1. Edit Mode - Always load existing items
+    if (editMode && existingInvoice?.invoiceItems) {
+      setInvoiceItems(existingInvoice.invoiceItems.map(item => ({
+        ...item,
+        unit: unitToDisplaySymbol(item.unit)
+      })));
       return;
     }
-    if (isOpen && project && dennikData) {
-      // Denník mode: use pre-built items
+
+    // 2. Standalone Mode - New
+    if (!project && !dennikData) {
+      setInvoiceItems([]);
+      return;
+    }
+
+    // 3. Dennik Mode - New
+    if (project && dennikData) {
       setInvoiceItems(dennikData.items || []);
       return;
     }
-    if (isOpen && project && projectBreakdown) {
-      if (editMode && existingInvoice?.invoiceItems) {
-        // Load existing invoice items
-        setInvoiceItems(existingInvoice.invoiceItems.map(item => ({
-          ...item,
-          unit: unitToDisplaySymbol(item.unit)
-        })));
-      } else {
-        // Create invoice items from project breakdown
-        const items = [];
 
-        // Process work items
-        if (projectBreakdown.items) {
-          const sortedWorkItems = sortItemsByMasterList(projectBreakdown.items, project.priceListSnapshot, 'work');
-          sortedWorkItems.forEach((item, index) => {
-            const calculation = item.calculation || {};
-            // Use helper to determine correct unit based on propertyId and fields
-            const unit = getWorkItemUnit(item);
-            items.push({
-              id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
-              title: getWorkItemDisplayName(item, t),
-              pieces: calculation.quantity || 0,
-              pricePerPiece: calculation.quantity > 0 ? (calculation.workCost || 0) / calculation.quantity : 0,
-              price: calculation.workCost || 0,
-              vat: 23, // Default VAT
-              unit: unit,
-              category: 'work',
-              active: true,
-              taxObligationTransfer: false,
-              originalItem: item
-            });
+    // 4. Project Breakdown - New
+    if (project && projectBreakdown) {
+      // Create invoice items from project breakdown
+      const items = [];
+
+      // Process work items
+      if (projectBreakdown.items) {
+        const sortedWorkItems = sortItemsByMasterList(projectBreakdown.items, project.priceListSnapshot, 'work');
+        sortedWorkItems.forEach((item, index) => {
+          const calculation = item.calculation || {};
+          // Use helper to determine correct unit based on propertyId and fields
+          const unit = getWorkItemUnit(item);
+          items.push({
+            id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
+            title: getWorkItemDisplayName(item, t),
+            pieces: calculation.quantity || 0,
+            pricePerPiece: calculation.quantity > 0 ? (calculation.workCost || 0) / calculation.quantity : 0,
+            price: calculation.workCost || 0,
+            vat: 23, // Default VAT
+            unit: unit,
+            category: 'work',
+            active: true,
+            taxObligationTransfer: false,
+            originalItem: item
           });
-        }
-
-        // Process material items
-        if (projectBreakdown.materialItems) {
-          const sortedMaterialItems = sortItemsByMasterList(projectBreakdown.materialItems, project.priceListSnapshot, 'material');
-          sortedMaterialItems.forEach((item, index) => {
-            const calculation = item.calculation || {};
-            // Material items use their calculation unit or default to 'ks'
-            const materialUnit = calculation.unit ? unitToDisplaySymbol(calculation.unit) : 'ks';
-            items.push({
-              id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
-              title: getMaterialItemDisplayName(item, t),
-              pieces: calculation.quantity || 0,
-              pricePerPiece: calculation.pricePerUnit || (calculation.quantity > 0 ? (calculation.materialCost || 0) / calculation.quantity : 0),
-              price: calculation.materialCost || 0,
-              vat: 23, // Default VAT
-              unit: materialUnit,
-              category: 'material',
-              active: true,
-              taxObligationTransfer: false,
-              originalItem: item
-            });
-          });
-        }
-
-        // Process others items
-        if (projectBreakdown.othersItems) {
-          const sortedOthersItems = sortItemsByMasterList(projectBreakdown.othersItems, project.priceListSnapshot, 'others');
-          sortedOthersItems.forEach((item, index) => {
-            const calculation = item.calculation || {};
-            // Use helper to determine correct unit for others items
-            const otherUnit = getWorkItemUnit(item);
-            items.push({
-              id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
-              title: getWorkItemDisplayName(item, t),
-              pieces: calculation.quantity || 0,
-              pricePerPiece: calculation.quantity > 0 ? (calculation.workCost || 0) / calculation.quantity : 0,
-              price: calculation.workCost || 0,
-              vat: 23, // Default VAT
-              unit: otherUnit,
-              category: 'other',
-              active: true,
-              taxObligationTransfer: false,
-              originalItem: item
-            });
-          });
-        }
-
-        setInvoiceItems(items);
+        });
       }
+
+      // Process material items
+      if (projectBreakdown.materialItems) {
+        const sortedMaterialItems = sortItemsByMasterList(projectBreakdown.materialItems, project.priceListSnapshot, 'material');
+        sortedMaterialItems.forEach((item, index) => {
+          const calculation = item.calculation || {};
+          // Material items use their calculation unit or default to 'ks'
+          const materialUnit = calculation.unit ? unitToDisplaySymbol(calculation.unit) : 'ks';
+          items.push({
+            id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
+            title: getMaterialItemDisplayName(item, t),
+            pieces: calculation.quantity || 0,
+            pricePerPiece: calculation.pricePerUnit || (calculation.quantity > 0 ? (calculation.materialCost || 0) / calculation.quantity : 0),
+            price: calculation.materialCost || 0,
+            vat: 23, // Default VAT
+            unit: materialUnit,
+            category: 'material',
+            active: true,
+            taxObligationTransfer: false,
+            originalItem: item
+          });
+        });
+      }
+
+      // Process others items
+      if (projectBreakdown.othersItems) {
+        const sortedOthersItems = sortItemsByMasterList(projectBreakdown.othersItems, project.priceListSnapshot, 'others');
+        sortedOthersItems.forEach((item, index) => {
+          const calculation = item.calculation || {};
+          // Use helper to determine correct unit for others items
+          const otherUnit = getWorkItemUnit(item);
+          items.push({
+            id: crypto.randomUUID(), // Use proper UUID for iOS compatibility
+            title: getWorkItemDisplayName(item, t),
+            pieces: calculation.quantity || 0,
+            pricePerPiece: calculation.quantity > 0 ? (calculation.workCost || 0) / calculation.quantity : 0,
+            price: calculation.workCost || 0,
+            vat: 23, // Default VAT
+            unit: otherUnit,
+            category: 'other',
+            active: true,
+            taxObligationTransfer: false,
+            originalItem: item
+          });
+        });
+      }
+
+      setInvoiceItems(items);
+    } else {
+      setInvoiceItems([]);
     }
   }, [isOpen, project, projectBreakdown, editMode, existingInvoice, t, dennikData]);
 
@@ -657,7 +757,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => onClose()}>
-        <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-7xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between flex-shrink-0 rounded-t-2xl">
             <div className="flex items-center gap-3">
@@ -760,75 +860,77 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                   )}
                 </div>
 
-                {/* Invoice Number */}
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
-                  <span className="text-base font-medium text-gray-900 dark:text-white">{t('Invoice Number')}</span>
-                  <div className="flex items-center gap-2">
-                    {invoiceNumber !== originalInvoiceNumber && (
-                      <button
-                        onClick={handleResetNumber}
-                        className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                        title={t('Reset to original')}
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
-                    )}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {/* Invoice Number */}
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Invoice Number')}</span>
+                    <div className="flex items-center gap-2">
+                      {invoiceNumber !== originalInvoiceNumber && (
+                        <button
+                          onClick={handleResetNumber}
+                          className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          title={t('Reset to original')}
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                      )}
+                      <input
+                        type="text"
+                        value={invoiceNumber}
+                        onChange={(e) => setInvoiceNumber(e.target.value)}
+                        className="w-32 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-right text-base font-medium focus:outline-none invoice-input-dark"
+                        placeholder="2025001"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Issue Date */}
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of issue')}</span>
                     <input
-                      type="text"
-                      value={invoiceNumber}
-                      onChange={(e) => setInvoiceNumber(e.target.value)}
-                      className="w-32 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-right text-base font-medium focus:outline-none invoice-input-dark"
-                      placeholder="2025001"
+                      type="date"
+                      value={issueDate}
+                      onChange={(e) => setIssueDate(e.target.value)}
+                      className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
                     />
                   </div>
-                </div>
 
-                {/* Issue Date */}
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-                  <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of issue')}</span>
-                  <input
-                    type="date"
-                    value={issueDate}
-                    onChange={(e) => setIssueDate(e.target.value)}
-                    className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
-                  />
-                </div>
+                  {/* Dispatch Date */}
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of dispatch')}</span>
+                    <input
+                      type="date"
+                      value={dispatchDate}
+                      onChange={(e) => setDispatchDate(e.target.value)}
+                      className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
+                    />
+                  </div>
 
-                {/* Dispatch Date */}
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-                  <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of dispatch')}</span>
-                  <input
-                    type="date"
-                    value={dispatchDate}
-                    onChange={(e) => setDispatchDate(e.target.value)}
-                    className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
-                  />
-                </div>
-
-                {/* Payment Type */}
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
-                  <span className="text-base font-medium text-gray-900 dark:text-white">{t('Payment type')}</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPaymentMethod('cash')}
-                      className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'cash'
-                        ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
-                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                        }`}
-                    >
-                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'cash' ? 'bg-blue-400' : 'bg-transparent'}`} />
-                      {t('Cash')}
-                    </button>
-                    <button
-                      onClick={() => setPaymentMethod('transfer')}
-                      className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'transfer'
-                        ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
-                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                        }`}
-                    >
-                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'transfer' ? 'bg-blue-400' : 'bg-transparent'}`} />
-                      {t('Bank transfer')}
-                    </button>
+                  {/* Payment Type */}
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Payment type')}</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPaymentMethod('cash')}
+                        className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'cash'
+                          ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
+                          : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          }`}
+                      >
+                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'cash' ? 'bg-blue-400' : 'bg-transparent'}`} />
+                        {t('Cash')}
+                      </button>
+                      <button
+                        onClick={() => setPaymentMethod('transfer')}
+                        className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'transfer'
+                          ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
+                          : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          }`}
+                      >
+                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'transfer' ? 'bg-blue-400' : 'bg-transparent'}`} />
+                        {t('Bank transfer')}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -916,108 +1018,113 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Items')}</h3>
 
-              {/* Work Items */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Work')}</h4>
-                  <button
-                    onClick={() => handleAddItem('work')}
-                    className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                    title={t('Add work item')}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-                {workItems.length > 0 && (
-                  <div className="space-y-2">
-                    {workItems.map(item => (
-                      <div key={item.id} className="relative group/item">
-                        <InvoiceItemBubble
-                          item={item}
-                          onUpdate={handleItemUpdate}
-                          category="work"
-                        />
-                        <button
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
-                          title={t('Remove')}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                {/* Work Items */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Work')}</h4>
+                    <button
+                      onClick={() => handleAddItem('work')}
+                      className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                      title={t('Add work item')}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-              </div>
-
-              {/* Material Items */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Material')}</h4>
-                  <button
-                    onClick={() => handleAddItem('material')}
-                    className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                    title={t('Add material item')}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                  {workItems.length > 0 && (
+                    <div className="space-y-2">
+                      {workItems.map(item => (
+                        <div key={item.id} className="relative group/item">
+                          <InvoiceItemBubble
+                            item={item}
+                            onUpdate={handleItemUpdate}
+                            category="work"
+                            suggestions={getSuggestionsForCategory('work')}
+                          />
+                          <button
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
+                            title={t('Remove')}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {materialItems.length > 0 && (
-                  <div className="space-y-2">
-                    {materialItems.map(item => (
-                      <div key={item.id} className="relative group/item">
-                        <InvoiceItemBubble
-                          item={item}
-                          onUpdate={handleItemUpdate}
-                          category="material"
-                        />
-                        <button
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
-                          title={t('Remove')}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
-              {/* Other Items */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Other')}</h4>
-                  <button
-                    onClick={() => handleAddItem('other')}
-                    className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                    title={t('Add other item')}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                {/* Material Items */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Material')}</h4>
+                    <button
+                      onClick={() => handleAddItem('material')}
+                      className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                      title={t('Add material item')}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {materialItems.length > 0 && (
+                    <div className="space-y-2">
+                      {materialItems.map(item => (
+                        <div key={item.id} className="relative group/item">
+                          <InvoiceItemBubble
+                            item={item}
+                            onUpdate={handleItemUpdate}
+                            category="material"
+                            suggestions={getSuggestionsForCategory('material')}
+                          />
+                          <button
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
+                            title={t('Remove')}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {otherItems.length > 0 && (
-                  <div className="space-y-2">
-                    {otherItems.map(item => (
-                      <div key={item.id} className="relative group/item">
-                        <InvoiceItemBubble
-                          item={item}
-                          onUpdate={handleItemUpdate}
-                          category="other"
-                        />
-                        <button
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
-                          title={t('Remove')}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
+                {/* Other Items */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Other')}</h4>
+                    <button
+                      onClick={() => handleAddItem('other')}
+                      className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                      title={t('Add other item')}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {otherItems.length > 0 && (
+                    <div className="space-y-2">
+                      {otherItems.map(item => (
+                        <div key={item.id} className="relative group/item">
+                          <InvoiceItemBubble
+                            item={item}
+                            onUpdate={handleItemUpdate}
+                            category="other"
+                            suggestions={getSuggestionsForCategory('other')}
+                          />
+                          <button
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
+                            title={t('Remove')}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
             </div>
           </div>
         </div>

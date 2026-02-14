@@ -329,6 +329,35 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
               {isEditing ? t('Save') : t('Add client')}
             </button>
           </div>
+
+          {initialData && initialData.invoices && initialData.invoices.length > 0 && (
+            <div className="mt-8 col-span-full border-t border-gray-200 dark:border-gray-700 pt-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Invoices')}</h3>
+              <div className="space-y-3">
+                {initialData.invoices.map(inv => (
+                  <div key={inv.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">{inv.invoiceNumber}</div>
+                        <div className="text-sm text-gray-500">{new Date(inv.issueDate).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-gray-900 dark:text-white">
+                        {Number(inv.totalPrice || 0).toFixed(2)} €
+                      </div>
+                      {inv.projectName && (
+                        <div className="text-xs text-gray-500 truncate max-w-[150px]">{inv.projectName}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

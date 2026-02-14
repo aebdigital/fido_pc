@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
-import { User, Search, ChevronRight, Plus, Trash2, X } from 'lucide-react';
+import { User, Search, ChevronRight, Plus, Trash2, X, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import ClientForm from '../components/ClientForm';
 import ConfirmationModal from '../components/ConfirmationModal';
+import InvoiceDetailModal from '../components/InvoiceDetailModal';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 const Clients = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { clients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice, findProjectById, getProjectRooms } = useAppData();
+  const { clients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice, findProjectById, getProjectRooms, invoices } = useAppData();
   const [showClientModal, setShowClientModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteMode, setDeleteMode] = useState(false);
   const [clientToDelete, setClientToDelete] = useState(null);
@@ -218,24 +221,48 @@ const Clients = () => {
                   <div className="space-y-2">
                     {(selectedClient.projects || []).map((project, index) => {
                       const roomCount = getProjectRooms(project.id).length;
+                      const invoice = (invoices || []).find(inv => inv.projectId === project.id);
+
                       return (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            handleCloseModal();
-                            handleProjectOpen(project);
-                          }}
-                          className="w-full bg-gray-100 dark:bg-gray-800 rounded-xl p-3 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <div className="text-left">
-                            <h4 className="font-medium text-gray-900 dark:text-white">{project.name}</h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{roomCount} {t('room')}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{t('VAT not included')}</p>
-                            <p className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(project.id))}</p>
-                          </div>
-                        </button>
+                        <div key={index} className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              handleCloseModal();
+                              handleProjectOpen(project);
+                            }}
+                            className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-3 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors min-w-0"
+                          >
+                            <div className="text-left truncate mr-2">
+                              <h4 className="font-medium text-gray-900 dark:text-white truncate">{project.name}</h4>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{roomCount} {t('room')}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{t('VAT not included')}</p>
+                              <p className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(project.id))}</p>
+                            </div>
+                          </button>
+
+                          {invoice && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedInvoice(invoice);
+                                setShowInvoiceModal(true);
+                              }}
+                              className="px-3 bg-gray-100 dark:bg-gray-800 rounded-xl flex flex-col items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-900 group min-w-[80px]"
+                              title={t('Open invoice')}
+                            >
+                              <FileText className="w-5 h-5 mb-1 text-blue-600 group-hover:scale-110 transition-transform" />
+                              <span className="text-[10px] font-bold text-gray-900 dark:text-white">#{invoice.invoiceNumber}</span>
+                              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full mt-1 ${invoice.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                invoice.status === 'afterMaturity' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                }`}>
+                                {t(invoice.status)}
+                              </span>
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -257,6 +284,18 @@ const Clients = () => {
         cancelLabel={t('Cancel')}
         isDestructive={true}
       />
+
+      {/* Invoice Detail Modal */}
+      {showInvoiceModal && selectedInvoice && (
+        <InvoiceDetailModal
+          isOpen={showInvoiceModal}
+          onClose={() => {
+            setShowInvoiceModal(false);
+            setSelectedInvoice(null);
+          }}
+          invoice={selectedInvoice}
+        />
+      )}
     </div>
   );
 };

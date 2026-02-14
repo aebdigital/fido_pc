@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Eye, Send, User, Edit3, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, Trash } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
@@ -52,12 +52,33 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   // State for owner contractor lookup (Denník invoices)
   const [ownerContractor, setOwnerContractor] = useState(null);
 
+  // State for file selection modal
+  const [showFileSelectionModal, setShowFileSelectionModal] = useState(false);
+  const [selectedFileIds, setSelectedFileIds] = useState(new Set());
+
   // Use live invoice data from global state
   const invoice = invoices?.find(inv => inv.id === invoiceProp?.id) || invoiceProp;
 
   // Detect Denník invoice: all items are hour-based work entries
   const isDennikInvoice = invoice?.invoiceItems?.length > 0
     && invoice.invoiceItems.every(item => item.unit === 'h');
+
+  // Filter invoices for this project to show in ClientForm
+  const projectResultForMemo = invoice ? findProjectById(invoice.projectId, invoice.categoryId) : null;
+  const projectForMemo = projectResultForMemo?.project;
+  const clientForMemo = invoice ? (clients.find(c => c.id === invoice.clientId)
+    || contractors.find(c => c.id === invoice.clientId)
+    || (isDennikInvoice ? (dennikOwnerContractor || ownerContractor) : null)) : null;
+
+  const projectInvoices = useMemo(() => {
+    if (!projectForMemo?.id || !invoices) return [];
+    return invoices.filter(inv => inv.projectId === projectForMemo.id).sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate));
+  }, [projectForMemo?.id, invoices]);
+
+  const clientWithInvoices = useMemo(() => {
+    if (!clientForMemo) return null;
+    return { ...clientForMemo, invoices: projectInvoices, projectName: projectForMemo?.name };
+  }, [clientForMemo, projectInvoices, projectForMemo?.name]);
 
   // Fetch owner's contractor for Denník invoices (Odberateľ)
   useEffect(() => {
@@ -436,7 +457,70 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
     }
   };
 
-  const handleSend = async () => {
+
+  const toggleFileSelection = (fileId) => {
+    const newSelected = new Set(selectedFileIds);
+    if (newSelected.has(fileId)) {
+      newSelected.delete(fileId);
+    } else {
+      newSelected.add(fileId);
+    }
+    setSelectedFileIds(newSelected);
+  };
+
+  const handleSend = () => {
+    // If project has files, ask user. Otherwise just send invoice.
+    if (project?.photos && project.photos.length > 0) {
+      setShowFileSelectionModal(true);
+    } else {
+      executeSend([]);
+    }
+  };
+
+  const handleConfirmBundle = () => {
+    const filesToAttach = [];
+    if (project?.photos) {
+      project.photos.forEach(photo => {
+        if (selectedFileIds.has(photo.id)) {
+          try {
+            const file = dataURLtoFile(photo.url, photo.name);
+            filesToAttach.push(file);
+          } catch (e) {
+            console.error('Error converting file:', e);
+          }
+        }
+      });
+    }
+    setShowFileSelectionModal(false);
+    executeSend(filesToAttach);
+  };
+
+  const dataURLtoFile = (dataurl, filename) => {
+    if (!dataurl) return null;
+    // If URL is not data URI but remote URL, this won't work directly without fetch.
+    // Assuming data URI as per ProjectDetailView implementation.
+    // If it is regular URL (Supabase storage), we would need to fetch it.
+    // For now, handle data URI.
+    if (!dataurl.startsWith('data:')) {
+      // If it's a remote URL, we can't sync attach it easily without async fetch. 
+      // For now, let's assume base64 as that's what we implemented.
+      return null;
+    }
+
+    var arr = dataurl.split(','),
+      mime = arr[0].match(/:(.*?);/)[1],
+      bstr = atob(arr[1]),
+      n = bstr.length,
+      u8arr = new Uint8Array(n);
+
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  const executeSend = async (additionalFiles = []) => {
     // Record history events (iOS compatible)
     addProjectHistoryEntry(invoice.projectId, {
       type: PROJECT_EVENTS.INVOICE_SENT,
@@ -506,10 +590,15 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           title: `${t('Invoice')} ${invoice.invoiceNumber}`,
         };
 
-        if (currentBlob && navigator.canShare && navigator.canShare({ files: [new File([currentBlob], 'test.pdf', { type: 'application/pdf' })] })) {
-          const file = new File([currentBlob], `${t('Invoice')} ${invoice.invoiceNumber}.pdf`, { type: 'application/pdf' });
-          shareData.files = [file];
+        const invoiceFile = new File([currentBlob], `${t('Invoice')} ${invoice.invoiceNumber}.pdf`, { type: 'application/pdf' });
+        const allFiles = [invoiceFile, ...additionalFiles];
+
+        if (navigator.canShare && navigator.canShare({ files: allFiles })) {
+          shareData.files = allFiles;
         } else {
+          // Fallback if multiple files not supported or file type issue?
+          // Try sharing just invoice if bundle fails?
+          // For now attempt bundle.
           shareData.text = invoiceText;
         }
 
@@ -568,6 +657,68 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
             >
               {t('Delete')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // File Selection Modal
+  if (showFileSelectionModal) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => setShowFileSelectionModal(false)}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{t('Attach Files')}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('Select files to send with the invoice:')}</p>
+
+          <div className="flex-1 overflow-y-auto min-h-[100px] mb-4 space-y-2">
+            {project?.photos?.map(file => (
+              <div
+                key={file.id}
+                onClick={() => toggleFileSelection(file.id)}
+                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedFileIds.has(file.id)
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+              >
+                <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${selectedFileIds.has(file.id)
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : 'border-gray-300 dark:border-gray-600'
+                  }`}>
+                  {selectedFileIds.has(file.id) && <Check className="w-3.5 h-3.5" />}
+                </div>
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {file.type === 'pdf' || file.name?.endsWith('.pdf') ? (
+                    <DocIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                      <img src={file.url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <span className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                    {file.name}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => {
+                setShowFileSelectionModal(false);
+                executeSend([]);
+              }}
+              className="flex-1 py-3 text-gray-600 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+            >
+              {t('Invoice Only')}
+            </button>
+            <button
+              onClick={handleConfirmBundle}
+              className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              {t('Send Files')} ({selectedFileIds.size + 1})
             </button>
           </div>
         </div>
@@ -793,15 +944,15 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
           {/* Delete Button - iOS style at bottom (only show if current user owns the invoice) */}
           {(!invoice?.user_id || invoice.user_id === user?.id) && (
-          <div className="pt-4 flex justify-center pb-8">
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full max-w-sm bg-red-600 text-white py-3 rounded-full font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-lg"
-            >
-              <Trash className="w-5 h-5" />
-              <span className="text-lg">{t('Delete')}</span>
-            </button>
-          </div>
+            <div className="pt-4 flex justify-center pb-8">
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full max-w-sm bg-red-600 text-white py-3 rounded-full font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-lg"
+              >
+                <Trash className="w-5 h-5" />
+                <span className="text-lg">{t('Delete')}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -851,7 +1002,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
               <ClientForm
                 ref={clientFormRef}
-                initialData={client}
+                initialData={clientWithInvoices}
                 onSave={handleSaveClient}
                 onCancel={() => setShowClientModal(false)}
               />

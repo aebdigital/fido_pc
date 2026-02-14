@@ -573,7 +573,7 @@ const Projects = () => {
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
                   className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-2xl overflow-hidden transition-all duration-200 ${activeCategory === category.id
-                    ? 'ring-2 ring-gray-500 dark:ring-gray-400 shadow-lg'
+                    ? 'ring-2 ring-gray-900 dark:ring-white shadow-lg border-2 border-white dark:border-gray-800'
                     : 'hover:shadow-md hover:scale-[1.02]'
                     }`}
                 >
@@ -594,9 +594,13 @@ const Projects = () => {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
+                    {/* Dim inactive categories */}
+                    {activeCategory !== category.id && (
+                      <div className="absolute inset-0 bg-black/40 transition-opacity"></div>
+                    )}
                     <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-between items-end">
-                      <h3 className="text-base lg:text-sm xl:text-base 2xl:text-lg font-bold text-gray-900">{t(category.name)}</h3>
-                      <span className="text-gray-900 text-xs font-medium">{category.count}</span>
+                      <h3 className={`text-base lg:text-sm xl:text-base 2xl:text-lg font-bold ${activeCategory !== category.id ? 'text-white' : 'text-gray-900'}`}>{t(category.name)}</h3>
+                      <span className={`${activeCategory !== category.id ? 'text-gray-200' : 'text-gray-900'} text-xs font-medium`}>{category.count}</span>
                     </div>
                   </div>
                 </button>

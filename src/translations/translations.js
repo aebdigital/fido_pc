@@ -196,7 +196,12 @@ export const translations = {
     "Add Client": "Add Client",
     "All projects": "All projects",
     "No time entries found for this member": "No time entries found for this member",
-    "Assigned projects": "Assigned projects"
+    "Assigned projects": "Assigned projects",
+    "Me (Owner)": "Me (Owner)",
+    "Attach Files": "Attach Files",
+    "Select files to send with the invoice:": "Select files to send with the invoice:",
+    "Invoice Only": "Invoice Only",
+    "Send Files": "Send Files"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -843,6 +848,8 @@ export const translations = {
     "Fido Pro Access": "Fido Pro Prístup",
     "BEST VALUE": "NAJLEPŠIA HODNOTA",
     "Unlock the full potential of your business.": "Odomknite plný potenciál vášho podnikania.",
+    "Remove this member from the project?": "Odstrániť tohto člena z projektu?",
+    "Are you sure you want to remove this member from the project?": "Ste si istí, že chcete odstrániť tohto člena z projektu?",
     "Create unlimited projects, export professional PDFs, and manage your custom price lists with ease.": "Vytvárajte neobmedzené projekty, exportujte profesionálne PDF a spravujte vlastné cenníky s ľahkosťou.",
     "Choose your plan": "Vyberte si svoj plán",
     "Transparent pricing. No hidden fees. Cancel anytime.": "Transparentné ceny. Žiadne skryté poplatky. Zrušiť kedykoľvek.",
@@ -1290,7 +1297,12 @@ export const translations = {
     "Are you sure you want to delete this time entry?": "Naozaj chcete vymazať tento časový záznam?",
     "Search Clients...": "Hľadať klientov...",
     "All projects": "Všetky projekty",
-    "No time entries found for this member": "Pre tohto člena sa nenašli žiadne záznamy"
+    "No time entries found for this member": "Pre tohto člena sa nenašli žiadne záznamy",
+    "Me (Owner)": "Ja (Vlastník)",
+    "Attach Files": "Priložiť súbory",
+    "Select files to send with the invoice:": "Vyberte súbory, ktoré chcete s faktúrou odoslať:",
+    "Invoice Only": "Iba faktúra",
+    "Send Files": "Odoslať súbory"
   }
 };
 
