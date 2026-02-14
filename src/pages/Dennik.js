@@ -132,7 +132,7 @@ const Dennik = () => {
         } catch (error) {
             console.error('Error loading dennik data:', error);
         }
-    }, [getDateRange, user?.id]);
+    }, [getDateRange, user?.id, t]);
 
     // Load member-specific entries when filter changes
     const loadMemberEntries = useCallback(async (memberId, days) => {

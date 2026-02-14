@@ -1488,6 +1488,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             formatDuration={formatDuration}
                                             t={t}
                                             handleRemoveMember={handleRemoveMember}
+                                            handleResetName={handleResetName}
                                         />
                                     ))}
 

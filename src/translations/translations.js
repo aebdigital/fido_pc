@@ -1289,7 +1289,6 @@ export const translations = {
     "Failed to start timer": "Nepodarilo sa spustiť časovač",
     "Failed to end timer": "Nepodarilo sa zastaviť časovač",
     "Failed to add member": "Nepodarilo sa pridať člena",
-    "Remove this member from the project?": "Odstrániť tohto člena z projektu?",
     "Failed to remove member": "Nepodarilo sa odstrániť člena",
     "Unknown User": "Neznámy užívateľ",
     "Selected Period": "Vybrané obdobie",
