@@ -630,7 +630,6 @@ export const generateInvoicePDF = async ({
       // No need to recalculate again since finalTotalWithoutVAT is already processed at top
 
       const vatAmount = amountWithoutVat * (vatRate || 0.23);
-      const total = amountWithoutVat + vatAmount;
 
       tableData.push([
         { content: sanitizeText(t('Advance Payment')) },

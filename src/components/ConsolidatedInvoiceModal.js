@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, User, Check, ChevronRight, ChevronLeft, Loader2, Building, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Check, ChevronRight, Loader2, Building, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { useAppData } from '../context/AppDataContext';
 import api from '../services/supabaseApi';
 
 const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGenerateInvoice }) => {

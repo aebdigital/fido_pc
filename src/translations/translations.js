@@ -1334,7 +1334,7 @@ export const translations = {
     "Issue Proforma Invoice": "Vystaviť zálohovú faktúru",
     "Issue Delivery Note": "Vystaviť dodací list",
     "Issue Credit Note": "Vystaviť dobropis",
-    "Issue Date": "Dátum vystavenia",
+
     "Invoice type already exists": "Doklad tohto typu už pre tento projekt existuje.",
     "Delete Proforma Invoice": "Vymazať zálohovú faktúru",
     "Delete Delivery Note": "Vymazať dodací list",
@@ -1342,7 +1342,6 @@ export const translations = {
     "Are you sure you want to delete this proforma invoice? This action cannot be undone.": "Naozaj chcete vymazať túto zálohovú faktúru? Táto akcia je nevratná.",
     "Are you sure you want to delete this delivery note? This action cannot be undone.": "Naozaj chcete vymazať tento dodací list? Táto akcia je nevratná.",
     "Are you sure you want to delete this credit note? This action cannot be undone.": "Naozaj chcete vymazať tento dobropis? Táto akcia je nevratná.",
-    "Invoice Builder": "Vystavenie dokladu",
 
     // ========== CONSOLIDATED INVOICE ==========
     "Issue Consolidated Invoice": "Vystaviť konsolidovanú faktúru",
@@ -1354,7 +1353,7 @@ export const translations = {
     "Selected Projects": "Vybrané projekty",
     "Billable Hours": "Fakturované hodiny",
     "Hourly Rate (€)": "Hodinová sadzba (€)",
-    "Total Amount": "Celková suma",
+
     "Includes VAT": "Vrátane DPH",
     "Proceed to Invoice": "Prejsť na fakturáciu",
     "Warning: Selected owner does not have a complete Contractor Profile. You may need to enter billing details manually.": "Upozornenie: Vybraný vlastník nemá kompletný profil dodávateľa. Fakturačné údaje možno budete musieť zadať ručne.",
