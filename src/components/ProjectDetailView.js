@@ -122,6 +122,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [showEditClientModal, setShowEditClientModal] = useState(false);
   const [showInvoiceCreationModal, setShowInvoiceCreationModal] = useState(false);
   const [showInvoiceDetailModal, setShowInvoiceDetailModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [projectPhotos, setProjectPhotos] = useState([]);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
   const [projectDetailNotes, setProjectDetailNotes] = useState('');
@@ -355,7 +356,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const handleSaveProjectPriceList = (priceData) => {
-    updateProject(project.category, projectId, { priceListSnapshot: priceData });
+    return updateProject(project.category, projectId, { priceListSnapshot: priceData });
     // Don't close the modal - let user continue editing
     // Modal will close when user clicks the X button
   };
@@ -1575,34 +1576,45 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
             {/* Create/View Invoice Button - Only for project owner */}
             {isProjectOwner && !project.is_archived && (
-              !getInvoiceForProject(projectId) ? (
-                <button
-                  onClick={() => {
-                    if (!isPro) { setShowPaywall(true); return; }
-                    setShowInvoiceCreationModal(true);
-                  }}
-                  className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98]"
-                >
-                  <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
-                  <Plus className="w-4 h-4 text-white" />
-                </button>
-              ) : null
+              <button
+                onClick={() => {
+                  if (!isPro) { setShowPaywall(true); return; }
+                  setShowInvoiceCreationModal(true);
+                }}
+                className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98]"
+              >
+                <span className="text-sm sm:text-lg">{t('Issue Document')}</span>
+                <Plus className="w-4 h-4 text-white" />
+              </button>
             )}
           </div>
 
           {/* Invoices List (if exists) - Only for project owner */}
-          {isProjectOwner && getInvoiceForProject(projectId) && (
+          {isProjectOwner && projectInvoices.length > 0 && (
             <div className="space-y-3">
-              {[getInvoiceForProject(projectId)] // Show the invoice regardless of active contractor
+              {projectInvoices // Show all invoices
                 .filter(Boolean) // Safety check
                 .map(invoice => (
                   <div
                     key={invoice.id}
-                    onClick={() => !project.is_archived && setShowInvoiceDetailModal(true)}
+                    onClick={() => {
+                      if (!project.is_archived) {
+                        setSelectedInvoice(invoice);
+                        setShowInvoiceDetailModal(true);
+                      }
+                    }}
                     className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Invoice')} {invoice.invoiceNumber}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white text-lg">
+                        {(() => {
+                          const type = invoice.invoiceType || 'regular';
+                          if (type === 'proforma') return t('Proforma Invoice');
+                          if (type === 'delivery') return t('Delivery Note');
+                          if (type === 'credit_note') return t('Credit Note');
+                          return t('Invoice');
+                        })()} {invoice.invoiceType !== 'delivery' ? invoice.invoiceNumber : ''}
+                      </div>
                       <div className="text-base text-gray-600 dark:text-gray-400">{new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -2146,8 +2158,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         showInvoiceDetailModal && (
           <InvoiceDetailModal
             isOpen={showInvoiceDetailModal}
-            onClose={() => setShowInvoiceDetailModal(false)}
-            invoice={getInvoiceForProject(projectId)}
+            onClose={() => {
+              setShowInvoiceDetailModal(false);
+              setSelectedInvoice(null);
+            }}
+            invoice={selectedInvoice || getInvoiceForProject(projectId)}
             hideViewProject={true}
           />
         )

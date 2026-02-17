@@ -42,8 +42,10 @@ const WorkPropertyCard = ({
   onToggleComplementaryWork,
   onCloseSelector, // For closing type/rental/sanitary selectors
   onUpdateItemState, // For updating top-level item properties like selectedType
+  suggestions = { work: [], material: [] } // Default new prop
 }) => {
   const { t } = useLanguage();
+  const [activeSuggestionId, setActiveSuggestionId] = React.useState(null);
 
   // For rentals, we need to match items with specific rental propertyIds (core_drill, tool_rental, scaffolding)
   // as well as the parent 'rentals' propertyId
@@ -849,15 +851,69 @@ const WorkPropertyCard = ({
           {/* Header Row: Only show if configured (unit selected) OR if we need to show the default header in a non-configuring state (fallback) */}
           {!isConfiguring && (
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-1 min-w-0 relative">
                 <input
                   id={`custom-work-name-${item.id}`}
                   type="text"
-                  defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
-                  onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
+                  value={item.fields[WORK_ITEM_NAMES.NAME] || ''}
+                  onChange={(e) => {
+                    onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true);
+                    if (activeSuggestionId !== item.id) setActiveSuggestionId(item.id);
+                  }}
+                  onFocus={() => setActiveSuggestionId(item.id)}
+                  onBlur={() => setTimeout(() => setActiveSuggestionId(null), 200)}
                   className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 font-semibold"
                   placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
                 />
+
+                {/* Autocomplete Suggestions */}
+                {activeSuggestionId === item.id && (
+                  (() => {
+                    const typeSuggestions = item.selectedType === 'Material' ? suggestions.material : suggestions.work;
+                    const query = (item.fields[WORK_ITEM_NAMES.NAME] || '').toLowerCase();
+                    if (!query) return null;
+
+                    const filtered = typeSuggestions
+                      .filter(s => s.title && s.title.toLowerCase().includes(query) && s.title.toLowerCase() !== query)
+                      .slice(0, 5);
+
+                    if (filtered.length === 0) return null;
+
+                    return (
+                      <div className="absolute top-full left-0 z-50 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mt-1 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {filtered.map((s, i) => (
+                          <button
+                            key={i}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              // Update Name
+                              onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, s.title, true);
+
+                              // Update Price if present
+                              if (s.price) {
+                                onUpdateWorkItem(item.id, WORK_ITEM_NAMES.PRICE, s.price);
+                              }
+
+                              // Update Unit if present and compatible
+                              // Note: We can only update unit if we are in the configuration phase (which we aren't here)
+                              // OR if we support changing unit later. But currently unit selection is separate.
+                              // If unit is different, we might want to warn or handle it, but for now just name and price.
+
+                              setActiveSuggestionId(null);
+                            }}
+                            className="w-full text-left p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b last:border-0 border-gray-100 dark:border-gray-700 block"
+                          >
+                            <div className="font-medium text-gray-900 dark:text-white text-sm truncate">{s.title}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {s.price} € {s.unit ? `/ ${t(s.unit)}` : ''}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button

@@ -593,6 +593,20 @@ export const invoicesApi = {
   // Get all invoices by project ID
   getInvoicesByProject: async (projectId) => {
     try {
+      const pidClean = String(projectId).trim();
+      const isNumeric = !isNaN(pidClean) && !isNaN(parseFloat(pidClean));
+
+      // Build filter string
+      let filterString = `project_id.eq.${projectId}`;
+
+      // Always add the string version check (safest default)
+      filterString += `,invoice_items_data.cs.[{"projectId": "${pidClean}"}]`;
+
+      // If numeric, also add the number version check to handle cases where it's stored as number
+      if (isNumeric) {
+        filterString += `,invoice_items_data.cs.[{"projectId": ${pidClean}}]`;
+      }
+
       const { data, error } = await supabase
         .from('invoices')
         .select(`
@@ -600,7 +614,7 @@ export const invoicesApi = {
             projects!invoices_project_id_fkey (*),
             contractors (*)
         `)
-        .eq('project_id', projectId)
+        .or(filterString)
         .or('is_deleted.is.null,is_deleted.eq.false')
         .order('date_created', { ascending: false })
 

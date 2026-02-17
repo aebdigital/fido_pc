@@ -94,17 +94,21 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         clearTimeout(saveTimerRef.current);
       }
 
-      saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = setTimeout(async () => {
         if (isUnmounting.current) return;
 
         setSaveStatus('saving');
-        onSaveRef.current(projectPriceData);
-        lastSavedData.current = currentDataString;
-        saveTimerRef.current = null;
-
-        setTimeout(() => {
-          if (!isUnmounting.current) setSaveStatus('saved');
-        }, 800);
+        try {
+          await onSaveRef.current(projectPriceData);
+          if (!isUnmounting.current) {
+            lastSavedData.current = currentDataString;
+            saveTimerRef.current = null;
+            setSaveStatus('saved');
+          }
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+          if (!isUnmounting.current) setSaveStatus('error');
+        }
       }, 1500); // 1.5 second debounce for more buffer while typing
     }
 
@@ -311,18 +315,22 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
                 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
                 : saveStatus === 'saving'
                   ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                  : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
+                  : saveStatus === 'error'
+                    ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
+                    : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
                 }`}
             >
               {saveStatus === 'saving' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : saveStatus === 'saved' ? (
                 <Check className="w-4 h-4" />
+              ) : saveStatus === 'error' ? (
+                <X className="w-4 h-4" />
               ) : (
                 <Loader2 className="w-4 h-4" />
               )}
               <span className="hidden sm:inline">
-                {saveStatus === 'saved' ? t('Saved') : saveStatus === 'saving' ? t('Saving...') : t('Saving...')}
+                {saveStatus === 'saved' ? t('Saved') : saveStatus === 'saving' ? t('Saving...') : saveStatus === 'error' ? t('Error') : t('Saving...')}
               </span>
             </div>
             <button

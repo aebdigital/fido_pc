@@ -190,7 +190,9 @@ export const transformInvoiceFromDB = (dbInvoice) => {
     invoiceItems: invoiceItems,
     priceWithoutVat: dbInvoice.price_without_vat || 0,
     cumulativeVat: dbInvoice.cumulative_vat || 0,
-    contractors: dbInvoice.contractors // Pass through contractors object for display logic
+    contractors: dbInvoice.contractors, // Pass through contractors object for display logic
+    invoiceType: dbInvoice.invoice_type || 'regular',
+    depositSettings: dbInvoice.deposit_settings || null
   };
 };
 

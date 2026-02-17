@@ -37,7 +37,8 @@ const transformItemsForIOS = (items) => {
     unit: displayToIOSUnit[item.unit] || item.unit || 'squareMeter',
     category: item.category || 'work',
     active: item.active !== false,
-    taxObligationTransfer: item.taxObligationTransfer || false
+    taxObligationTransfer: item.taxObligationTransfer || false,
+    projectId: item.projectId || null
   }));
 };
 
@@ -135,7 +136,10 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         invoice_items_data: iosItems ? JSON.stringify(iosItems) : null,
         // Price data
         price_without_vat: invoiceData.priceWithoutVat || 0,
-        cumulative_vat: invoiceData.cumulativeVat || 0
+        cumulative_vat: invoiceData.cumulativeVat || 0,
+        // Invoice Type & Deposit Settings
+        invoice_type: invoiceData.invoiceType || 'regular',
+        deposit_settings: invoiceData.depositSettings || null
       };
 
       // For Denník invoices (owner contractor), override client_id if needed
@@ -203,6 +207,9 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
 
       if (updates.priceWithoutVat !== undefined) dbUpdates.price_without_vat = updates.priceWithoutVat;
       if (updates.cumulativeVat !== undefined) dbUpdates.cumulative_vat = updates.cumulativeVat;
+
+      if (updates.invoiceType !== undefined) dbUpdates.invoice_type = updates.invoiceType;
+      if (updates.depositSettings !== undefined) dbUpdates.deposit_settings = updates.depositSettings;
 
       if (Object.keys(dbUpdates).length > 0) {
         await api.invoices.update(invoiceId, dbUpdates);

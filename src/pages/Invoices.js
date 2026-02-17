@@ -11,6 +11,7 @@ const Invoices = () => {
   const { t } = useLanguage();
   const { contractors, activeContractorId, setActiveContractor, addContractor, updateContractor, getInvoicesForContractor, formatPrice, findProjectById, calculateProjectTotalPriceWithBreakdown, generalPriceList, clients } = useAppData();
   const [selectedStatus, setSelectedStatus] = useState(t('All'));
+  const [selectedType, setSelectedType] = useState('regular'); // Default to 'regular' (Faktúry)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
@@ -55,6 +56,11 @@ const Invoices = () => {
       });
     }
 
+    // Filter by type
+    if (selectedType) {
+      filtered = filtered.filter(inv => (inv.invoiceType || 'regular') === selectedType);
+    }
+
     // Filter by status
     if (selectedStatus === t('Paid')) {
       filtered = filtered.filter(inv => inv.status === 'paid');
@@ -83,6 +89,14 @@ const Invoices = () => {
   ];
 
   const statusFilters = [t('All'), t('Paid'), t('Unpaid'), t('Overdue')];
+
+  const invoiceTypes = [
+    { id: 'regular', label: t('Invoices') },
+    { id: 'proforma', label: t('Proforma Invoices') },
+    { id: 'delivery', label: t('Delivery Notes') },
+    { id: 'credit_note', label: t('Credit Notes') }
+  ];
+
   const invoices = getInvoices();
 
   const formatDate = (dateString) => {
@@ -329,54 +343,72 @@ const Invoices = () => {
         </div>
       </div>
 
-      <div className="mb-6 lg:mb-8 flex items-center gap-4 px-4 lg:px-0 -ml-4 lg:ml-0 overflow-visible">
-        {/* Year dropdown */}
-        <div className="relative flex-shrink-0" ref={yearDropdownRef}>
-          <button
-            onClick={() => setShowYearDropdown(!showYearDropdown)}
-            className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap bg-transparent"
-          >
-            {selectedYear}
-            <ChevronDown className={`w-4 h-4 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
-          </button>
-          {showYearDropdown && (
-            <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-[100] py-1 min-w-[120px]">
-              {yearFilters.map(year => (
-                <button
-                  key={year}
-                  onClick={() => {
-                    setSelectedYear(year);
-                    setShowYearDropdown(false);
-                  }}
-                  className={`w-full px-4 py-2 text-left text-sm transition-colors ${selectedYear === year
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Separator */}
-        <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 self-center flex-shrink-0" />
-
-        {/* Status filters - Scrollable area */}
-        <div className="flex-1 flex gap-4 py-2 overflow-x-auto scrollbar-hide">
-          {statusFilters.map(filter => (
+      <div className="mb-6 lg:mb-8 flex flex-col gap-4 px-4 lg:px-0 -ml-4 lg:ml-0 overflow-visible">
+        {/* Invoice Type Tabs */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {invoiceTypes.map(type => (
             <button
-              key={filter}
-              className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full border no-global-border ${selectedStatus === filter
-                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
-                : 'bg-transparent border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              key={type.id}
+              onClick={() => setSelectedType(type.id)}
+              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all ${selectedType === type.id
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
-              onClick={() => setSelectedStatus(filter)}
             >
-              {filter}
+              {type.label}
             </button>
           ))}
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Year dropdown */}
+          <div className="relative flex-shrink-0" ref={yearDropdownRef}>
+            <button
+              onClick={() => setShowYearDropdown(!showYearDropdown)}
+              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap bg-transparent"
+            >
+              {selectedYear}
+              <ChevronDown className={`w-4 h-4 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            {showYearDropdown && (
+              <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-[100] py-1 min-w-[120px]">
+                {yearFilters.map(year => (
+                  <button
+                    key={year}
+                    onClick={() => {
+                      setSelectedYear(year);
+                      setShowYearDropdown(false);
+                    }}
+                    className={`w-full px-4 py-2 text-left text-sm transition-colors ${selectedYear === year
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Separator */}
+          <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 self-center flex-shrink-0" />
+
+          {/* Status filters - Scrollable area */}
+          <div className="flex-1 flex gap-4 py-2 overflow-x-auto scrollbar-hide">
+            {statusFilters.map(filter => (
+              <button
+                key={filter}
+                className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full border no-global-border ${selectedStatus === filter
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                  : 'bg-transparent border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                onClick={() => setSelectedStatus(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -402,7 +434,7 @@ const Invoices = () => {
                   {/* Invoice number with dates */}
                   <div className="flex items-center gap-2 mb-2 flex-wrap text-sm text-gray-500 dark:text-gray-400">
                     <span className="lg:text-base">
-                      {invoice.invoiceNumber}
+                      {invoice.invoiceType === 'delivery' ? '' : invoice.invoiceNumber}
                     </span>
                     <span className="hidden lg:inline">•</span>
                     <span className="hidden lg:inline">{t('Issue Date')}: {formatDate(invoice.issueDate)}</span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Hammer, Package, Info, Menu, Loader2, Check, TrendingUp, Wrench, Lock } from 'lucide-react';
+import { ArrowLeft, Hammer, Package, Info, Menu, Loader2, Check, X, TrendingUp, Wrench, Lock } from 'lucide-react';
 import PaywallModal from '../components/PaywallModal';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,7 +12,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   const { generalPriceList, updateGeneralPriceList, saveGeneralPriceListBulk, isPro } = useAppData();
   const [localPriceList, setLocalPriceList] = useState(null);
   const [originalPrices, setOriginalPrices] = useState({});
-  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified', 'error'
   const [percentageIncrease, setPercentageIncrease] = useState('');
   const [showPercentageModal, setShowPercentageModal] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false); // Add Paywall State
@@ -62,12 +62,11 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         clearTimeout(saveTimerRef.current);
       }
 
-      saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = setTimeout(async () => {
         if (isUnmounting.current) return;
 
         setSaveStatus('saving');
 
-        // Perform save
         // Perform save
         const updates = {};
         let hasUpdates = false;
@@ -93,16 +92,21 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         });
 
         if (hasUpdates) {
-          saveGeneralPriceListBulk(updates);
-        }
-
-        setOriginalPrices(JSON.parse(currentDataString));
-        lastSavedData.current = currentDataString;
-        saveTimerRef.current = null;
-
-        setTimeout(() => {
+          try {
+            await saveGeneralPriceListBulk(updates);
+            if (!isUnmounting.current) {
+              setOriginalPrices(JSON.parse(currentDataString));
+              lastSavedData.current = currentDataString;
+              saveTimerRef.current = null;
+              setSaveStatus('saved');
+            }
+          } catch (error) {
+            console.error('Save failed:', error);
+            if (!isUnmounting.current) setSaveStatus('error');
+          }
+        } else {
           if (!isUnmounting.current) setSaveStatus('saved');
-        }, 800);
+        }
       }, 1500); // 1.5 second debounce for more buffer while typing
     }
 
@@ -316,18 +320,22 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
               ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
               : saveStatus === 'saving'
                 ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
+                : saveStatus === 'error'
+                  ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
+                  : 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'
               }`}
           >
             {saveStatus === 'saving' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : saveStatus === 'saved' ? (
               <Check className="w-4 h-4" />
+            ) : saveStatus === 'error' ? (
+              <X className="w-4 h-4" />
             ) : (
               <Loader2 className="w-4 h-4" />
             )}
             <span className="hidden sm:inline">
-              {saveStatus === 'saved' ? t('Saved') : saveStatus === 'saving' ? t('Saving...') : t('Saving...')}
+              {saveStatus === 'saved' ? t('Saved') : saveStatus === 'saving' ? t('Saving...') : saveStatus === 'error' ? t('Error') : t('Saving...')}
             </span>
           </div>
         </div>

@@ -638,12 +638,24 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Delete Invoice')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {(() => {
+                  if (invoice.invoiceType === 'proforma') return t('Delete Proforma Invoice');
+                  if (invoice.invoiceType === 'delivery') return t('Delete Delivery Note');
+                  if (invoice.invoiceType === 'credit_note') return t('Delete Credit Note');
+                  return t('Delete Invoice');
+                })()}
+              </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">{invoice.invoiceNumber}</p>
             </div>
           </div>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {t('Are you sure you want to delete this invoice? This action cannot be undone.')}
+            {(() => {
+              if (invoice.invoiceType === 'proforma') return t('Are you sure you want to delete this proforma invoice? This action cannot be undone.');
+              if (invoice.invoiceType === 'delivery') return t('Are you sure you want to delete this delivery note? This action cannot be undone.');
+              if (invoice.invoiceType === 'credit_note') return t('Are you sure you want to delete this credit note? This action cannot be undone.');
+              return t('Are you sure you want to delete this invoice? This action cannot be undone.');
+            })()}
           </p>
           <div className="flex gap-3">
             <button

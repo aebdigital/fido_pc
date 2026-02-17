@@ -11,6 +11,9 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useNavigate } from 'react-router-dom';
+import ConsolidatedInvoiceModal from '../components/ConsolidatedInvoiceModal';
+import InvoiceCreationModal from '../components/InvoiceCreationModal';
+import { FileText } from 'lucide-react'; // Import icon for button
 
 const DAY_NAMES_SK = ['Ne', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So'];
 const toLocalDateStr = (d) => {
@@ -233,6 +236,28 @@ const Dennik = () => {
         return clients?.find(c => c.id === clientId)?.name || null;
     };
 
+    // Consolidated Invoice State
+    const [showConsolidatedWizard, setShowConsolidatedWizard] = useState(false);
+    const [showInvoiceCreation, setShowInvoiceCreation] = useState(false);
+    const [consolidatedInvoiceData, setConsolidatedInvoiceData] = useState(null);
+
+    const handleOpenConsolidatedWizard = () => {
+        setShowConsolidatedWizard(true);
+    };
+
+    const handleWizardGenerate = (data) => {
+        // data contains { items, ownerContractor, ownerId }
+        setConsolidatedInvoiceData(data);
+        setShowInvoiceCreation(true);
+    };
+
+    const handleInvoiceCreated = () => {
+        // Refresh data??
+        // Maybe not needed immediately as invoices are loaded in DennikModal
+        setShowInvoiceCreation(false);
+        setConsolidatedInvoiceData(null);
+    };
+
     // Build ALL days from future through today back to totalDays ago
     const buildCalendarData = () => {
         const end = new Date();
@@ -410,6 +435,14 @@ const Dennik = () => {
             {/* Header - stays fixed */}
             <div className="flex-shrink-0 pb-4 flex items-center justify-between">
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
+
+                <button
+                    onClick={handleOpenConsolidatedWizard}
+                    className="flex items-center gap-2 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-bold hover:opacity-90 transition-opacity"
+                >
+                    <FileText className="w-4 h-4" />
+                    {t('Invoice')}
+                </button>
             </div>
 
             {/* Member Filter */}
@@ -527,6 +560,33 @@ const Dennik = () => {
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* Modals */}
+            <ConsolidatedInvoiceModal
+                isOpen={showConsolidatedWizard}
+                onClose={() => setShowConsolidatedWizard(false)}
+                projects={dennikProjects}
+                currentUser={user}
+                onGenerateInvoice={handleWizardGenerate}
+            />
+
+            {showInvoiceCreation && consolidatedInvoiceData && (
+                <InvoiceCreationModal
+                    isOpen={showInvoiceCreation}
+                    onClose={() => setShowInvoiceCreation(false)}
+                    project={dennikProjects[0]} // Pass a dummy project for context (currency, etc.)
+                    // We need to pass the "Client" which is the Owner's Contractor Profile
+                    // InvoiceCreationModal normally expects "project" to have "client", or we pass "clientId"
+                    // But here we might want to PRE-FILL the client form or selection.
+                    // Let's pass the ownerContractor as initialClientData if supported?
+                    // Actually, InvoiceCreationModal has logic to look up client.
+                    // We might need to handle this in InvoiceCreationModal to accept `initialClientData`
+                    dennikData={{ items: consolidatedInvoiceData.items }} // Correct prop name
+                    initialClientContractor={consolidatedInvoiceData.ownerContractor} // New prop to handle
+                    isStandalone={true}
+                    onInvoiceCreated={handleInvoiceCreated}
+                />
             )}
 
         </div>

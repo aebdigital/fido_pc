@@ -52,7 +52,7 @@ const getWorkItemUnit = (item) => {
   return UNIT_TYPES.METER_SQUARE;
 };
 
-// Helper to build CANONICAL display name for work items (English - for storage)
+// Helper to build CANONICAL display name for work items (English-for storage)
 // Translation happens at display time in PDF generator, not at storage time
 const getWorkItemDisplayName = (item, t) => {
   const itemName = item.name || '';
@@ -79,7 +79,7 @@ const getWorkItemDisplayName = (item, t) => {
 
   // For plinth items, show name with subtitle
   if ((item.propertyId === 'plinth_cutting' || item.propertyId === 'plinth_bonding') && item.subtitle) {
-    return `${t(itemName)} - ${t(item.subtitle)}`;
+    return `${t(itemName)}-${t(item.subtitle)}`;
   }
 
   // For custom work, use the entered name or fallback
@@ -88,7 +88,7 @@ const getWorkItemDisplayName = (item, t) => {
     return t(item.fields?.[WORK_ITEM_NAMES.NAME]) || fallbackName;
   }
 
-  // For Large Format items, the name already includes "Large Format" - don't append subtitle
+  // For Large Format items, the name already includes "Large Format"-don't append subtitle
   if (item.isLargeFormat) {
     return t(itemName);
   }
@@ -98,11 +98,11 @@ const getWorkItemDisplayName = (item, t) => {
     return `${t(itemName)}, ${t(item.subtitle)}`;
   }
 
-  // Default: return translated name
+  // Default:return translated name
   return t(itemName) || t('Work item');
 };
 
-// Helper to build CANONICAL display name for material items (English - for storage)
+// Helper to build CANONICAL display name for material items (English-for storage)
 // Translation happens at display time in PDF generator, not at storage time
 const getMaterialItemDisplayName = (item, t) => {
   // For custom materials
@@ -120,18 +120,18 @@ const getMaterialItemDisplayName = (item, t) => {
 };
 
 /**
- * InvoiceCreationModal - iOS-aligned invoice builder
+ * InvoiceCreationModal-iOS-aligned invoice builder
  *
  * Structure (matching iOS InvoiceBuilderView):
  * 1. Header with title and close button
- * 2. Summary section (price breakdown + Generate button) - at top like iOS
+ * 2. Summary section (price breakdown + Generate button)-at top like iOS
  * 3. Settings section (number, dates, payment, maturity, notes)
  * 4. Items section grouped by category (Work, Material, Other)
  */
 // Maturity quick-select options (matching iOS MaturityDuration)
 const maturityOptions = [7, 15, 30, 60, 90];
 
-const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null }) => {
+const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null, initialClientContractor = null, isStandalone: propIsStandalone = false }) => {
   useScrollLock(true);
   const { t } = useLanguage();
   const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings, findProjectById, addClient, generalPriceList } = useAppData();
@@ -141,6 +141,56 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [showClientSelector, setShowClientSelector] = useState(false);
   const [showCreateClientInModal, setShowCreateClientInModal] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
+
+  // Handle initialClientContractor (Consolidated Invoice)
+  useEffect(() => {
+    if (isOpen && initialClientContractor && clients) {
+      const findAndSelectClient = async () => {
+        // 1. Try match by Business ID (ICO)
+        let match = initialClientContractor.business_id
+          ? clients.find(c => c.business_id === initialClientContractor.business_id)
+          : null;
+
+        // 2. Try match by Name
+        if (!match) {
+          match = clients.find(c => c.name?.toLowerCase() === initialClientContractor.name?.toLowerCase());
+        }
+
+        if (match) {
+          setSelectedClientId(match.id);
+        } else {
+          // 3. Auto-create client from contractor data
+          try {
+            const newClient = {
+              name: initialClientContractor.name,
+              street: initialClientContractor.street,
+              second_row_street: initialClientContractor.second_row_street,
+              city: initialClientContractor.city,
+              postal_code: initialClientContractor.postal_code,
+              country: initialClientContractor.country || 'Slovensko',
+              business_id: initialClientContractor.business_id,
+              tax_id: initialClientContractor.tax_id,
+              vat_registration_number: initialClientContractor.vat_registration_number,
+              email: initialClientContractor.email,
+              phone: initialClientContractor.phone,
+              // Map other fields if necessary
+            };
+            const created = await addClient(newClient);
+            if (created) setSelectedClientId(created.id);
+          } catch (e) {
+            console.error('Failed to auto-create client from contractor', e);
+          }
+        }
+      };
+      findAndSelectClient();
+    }
+  }, [isOpen, initialClientContractor, clients, addClient]);
+
+  // Invoice Type state
+  const [invoiceType, setInvoiceType] = useState('regular'); // regular, proforma, delivery, credit_note
+  const [depositValue, setDepositValue] = useState(0);
+  const [depositType, setDepositType] = useState('percentage'); // percentage, fixed
+  const [typeWarning, setTypeWarning] = useState(null);
 
   // Invoice settings state
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -275,11 +325,37 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     fetchSettings();
   }, [isOpen, getInvoiceSettings]);
 
+  // Check for existing invoice of the same type
+  useEffect(() => {
+    if (!project || !invoices || !isOpen) return;
+
+    // Filter active invoices for this project
+    const existingType = invoices.find(inv => {
+      // Must match project
+      if (inv.projectId !== project.id) return false;
+
+      // Must match type (handle undefined as 'regular')
+      const invType = inv.invoiceType || 'regular';
+      if (invType !== invoiceType) return false;
+
+      // If editing, ignore self
+      if (editMode && existingInvoice && inv.id === existingInvoice.id) return false;
+
+      return true;
+    });
+
+    if (existingType) {
+      setTypeWarning(t('Invoice type already exists'));
+    } else {
+      setTypeWarning(null);
+    }
+  }, [invoiceType, project, invoices, editMode, existingInvoice, isOpen, t]);
+
   // Initialize invoice items from project breakdown or dennikData
   useEffect(() => {
     if (!isOpen) return;
 
-    // 1. Edit Mode - Always load existing items
+    // 1. Edit Mode-Always load existing items
     if (editMode && existingInvoice?.invoiceItems) {
       setInvoiceItems(existingInvoice.invoiceItems.map(item => ({
         ...item,
@@ -288,19 +364,20 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       return;
     }
 
-    // 2. Standalone Mode - New
+    // 2. Standalone Mode-New
     if (!project && !dennikData) {
       setInvoiceItems([]);
       return;
     }
 
-    // 3. Dennik Mode - New
+    // 3. Dennik Mode-New
     if (project && dennikData) {
       setInvoiceItems(dennikData.items || []);
       return;
     }
 
-    // 4. Project Breakdown - New
+
+    // 4. Project Breakdown-New
     if (project && projectBreakdown) {
       // Create invoice items from project breakdown
       const items = [];
@@ -380,16 +457,60 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     }
   }, [isOpen, project, projectBreakdown, editMode, existingInvoice, t, dennikData]);
 
+  // Initialize invoice number based on type and existing invoices
+  const generateNextInvoiceNumber = useCallback((type) => {
+    if (type === 'delivery') return '';
+
+    const currentYear = new Date().getFullYear();
+    const yearPrefix = parseInt(`${currentYear}000`);
+    const yearMax = parseInt(`${currentYear}999`);
+
+    // Filter invoices for the current contractor and current year AND matching type
+    const contractorInvoices = (invoices || []).filter(inv => inv.contractorId === activeContractorId);
+
+    // Determine the type we are looking for match
+    // If it's regular (or undefined/null in DB), we match 'regular'
+    const typeToMatch = type || 'regular';
+
+    const currentYearInvoices = contractorInvoices.filter(inv => {
+      const invType = inv.invoiceType || 'regular';
+      // Only consider invoices of the same type for numbering sequence
+      if (invType !== typeToMatch) return false;
+
+      const num = parseInt(inv.invoiceNumber || 0);
+      return num >= yearPrefix && num <= yearMax;
+    });
+
+    // Determine next number
+    let nextNumber;
+    if (currentYearInvoices.length === 0) {
+      nextNumber = parseInt(`${currentYear}001`);
+    } else {
+      const maxNumber = Math.max(...currentYearInvoices.map(inv => parseInt(inv.invoiceNumber || 0)));
+      nextNumber = maxNumber + 1;
+    }
+
+    return String(nextNumber);
+  }, [invoices, activeContractorId]);
+
   // Initialize invoice settings
   useEffect(() => {
     if (isOpen) {
       if (editMode && existingInvoice) {
         // Populate with existing invoice data
+        setInvoiceType(existingInvoice.invoiceType || 'regular'); // Load invoice type
         setInvoiceNumber(existingInvoice.invoiceNumber || '');
         setOriginalInvoiceNumber(existingInvoice.invoiceNumber || '');
         setIssueDate(existingInvoice.issueDate ? existingInvoice.issueDate.split('T')[0] : '');
         setDispatchDate(existingInvoice.dispatchDate ? existingInvoice.dispatchDate.split('T')[0] : (existingInvoice.issueDate ? existingInvoice.issueDate.split('T')[0] : ''));
         setPaymentMethod(existingInvoice.paymentMethod || 'transfer');
+
+        // Load deposit settings if present
+        if (existingInvoice.depositSettings) {
+          setDepositType(existingInvoice.depositSettings.type || 'percentage');
+          setDepositValue(existingInvoice.depositSettings.value || 0);
+        }
+
         // Calculate payment days from issue and due dates
         if (existingInvoice.issueDate && existingInvoice.dueDate) {
           const issue = new Date(existingInvoice.issueDate);
@@ -409,36 +530,12 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         }
         setNotes(existingInvoice.notes || '');
       } else {
-        // Create mode - generate new invoice number
-        const currentYear = new Date().getFullYear();
-        const yearPrefix = parseInt(`${currentYear}000`);
-        const yearMax = parseInt(`${currentYear}999`);
-
-        // Filter invoices for the current contractor and current year
-        const contractorInvoices = (invoices || []).filter(inv => inv.contractorId === activeContractorId);
-        const currentYearInvoices = contractorInvoices.filter(inv => {
-          const num = parseInt(inv.invoiceNumber || 0);
-          return num >= yearPrefix && num <= yearMax;
-        });
-
-        // Determine next number
-        let nextNumber;
-        if (currentYearInvoices.length === 0) {
-          nextNumber = parseInt(`${currentYear}001`);
-        } else {
-          const maxNumber = Math.max(...currentYearInvoices.map(inv => parseInt(inv.invoiceNumber || 0)));
-          nextNumber = maxNumber + 1;
-        }
-
-        const numberStr = String(nextNumber);
-        setInvoiceNumber(numberStr);
-        setOriginalInvoiceNumber(numberStr);
+        // Create mode-init defaults
+        // Note: Number generation is handled in separate effect listening to type change
 
         // Set default dates
         const today = new Date();
         const issueDateStr = today.toISOString().split('T')[0];
-        setIssueDate(issueDateStr);
-        setDispatchDate(issueDateStr);
         setIssueDate(issueDateStr);
         setDispatchDate(issueDateStr);
         setPaymentMethod('transfer');
@@ -463,6 +560,15 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       }
     }
   }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t, persistentSettings, dennikData]);
+
+  // Effect to update invoice number when type changes (Create Mode Only)
+  useEffect(() => {
+    if (isOpen && !editMode) {
+      const nextNum = generateNextInvoiceNumber(invoiceType);
+      setInvoiceNumber(nextNum);
+      setOriginalInvoiceNumber(nextNum);
+    }
+  }, [invoiceType, isOpen, editMode, generateNextInvoiceNumber]);
 
   // Calculate totals from invoice items
   const calculateTotals = useMemo(() => {
@@ -507,7 +613,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       taxObligationTransfer: false,
       isNew: true
     };
-    setInvoiceItems(prev => [...prev, newItem]);
+    setInvoiceItems(prev => [newItem, ...prev]);
   };
 
   // Remove an item
@@ -538,6 +644,35 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   // Reset invoice number to original
   const handleResetNumber = () => {
     setInvoiceNumber(originalInvoiceNumber);
+  };
+
+  // Custom maturity handlers
+  const handleCustomMaturityChange = (e) => {
+    const val = e.target.value;
+    setCustomInputValue(val);
+    const num = parseInt(val);
+    if (!isNaN(num)) {
+      setPaymentDays(num);
+    } else if (val === '') {
+      setPaymentDays(0);
+    }
+  };
+
+  const handleCustomMaturityFocus = () => {
+    if (maturityOptions.includes(paymentDays)) {
+      setCustomInputValue('');
+    } else {
+      setCustomInputValue(String(paymentDays));
+    }
+  };
+
+  const handleCustomMaturityBlur = () => {
+    // If empty custom value and valid paymentDays is 0 (from clearing), maybe revert to 30?
+    // If not, keep current.
+    if (customInputValue === '' && !maturityOptions.includes(paymentDays) && paymentDays === 0) {
+      // Optional: revert to default if empty? Or allow 0 days.
+      // Let's allow 0 for now.
+    }
   };
 
   const checkRequiredFields = () => {
@@ -584,6 +719,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
     // Check invoice items
     const activeItems = invoiceItems.filter(item => item.active);
+
     if (activeItems.length === 0) {
       missing.push(t('No invoice items'));
     }
@@ -595,32 +731,45 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   };
 
   const proceedWithGeneration = async () => {
-    const invoiceData = {
-      invoiceNumber,
-      issueDate,
-      dispatchDate,
-      paymentMethod,
-      paymentDays,
-      notes,
-      // Save ALL items (including inactive ones) so they can be re-enabled later
-      // iOS keeps excluded items in the invoice, just marks them as inactive
-      invoiceItems: invoiceItems,
-      priceWithoutVat: calculateTotals.priceWithoutVat,
-      cumulativeVat: calculateTotals.cumulativeVat,
-      clientId: selectedClientId // Use selected client
-    };
+    try {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
 
-    console.log('[DEBUG proceedWithGeneration] editMode:', editMode, 'existingInvoice:', existingInvoice?.id);
+      // Debug: Check if project IDs are present
+      console.log('[InvoiceCreationModal] Proceeding with generation. Items:', invoiceItems);
+      invoiceItems.forEach((item, idx) => {
+        console.log('[InvoiceCreationModal] Item ' + idx + ' projectId:', item.projectId);
+      });
 
-    if (editMode && existingInvoice) {
-      // Update existing invoice
-      const dueDate = new Date(issueDate);
-      dueDate.setDate(dueDate.getDate() + paymentDays);
+      const invoiceData = {
+        invoiceNumber,
+        originalInvoiceNumber: (invoiceType === 'credit_note' || invoiceType === 'delivery') ? originalInvoiceNumber : undefined,
+        issueDate,
+        dispatchDate,
+        paymentMethod,
+        paymentDays,
+        notes,
+        // Save ALL items (including inactive ones) so they can be re-enabled later
+        // iOS keeps excluded items in the invoice, just marks them as inactive
+        // Explicitly map items to ensure properties like projectId are preserved if hidden
+        invoiceItems: invoiceItems.map(i => ({ ...i })),
+        priceWithoutVat: calculateTotals.priceWithoutVat,
+        cumulativeVat: calculateTotals.cumulativeVat,
+        clientId: selectedClientId, // Use selected client
+        invoiceType,
+        depositSettings: invoiceType === 'proforma' ? { type: depositType, value: depositValue } : null
+      };
 
-      console.log('[DEBUG proceedWithGeneration] Calling updateInvoice with id:', existingInvoice.id);
-      console.log('[DEBUG proceedWithGeneration] Invoice data:', invoiceData);
+      console.log('[DEBUG proceedWithGeneration] editMode:', editMode, 'existingInvoice:', existingInvoice?.id);
 
-      try {
+      if (editMode && existingInvoice) {
+        // Update existing invoice
+        const dueDate = new Date(issueDate);
+        dueDate.setDate(dueDate.getDate() + paymentDays);
+
+        console.log('[DEBUG proceedWithGeneration] Calling updateInvoice with id:', existingInvoice.id);
+        console.log('[DEBUG proceedWithGeneration] Invoice data:', invoiceData);
+
         await updateInvoice(existingInvoice.id, {
           ...invoiceData,
           dueDate: dueDate.toISOString().split('T')[0]
@@ -637,20 +786,13 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
         console.log('[DEBUG proceedWithGeneration] Update successful');
         onClose(true);
-      } catch (error) {
-        console.error('Error updating invoice:', error);
-        alert(t('Failed to update invoice'));
-      }
-    } else {
-      // Create new invoice
-      try {
-        setIsSubmitting(true);
+      } else {
+        // Create new invoice
         const options = {};
 
         // For Denník invoices, override client_id and pass owner contractor
         if (dennikData) {
           invoiceData.clientId = null;
-          invoiceData.ownerContractorId = dennikData.ownerContractorId || null;
           // IMPORTANT: Do NOT update the main project status/invoiceId when creating a Dennik (hours) invoice
           options.skipProjectUpdate = true;
         }
@@ -659,7 +801,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         if (isStandalone) {
           options.skipProjectUpdate = true;
         }
+
         const newInvoice = await createInvoice(isStandalone ? null : project, categoryId, invoiceData, findProjectById, options);
+
         if (newInvoice) {
           // Save note as default for future invoices (Account-wide)
           const settingsToSave = {
@@ -672,24 +816,35 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
           onClose(newInvoice);
         }
-      } catch (error) {
-        console.error('Error creating invoice:', error);
-        alert(t('Failed to create invoice'));
-      } finally {
-        setIsSubmitting(false);
       }
+    } catch (error) {
+      console.error('Error handling invoice:', error);
+      alert(t('Failed to save invoice'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Check if invoice number is already used by another invoice
+  // Check if invoice number is already used by another invoice of the SAME TYPE
   const isInvoiceNumberDuplicate = () => {
+    // If delivery note (no number), not a duplicate
+    if (invoiceType === 'delivery') return false;
+
     const numToCheck = parseInt(invoiceNumber);
     if (isNaN(numToCheck)) return false;
 
-    // Find any existing invoice with the same number AND same contractor
+    // Find any existing invoice with the same number AND same contractor AND same type
     const duplicate = invoices.find(inv => {
       // Must be same contractor
       if (inv.contractorId !== activeContractorId) {
+        return false;
+      }
+
+      // Must be same type
+      const invType = inv.invoiceType || 'regular';
+      // If we are validating 'regular', we match 'regular' or undefined
+      // If validating 'proforma', we match 'proforma'
+      if (invType !== invoiceType) {
         return false;
       }
 
@@ -705,7 +860,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   };
 
   const handleGenerate = () => {
-    if (!invoiceNumber || !issueDate || !dispatchDate) {
+    // Delivery note does not need invoice number
+    const isDelivery = invoiceType === 'delivery';
+    if ((!invoiceNumber && !isDelivery) || !issueDate || !dispatchDate) {
       alert(t('Please fill in all required fields'));
       return;
     }
@@ -738,7 +895,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     }
   };
 
-  const isStandalone = !project;
+  const isStandalone = propIsStandalone || !project;
   if (!isOpen) return null;
 
   // Group items by category
@@ -756,30 +913,102 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => onClose()}>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in">
         <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-7xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between flex-shrink-0 rounded-t-2xl">
-            <div className="flex items-center gap-3">
-              <FileText className="w-6 h-6 text-gray-900 dark:text-white" />
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {editMode ? t('Edit Invoice') : t('Invoice Builder')}
-                </h2>
-
+          <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex flex-col gap-4 flex-shrink-0 rounded-t-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="w-6 h-6 text-gray-900 dark:text-white" />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {editMode ? t('Edit Invoice') : t('Invoice Builder')}
+                  </h2>
+                </div>
               </div>
+              <button
+                onClick={() => onClose()}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <button
-              onClick={() => onClose()}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
+
+            {/* Invoice Type Selector */}
+            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+              {[
+                { id: 'regular', label: t('Invoice') },
+                { id: 'proforma', label: t('Proforma Invoice') },
+                { id: 'delivery', label: t('Delivery Note') },
+                { id: 'credit_note', label: t('Credit Note') }
+              ].map(type => (
+                <button
+                  key={type.id}
+                  onClick={() => setInvoiceType(type.id)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${invoiceType === type.id
+                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                    } `}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Proforma Settings */}
+            {invoiceType === 'proforma' && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl space-y-3">
+                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100">{t('Deposit Settings')}</h4>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs text-blue-700 dark:text-blue-300 mb-1">{t('Deposit Type')}</label>
+                    <div className="flex bg-white dark:bg-gray-800 rounded-lg p-1 border border-blue-200 dark:border-blue-800">
+                      <button
+                        onClick={() => setDepositType('percentage')}
+                        className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${depositType === 'percentage'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100'
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                          } `}
+                      >
+                        %
+                      </button>
+                      <button
+                        onClick={() => setDepositType('fixed')}
+                        className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${depositType === 'fixed'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100'
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                          } `}
+                      >
+                        €
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-blue-700 dark:text-blue-300 mb-1">
+                      {depositType === 'percentage' ? t('Percentage') : t('Amount')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={depositValue}
+                        onChange={(e) => setDepositValue(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        min="0"
+                        max={depositType === 'percentage' ? "100" : undefined}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">
+                        {depositType === 'percentage' ? '%' : '€'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Summary Section - At top like iOS */}
+            {/* Summary Section-At top like iOS */}
             <div className="space-y-2">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Summary')}</h3>
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 space-y-3">
@@ -805,7 +1034,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 {/* Generate Invoice Button */}
                 <button
                   onClick={handleGenerate}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !!typeWarning}
                   className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-full font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
@@ -816,14 +1045,18 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                   ) : (
                     <>
                       {editMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                      {editMode ? t('Save Changes') : t('Generate Invoice')}
+                      {editMode ? t('Save Changes') : (() => {
+                        if (invoiceType === 'proforma') return t('Issue Proforma Invoice');
+                        if (invoiceType === 'delivery') return t('Issue Delivery Note');
+                        if (invoiceType === 'credit_note') return t('Issue Credit Note');
+                        return t('Generate Invoice');
+                      })()}
                     </>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Settings Section */}
             <div className="space-y-2">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Settings')}</h3>
               <div className="space-y-3">
@@ -834,7 +1067,11 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                   </div>
 
                   {selectedClientId ? (
-                    <div className="flex items-center gap-3 bg-white dark:bg-gray-700 p-3 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm animate-fade-in">
+                    <div
+                      role="button"
+                      onClick={() => setShowClientSelector(true)}
+                      className="flex items-center gap-3 bg-white dark:bg-gray-700 p-3 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm animate-fade-in cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                    >
                       <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                         <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       </div>
@@ -915,9 +1152,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'cash'
                           ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
                           : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                          }`}
+                          } `}
                       >
-                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'cash' ? 'bg-blue-400' : 'bg-transparent'}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'cash' ? 'bg-blue-400' : 'bg-transparent'} `} />
                         {t('Cash')}
                       </button>
                       <button
@@ -925,16 +1162,16 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'transfer'
                           ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
                           : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                          }`}
+                          } `}
                       >
-                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'transfer' ? 'bg-blue-400' : 'bg-transparent'}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'transfer' ? 'bg-blue-400' : 'bg-transparent'} `} />
                         {t('Bank transfer')}
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Invoice Maturity - Grid like iOS */}
+                {/* Invoice Maturity-Grid like iOS */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
                   <span className="text-base font-medium text-gray-900 dark:text-white block mb-3">{t('Invoice maturity')}</span>
                   <div className="bg-white dark:bg-gray-700 rounded-2xl p-3">
@@ -949,9 +1186,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                           className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${paymentDays === days && customInputValue === ''
                             ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
                             : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }`}
+                            } `}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full mb-1 ${paymentDays === days && customInputValue === '' ? 'bg-blue-400' : 'bg-transparent'}`} />
+                          <div className={`w-1.5 h-1.5 rounded-full mb-1 ${paymentDays === days && customInputValue === '' ? 'bg-blue-400' : 'bg-transparent'} `} />
                           <span className="text-lg font-semibold leading-none">{days}</span>
                           <span className="text-[10px] font-medium opacity-80">{t('days')}</span>
                         </button>
@@ -961,34 +1198,23 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative ${!maturityOptions.includes(paymentDays) || customInputValue !== ''
                           ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
                           : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300'
-                          }`}
+                          } `}
                       >
-                        <div className={`w-1.5 h-1.5 rounded-full mb-1 ${!maturityOptions.includes(paymentDays) || customInputValue !== '' ? 'bg-blue-400' : 'bg-transparent'}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full mb-1 ${!maturityOptions.includes(paymentDays) || customInputValue !== '' ? 'bg-blue-400' : 'bg-transparent'} `} />
                         <input
-                          id="custom-maturity-input"
-                          type="number"
-                          value={customInputValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setCustomInputValue(val);
-                            // Only update paymentDays if val is valid
-                            const num = parseInt(val);
-                            if (!isNaN(num)) {
-                              setPaymentDays(num);
-                            } else if (val === '') {
-                              // Optional: decide if paymentDays should be 0 or keep last valid?
-                              // For valid date calculation, 0 is safer fallback
-                              setPaymentDays(0);
-                            }
-                          }}
-                          placeholder="XY"
+                          type="text"
+                          value={maturityOptions.includes(paymentDays) ? '' : (customInputValue === '' ? paymentDays : customInputValue)}
+                          onChange={handleCustomMaturityChange}
+                          onFocus={handleCustomMaturityFocus}
+                          onBlur={handleCustomMaturityBlur}
+                          placeholder={t('Custom')}
                           className={`w-full text-center text-lg font-semibold focus:outline-none bg-transparent ${!maturityOptions.includes(paymentDays) || customInputValue !== ''
                             ? 'text-white dark:text-white placeholder-gray-400 dark:placeholder-gray-400'
                             : 'text-gray-900 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-500'
-                            }`}
+                            } `}
                         />
                         <span className={`text-[10px] font-medium leading-none ${!maturityOptions.includes(paymentDays) || customInputValue !== '' ? 'opacity-80' : 'opacity-60'
-                          }`}>
+                          } `}>
                           {t('days')}
                         </span>
                       </div>
@@ -1136,7 +1362,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           isOpen={showUncompletedModal}
           onClose={() => setShowUncompletedModal(false)}
           missingFields={missingFields}
-          onProceed={proceedWithGeneration}
+          onContinue={proceedWithGeneration}
         />
       )}
 
@@ -1181,7 +1407,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             setClientSearchQuery('');
           }
         }}>
-          <div className={`bg-white dark:bg-gray-900 rounded-3xl p-6 w-full ${showCreateClientInModal ? 'max-w-4xl h-[85vh]' : 'max-w-md'} max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in`} onClick={(e) => e.stopPropagation()}>
+          <div className={`bg-white dark:bg-gray-900 rounded-3xl p-6 w-full ${showCreateClientInModal ? 'max-w-4xl h-[85vh]' : 'max-w-md'} max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in `} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {showCreateClientInModal ? t('New client') : t('Select Client')}
@@ -1230,7 +1456,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                       <button
                         key={client.id}
                         onClick={() => handleClientSelect(client)}
-                        className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'}`}
+                        className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'} `}
                       >
                         <div className="font-bold text-gray-900 dark:text-white text-lg">{client.name}</div>
                         {client.email && (

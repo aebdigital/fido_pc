@@ -38,7 +38,7 @@ const NumberInput = ({
 }) => {
   // Helper to format value according to props
   const formatValue = useCallback((val) => {
-    if (val === '' || val === null || val === undefined || val === 0) return '';
+    if (val === '' || val === null || val === undefined) return '';
     if (forceDecimal !== null && typeof val === 'number') {
       return val.toFixed(forceDecimal).replace('.', ',');
     }
@@ -91,8 +91,9 @@ const NumberInput = ({
 
   const processAndSubmit = () => {
     if (internalValue === '' || internalValue === null || internalValue === undefined) {
-      onChange(0);
-      setInternalValue('');
+      const zeroVal = 0;
+      onChange(zeroVal);
+      setInternalValue(formatValue(zeroVal));
       return;
     }
 
@@ -112,7 +113,7 @@ const NumberInput = ({
         setInternalValue(formatValue(finalValue));
         onChange(finalValue);
       } else {
-        setInternalValue(value !== 0 ? formatValue(value) : '');
+        setInternalValue(value !== undefined && value !== null ? formatValue(value) : '');
         onChange(value || 0);
       }
     }

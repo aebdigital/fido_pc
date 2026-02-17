@@ -1,7 +1,9 @@
-import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect, useMemo, useCallback } from 'react';
 import { X, Hammer, Menu, Loader2, Check } from 'lucide-react';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppData } from '../context/AppDataContext';
+import { unitToDisplaySymbol } from '../services/workItemsMapping';
 import WorkPropertyCard from './WorkPropertyCard';
 import RoomPriceSummary from './RoomPriceSummary';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +16,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
   useScrollLock(true);
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { invoices, activeContractorId, generalPriceList } = useAppData();
   const [workData, setWorkData] = useState(room.workItems || []);
   const [expandedItems, setExpandedItems] = useState({});
   const [showingSanitarySelector, setShowingSanitarySelector] = useState(false);
@@ -189,6 +192,93 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
       othersProperties.push(prop);
     }
   });
+
+  // Prepare price list suggestions for autocomplete (Adapted from InvoiceCreationModal)
+  const allPriceListItems = useMemo(() => {
+    const source = priceList || generalPriceList || {}; // Use passed priceList or general
+    // Helper to map items
+    const mapItems = (items, defaultCat, priceKey) => (items || []).map(i => ({
+      title: t(i.name),
+      unit: unitToDisplaySymbol(i.unit),
+      price: parseFloat(i[priceKey] || 0),
+      category: defaultCat
+    }));
+
+    return {
+      work: mapItems(source.work, 'work', 'price'),
+      material: mapItems(source.material, 'material', 'price'),
+      other: mapItems(source.others, 'other', 'price')
+    };
+  }, [priceList, generalPriceList, t]);
+
+  // Extract history items from past invoices for autocomplete
+  const historyItems = useMemo(() => {
+    if (!invoices || !activeContractorId) return [];
+
+    // Sort invoices by date descending to get latest prices first
+    const contractorInvoices = invoices
+      .filter(inv => inv.contractorId === activeContractorId)
+      .sort((a, b) => new Date(b.issueDate || b.date || 0) - new Date(a.issueDate || a.date || 0));
+
+    const itemMap = new Map();
+
+    contractorInvoices.forEach(inv => {
+      if (inv.invoiceItems && Array.isArray(inv.invoiceItems)) {
+        inv.invoiceItems.forEach(item => {
+          if (item.title && !itemMap.has(t(item.title).toLowerCase())) {
+            itemMap.set(t(item.title).toLowerCase(), {
+              title: t(item.title),
+              price: parseFloat(item.pricePerPiece || 0), // Base unit price
+              unit: item.unit || 'ks',
+              vat: item.vat !== undefined ? parseFloat(item.vat) : undefined,
+              category: item.category ? item.category.toLowerCase() : undefined
+            });
+          }
+        });
+      }
+    });
+
+    return Array.from(itemMap.values());
+  }, [invoices, activeContractorId, t]);
+
+  // Combine standard price list with history items
+  const getSuggestionsForCategory = useCallback((category) => {
+    const standardItems = allPriceListItems[category] || [];
+
+    // Create a map of standard items for easy lookup/override
+    const suggestionsMap = new Map();
+
+    // 1. Add standard items first
+    standardItems.forEach(item => {
+      suggestionsMap.set(item.title.toLowerCase(), item);
+    });
+
+    // 2. Overlay history items (overwriting price if name matches)
+    historyItems.forEach(hItem => {
+      const key = hItem.title.toLowerCase();
+      const existing = suggestionsMap.get(key);
+
+      if (existing) {
+        suggestionsMap.set(key, {
+          ...existing,
+          price: hItem.price,
+          unit: hItem.unit,
+          ...(hItem.vat !== undefined && { vat: hItem.vat })
+        });
+      } else {
+        if (!hItem.category || hItem.category === category) {
+          suggestionsMap.set(key, { ...hItem, category: category });
+        }
+      }
+    });
+
+    return Array.from(suggestionsMap.values());
+  }, [allPriceListItems, historyItems]);
+
+  const suggestions = useMemo(() => ({
+    work: getSuggestionsForCategory('work'),
+    material: getSuggestionsForCategory('material')
+  }), [getSuggestionsForCategory]);
 
   const handleAddWorkItem = (propertyId, e) => {
     if (e) {
@@ -699,6 +789,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
       onToggleComplementaryWork={handleToggleComplementaryWork}
       onCloseSelector={handleCloseSelector}
       isOwner={room.isOwner}
+      suggestions={suggestions}
     />
   );
 

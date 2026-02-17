@@ -307,7 +307,18 @@ const InvoiceItemBubble = ({
                     min={0}
                     step={0.01}
                   />
-                  <span className="text-sm text-gray-600">{t(unit)}</span>
+                  <select
+                    value={unit}
+                    onChange={(e) => {
+                      setUnit(e.target.value);
+                      notifyUpdate({ unit: e.target.value });
+                    }}
+                    className="text-sm text-gray-600 bg-transparent border-none focus:ring-0 cursor-pointer p-0 pr-1"
+                  >
+                    {['m2', 'm', 'bm', 'ks', 'h', 'km', 'kpl', 'deň'].map(u => (
+                      <option key={u} value={u}>{t(u)}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

@@ -283,6 +283,35 @@ export const generateInvoicePDF = async ({
     return parseFloat(num.toFixed(decimals)).toString();
   };
 
+  // === CALCULATE TOTALS BASED ON INVOICE TYPE ===
+  let finalTotalWithoutVAT = totalWithoutVAT;
+  let finalVat = vat;
+  let finalTotalWithVAT = totalWithVAT;
+
+  // Handle Credit Note (Negative values)
+  if (invoice.invoiceType === 'credit_note') {
+    finalTotalWithoutVAT = -Math.abs(totalWithoutVAT);
+    finalVat = -Math.abs(vat);
+    finalTotalWithVAT = -Math.abs(totalWithVAT);
+  }
+
+  // Handle Proforma (Deposit Calculation)
+  // Only apply if deposit settings exist AND we are NOT printing the full amount
+  if (invoice.invoiceType === 'proforma' && invoice.depositSettings) {
+    const { type, value } = invoice.depositSettings;
+    if (type === 'percentage') {
+      // Calculate percentage of the base amount
+      finalTotalWithoutVAT = totalWithoutVAT * (value / 100);
+      finalVat = finalTotalWithoutVAT * (vatRate || 0.23);
+      finalTotalWithVAT = finalTotalWithoutVAT + finalVat;
+    } else if (type === 'fixed') {
+      // Use fixed value directly (assuming it's base amount)
+      finalTotalWithoutVAT = value;
+      finalVat = finalTotalWithoutVAT * (vatRate || 0.23);
+      finalTotalWithVAT = finalTotalWithoutVAT + finalVat;
+    }
+  }
+
   // Pre-load footer icons
   const userIconData = await loadImageToBase64('/user_18164876.png');
   const phoneIconData = await loadImageToBase64('/phone-receiver-silhouette_1257.png');
@@ -363,6 +392,15 @@ export const generateInvoicePDF = async ({
         const splitNotes = doc.splitTextToSize(sanitizeText(projectNotes), 120);
         doc.text(splitNotes, 12.35, 26);
       }
+    } else if (invoice.invoiceType === 'proforma') {
+      doc.setTextColor(0, 0, 0);
+      doc.text(sanitizeText(`${t('Proforma Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
+    } else if (invoice.invoiceType === 'delivery') {
+      doc.setTextColor(0, 0, 0);
+      doc.text(sanitizeText(`${t('Delivery Note')} ${invoice.invoiceNumber}`), 12.35, 20);
+    } else if (invoice.invoiceType === 'credit_note') {
+      doc.setTextColor(0, 0, 0);
+      doc.text(sanitizeText(`${t('Credit Note')} ${invoice.invoiceNumber}`), 12.35, 20);
     } else {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
@@ -406,11 +444,15 @@ export const generateInvoicePDF = async ({
     const lineHeight = 4.7;
 
     // --- Draw LEFT COLUMN: Address (TOP-aligned) ---
+    const maxAddressWidth = 60; // Ensure it doesn't hit businessX (75)
     let addressY = contentStartY;
     if (addressLines.length > 0) {
       addressLines.forEach(line => {
-        doc.text(sanitizeText(line), 12.35, addressY);
-        addressY += lineHeight;
+        const splitLines = doc.splitTextToSize(sanitizeText(line), maxAddressWidth);
+        splitLines.forEach(splitLine => {
+          doc.text(splitLine, 12.35, addressY);
+          addressY += lineHeight;
+        });
       });
     } else if (!client) {
       doc.text(sanitizeText('-'), 12.35, addressY);
@@ -478,12 +520,14 @@ export const generateInvoicePDF = async ({
     // Update clientY to the bottom of the section
     clientY = addressBottomY;
 
-    // === FOUR INFO BOXES - Only for Invoice ===
+
+    // === FOUR INFO BOXES - Only for Invoice, Proforma, Credit Note ===
+    // Hide for Delivery Note
     let tableStartY = clientY + 4;
     let boxY = 0;
     let boxHeight = 0;
 
-    if (!isPriceOffer) {
+    if (!isPriceOffer && invoice.invoiceType !== 'delivery') {
       boxY = clientY + 1.5;
       const ibanBoxWidth = 58;
       const boxWidth = 38.5;
@@ -545,7 +589,7 @@ export const generateInvoicePDF = async ({
       doc.setFontSize(8.4);
       doc.setFont('SF-Pro', 'semibold');
       doc.setTextColor(0, 0, 0);
-      doc.text(sanitizeText(formatCurrency(totalWithVAT)), box4X + 2.8, boxY + 8.2);
+      doc.text(sanitizeText(formatCurrency(finalTotalWithVAT)), box4X + 2.8, boxY + 8.2);
 
       tableStartY = boxY + boxHeight + 4;
     } else {
@@ -577,6 +621,26 @@ export const generateInvoicePDF = async ({
           { content: sanitizeText(formatCurrency(total)) }
         ]);
       });
+    } else if (invoice.invoiceType === 'proforma' && invoice.depositSettings &&
+      ((invoice.depositSettings.type === 'percentage' && invoice.depositSettings.value < 100) ||
+        (invoice.depositSettings.type === 'fixed' && invoice.depositSettings.value < totalWithoutVAT))) {
+      // PARTIAL PROFORMA: Show single item
+      // Use calculated totals directly from top scope logic
+      let amountWithoutVat = finalTotalWithoutVAT;
+      // No need to recalculate again since finalTotalWithoutVAT is already processed at top
+
+      const vatAmount = amountWithoutVat * (vatRate || 0.23);
+      const total = amountWithoutVat + vatAmount;
+
+      tableData.push([
+        { content: sanitizeText(t('Advance Payment')) },
+        { content: sanitizeText(`1 ${t('ks')}`) },
+        { content: sanitizeText(formatCurrency(amountWithoutVat)) },
+        { content: sanitizeText(`${Math.round((vatRate || 0.23) * 100)} %`) },
+        { content: sanitizeText(formatCurrency(vatAmount)) },
+        { content: sanitizeText(formatCurrency(amountWithoutVat)) } // Last column is total without VAT usually? No, last column is usually Total price?
+        // Let's check headers. Implementation below defines headers.
+      ]);
     } else {
       // Debug: Log breakdown contents for custom work items
       const customWorkItems = projectBreakdown?.items?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
@@ -603,8 +667,14 @@ export const generateInvoicePDF = async ({
           : projectBreakdown.items;
 
         sortedItems.forEach(item => {
-          const quantity = item.calculation?.quantity || 0;
-          const workCost = item.calculation?.workCost || 0;
+          let quantity = item.calculation?.quantity || 0;
+          let workCost = item.calculation?.workCost || 0;
+
+          // Credit Note: Negate values
+          if (invoice.invoiceType === 'credit_note') {
+            workCost = -Math.abs(workCost);
+          }
+
           const pricePerUnit = quantity > 0 ? workCost / quantity : 0;
 
           let unit = getWorkItemUnit(item);
@@ -714,8 +784,14 @@ export const generateInvoicePDF = async ({
           : (projectBreakdown.materialItems || []);
 
         sortedMaterialItems.forEach(item => {
-          const quantity = item.calculation?.quantity || 0;
-          const materialCost = item.calculation?.materialCost || 0;
+          let quantity = item.calculation?.quantity || 0;
+          let materialCost = item.calculation?.materialCost || 0;
+
+          // Credit Note: Negate values
+          if (invoice.invoiceType === 'credit_note') {
+            materialCost = -Math.abs(materialCost);
+          }
+
           const pricePerUnit = quantity > 0 ? materialCost / quantity : 0;
           let unit = item.calculation?.unit || item.unit || '';
           // Strip €/ prefix from unit if present (e.g. "€/m2" -> "m2")
@@ -833,6 +909,12 @@ export const generateInvoicePDF = async ({
 
             const itemCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
 
+            // Credit Note: Negate costs logic is handled in final summing if grouped, but need to be careful with grouping logic
+            // For grouped items, we sum costs. If grouped items are coming from breakdown, they are positive.
+            // We need to negate them here if credit note.
+            const costAdjustment = invoice.invoiceType === 'credit_note' ? -1 : 1;
+            const adjustedItemCost = Math.abs(itemCost) * costAdjustment;
+
             if (!othersGroups[groupKey]) {
               othersGroups[groupKey] = {
                 name: groupKey, // Use normalized group key as name
@@ -843,7 +925,7 @@ export const generateInvoicePDF = async ({
               };
             }
             othersGroups[groupKey].totalQuantity += quantity;
-            othersGroups[groupKey].totalCost += itemCost;
+            othersGroups[groupKey].totalCost += adjustedItemCost;
           } else {
             nonGroupedOthers.push(item);
           }
@@ -889,7 +971,13 @@ export const generateInvoicePDF = async ({
         const sortedNonGroupedOthers = sortItemsByMasterList(nonGroupedOthers, options.priceList, 'others');
         sortedNonGroupedOthers.forEach(item => {
           let quantity = item.calculation?.quantity || 0;
-          const othersCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
+          let othersCost = (item.calculation?.workCost || 0) + (item.calculation?.materialCost || 0);
+
+          // Credit Note: Negate values
+          if (invoice.invoiceType === 'credit_note') {
+            othersCost = -Math.abs(othersCost);
+          }
+
           let unit = item.calculation?.unit || item.unit || '';
           // Strip €/ prefix from unit if present (e.g. "€/h" -> "h")
           if (unit.startsWith('€/')) unit = unit.substring(2);
@@ -999,17 +1087,36 @@ export const generateInvoicePDF = async ({
     } // end of non-Denník breakdown
 
     // Render the items table - only 2 thick black lines (under header and at bottom)
+    const isDelivery = invoice.invoiceType === 'delivery';
+
+    // Define columns based on type
+    const tableHead = isDelivery ? [[
+      sanitizeText(t('Description')),
+      sanitizeText(t('Quantity'))
+    ]] : [[
+      sanitizeText(t('Description')),
+      sanitizeText(t('Quantity')),
+      sanitizeText(t('Price per Unit')),
+      sanitizeText(t('VAT (%)')),
+      sanitizeText(t('VAT')),
+      sanitizeText(t('Price'))
+    ]];
+
+    // Filter body rows for Delivery Note (keep only first 2 columns)
+    // We need to handle category headers (colSpan=6) -> (colSpan=2)
+    const finalTableData = isDelivery ? tableData.map(row => {
+      // If it's a category header row
+      if (row.length === 1 && row[0].colSpan > 2) {
+        return [{ ...row[0], colSpan: 2 }];
+      }
+      // Normal row - keep first 2 cells
+      return row.slice(0, 2);
+    }) : tableData;
+
     autoTable(doc, {
       startY: tableStartY,
-      head: [[
-        sanitizeText(t('Description')),
-        sanitizeText(t('Quantity')),
-        sanitizeText(t('Price per Unit')),
-        sanitizeText(t('VAT (%)')),
-        sanitizeText(t('VAT')),
-        sanitizeText(t('Price'))
-      ]],
-      body: tableData,
+      head: tableHead,
+      body: finalTableData,
       theme: 'plain',
       showHead: 'firstPage', // We will manually draw header on other pages to control spacing
       headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'medium', cellPadding: { top: 0.2, bottom: 1.5, left: 0, right: 0.5 }, font: 'SF-Pro', fontSize: 11.2, valign: 'top' },
@@ -1018,7 +1125,10 @@ export const generateInvoicePDF = async ({
       margin: { top: 42, left: 12.35, right: 12.35 }, // Increased to 42 to match iOS lower header position on P2+
       tableLineColor: [255, 255, 255],
       tableLineWidth: 0,
-      columnStyles: {
+      columnStyles: isDelivery ? {
+        0: { cellWidth: 140, halign: 'left', overflow: 'linebreak', fontSize: 11.2 },
+        1: { cellWidth: 45, halign: 'right' }
+      } : {
         0: { cellWidth: 69.5, halign: 'left', overflow: 'linebreak', fontSize: 11.2 }, // Description stays 11.2 (iOS 12pt)
         1: { cellWidth: 16.8, halign: 'right' }, // Others are 10.2 (iOS 11pt)
         2: { cellWidth: 26.2, halign: 'right' },
@@ -1131,29 +1241,33 @@ export const generateInvoicePDF = async ({
     const rightX = 197.65;
     const totalsLabelX = rightX - 95; // Wider label area to prevent collision with numbers
     let totalY = finalY + 8; // Gap from table
-    const rowSpacing = 6.5; // Increased from 5 for a small gap
 
-    doc.setFontSize(14); // Scaled from iOS 15pt
-    doc.setFont('SF-Pro', 'normal');
-    // Restore keys with colons to match translation files, but value will be colon-free
-    doc.text(sanitizeText(t('Without VAT:')), totalsLabelX, totalY);
-    // Values are now normal font, not bold
-    doc.text(sanitizeText(formatCurrency(totalWithoutVAT)), rightX, totalY, { align: 'right' });
+    // Only show totals for non-delivery notes
+    if (invoice.invoiceType !== 'delivery') {
+      const rowSpacing = 6.5; // Increased from 5 for a small gap
 
-    totalY += rowSpacing;
-    // doc.setFont('SF-Pro', 'normal'); // Already normal
-    doc.text(sanitizeText(t('VAT:')), totalsLabelX, totalY);
-    // Values are now normal font, not bold
-    doc.text(sanitizeText(formatCurrency(vat)), rightX, totalY, { align: 'right' });
+      doc.setFontSize(14); // Scaled from iOS 15pt
+      doc.setFont('SF-Pro', 'normal');
+      // Restore keys with colons to match translation files, but value will be colon-free
+      doc.text(sanitizeText(t('Without VAT:')), totalsLabelX, totalY);
+      // Values are now normal font, not bold
+      doc.text(sanitizeText(formatCurrency(finalTotalWithoutVAT)), rightX, totalY, { align: 'right' });
 
-    totalY += rowSpacing;
-    doc.setFontSize(15.9); // Scaled from iOS 17pt
-    doc.setFont('SF-Pro', 'semibold');
-    doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
-    doc.text(sanitizeText(formatCurrency(totalWithVAT)), rightX, totalY, { align: 'right' });
+      totalY += rowSpacing;
+      // doc.setFont('SF-Pro', 'normal'); // Already normal
+      doc.text(sanitizeText(t('VAT:')), totalsLabelX, totalY);
+      // Values are now normal font, not bold
+      doc.text(sanitizeText(formatCurrency(finalVat)), rightX, totalY, { align: 'right' });
 
-    // === QR CODE SECTION - Left side, below table (only for invoices, not price offers) ===
-    if (!isPriceOffer) {
+      totalY += rowSpacing;
+      doc.setFontSize(15.9); // Scaled from iOS 17pt
+      doc.setFont('SF-Pro', 'semibold');
+      doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
+      doc.text(sanitizeText(formatCurrency(finalTotalWithVAT)), rightX, totalY, { align: 'right' });
+    }
+
+    // === QR CODE SECTION - Left side, below table (only for invoices, not price offers, credit notes, or delivery notes) ===
+    if (!isPriceOffer && invoice.invoiceType !== 'credit_note' && invoice.invoiceType !== 'delivery') {
       const bankAccount = contractor?.bank_account_number || contractor?.bankAccount;
       const swiftCode = contractor?.swift_code || contractor?.bankCode;
 
@@ -1162,7 +1276,7 @@ export const generateInvoicePDF = async ({
           const qrCodeDataUrl = await generatePaymentQRCode(
             bankAccount,
             swiftCode,
-            totalWithVAT,
+            finalTotalWithVAT,
             invoice.invoiceNumber,
             contractor?.name
           );

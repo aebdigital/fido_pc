@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Pencil, Trash2, Plus, CalendarDays, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
@@ -203,6 +203,16 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const hourlyRateTimerRef = useRef(null);
     const entryNoteTimerRef = useRef(null);
 
+    // Check if invoice exists for current period (Month)
+    const hasInvoiceForPeriod = useMemo(() => {
+        return generatedInvoices.some(inv => {
+            if (inv.invoiceType && inv.invoiceType !== 'regular') return false;
+            const d = new Date(inv.issueDate);
+            return d.getMonth() === analyticsDate.getMonth() &&
+                d.getFullYear() === analyticsDate.getFullYear();
+        });
+    }, [generatedInvoices, analyticsDate]);
+
     // Memoized functions (useCallback)
     const loadMembers = useCallback(async () => {
         try {
@@ -391,13 +401,45 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
 
     const loadInvoices = useCallback(async () => {
         try {
-            const data = await api.invoices.getInvoicesByProject(project.c_id || project.id);
+            // 1. Fetch project-specific invoices
+            const projectInvoices = await api.invoices.getInvoicesByProject(project.c_id || project.id);
+            let combinedInvoices = [...(projectInvoices || [])];
+
+            // 2. Fetch standalone invoices (Consolidated) - visible if they match this project's owner
+            // Only relevant if we know who the owner is (ownerContractorData)
+            // And we only look for invoices created by CURRENT USER (if member) 
+            // because api.invoices.getAll() returns only user's invoices.
+            // (If isOwner, getAll returns owner's invoices, but consolidated invoices are usually FROM member TO owner)
+            // So this logic mainly serves the Member view as requested.
+            if (currentUser?.id && ownerContractorData) {
+                const allMyInvoices = await api.invoices.getAll();
+                const standalone = (allMyInvoices || []).filter(inv => {
+                    // Must be standalone (no project_id in DB)
+                    // Note: API response might have project_id as null or missing
+                    if (inv.project_id) return false;
+
+                    // Client must match Owner's Contractor ID
+                    // The API returns 'contractor_id' (Supplier) and joined 'clients' or we match invoice.client_id
+                    // Check if 'client_id' matches matches ownerContractorData.id
+                    // Note: inv might not have client_id property directly if it was joined? 
+                    // Let's check api response structure. It usually has client_id column.
+                    return inv.client_id === (ownerContractorData.c_id || ownerContractorData.id);
+                });
+                combinedInvoices = [...combinedInvoices, ...standalone];
+            }
+
+            // Deduplicate by ID
+            const uniqueMap = new Map();
+            combinedInvoices.forEach(inv => uniqueMap.set(inv.c_id || inv.id, inv));
+            const uniqueInvoices = Array.from(uniqueMap.values());
+
             // Transform data for frontend compatibility (camelCase)
-            let transformedData = (data || []).map(dbInv => ({
+            let transformedData = uniqueInvoices.map(dbInv => ({
                 ...transformInvoiceFromDB(dbInv),
                 user_id: dbInv.user_id, // Preserve creator user ID
                 contractors: dbInv.contractors // Preserve joined contractor data
             }));
+
             // Members can only see their own invoices, owners see all
             if (!isOwner && currentUser?.id) {
                 transformedData = transformedData.filter(inv => inv.user_id === currentUser.id);
@@ -423,20 +465,28 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         } catch (error) {
             console.error('Error loading project invoices:', error);
         }
-    }, [project, isOwner, currentUser]);
+    }, [project, isOwner, currentUser, ownerContractorData]);
 
     // Effects
     useEffect(() => {
         if (isOpen && project) {
+            // ... existing loadData logic ...
             loadData();
             loadAnalyticsData();
-            // Only sync from props if we're not currently typing
             if (project.hourly_rate !== undefined && !hourlyRateTimerRef.current) {
                 setHourlyRate(project.hourly_rate || priceOfferSettings?.defaultHourlyRate || '');
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, project, loadData, loadAnalyticsData]);
+    }, [isOpen, project, loadData, loadAnalyticsData]); // removed loadInvoices from here to avoid loops if filtered dependencies change? No, should be fine.
+
+    // Add specific effect for reloading invoices when ownerContractorData changes
+    useEffect(() => {
+        if (isOpen && project && activeTab === 'analytics') {
+            loadInvoices();
+        }
+    }, [isOpen, project, activeTab, ownerContractorData, loadInvoices]);
+
 
     useEffect(() => {
         if (isOpen && project && activeTab === 'analytics') {
@@ -1628,8 +1678,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             <div className="mt-auto pt-4">
                                 <button
                                     onClick={handleGenerateInvoice}
-                                    disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0))}
-                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
+                                    disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0)) || hasInvoiceForPeriod}
+                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isGeneratingInvoice ? (
                                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1638,6 +1688,11 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                     )}
                                     <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
                                 </button>
+                                {hasInvoiceForPeriod && (
+                                    <p className="text-red-500 text-sm mt-2 text-center font-medium opacity-80 animate-fade-in">
+                                        {t('Invoice already exists for this period')}
+                                    </p>
+                                )}
                             </div>
 
                             {/* List Generated Invoices */}
