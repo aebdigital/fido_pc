@@ -25,8 +25,17 @@ export const PROJECT_EVENTS = {
   DUPLICATED: 'duplicated',
   INVOICE_SENT: 'invoiceSent',
   INVOICE_GENERATED: 'invoiceGenerated',
+  PROFORMA_INVOICE_GENERATED: 'proformaInvoiceGenerated',
+  DELIVERY_NOTE_GENERATED: 'deliveryNoteGenerated',
+  CREDIT_NOTE_GENERATED: 'creditNoteGenerated',
   FINISHED: 'finished',
-  INVOICE_DELETED: 'invoiceDeleted'
+  INVOICE_DELETED: 'invoiceDeleted',
+  PROFORMA_INVOICE_DELETED: 'proformaInvoiceDeleted',
+  DELIVERY_NOTE_DELETED: 'deliveryNoteDeleted',
+  CREDIT_NOTE_DELETED: 'creditNoteDeleted',
+  PROFORMA_INVOICE_SENT: 'proformaInvoiceSent',
+  DELIVERY_NOTE_SENT: 'deliveryNoteSent',
+  CREDIT_NOTE_SENT: 'creditNoteSent'
 };
 
 // Invoice Status - matches iOS InvoiceStatus enum

@@ -480,42 +480,45 @@ export const generateInvoicePDF = async ({
     const addressBottomY = Math.max(addressY, businessY, contentStartY + (5 * lineHeight));
 
     // --- Draw RIGHT COLUMN: Dates (TOP-aligned) ---
-    const rightBlockX = 197.65;
-    const labelX = rightBlockX - 60;
-    const dateLineHeight = 4.7; // tighter spacing for dates
+    // Hide for Delivery Note
+    if (invoice.invoiceType !== 'delivery') {
+      const rightBlockX = 197.65;
+      const labelX = rightBlockX - 60;
+      const dateLineHeight = 4.7; // tighter spacing for dates
 
-    let dateLines = [];
-    if (isPriceOffer) {
-      const today = new Date();
-      const validUntil = new Date(today);
-      validUntil.setDate(validUntil.getDate() + parseInt(offerValidityPeriod || 30));
-      dateLines = [
-        { label: `${t('Date of issue')}:`, value: formatDate(today.toISOString()) },
-        { label: `${t('Valid until')}:`, value: formatDate(validUntil.toISOString()) }
-      ];
-    } else {
-      const paymentText = invoice.paymentMethod === 'cash' ? t('Cash') : t('Bank transfer');
-      dateLines = [
-        { label: `${t('Date of issue')}:`, value: formatDate(invoice.issueDate) },
-        { label: `${t('Maturity date')}:`, value: formatDate(invoice.dueDate) },
-        { isSeparator: true },
-        { label: `${t('Variable Symbol')}:`, value: invoice.invoiceNumber },
-        { label: `${t('Date of dispatch')}:`, value: formatDate(invoice.dispatchDate || invoice.issueDate) },
-        { label: `${t('Payment type')}:`, value: paymentText }
-      ];
-    }
-
-    const dateBlockHeight = (dateLines.length - 1) * dateLineHeight;
-    let dateY = (addressBottomY - lineHeight) - dateBlockHeight;
-    dateLines.forEach(line => {
-      if (line.isSeparator) {
-        dateY += dateLineHeight;
-        return;
+      let dateLines = [];
+      if (isPriceOffer) {
+        const today = new Date();
+        const validUntil = new Date(today);
+        validUntil.setDate(validUntil.getDate() + parseInt(offerValidityPeriod || 30));
+        dateLines = [
+          { label: `${t('Date of issue')}:`, value: formatDate(today.toISOString()) },
+          { label: `${t('Valid until')}:`, value: formatDate(validUntil.toISOString()) }
+        ];
+      } else {
+        const paymentText = invoice.paymentMethod === 'cash' ? t('Cash') : t('Bank transfer');
+        dateLines = [
+          { label: `${t('Date of issue')}:`, value: formatDate(invoice.issueDate) },
+          { label: `${t('Maturity date')}:`, value: formatDate(invoice.dueDate) },
+          { isSeparator: true },
+          { label: `${t('Variable Symbol')}:`, value: invoice.invoiceNumber },
+          { label: `${t('Date of dispatch')}:`, value: formatDate(invoice.dispatchDate || invoice.issueDate) },
+          { label: `${t('Payment type')}:`, value: paymentText }
+        ];
       }
-      doc.text(sanitizeText(line.label), labelX, dateY);
-      doc.text(sanitizeText(line.value), rightBlockX, dateY, { align: 'right' });
-      dateY += dateLineHeight;
-    });
+
+      const dateBlockHeight = (dateLines.length - 1) * dateLineHeight;
+      let dateY = (addressBottomY - lineHeight) - dateBlockHeight;
+      dateLines.forEach(line => {
+        if (line.isSeparator) {
+          dateY += dateLineHeight;
+          return;
+        }
+        doc.text(sanitizeText(line.label), labelX, dateY);
+        doc.text(sanitizeText(line.value), rightBlockX, dateY, { align: 'right' });
+        dateY += dateLineHeight;
+      });
+    }
 
     // Update clientY to the bottom of the section
     clientY = addressBottomY;
@@ -621,25 +624,6 @@ export const generateInvoicePDF = async ({
           { content: sanitizeText(formatCurrency(total)) }
         ]);
       });
-    } else if (invoice.invoiceType === 'proforma' && invoice.depositSettings &&
-      ((invoice.depositSettings.type === 'percentage' && invoice.depositSettings.value < 100) ||
-        (invoice.depositSettings.type === 'fixed' && invoice.depositSettings.value < totalWithoutVAT))) {
-      // PARTIAL PROFORMA: Show single item
-      // Use calculated totals directly from top scope logic
-      let amountWithoutVat = finalTotalWithoutVAT;
-      // No need to recalculate again since finalTotalWithoutVAT is already processed at top
-
-      const vatAmount = amountWithoutVat * (vatRate || 0.23);
-
-      tableData.push([
-        { content: sanitizeText(t('Advance Payment')) },
-        { content: sanitizeText(`1 ${t('ks')}`) },
-        { content: sanitizeText(formatCurrency(amountWithoutVat)) },
-        { content: sanitizeText(`${Math.round((vatRate || 0.23) * 100)} %`) },
-        { content: sanitizeText(formatCurrency(vatAmount)) },
-        { content: sanitizeText(formatCurrency(amountWithoutVat)) } // Last column is total without VAT usually? No, last column is usually Total price?
-        // Let's check headers. Implementation below defines headers.
-      ]);
     } else {
       // Debug: Log breakdown contents for custom work items
       const customWorkItems = projectBreakdown?.items?.filter(i => i.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK) || [];
@@ -1346,6 +1330,31 @@ export const generateInvoicePDF = async ({
       doc.line(rightX - 55, signatureY + 25, rightX, signatureY + 25);
     }
 
+    // Delivery Note Recipient Signature Section (Bottom Left)
+    if (invoice.invoiceType === 'delivery') {
+      doc.setFontSize(9.3); // Scaled from iOS 10pt
+      doc.setFont('SF-Pro', 'normal');
+      // Tovar prevzal
+      const recipientY = signatureY;
+      doc.text(sanitizeText(`${t('Goods received by')}:`), 12.35, recipientY);
+
+      const recipientLineY = recipientY + 8;
+      const lineGap = 8;
+
+      // Meno (Name)
+      doc.text(sanitizeText(`${t('Name')}:`), 12.35, recipientLineY);
+      doc.setLineWidth(0.3);
+      doc.line(12.35 + 15, recipientLineY, 12.35 + 70, recipientLineY);
+
+      // Datum (Date)
+      doc.text(sanitizeText(`${t('Date')}:`), 12.35, recipientLineY + lineGap);
+      doc.line(12.35 + 15, recipientLineY + lineGap, 12.35 + 70, recipientLineY + lineGap);
+
+      // Podpis (Signature)
+      doc.text(sanitizeText(`${t('Signature')}:`), 12.35, recipientLineY + (lineGap * 2));
+      doc.line(12.35 + 15, recipientLineY + (lineGap * 2), 12.35 + 70, recipientLineY + (lineGap * 2));
+    }
+
     // Calculate the bottom of the content (signature section bottom)
     const signatureBottomY = signatureY + 23; // signature image ends at signatureY + 3 + 20
 
@@ -1592,7 +1601,12 @@ export const generateInvoicePDF = async ({
     if (!isPriceOffer) {
       doc.setFontSize(8.4); // Scaled from iOS 9pt
       doc.setTextColor(150, 150, 150);
-      doc.text(sanitizeText(t('Invoice also serves as delivery note')), 105, 285, { align: 'center' });
+
+      if (invoice.invoiceType === 'proforma') {
+        doc.text(sanitizeText(t('Proforma invoice is not an accounting or tax document')), 105, 285, { align: 'center' });
+      } else if (invoice.invoiceType !== 'delivery' && invoice.invoiceType !== 'credit_note') {
+        doc.text(sanitizeText(t('Invoice also serves as delivery note')), 105, 285, { align: 'center' });
+      }
     }
 
     // App attribution - bottom center

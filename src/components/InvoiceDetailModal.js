@@ -522,22 +522,34 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
 
   const executeSend = async (additionalFiles = []) => {
     // Record history events (iOS compatible)
+    let eventType = PROJECT_EVENTS.INVOICE_SENT;
+    const iType = invoice.invoiceType;
+
+    if (iType === 'proforma') eventType = PROJECT_EVENTS.PROFORMA_INVOICE_SENT;
+    else if (iType === 'delivery') eventType = PROJECT_EVENTS.DELIVERY_NOTE_SENT;
+    else if (iType === 'credit_note') eventType = PROJECT_EVENTS.CREDIT_NOTE_SENT;
+
     addProjectHistoryEntry(invoice.projectId, {
-      type: PROJECT_EVENTS.INVOICE_SENT,
-      invoiceNumber: invoice.invoiceNumber,
-      date: new Date().toISOString()
-    });
-    addProjectHistoryEntry(invoice.projectId, {
-      type: PROJECT_EVENTS.FINISHED,
+      type: eventType,
       invoiceNumber: invoice.invoiceNumber,
       date: new Date().toISOString()
     });
 
-    // Update project status to FINISHED
-    if (updateProject && invoice.categoryId && invoice.projectId) {
-      updateProject(invoice.categoryId, invoice.projectId, {
-        status: PROJECT_STATUS.FINISHED
+
+    // Only mark project as finished if it IS a regular invoice
+    if (!iType || iType === 'regular') {
+      addProjectHistoryEntry(invoice.projectId, {
+        type: PROJECT_EVENTS.FINISHED,
+        invoiceNumber: invoice.invoiceNumber,
+        date: new Date().toISOString()
       });
+
+      // Update project status to FINISHED
+      if (updateProject && invoice.categoryId && invoice.projectId) {
+        updateProject(invoice.categoryId, invoice.projectId, {
+          status: PROJECT_STATUS.FINISHED
+        });
+      }
     }
 
     // Generate invoice data to share

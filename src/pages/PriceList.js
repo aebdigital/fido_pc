@@ -20,6 +20,9 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
   const lastSavedData = useRef(null);
   const isUnmounting = useRef(false);
   const saveTimerRef = useRef(null);
+  const isSaving = useRef(false);
+  const saveGeneralPriceListBulkRef = useRef(saveGeneralPriceListBulk);
+  saveGeneralPriceListBulkRef.current = saveGeneralPriceListBulk;
 
   // Initialize local state with data from context
   useEffect(() => {
@@ -63,9 +66,10 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       }
 
       saveTimerRef.current = setTimeout(async () => {
-        if (isUnmounting.current) return;
+        if (isUnmounting.current || isSaving.current) return;
 
         setSaveStatus('saving');
+        isSaving.current = true;
 
         // Perform save
         const updates = {};
@@ -93,7 +97,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
         if (hasUpdates) {
           try {
-            await saveGeneralPriceListBulk(updates);
+            await saveGeneralPriceListBulkRef.current(updates);
             if (!isUnmounting.current) {
               setOriginalPrices(JSON.parse(currentDataString));
               lastSavedData.current = currentDataString;
@@ -107,6 +111,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         } else {
           if (!isUnmounting.current) setSaveStatus('saved');
         }
+        isSaving.current = false;
       }, 1500); // 1.5 second debounce for more buffer while typing
     }
 
@@ -116,7 +121,8 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
         clearTimeout(saveTimerRef.current);
       }
     };
-  }, [localPriceList, originalPrices, updateGeneralPriceList, saveGeneralPriceListBulk]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localPriceList, originalPrices]);
 
   const handlePriceChange = (category, itemIndex, newPrice) => {
     const processedPrice = newPrice || 0;
@@ -195,7 +201,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       });
 
       if (hasUpdates) {
-        saveGeneralPriceListBulk(updates);
+        saveGeneralPriceListBulkRef.current(updates);
       }
     }
     isUnmounting.current = true;

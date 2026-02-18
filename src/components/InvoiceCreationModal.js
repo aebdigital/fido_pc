@@ -478,19 +478,37 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       if (invType !== typeToMatch) return false;
 
       const num = parseInt(inv.invoiceNumber || 0);
-      return num >= yearPrefix && num <= yearMax;
+      return !isNaN(num);
     });
 
-    // Determine next number
-    let nextNumber;
-    if (currentYearInvoices.length === 0) {
-      nextNumber = parseInt(`${currentYear}001`);
-    } else {
-      const maxNumber = Math.max(...currentYearInvoices.map(inv => parseInt(inv.invoiceNumber || 0)));
-      nextNumber = maxNumber + 1;
+    const now = new Date();
+    // currentYear already declared above
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+    // Format: YYYYMMXXX (e.g. 202602001)
+    const yearMonthPrefix = `${currentYear}${currentMonth}`;
+    const prefixInt = parseInt(`${yearMonthPrefix}000`);
+    const prefixMax = parseInt(`${yearMonthPrefix}999`);
+
+    // Filter invoices that match the current month's prefix pattern
+    const currentMonthInvoices = currentYearInvoices.filter(inv => {
+      const num = parseInt(inv.invoiceNumber || 0);
+      return num >= prefixInt && num <= prefixMax;
+    });
+
+    // Check if there are any invoices with the NEW format in this month
+    if (currentMonthInvoices.length > 0) {
+      const maxNumber = Math.max(...currentMonthInvoices.map(inv => parseInt(inv.invoiceNumber || 0)));
+      return String(maxNumber + 1);
     }
 
-    return String(nextNumber);
+    // Fallback/Legacy handling:
+    // If no invoices exist for this month in the new format, check if we should start 001
+    // BUT we also need to respect legacy yearly format (YYYYXXX) to avoid collisions if someone uses that?
+    // Actually, user wants to switch to YYYYMMXXX.
+    // So for a new period (month), we start with 001.
+
+    return `${yearMonthPrefix}001`;
   }, [invoices, activeContractorId]);
 
   // Initialize invoice settings
@@ -543,10 +561,19 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setCustomInputValue('');
 
         // Use persistent note if available, otherwise use default translation
-        if (persistentSettings?.note !== undefined && persistentSettings?.note !== null) {
-          setNotes(persistentSettings.note);
+        if (persistentSettings?.note) {
+          try {
+            const parsed = JSON.parse(persistentSettings.note);
+            if (typeof parsed === 'object' && parsed !== null) {
+              setNotes(parsed[invoiceType] || (invoiceType === 'regular' ? parsed.default : '') || '');
+            } else {
+              setNotes(invoiceType === 'regular' ? persistentSettings.note : '');
+            }
+          } catch (e) {
+            setNotes(invoiceType === 'regular' ? persistentSettings.note : '');
+          }
         } else {
-          setNotes(t('Default Invoice Note'));
+          setNotes(invoiceType === 'regular' ? t('Default Invoice Note') : '');
         }
       }
 
@@ -560,6 +587,34 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       }
     }
   }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t, persistentSettings, dennikData]);
+  // Removed invoiceType from dependency array above to avoid overwriting user edits when type changes, 
+  // BUT we need to update note when type changes if we haven't typed anything yet? 
+  // Actually, we want to switch context.
+
+  // Effect to switch notes when invoice type changes (Create Mode Only)
+  useEffect(() => {
+    if (isOpen && !editMode && persistentSettings) {
+      // Try to load note for the new type from settings
+      // We only overwrite if the current note matches the previous type's default OR is empty? 
+      // Simplified: Just switch to the saved note for this type.
+
+      try {
+        const parsed = JSON.parse(persistentSettings.note || '{}');
+        if (typeof parsed === 'object' && parsed !== null) {
+          setNotes(parsed[invoiceType] || (invoiceType === 'regular' ? parsed.default : '') || (invoiceType === 'regular' ? t('Default Invoice Note') : ''));
+          return;
+        }
+      } catch (e) {
+        // Legacy string
+        if (invoiceType === 'regular') {
+          setNotes(persistentSettings.note || t('Default Invoice Note'));
+          return;
+        }
+      }
+      // If we fall through, set empty or default
+      setNotes(invoiceType === 'regular' && (!persistentSettings?.note) ? t('Default Invoice Note') : '');
+    }
+  }, [invoiceType, isOpen, editMode, persistentSettings, t]);
 
   // Effect to update invoice number when type changes (Create Mode Only)
   useEffect(() => {
@@ -757,7 +812,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         cumulativeVat: calculateTotals.cumulativeVat,
         clientId: selectedClientId, // Use selected client
         invoiceType,
-        depositSettings: invoiceType === 'proforma' ? { type: depositType, value: depositValue } : null
+        depositSettings: invoiceType === 'proforma' ? { type: depositType, value: depositValue === '' ? 0 : depositValue } : null
       };
 
       console.log('[DEBUG proceedWithGeneration] editMode:', editMode, 'existingInvoice:', existingInvoice?.id);
@@ -809,7 +864,22 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           const settingsToSave = {
             ...persistentSettings,
             contractor_id: null,
-            note: notes
+            note: (() => {
+              // Update the JSON object with the current note for this type
+              let noteObj = {};
+              try {
+                const parsed = JSON.parse(persistentSettings?.note || '{}');
+                if (typeof parsed === 'object' && parsed !== null) noteObj = parsed;
+                else noteObj = { regular: persistentSettings?.note || '', default: persistentSettings?.note || '' };
+              } catch {
+                noteObj = { regular: persistentSettings?.note || '', default: persistentSettings?.note || '' };
+              }
+
+              noteObj[invoiceType || 'regular'] = notes;
+              if (invoiceType === 'regular') noteObj.default = notes;
+
+              return JSON.stringify(noteObj);
+            })()
           };
 
           await upsertInvoiceSettings(settingsToSave);
@@ -956,54 +1026,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             </div>
 
             {/* Proforma Settings */}
-            {invoiceType === 'proforma' && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl space-y-3">
-                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100">{t('Deposit Settings')}</h4>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-xs text-blue-700 dark:text-blue-300 mb-1">{t('Deposit Type')}</label>
-                    <div className="flex bg-white dark:bg-gray-800 rounded-lg p-1 border border-blue-200 dark:border-blue-800">
-                      <button
-                        onClick={() => setDepositType('percentage')}
-                        className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${depositType === 'percentage'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100'
-                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
-                          } `}
-                      >
-                        %
-                      </button>
-                      <button
-                        onClick={() => setDepositType('fixed')}
-                        className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${depositType === 'fixed'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100'
-                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
-                          } `}
-                      >
-                        €
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-blue-700 dark:text-blue-300 mb-1">
-                      {depositType === 'percentage' ? t('Percentage') : t('Amount')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={depositValue}
-                        onChange={(e) => setDepositValue(parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        min="0"
-                        max={depositType === 'percentage' ? "100" : undefined}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">
-                        {depositType === 'percentage' ? '%' : '€'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+
           </div>
 
           {/* Scrollable Content */}
@@ -1024,37 +1047,108 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     {calculateTotals.cumulativeVat.toFixed(2)} €
                   </span>
                 </div>
-                <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">{t('Total Price')}</span>
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">
-                    {calculateTotals.totalPrice.toFixed(2)} €
-                  </span>
-                </div>
-
-                {/* Generate Invoice Button */}
-                <button
-                  onClick={handleGenerate}
-                  disabled={isSubmitting || !!typeWarning}
-                  className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-full font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {t('Processing...')}
-                    </>
-                  ) : (
-                    <>
-                      {editMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                      {editMode ? t('Save Changes') : (() => {
-                        if (invoiceType === 'proforma') return t('Issue Proforma Invoice');
-                        if (invoiceType === 'delivery') return t('Issue Delivery Note');
-                        if (invoiceType === 'credit_note') return t('Issue Credit Note');
-                        return t('Generate Invoice');
-                      })()}
-                    </>
-                  )}
-                </button>
               </div>
+
+              {/* Proforma Settings - Moved above Total Price */}
+              {invoiceType === 'proforma' && (
+                <div className="py-2 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Deposit Settings')}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Type Toggle */}
+                      <div className="flex bg-white dark:bg-gray-900 rounded-lg p-1 border border-gray-200 dark:border-gray-700 h-10">
+                        <button
+                          onClick={() => setDepositType('percentage')}
+                          className={`flex-1 flex items-center justify-center rounded-md text-xs font-medium transition-all gap-1.5 ${depositType === 'percentage'
+                            ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${depositType === 'percentage' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                          {t('Percentage')}
+                        </button>
+                        <button
+                          onClick={() => setDepositType('fixed')}
+                          className={`flex-1 flex items-center justify-center rounded-md text-xs font-medium transition-all gap-1.5 ${depositType === 'fixed'
+                            ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${depositType === 'fixed' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                          €
+                        </button>
+                      </div>
+
+                      {/* Value Input */}
+                      <div className="relative h-10">
+                        <input
+                          type="number"
+                          value={depositValue}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setDepositValue(val === '' ? '' : parseFloat(val));
+                          }}
+                          placeholder="0"
+                          className="w-full h-full px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none text-right pr-8 transition-all"
+                          min="0"
+                          max={depositType === 'percentage' ? "100" : undefined}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-medium pointer-events-none">
+                          {depositType === 'percentage' ? '%' : '€'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{t('Total Price')}</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  {(() => {
+                    const total = calculateTotals.totalPrice;
+                    if (invoiceType === 'proforma') {
+                      const val = depositValue === '' ? 0 : depositValue;
+                      if (depositType === 'percentage') {
+                        return (total * (val / 100)).toFixed(2);
+                      } else {
+                        // Fixed amount is Base, so add roughly 23% VAT for display estimation
+                        // Or does user expect "Fixed Amount" to be the Total? 
+                        // PDF generator treats Fixed as Base. So Display should be Fixed + VAT.
+                        return (val * 1.23).toFixed(2);
+                      }
+                    }
+                    return total.toFixed(2);
+                  })()} €
+                </span>
+              </div>
+
+              {/* Generate Invoice Button */}
+              <button
+                onClick={handleGenerate}
+                disabled={isSubmitting || !!typeWarning}
+                className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-4 rounded-full font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    {t('Processing...')}
+                  </>
+                ) : (
+                  <>
+                    {editMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                    {editMode ? t('Save Changes') : (() => {
+                      if (invoiceType === 'proforma') return t('Issue Proforma Invoice');
+                      if (invoiceType === 'delivery') return t('Issue Delivery Note');
+                      if (invoiceType === 'credit_note') return t('Issue Credit Note');
+                      return t('Generate Invoice');
+                    })()}
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="space-y-2">
@@ -1349,157 +1443,162 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     </div>
                   )}
                 </div>
-
               </div>
             </div>
           </div>
         </div>
-      </div >
+      </div>
 
       {/* Uncompleted Fields Modal */}
-      {showUncompletedModal && (
-        <UncompletedFieldsModal
-          isOpen={showUncompletedModal}
-          onClose={() => setShowUncompletedModal(false)}
-          missingFields={missingFields}
-          onContinue={proceedWithGeneration}
-        />
-      )}
+  {
+    showUncompletedModal && (
+      <UncompletedFieldsModal
+        isOpen={showUncompletedModal}
+        onClose={() => setShowUncompletedModal(false)}
+        missingFields={missingFields}
+        onContinue={proceedWithGeneration}
+      />
+    )
+  }
 
-      {/* Duplicate Number Modal */}
-      {showDuplicateNumberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-4 text-amber-500">
-              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Duplicate Number')}</h3>
+  {/* Duplicate Number Modal */ }
+  {
+    showDuplicateNumberModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3 mb-4 text-amber-500">
+            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-              {t('This invoice number is already used for another invoice from this contractor. Do you want to use it anyway?')}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDuplicateNumberModal(false)}
-                className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                {t('Cancel')}
-              </button>
-              <button
-                onClick={handleConfirmDuplicateNumber}
-                className="flex-1 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-              >
-                {t('Use anyway')}
-              </button>
-            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Duplicate Number')}</h3>
+          </div>
+          <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+            {t('This invoice number is already used for another invoice from this contractor. Do you want to use it anyway?')}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowDuplicateNumberModal(false)}
+              className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              onClick={handleConfirmDuplicateNumber}
+              className="flex-1 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+            >
+              {t('Use anyway')}
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    )
+  }
 
-      {/* Client Selection Modal */}
-      {showClientSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => {
-          if (showCreateClientInModal) {
-            setShowCreateClientInModal(false);
-          } else {
-            setShowClientSelector(false);
-            setClientSearchQuery('');
-          }
-        }}>
-          <div className={`bg-white dark:bg-gray-900 rounded-3xl p-6 w-full ${showCreateClientInModal ? 'max-w-4xl h-[85vh]' : 'max-w-md'} max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in `} onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {showCreateClientInModal ? t('New client') : t('Select Client')}
-              </h3>
-              <button
-                onClick={() => {
-                  if (showCreateClientInModal) setShowCreateClientInModal(false);
-                  else setShowClientSelector(false);
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <X className="w-6 h-6" />
-              </button>
+  {/* Client Selection Modal */ }
+  {
+    showClientSelector && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => {
+        if (showCreateClientInModal) {
+          setShowCreateClientInModal(false);
+        } else {
+          setShowClientSelector(false);
+          setClientSearchQuery('');
+        }
+      }}>
+        <div className={`bg-white dark:bg-gray-900 rounded-3xl p-6 w-full ${showCreateClientInModal ? 'max-w-4xl h-[85vh]' : 'max-w-md'} max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in `} onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {showCreateClientInModal ? t('New client') : t('Select Client')}
+            </h3>
+            <button
+              onClick={() => {
+                if (showCreateClientInModal) setShowCreateClientInModal(false);
+                else setShowClientSelector(false);
+              }}
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {showCreateClientInModal ? (
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <ClientForm
+                onSave={handleCreateClientInModal}
+                onCancel={() => setShowCreateClientInModal(false)}
+              />
             </div>
-
-            {showCreateClientInModal ? (
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <ClientForm
-                  onSave={handleCreateClientInModal}
-                  onCancel={() => setShowCreateClientInModal(false)}
+          ) : (
+            <>
+              {/* Search bar */}
+              <div className="relative mb-6">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={clientSearchQuery}
+                  onChange={(e) => setClientSearchQuery(e.target.value)}
+                  placeholder={t('Search Clients...')}
+                  className="w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 border-none text-lg"
                 />
               </div>
-            ) : (
-              <>
-                {/* Search bar */}
-                <div className="relative mb-6">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    autoFocus
-                    value={clientSearchQuery}
-                    onChange={(e) => setClientSearchQuery(e.target.value)}
-                    placeholder={t('Search Clients...')}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 border-none text-lg"
-                  />
-                </div>
 
-                <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar mb-6">
-                  {clients
-                    .filter(client =>
-                      !clientSearchQuery ||
-                      client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
-                      client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
-                    )
-                    .map(client => (
-                      <button
-                        key={client.id}
-                        onClick={() => handleClientSelect(client)}
-                        className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'} `}
-                      >
-                        <div className="font-bold text-gray-900 dark:text-white text-lg">{client.name}</div>
-                        {client.email && (
-                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5">
-                            <div className="w-1 h-1 rounded-full bg-gray-400" />
-                            {client.email}
-                          </div>
-                        )}
-                      </button>
-                    ))}
-
-                  {clients.filter(client =>
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar mb-6">
+                {clients
+                  .filter(client =>
                     !clientSearchQuery ||
                     client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
                     client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
-                  ).length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        {t('No clients found')}
-                      </div>
-                    )}
-                </div>
+                  )
+                  .map(client => (
+                    <button
+                      key={client.id}
+                      onClick={() => handleClientSelect(client)}
+                      className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'} `}
+                    >
+                      <div className="font-bold text-gray-900 dark:text-white text-lg">{client.name}</div>
+                      {client.email && (
+                        <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5">
+                          <div className="w-1 h-1 rounded-full bg-gray-400" />
+                          {client.email}
+                        </div>
+                      )}
+                    </button>
+                  ))}
 
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setShowCreateClientInModal(true)}
-                    className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
-                  >
-                    <Plus className="w-5 h-5" />
-                    {t('Add Client')}
-                  </button>
+                {clients.filter(client =>
+                  !clientSearchQuery ||
+                  client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                  client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                ).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      {t('No clients found')}
+                    </div>
+                  )}
+              </div>
 
-                  <button
-                    onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }}
-                    className="w-full py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-bold transition-colors"
-                  >
-                    {t('Cancel')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowCreateClientInModal(true)}
+                  className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
+                >
+                  <Plus className="w-5 h-5" />
+                  {t('Add Client')}
+                </button>
+
+                <button
+                  onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }}
+                  className="w-full py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-bold transition-colors"
+                >
+                  {t('Cancel')}
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
+    )
+  }
     </>
   );
 };

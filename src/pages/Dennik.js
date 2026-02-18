@@ -438,7 +438,7 @@ const Dennik = () => {
 
                 <button
                     onClick={handleOpenConsolidatedWizard}
-                    className="flex items-center gap-2 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-bold hover:opacity-90 transition-opacity"
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
                 >
                     <FileText className="w-4 h-4" />
                     {t('Invoice')}

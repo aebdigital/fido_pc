@@ -46,6 +46,7 @@ const WorkPropertyCard = ({
 }) => {
   const { t } = useLanguage();
   const [activeSuggestionId, setActiveSuggestionId] = React.useState(null);
+  const [unitDropdownItemId, setUnitDropdownItemId] = React.useState(null);
 
   // For rentals, we need to match items with specific rental propertyIds (core_drill, tool_rental, scaffolding)
   // as well as the parent 'rentals' propertyId
@@ -239,7 +240,45 @@ const WorkPropertyCard = ({
               min={0}
             />
           )}
-          {unitDisplay && <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">{t(unitDisplay)}</span>}
+          {unitDisplay && item.propertyId === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && field.name === WORK_ITEM_NAMES.QUANTITY ? (
+            <div className="relative" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setUnitDropdownItemId(null); }}>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setUnitDropdownItemId(unitDropdownItemId === item.id ? null : item.id);
+                }}
+                className="text-base lg:text-sm text-blue-600 dark:text-blue-400 flex-shrink-0 font-medium hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-0.5"
+              >
+                {t(unitDisplay)}
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {unitDropdownItemId === item.id && (
+                <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl overflow-hidden">
+                  {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
+                    <button
+                      key={unit}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onUnitSelect(item.id, unit, e);
+                        setUnitDropdownItemId(null);
+                      }}
+                      className={`block w-full text-left px-3 py-1.5 text-sm transition-colors ${
+                        item.selectedUnit === unit
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {t(unitToDisplaySymbol(unit))}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : unitDisplay ? (
+            <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">{t(unitDisplay)}</span>
+          ) : null}
         </div>
       </div>
     );
@@ -895,10 +934,10 @@ const WorkPropertyCard = ({
                                 onUpdateWorkItem(item.id, WORK_ITEM_NAMES.PRICE, s.price);
                               }
 
-                              // Update Unit if present and compatible
-                              // Note: We can only update unit if we are in the configuration phase (which we aren't here)
-                              // OR if we support changing unit later. But currently unit selection is separate.
-                              // If unit is different, we might want to warn or handle it, but for now just name and price.
+                              // Update Unit from suggestion
+                              if (s.unit) {
+                                onUnitSelect(item.id, s.unit, e);
+                              }
 
                               setActiveSuggestionId(null);
                             }}
@@ -926,33 +965,7 @@ const WorkPropertyCard = ({
             </div>
           )}
 
-          {/* Configuration State: Unit Selector with Integrated Header/Trash */}
-          {property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Select unit')}</span>
-                <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
-                  <button
-                    key={unit}
-                    onClick={(e) => onUnitSelect(item.id, unit, e)}
-                    className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors font-medium"
-                  >
-                    {unit}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Property fields - only show if unit is selected */}
+          {/* Property fields */}
           {property.fields && item.selectedUnit && (
             <div className="space-y-3 lg:space-y-2">
               {property.fields.map(field => (

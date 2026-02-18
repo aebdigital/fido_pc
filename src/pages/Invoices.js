@@ -242,7 +242,7 @@ const Invoices = () => {
         <div className="flex items-center gap-3 absolute right-6 top-6">
           <button
             onClick={() => setShowStandaloneInvoice(true)}
-            className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+            className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
           >
             <Plus className="w-6 h-6" />
           </button>
@@ -330,7 +330,7 @@ const Invoices = () => {
         <div className="lg:hidden flex items-center gap-2">
           <button
             onClick={() => setShowStandaloneInvoice(true)}
-            className="w-10 h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
           >
             <Plus className="w-5 h-5" />
           </button>
@@ -351,7 +351,7 @@ const Invoices = () => {
               key={type.id}
               onClick={() => setSelectedType(type.id)}
               className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all ${selectedType === type.id
-                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
+                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md transform scale-105'
                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
             >

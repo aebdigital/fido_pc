@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Pencil, Trash2, Plus, CalendarDays, MessageSquare } from 'lucide-react';
+import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Pencil, Trash2, Plus, CalendarDays, MessageSquare, Shield } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useAppData } from '../context/AppDataContext';
@@ -8,8 +8,9 @@ import InvoiceCreationModal from './InvoiceCreationModal';
 import { transformInvoiceFromDB } from '../utils/dataTransformers';
 import ConfirmationModal from './ConfirmationModal';
 import Linkify from '../utils/linkify';
+import MemberPermissionsModal from './MemberPermissionsModal';
 
-const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatDuration, t, handleRemoveMember, handleResetName }) => {
+const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatDuration, t, handleRemoveMember, handleResetName, onEditPermissions }) => {
     const [isEditingName, setIsEditingName] = useState(false);
     const [newName, setNewName] = useState(member.member_name || member.profiles?.full_name || member.profiles?.email || '');
 
@@ -125,13 +126,22 @@ const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatD
                 </div>
             )}
             {!isEditingName && isOwner && (
-                <button
-                    onClick={() => handleRemoveMember(member.user_id, member.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition-colors ml-2"
-                    title={t('Remove Member')}
-                >
-                    <UserMinus className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-1 ml-2">
+                    <button
+                        onClick={() => onEditPermissions(member)}
+                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        title={t('Edit Permissions')}
+                    >
+                        <Shield className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => handleRemoveMember(member.user_id, member.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        title={t('Remove Member')}
+                    >
+                        <UserMinus className="w-5 h-5" />
+                    </button>
+                </div>
             )}
         </div>
     );
@@ -200,6 +210,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const [pendingMemberToRemove, setPendingMemberToRemove] = useState(null);
     const [showResetNameConfirm, setShowResetNameConfirm] = useState(false);
     const [pendingMemberToReset, setPendingMemberToReset] = useState(null);
+    const [pendingMemberToAssign, setPendingMemberToAssign] = useState(null);
+    const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+    const [editingMemberPermissions, setEditingMemberPermissions] = useState(null);
     const hourlyRateTimerRef = useRef(null);
     const entryNoteTimerRef = useRef(null);
 
@@ -809,12 +822,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         }
     };
 
-    const handleAddMember = async (userId) => {
+    const handleAddMember = async (userId, permissions = null) => {
         try {
-            await api.dennik.addProjectMember(project.c_id || project.id, userId);
+            await api.dennik.addProjectMember(project.c_id || project.id, userId, 'member', permissions);
             await loadMembers();
             setSearchQuery('');
             setSearchResults([]);
+            setShowPermissionsModal(false);
+            setPendingMemberToAssign(null);
 
             // Enable dennik if not already enabled
             if (!project.is_dennik_enabled && !project.isDennikEnabled) {
@@ -823,6 +838,26 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         } catch (error) {
             console.error('Error adding member:', error);
             alert(t('Failed to add member'));
+        }
+    };
+
+    const handleConfirmEditPermissions = async (permissions) => {
+        if (!editingMemberPermissions) return;
+        try {
+            setIsLoading(true);
+            await api.dennik.updateProjectMember(
+                project.c_id || project.id,
+                editingMemberPermissions.user_id,
+                { permissions },
+                editingMemberPermissions.id
+            );
+            await loadMembers();
+            setEditingMemberPermissions(null);
+        } catch (error) {
+            console.error('Error updating permissions:', error);
+            alert(t('Failed to update permissions'));
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -1464,7 +1499,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             {searchResults.map(user => (
                                                 <button
                                                     key={user.id}
-                                                    onClick={() => handleAddMember(user.id)}
+                                                    onClick={() => {
+                                                        setPendingMemberToAssign(user);
+                                                        setShowPermissionsModal(true);
+                                                    }}
                                                     className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
                                                     <div className="flex items-center gap-3">
@@ -1539,6 +1577,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             t={t}
                                             handleRemoveMember={handleRemoveMember}
                                             handleResetName={handleResetName}
+                                            onEditPermissions={(m) => setEditingMemberPermissions(m)}
                                         />
                                     ))}
 
@@ -1817,7 +1856,6 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 isDestructive={true}
             />
 
-            {/* Reset Name Confirmation */}
             <ConfirmationModal
                 isOpen={showResetNameConfirm}
                 onClose={() => { setShowResetNameConfirm(false); setPendingMemberToReset(null); }}
@@ -1829,6 +1867,27 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 isDestructive={true}
             />
 
+            <MemberPermissionsModal
+                isOpen={showPermissionsModal}
+                onClose={() => {
+                    setShowPermissionsModal(false);
+                    setPendingMemberToAssign(null);
+                }}
+                user={pendingMemberToAssign}
+                onConfirm={(permissions) => pendingMemberToAssign && handleAddMember(pendingMemberToAssign.id, permissions)}
+                isLoading={isLoading}
+            />
+
+            <MemberPermissionsModal
+                key={editingMemberPermissions ? `edit-${editingMemberPermissions.id}` : 'edit-none'}
+                isOpen={!!editingMemberPermissions}
+                onClose={() => setEditingMemberPermissions(null)}
+                user={editingMemberPermissions?.profiles}
+                initialPermissions={editingMemberPermissions?.permissions}
+                onConfirm={handleConfirmEditPermissions}
+                confirmLabel={t('Save')}
+                isLoading={isLoading}
+            />
         </div>
     );
 };

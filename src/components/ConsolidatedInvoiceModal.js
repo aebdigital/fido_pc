@@ -354,7 +354,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                     <div className="flex gap-2">
                         {/* Pagination Circles */}
                         {[1, 2, 3].map(i => (
-                            <div key={i} className={`w-2.5 h-2.5 rounded-full transition-colors ${step >= i ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`} />
+                            <div key={i} className={`w-2.5 h-2.5 rounded-full transition-colors ${step >= i ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'}`} />
                         ))}
                     </div>
 
@@ -379,7 +379,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                         ) : (
                             <button
                                 onClick={handleGenerate}
-                                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:shadow-lg hover:to-indigo-500 transition-all active:scale-95"
+                                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
                             >
                                 <Check className="w-4 h-4" />
                                 {t('Proceed to Invoice')}

@@ -45,6 +45,14 @@ import PaywallModal from './PaywallModal';
 import ShareProjectModal from './ShareProjectModal';
 import DennikModal from './DennikModal';
 
+const LEGACY_PERMISSION_MAP = {
+  'client': 'client_supplier',
+  'priceOffer': 'total_price_offer',
+  'documents': 'issue_document',
+  'priceOfferNote': 'price_offer_note',
+  'projectNote': 'project_note'
+};
+
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();
 
@@ -91,9 +99,62 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   } = useAppData();
   const { user } = useAuth();
 
+  // Permissions logic
+  const memberPermissions = useMemo(() => {
+    let raw = project?.memberPermissions || {};
+    if (typeof raw === 'string') {
+      try {
+        raw = JSON.parse(raw);
+      } catch (e) {
+        console.warn('Failed to parse memberPermissions', e);
+        raw = {};
+      }
+    }
+    return raw;
+  }, [project?.memberPermissions]);
+
+  const isProjectOwner = project?.user_id === user?.id || project?.userRole === 'owner';
+
+  const getEffectivePermission = useCallback((sectionId) => {
+    // Check direct key first
+    let rawValue = memberPermissions[sectionId];
+
+    // If not found, check legacy key mapping
+    if (rawValue === undefined) {
+      const legacyKey = Object.keys(LEGACY_PERMISSION_MAP).find(key => LEGACY_PERMISSION_MAP[key] === sectionId);
+      if (legacyKey) {
+        rawValue = memberPermissions[legacyKey];
+      }
+    }
+
+    // Map legacy values (e.g., 'interact' -> 'edit')
+    if (rawValue === 'interact') return 'edit';
+
+    return rawValue || null;
+  }, [memberPermissions]);
+
+  const canView = useCallback((sectionId) => {
+    if (isProjectOwner) return true;
+    // Special case: if it's a member project from Dennik, check permissions
+    if (project?.memberPermissions) {
+      const perm = getEffectivePermission(sectionId);
+      return perm !== 'hidden';
+    }
+    // Default for other shared projects (teams)
+    return true;
+  }, [isProjectOwner, project?.memberPermissions, getEffectivePermission]);
+
+  const canEdit = useCallback((sectionId) => {
+    if (isProjectOwner) return true;
+    if (project?.memberPermissions) {
+      const perm = getEffectivePermission(sectionId);
+      return perm === 'edit';
+    }
+    return true;
+  }, [isProjectOwner, project?.memberPermissions, getEffectivePermission]);
+
   // Check if user can edit this project (owner or viewing their own project)
   // Team members viewing via team_modal can only view, not edit
-  const isProjectOwner = project?.user_id === user?.id;
   const canEditProject = !project?.is_archived && (viewSource !== 'team_modal' || isProjectOwner);
 
   // Local state
@@ -1308,19 +1369,21 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         {/* Project Notes mirroring body layout width */}
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
-            <div className="mt-2">
-              <input
-                ref={(el) => { if (el && isEditingProjectNotes) el.focus(); }}
-                type="text"
-                value={isEditingProjectNotes ? editingProjectNotes : (project.notes || '')}
-                onChange={(e) => setEditingProjectNotes(e.target.value)}
-                onFocus={!project.is_archived ? handleEditProjectNotes : undefined}
-                onBlur={handleSaveProjectNotes}
-                readOnly={!isEditingProjectNotes}
-                className={`w-full text-sm font-medium ${isEditingProjectNotes ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'} bg-transparent border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none no-gradient inline-note ${!project.is_archived && !isEditingProjectNotes ? 'cursor-pointer' : ''}`}
-                placeholder={t('Notes_CP')}
-              />
-            </div>
+            {canView('price_offer_note') && (
+              <div className="mt-2">
+                <input
+                  ref={(el) => { if (el && isEditingProjectNotes) el.focus(); }}
+                  type="text"
+                  value={isEditingProjectNotes ? editingProjectNotes : (project.notes || '')}
+                  onChange={(e) => setEditingProjectNotes(e.target.value)}
+                  onFocus={(!project.is_archived && canEdit('price_offer_note')) ? handleEditProjectNotes : undefined}
+                  onBlur={handleSaveProjectNotes}
+                  readOnly={!isEditingProjectNotes || !canEdit('price_offer_note')}
+                  className={`w-full text-sm font-medium ${isEditingProjectNotes ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'} bg-transparent border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none no-gradient inline-note ${!project.is_archived && !isEditingProjectNotes && canEdit('price_offer_note') ? 'cursor-pointer' : ''}`}
+                  placeholder={t('Notes_CP')}
+                />
+              </div>
+            )}
           </div>
           {/* Spacer mirroring Sidebar width */}
           <div className="lg:w-80 xl:w-96 hidden lg:block"></div>
@@ -1332,115 +1395,117 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         <div className="flex-1 space-y-4 lg:space-y-6 min-w-0">
 
           {/* Client & Supplier Section */}
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">Klient a Dodávateľ</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Client Block */}
-              <div
-                onClick={() => {
-                  if (!project.is_archived) {
-                    if (selectedClientForProject) {
-                      setShowEditClientModal(true);
-                    } else {
-                      setShowClientSelector(true);
-                    }
-                  }
-                }}
-                className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-gray-900 dark:text-white text-lg">
-                    {selectedClientForProject ? selectedClientForProject.name : t('No client')}
-                  </div>
-                  <div className="text-base text-gray-600 dark:text-gray-400 truncate">
-                    {selectedClientForProject ? selectedClientForProject.email : t('Associate project with a client')}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {!project.is_archived && selectedClientForProject && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeProjectFromClient(selectedClientForProject.id, projectId);
-                        updateProject(project.category, projectId, { clientId: null });
-                        setSelectedClientForProject(null);
-                      }}
-                      className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                      title={t('Remove')}
-                    >
-                      <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    </button>
-                  )}
-                  {!project.is_archived && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
-                </div>
+          {canView('client_supplier') && (
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">Klient a Dodávateľ</h2>
               </div>
-
-              {/* Supplier (Contractor) Block - Moved here and made half-width on desktop */}
-              {!project.is_archived && (
-                <div className="relative">
-                  <div
-                    onClick={() => setShowContractorSelector(!showContractorSelector)}
-                    className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md h-full"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
-                      <div className="text-base text-gray-600 dark:text-gray-400 truncate">
-                        {getCurrentContractor()?.name || t('assign contractor to project')}
-                      </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Client Block */}
+                <div
+                  onClick={() => {
+                    if (!project.is_archived && canEdit('client_supplier')) {
+                      if (selectedClientForProject) {
+                        setShowEditClientModal(true);
+                      } else {
+                        setShowClientSelector(true);
+                      }
+                    }
+                  }}
+                  className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived && canEdit('client_supplier') ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-gray-900 dark:text-white text-lg">
+                      {selectedClientForProject ? selectedClientForProject.name : t('No client')}
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    <div className="text-base text-gray-600 dark:text-gray-400 truncate">
+                      {selectedClientForProject ? selectedClientForProject.email : t('Associate project with a client')}
+                    </div>
                   </div>
-
-                  {showContractorSelector && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowContractorSelector(false)}>
-                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
-
-                        <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
-                          {contractors.map(contractor => (
-                            <button
-                              key={contractor.id}
-                              onClick={() => handleAssignProjectContractor(contractor.id)}
-                              className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${(project.contractor_id || activeContractorId) === contractor.id
-                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
-                                }`}
-                            >
-                              <span className="font-semibold truncate">{contractor.name}</span>
-                              {(project.contractor_id || activeContractorId) === contractor.id && (
-                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            setShowContractorSelector(false);
-                            setShowContractorModal(true);
-                          }}
-                          className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          {t('Add contractor')}
-                        </button>
-
-                        <button
-                          onClick={() => setShowContractorSelector(false)}
-                          className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl"
-                        >
-                          {t('Cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {!project.is_archived && selectedClientForProject && canEdit('client_supplier') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeProjectFromClient(selectedClientForProject.id, projectId);
+                          updateProject(project.category, projectId, { clientId: null });
+                          setSelectedClientForProject(null);
+                        }}
+                        className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        title={t('Remove')}
+                      >
+                        <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      </button>
+                    )}
+                    {!project.is_archived && canEdit('client_supplier') && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
+                  </div>
                 </div>
-              )}
+
+                {/* Supplier (Contractor) Block - Moved here and made half-width on desktop */}
+                {!project.is_archived && (
+                  <div className="relative">
+                    <div
+                      onClick={() => canEdit('client_supplier') && setShowContractorSelector(!showContractorSelector)}
+                      className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm h-full ${canEdit('client_supplier') ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md transition-colors' : ''}`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
+                        <div className="text-base text-gray-600 dark:text-gray-400 truncate">
+                          {getCurrentContractor()?.name || t('assign contractor to project')}
+                        </div>
+                      </div>
+                      {canEdit('client_supplier') && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
+                    </div>
+
+                    {showContractorSelector && canEdit('client_supplier') && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowContractorSelector(false)}>
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
+                          <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
+
+                          <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
+                            {contractors.map(contractor => (
+                              <button
+                                key={contractor.id}
+                                onClick={() => handleAssignProjectContractor(contractor.id)}
+                                className={`w-full text-left p-3 rounded-xl transition-colors flex items-center justify-between ${(project.contractor_id || activeContractorId) === contractor.id
+                                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                  : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                                  }`}
+                              >
+                                <span className="font-semibold truncate">{contractor.name}</span>
+                                {(project.contractor_id || activeContractorId) === contractor.id && (
+                                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              setShowContractorSelector(false);
+                              setShowContractorModal(true);
+                            }}
+                            className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            {t('Add contractor')}
+                          </button>
+
+                          <button
+                            onClick={() => setShowContractorSelector(false)}
+                            className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl"
+                          >
+                            {t('Cancel')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Project Rooms Section */}
           <div className="space-y-2.5">
@@ -1530,67 +1595,74 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           </div>
 
           {/* Price Overview */}
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h2>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
-              <div className="space-y-2">
-                <div className="flex justify-between items-baseline">
-                  <span className="font-semibold text-gray-900 dark:text-white text-base">{t('without VAT')}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project))}</span>
+          {canView('total_price_offer') && (
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h2>
+              </div>
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-gray-900 dark:text-white text-base">{t('without VAT')}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project))}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-gray-900 dark:text-white text-base">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
+                    <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project) * getVATRate())}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-gray-900 dark:text-white text-base">{t('Total price')}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project) * (1 + getVATRate()))}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-baseline">
-                  <span className="font-semibold text-gray-900 dark:text-white text-base">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project) * getVATRate())}</span>
-                </div>
-                <div className="flex justify-between items-baseline">
-                  <span className="font-semibold text-gray-900 dark:text-white text-base">{t('Total price')}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project) * (1 + getVATRate()))}</span>
-                </div>
+
+                {!project.is_archived && canEdit('total_price_offer') && (
+                  <>
+                    <hr className="border-gray-300 dark:border-gray-600 my-4" />
+                    <div className="flex gap-2 lg:gap-3">
+                      <button
+                        onClick={handlePreviewPriceOffer}
+                        className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-2.5 lg:py-3 px-4 rounded-xl lg:rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                      >
+                        <span className="text-sm lg:text-lg">{t('Preview')}</span>
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handleSendPriceOffer}
+                        className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-2.5 lg:py-3 px-4 rounded-xl lg:rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                      >
+                        <span className="text-sm lg:text-lg">{t('Send')}</span>
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {!project.is_archived && (
-                <>
-                  <hr className="border-gray-300 dark:border-gray-600 my-4" />
-                  <div className="flex gap-2 lg:gap-3">
-                    <button
-                      onClick={handlePreviewPriceOffer}
-                      className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-2.5 lg:py-3 px-4 rounded-xl lg:rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                    >
-                      <span className="text-sm lg:text-lg">{t('Preview')}</span>
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={handleSendPriceOffer}
-                      className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-2.5 lg:py-3 px-4 rounded-xl lg:rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-                    >
-                      <span className="text-sm lg:text-lg">{t('Send')}</span>
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                </>
+              {/* Create/View Invoice Button - For project owner or if permitted */}
+              {(isProjectOwner || canView('issue_document')) && !project.is_archived && (
+                <button
+                  onClick={() => {
+                    if (!isPro && isProjectOwner) { setShowPaywall(true); return; }
+                    if (canEdit('issue_document') || isProjectOwner) {
+                      setShowInvoiceCreationModal(true);
+                    } else {
+                      // Maybe show read-only list? Or just disable.
+                    }
+                  }}
+                  disabled={!isProjectOwner && !canEdit('issue_document')}
+                  className={`w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 shadow-sm ${(!isProjectOwner && !canEdit('issue_document')) ? 'opacity-50 cursor-not-allowed' : 'hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-[0.98]'}`}
+                >
+                  <span className="text-sm sm:text-lg">{t('Issue Document')}</span>
+                  <Plus className="w-4 h-4 text-white" />
+                </button>
               )}
             </div>
+          )}
 
-            {/* Create/View Invoice Button - Only for project owner */}
-            {isProjectOwner && !project.is_archived && (
-              <button
-                onClick={() => {
-                  if (!isPro) { setShowPaywall(true); return; }
-                  setShowInvoiceCreationModal(true);
-                }}
-                className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98]"
-              >
-                <span className="text-sm sm:text-lg">{t('Issue Document')}</span>
-                <Plus className="w-4 h-4 text-white" />
-              </button>
-            )}
-          </div>
-
-          {/* Invoices List (if exists) - Only for project owner */}
-          {isProjectOwner && projectInvoices.length > 0 && (
+          {/* Invoices List (if exists) - For project owner or if permitted */}
+          {(isProjectOwner || canView('issue_document')) && projectInvoices.length > 0 && (
             <div className="space-y-3">
               {projectInvoices // Show all invoices
                 .filter(Boolean) // Safety check
@@ -1637,308 +1709,318 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
 
           {/* Receipts Section */}
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
-                {t('Receipts')} - {calculateReceiptsTotal().toFixed(2).replace('.', ',')} €
-              </h2>
+          {canView('receipts') && (
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
+                  {t('Receipts')} - {calculateReceiptsTotal().toFixed(2).replace('.', ',')} €
+                </h2>
+              </div>
+              <div className="flex flex-row gap-2">
+                <button
+                  onClick={() => receiptInputRef.current?.click()}
+                  disabled={isAnalyzingReceipt || !canEdit('receipts')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 px-2 lg:px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm lg:text-base font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors whitespace-nowrap ${(!canEdit('receipts')) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isAnalyzingReceipt ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{t('Analyzing...')} ({analyzingProgress.current}/{analyzingProgress.total})</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{t('Add receipts')}</span>
+                      <Camera className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+                <input
+                  ref={receiptInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleReceiptUpload}
+                />
+                <button
+                  onClick={() => setShowReceiptsModal(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 px-2 lg:px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl text-sm lg:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+                >
+                  <span>{t('View receipts')}</span>
+                  <FileText className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex flex-row gap-2">
-              <button
-                onClick={() => receiptInputRef.current?.click()}
-                disabled={isAnalyzingReceipt}
-                className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 px-2 lg:px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm lg:text-base font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 whitespace-nowrap"
-              >
-                {isAnalyzingReceipt ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{t('Analyzing...')} ({analyzingProgress.current}/{analyzingProgress.total})</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{t('Add receipts')}</span>
-                    <Camera className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-              <input
-                ref={receiptInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={handleReceiptUpload}
-              />
-              <button
-                onClick={() => setShowReceiptsModal(true)}
-                className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 px-2 lg:px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl text-sm lg:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
-              >
-                <span>{t('View receipts')}</span>
-                <FileText className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* History - Hidden on mobile, shown on desktop */}
-          <div className="space-y-2.5 hidden lg:block">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
-              {(() => {
-                const history = getProjectHistory(projectId) || [];
+          {canView('history') && (
+            <div className="space-y-2.5 hidden lg:block">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
+              </div>
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
+                {(() => {
+                  const history = getProjectHistory(projectId) || [];
 
-                // Check if history already has a "created" event (case-insensitive)
-                const hasCreatedEvent = history.some(e =>
-                  e.type && e.type.toLowerCase() === 'created'
-                );
+                  // Check if history already has a "created" event (case-insensitive)
+                  const hasCreatedEvent = history.some(e =>
+                    e.type && e.type.toLowerCase() === 'created'
+                  );
 
-                // Only add synthetic "Created" if not already in history (for backwards compatibility)
-                let allEvents = [...history];
-                if (!hasCreatedEvent && project.created_at) {
-                  allEvents.push({ type: 'Created', date: project.created_at });
-                }
+                  // Only add synthetic "Created" if not already in history (for backwards compatibility)
+                  let allEvents = [...history];
+                  if (!hasCreatedEvent && project.created_at) {
+                    allEvents.push({ type: 'Created', date: project.created_at });
+                  }
 
-                // Sort newest first
-                allEvents = allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+                  // Sort newest first
+                  allEvents = allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-                return allEvents.map((event, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {t(event.type)}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {event.date ? new Date(event.date).toLocaleString('sk-SK', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
-                      </span>
+                  return allEvents.map((event, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {t(event.type)}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {event.date ? new Date(event.date).toLocaleString('sk-SK', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ));
-              })()}
+                  ));
+                })()}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right column - Notes and Photos */}
         <div className="lg:w-80 xl:w-96 flex-shrink-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
           {/* Notes */}
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2">
-              <StickyNote className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Notes_Project')}</h2>
+          {canView('project_note') && (
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <StickyNote className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Notes_Project')}</h2>
+              </div>
+              <div onBlur={handleNotesBlur} onFocus={canEdit('project_note') ? handleNotesFocus : undefined}>
+                <textarea
+                  value={projectDetailNotes}
+                  onChange={handleNotesChange}
+                  placeholder={t('Add project notes...')}
+                  className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none mb-2"
+                  disabled={project.is_archived || !canEdit('project_note')}
+                />
+                {!project.is_archived && isNoteFocused && canEdit('project_note') && (
+                  <div className="flex gap-2 animate-fade-in">
+                    <button
+                      onClick={handleCancelNotes}
+                      onMouseDown={() => {
+                        // Prevent blur from firing immediately on mousedown
+                        if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
+                      }}
+                      className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      {t('Cancel')}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
+                        handleSaveNotes();
+                        setIsNoteFocused(false);
+                      }}
+                      onMouseDown={() => {
+                        if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
+                      }}
+                      disabled={isSavingNotes}
+                      className="flex-1 py-2 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {isSavingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      {t('Save')}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div onBlur={handleNotesBlur} onFocus={handleNotesFocus}>
-              <textarea
-                value={projectDetailNotes}
-                onChange={handleNotesChange}
-                placeholder={t('Add project notes...')}
-                className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none mb-2"
-                disabled={project.is_archived}
-              />
-              {!project.is_archived && isNoteFocused && (
-                <div className="flex gap-2 animate-fade-in">
-                  <button
-                    onClick={handleCancelNotes}
-                    onMouseDown={() => {
-                      // Prevent blur from firing immediately on mousedown
-                      if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
-                    }}
-                    className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {t('Cancel')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
-                      handleSaveNotes();
-                      setIsNoteFocused(false);
-                    }}
-                    onMouseDown={() => {
-                      if (notesSaveTimeoutRef.current) clearTimeout(notesSaveTimeoutRef.current);
-                    }}
-                    disabled={isSavingNotes}
-                    className="flex-1 py-2 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
-                  >
-                    {isSavingNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    {t('Save')}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Photos */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Files')}</h2>
-              </div>
-              {canEditProject && (
+          {canView('files') && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {projectPhotos.length > 0 && (
+                  <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Files')}</h2>
+                </div>
+                {canEditProject && canEdit('files') && (
+                  <div className="flex items-center gap-2">
+                    {projectPhotos.length > 0 && (
+                      <button
+                        className="p-3 rounded-2xl flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        onClick={() => setPhotoDeleteMode(!photoDeleteMode)}
+                      >
+                        <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                      </button>
+                    )}
                     <button
-                      className="p-3 rounded-2xl flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
-                      onClick={() => setPhotoDeleteMode(!photoDeleteMode)}
+                      className="p-3 rounded-2xl flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                      onClick={() => photoInputRef.current?.click()}
                     >
-                      <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                      <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
                     </button>
+                  </div>
+                )}
+              </div>
+              <input ref={photoInputRef} type="file" accept="image/*,application/pdf" multiple onChange={handlePhotoUpload} className="hidden" />
+              {projectPhotos.length > 0 ? (
+                <div
+                  className={`relative rounded-2xl no-border no-gradient transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
+                    } ${canEditProject && !photoDeleteMode ? 'cursor-pointer' : ''}`}
+                  style={{ boxShadow: 'none', border: 'none' }}
+                  onClick={canEditProject && !photoDeleteMode ? () => photoInputRef.current?.click() : undefined}
+                  onDrop={canEditProject && !photoDeleteMode ? handlePhotoDrop : undefined}
+                  onDragOver={canEditProject && !photoDeleteMode ? handlePhotoDragOver : undefined}
+                  onDragLeave={canEditProject && !photoDeleteMode ? handlePhotoDragLeave : undefined}
+                >
+                  {/* Photo Grid - 3 columns, max 7 rows = 21 photos per page */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {projectPhotos.slice(photoPage * 21, (photoPage + 1) * 21).map((photo, index) => (
+                      <div
+                        key={photo.id}
+                        className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (photoDeleteMode) {
+                            handleDeletePhoto(photo.id);
+                          } else {
+                            if (photo.type === 'pdf' || photo.name?.toLowerCase().endsWith('.pdf') || photo.url?.startsWith('data:application/pdf')) {
+                              setPdfUrl(photo.url);
+                              setShowPDFPreview(true);
+                            } else {
+                              setSelectedPhotoIndex(photoPage * 21 + index);
+                              setLightboxOpen(true);
+                              setLightboxDirection(0);
+                            }
+                          }
+                        }}
+                      >
+                        {photo.type === 'pdf' || photo.name?.toLowerCase().endsWith('.pdf') || photo.url?.startsWith('data:application/pdf') ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                            <FileText className="w-10 h-10 text-red-500 mb-2" />
+                            <span className="text-xs text-center text-gray-600 dark:text-gray-300 truncate w-full px-1">{photo.name}</span>
+                          </div>
+                        ) : (
+                          <img src={photo.url} alt={photo.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        )}
+                        {photoDeleteMode && (
+                          <div className="absolute inset-0 bg-red-500/40 flex items-center justify-center z-10">
+                            <Trash2 className="w-8 h-8 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination - only show if more than 21 photos */}
+                  {projectPhotos.length > 21 && (
+                    <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPhotoPage(p => Math.max(0, p - 1)); }}
+                        disabled={photoPage === 0}
+                        className={`p-2 rounded-xl transition-all duration-200 ${photoPage === 0
+                          ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {photoPage + 1} / {Math.ceil(projectPhotos.length / 21)}
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPhotoPage(p => Math.min(Math.ceil(projectPhotos.length / 21) - 1, p + 1)); }}
+                        disabled={photoPage >= Math.ceil(projectPhotos.length / 21) - 1}
+                        className={`p-2 rounded-xl transition-all duration-200 ${photoPage >= Math.ceil(projectPhotos.length / 21) - 1
+                          ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
                   )}
-                  <button
-                    className="p-3 rounded-2xl flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                    onClick={() => photoInputRef.current?.click()}
-                  >
-                    <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
-                  </button>
+
+                  {/* Drag overlay hint */}
+                  {isDraggingPhoto && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-2xl pointer-events-none">
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold">{t('Drop files here')}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className={`min-h-[120px] flex flex-col items-center justify-center rounded-2xl transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
+                    } ${canEditProject ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30' : ''}`}
+                  onClick={canEditProject ? () => photoInputRef.current?.click() : undefined}
+                  onDrop={canEditProject ? handlePhotoDrop : undefined}
+                  onDragOver={canEditProject ? handlePhotoDragOver : undefined}
+                  onDragLeave={canEditProject ? handlePhotoDragLeave : undefined}
+                >
+                  <Image className="w-8 h-8 mb-2 text-gray-400" />
+                  <span className="text-sm text-gray-500">
+                    {canEditProject ? (isDraggingPhoto ? t('Drop files here') : t('Click or drag files here')) : t('No files yet')}
+                  </span>
                 </div>
               )}
             </div>
-            <input ref={photoInputRef} type="file" accept="image/*,application/pdf" multiple onChange={handlePhotoUpload} className="hidden" />
-            {projectPhotos.length > 0 ? (
-              <div
-                className={`relative rounded-2xl no-border no-gradient transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
-                  } ${canEditProject && !photoDeleteMode ? 'cursor-pointer' : ''}`}
-                style={{ boxShadow: 'none', border: 'none' }}
-                onClick={canEditProject && !photoDeleteMode ? () => photoInputRef.current?.click() : undefined}
-                onDrop={canEditProject && !photoDeleteMode ? handlePhotoDrop : undefined}
-                onDragOver={canEditProject && !photoDeleteMode ? handlePhotoDragOver : undefined}
-                onDragLeave={canEditProject && !photoDeleteMode ? handlePhotoDragLeave : undefined}
-              >
-                {/* Photo Grid - 3 columns, max 7 rows = 21 photos per page */}
-                <div className="grid grid-cols-3 gap-2">
-                  {projectPhotos.slice(photoPage * 21, (photoPage + 1) * 21).map((photo, index) => (
-                    <div
-                      key={photo.id}
-                      className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (photoDeleteMode) {
-                          handleDeletePhoto(photo.id);
-                        } else {
-                          if (photo.type === 'pdf' || photo.name?.toLowerCase().endsWith('.pdf') || photo.url?.startsWith('data:application/pdf')) {
-                            setPdfUrl(photo.url);
-                            setShowPDFPreview(true);
-                          } else {
-                            setSelectedPhotoIndex(photoPage * 21 + index);
-                            setLightboxOpen(true);
-                            setLightboxDirection(0);
-                          }
-                        }
-                      }}
-                    >
-                      {photo.type === 'pdf' || photo.name?.toLowerCase().endsWith('.pdf') || photo.url?.startsWith('data:application/pdf') ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-2">
-                          <FileText className="w-10 h-10 text-red-500 mb-2" />
-                          <span className="text-xs text-center text-gray-600 dark:text-gray-300 truncate w-full px-1">{photo.name}</span>
-                        </div>
-                      ) : (
-                        <img src={photo.url} alt={photo.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                      )}
-                      {photoDeleteMode && (
-                        <div className="absolute inset-0 bg-red-500/40 flex items-center justify-center z-10">
-                          <Trash2 className="w-8 h-8 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pagination - only show if more than 21 photos */}
-                {projectPhotos.length > 21 && (
-                  <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setPhotoPage(p => Math.max(0, p - 1)); }}
-                      disabled={photoPage === 0}
-                      className={`p-2 rounded-xl transition-all duration-200 ${photoPage === 0
-                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {photoPage + 1} / {Math.ceil(projectPhotos.length / 21)}
-                    </span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setPhotoPage(p => Math.min(Math.ceil(projectPhotos.length / 21) - 1, p + 1)); }}
-                      disabled={photoPage >= Math.ceil(projectPhotos.length / 21) - 1}
-                      className={`p-2 rounded-xl transition-all duration-200 ${photoPage >= Math.ceil(projectPhotos.length / 21) - 1
-                        ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Drag overlay hint */}
-                {isDraggingPhoto && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-2xl pointer-events-none">
-                    <span className="text-blue-600 dark:text-blue-400 font-semibold">{t('Drop files here')}</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                className={`min-h-[120px] flex flex-col items-center justify-center rounded-2xl transition-all duration-200 ${isDraggingPhoto ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50 dark:bg-blue-900/20' : ''
-                  } ${canEditProject ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30' : ''}`}
-                onClick={canEditProject ? () => photoInputRef.current?.click() : undefined}
-                onDrop={canEditProject ? handlePhotoDrop : undefined}
-                onDragOver={canEditProject ? handlePhotoDragOver : undefined}
-                onDragLeave={canEditProject ? handlePhotoDragLeave : undefined}
-              >
-                <Image className="w-8 h-8 mb-2 text-gray-400" />
-                <span className="text-sm text-gray-500">
-                  {canEditProject ? (isDraggingPhoto ? t('Drop files here') : t('Click or drag files here')) : t('No files yet')}
-                </span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* History - Mobile only, shown after Photos */}
-          <div className="space-y-2.5 lg:hidden">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
-              {(() => {
-                const history = getProjectHistory(projectId) || [];
+          {canView('history') && (
+            <div className="space-y-2.5 lg:hidden">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
+              </div>
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
+                {(() => {
+                  const history = getProjectHistory(projectId) || [];
 
-                // Check if history already has a "created" event (case-insensitive)
-                const hasCreatedEvent = history.some(e =>
-                  e.type && e.type.toLowerCase() === 'created'
-                );
+                  // Check if history already has a "created" event (case-insensitive)
+                  const hasCreatedEvent = history.some(e =>
+                    e.type && e.type.toLowerCase() === 'created'
+                  );
 
-                // Only add synthetic "Created" if not already in history (for backwards compatibility)
-                let allEvents = [...history];
-                if (!hasCreatedEvent && project.created_at) {
-                  allEvents.push({ type: 'Created', date: project.created_at });
-                }
+                  // Only add synthetic "Created" if not already in history (for backwards compatibility)
+                  let allEvents = [...history];
+                  if (!hasCreatedEvent && project.created_at) {
+                    allEvents.push({ type: 'Created', date: project.created_at });
+                  }
 
-                // Sort newest first
-                allEvents = allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+                  // Sort newest first
+                  allEvents = allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-                return allEvents.map((event, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {t(event.type)}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {event.date ? new Date(event.date).toLocaleString('sk-SK', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
-                      </span>
+                  return allEvents.map((event, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {t(event.type)}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {event.date ? new Date(event.date).toLocaleString('sk-SK', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ));
-              })()}
+                  ));
+                })()}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -2442,36 +2524,38 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
 
       {/* Archive Confirmation Modal */}
-      {showArchiveConfirmation && (
-        project.is_archived ? (
-          <ConfirmationModal
-            isOpen={showArchiveConfirmation}
-            onClose={() => setShowArchiveConfirmation(false)}
-            onConfirm={() => {
-              deleteArchivedProject(projectId);
-              onBack();
-            }}
-            title={t('Delete Archived Project')}
-            message={t('Are you sure you want to permanently delete this archived project? This action cannot be undone.')}
-            confirmText={t('Delete')}
-            confirmColor="bg-red-600"
-          />
-        ) : (
-          <ConfirmationModal
-            isOpen={showArchiveConfirmation}
-            onClose={() => setShowArchiveConfirmation(false)}
-            onConfirm={() => {
-              archiveProject(project.category, projectId);
-              onBack();
-            }}
-            title={t('Archive project {name}?').replace('{name}', project.name)}
-            message="Archiving this project will not result in data loss. You can find this project in the 'Archive' tab in the app settings."
-            confirmLabel="ArchiveProjectAction"
-            cancelLabel="Cancel"
-            icon="info"
-          />
+      {
+        showArchiveConfirmation && (
+          project.is_archived ? (
+            <ConfirmationModal
+              isOpen={showArchiveConfirmation}
+              onClose={() => setShowArchiveConfirmation(false)}
+              onConfirm={() => {
+                deleteArchivedProject(projectId);
+                onBack();
+              }}
+              title={t('Delete Archived Project')}
+              message={t('Are you sure you want to permanently delete this archived project? This action cannot be undone.')}
+              confirmText={t('Delete')}
+              confirmColor="bg-red-600"
+            />
+          ) : (
+            <ConfirmationModal
+              isOpen={showArchiveConfirmation}
+              onClose={() => setShowArchiveConfirmation(false)}
+              onConfirm={() => {
+                archiveProject(project.category, projectId);
+                onBack();
+              }}
+              title={t('Archive project {name}?').replace('{name}', project.name)}
+              message="Archiving this project will not result in data loss. You can find this project in the 'Archive' tab in the app settings."
+              confirmLabel="ArchiveProjectAction"
+              cancelLabel="Cancel"
+              icon="info"
+            />
+          )
         )
-      )}
+      }
 
       {
         showShareModal && (
@@ -2491,7 +2575,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             isOpen={showDennikModal}
             onClose={() => { setShowDennikModal(false); setDennikInitialDate(null); }}
             project={project}
-            isOwner={project.user_id === user?.id}
+            isOwner={isProjectOwner}
             currentUser={user}
             initialDate={dennikInitialDate}
           />

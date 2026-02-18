@@ -257,8 +257,7 @@ export const projectsApi = {
       const { data: ownedProjects, error: ownedError } = await query.order('created_at', { ascending: false })
       if (ownedError) throw ownedError
 
-      // 2. Get Shared Projects
-      // a. Get my active teams
+      // 2. Get Shared Projects (via Teams)
       const { data: myTeams, error: teamsError } = await supabase
         .from('team_members')
         .select('team_id')
@@ -271,7 +270,6 @@ export const projectsApi = {
       const teamIds = (myTeams || []).map(t => t.team_id)
 
       if (teamIds.length > 0) {
-        // b. Get projects shared with these teams
         const { data: sharedLinks, error: linksError } = await supabase
           .from('team_projects')
           .select('project_id')
@@ -301,11 +299,45 @@ export const projectsApi = {
         }
       }
 
-      // 3. Merge and deduplicate (prioritize owned if duplicates exist, though they shouldn't)
-      const allProjects = [...(ownedProjects || []), ...sharedProjects]
+      // 3. Get projects where user is a member in project_members (Dennik)
+      const { data: dennikMemberships, error: dennikError } = await supabase
+        .from('project_members')
+        .select(`
+          project_id,
+          role,
+          permissions,
+          projects(*, owner: profiles(id, email, full_name, avatar_url))
+        `)
+        .eq('user_id', userId)
+
+      if (dennikError) console.warn('Error fetching dennik memberships:', dennikError)
+
+      let dennikProjects = (dennikMemberships || [])
+        .filter(m => m.projects)
+        .map(m => ({
+          ...m.projects,
+          userRole: m.role,
+          memberPermissions: m.permissions
+        }))
+
+      // 4. Merge and deduplicate
+      const allProjects = [
+        ...(ownedProjects || []).map(p => ({ ...p, userRole: 'owner' })),
+        ...dennikProjects,
+        ...(sharedProjects || []).map(p => ({ ...p, userRole: 'member' }))
+      ]
+
       // dedupe by c_id
       const uniqueProjectsMap = new Map()
-      allProjects.forEach(p => uniqueProjectsMap.set(p.c_id, p))
+      allProjects.forEach(p => {
+        const existing = uniqueProjectsMap.get(p.c_id)
+        // Priority: Owner > Dennik Member with permissions > Shared team member
+        if (!existing ||
+          (p.userRole === 'owner' && existing.userRole !== 'owner') ||
+          (p.memberPermissions && !existing.memberPermissions)) {
+          uniqueProjectsMap.set(p.c_id, p)
+        }
+      })
       const uniqueProjects = Array.from(uniqueProjectsMap.values())
 
       // Map c_id to id for app compatibility
@@ -870,18 +902,31 @@ export const workItemsApi = {
 
 export const priceListsApi = {
   // Get all price lists for current user (excludes soft-deleted)
+  // Uses pagination to bypass Supabase's default 1000-row limit
   getAll: async () => {
     try {
       const userId = await getCurrentUserId()
-      const { data, error } = await supabase
-        .from('price_lists')
-        .select('*')
-        .eq('user_id', userId)
-        .or('is_deleted.is.null,is_deleted.eq.false')
+      const allData = []
+      const PAGE_SIZE = 1000
+      let from = 0
 
-      if (error) throw error
+      while (true) {
+        const { data, error } = await supabase
+          .from('price_lists')
+          .select('*')
+          .eq('user_id', userId)
+          .or('is_deleted.is.null,is_deleted.eq.false')
+          .range(from, from + PAGE_SIZE - 1)
+
+        if (error) throw error
+        if (!data || data.length === 0) break
+        allData.push(...data)
+        if (data.length < PAGE_SIZE) break
+        from += PAGE_SIZE
+      }
+
       // Map c_id to id for app compatibility
-      return (data || []).map(item => ({ ...item, id: item.c_id }))
+      return allData.map(item => ({ ...item, id: item.c_id }))
     } catch (error) {
       handleError('priceListsApi.getAll', error)
     }
@@ -2252,7 +2297,7 @@ export const dennikApi = {
   },
 
   // Add a member to a project
-  addProjectMember: async (projectId, userId, role = 'member') => {
+  addProjectMember: async (projectId, userId, role = 'member', permissions = null) => {
     try {
       // Check for existing alias
       let memberName = null
@@ -2269,7 +2314,8 @@ export const dennikApi = {
           project_id: projectId,
           user_id: userId,
           role,
-          member_name: memberName
+          member_name: memberName,
+          permissions
         })
         .select()
         .single()

@@ -318,7 +318,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
         fields: {},
         complementaryWorks: {},
         selectedType: isMaterial ? 'Material' : 'Work',
-        selectedUnit: null,
+        selectedUnit: isMaterial ? 'ks' : 'm2',
         doorWindowItems: { doors: [], windows: [] }
       };
       // Add new custom work items at the TOP of the list

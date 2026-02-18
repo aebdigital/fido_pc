@@ -160,8 +160,15 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       if (projectId) {
         try {
           if (addProjectHistoryEntry) {
+            let eventType = PROJECT_EVENTS.INVOICE_GENERATED;
+            const iType = invoiceData.invoiceType;
+
+            if (iType === 'proforma') eventType = PROJECT_EVENTS.PROFORMA_INVOICE_GENERATED;
+            else if (iType === 'delivery') eventType = PROJECT_EVENTS.DELIVERY_NOTE_GENERATED;
+            else if (iType === 'credit_note') eventType = PROJECT_EVENTS.CREDIT_NOTE_GENERATED;
+
             await addProjectHistoryEntry(projectId, {
-              type: PROJECT_EVENTS.INVOICE_GENERATED,
+              type: eventType,
               invoiceNumber: transformedInvoice.invoiceNumber
             });
           }
@@ -254,8 +261,15 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
           }
 
           if (addProjectHistoryEntry) {
+            let eventType = PROJECT_EVENTS.INVOICE_DELETED;
+            const iType = invoice.invoiceType;
+
+            if (iType === 'proforma') eventType = PROJECT_EVENTS.PROFORMA_INVOICE_DELETED;
+            else if (iType === 'delivery') eventType = PROJECT_EVENTS.DELIVERY_NOTE_DELETED;
+            else if (iType === 'credit_note') eventType = PROJECT_EVENTS.CREDIT_NOTE_DELETED;
+
             await addProjectHistoryEntry(invoice.projectId, {
-              type: PROJECT_EVENTS.INVOICE_DELETED,
+              type: eventType,
               invoiceNumber: invoice.invoiceNumber
             });
           }

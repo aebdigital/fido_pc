@@ -423,11 +423,12 @@ export const AppDataProvider = ({ children }) => {
 
       // PHASE 2: Load all data (UI handles contractor-based grouping client-side)
       // Loading all data ensures cross-device visibility when data is created under different contractors
-      const [clients, projects, invoices, allPriceLists] = await Promise.all([
+      const [clients, projects, invoices, allPriceLists, generalPriceListRow] = await Promise.all([
         api.clients.getAll(null),
         api.projects.getAll(null),
         api.invoices.getAll(null),
-        api.priceLists.getAll()
+        api.priceLists.getAll(),
+        api.priceLists.getGeneral(activeContractorId)
       ]);
 
       /* console.log('[SUPABASE] Data loaded (filtered by contractor):', {
@@ -542,18 +543,8 @@ export const AppDataProvider = ({ children }) => {
       // activeContractorId was already determined in Phase 1 above (for filtering)
       const activeContractor = transformedContractors.find(c => c.id === activeContractorId);
 
-      // Find the GENERAL price list for this contractor (is_general=true)
-      // This is the iOS-compatible format where general price list has is_general=true
-      const generalPriceListData = (allPriceLists || []).find(
-        pl => pl.contractor_id === activeContractorId && pl.is_general === true
-      );
-
-      // Fallback: try old format where price list was identified by c_id = activeContractorId
-      const legacyPriceListData = !generalPriceListData
-        ? (allPriceLists || []).find(pl => pl.c_id === activeContractorId)
-        : null;
-
-      const priceListData = generalPriceListData || legacyPriceListData;
+      // Use the dedicated general price list fetch (bypasses the 1000-row limit on getAll)
+      const priceListData = generalPriceListRow || null;
 
       // Load from individual columns (for iOS compatibility)
       let generalPriceList;
@@ -1241,6 +1232,9 @@ export const AppDataProvider = ({ children }) => {
   const saveGeneralPriceListBulk = async (updates) => {
     // updates: { [category]: { [index]: { price: number, capacity: number } } }
 
+    // Capture activeContractorId before async state update to avoid stale closure
+    const contractorId = appData.activeContractorId;
+
     // 1. Update Local State
     setAppData(prev => {
       const newGeneralPriceList = { ...prev.generalPriceList };
@@ -1264,33 +1258,31 @@ export const AppDataProvider = ({ children }) => {
     });
 
     // 2. Save to Supabase
-    const activeContractorId = appData.activeContractorId;
-    if (activeContractorId) {
-      const dbUpdates = {};
+    if (!contractorId) {
+      console.error('[saveGeneralPriceListBulk] No activeContractorId — skipping Supabase save');
+      return;
+    }
 
-      Object.entries(updates).forEach(([category, catUpdates]) => {
-        Object.entries(catUpdates).forEach(([indexStr, data]) => {
-          const index = parseInt(indexStr);
-          // Map Price
-          if (data.price !== undefined) {
-            const col = getDbColumnForItem(category, index);
-            if (col) dbUpdates[col] = data.price;
-          }
-          // Map Capacity
-          if (data.capacity !== undefined) {
-            const col = getDbColumnForCapacity(category, index);
-            if (col) dbUpdates[col] = data.capacity;
-          }
-        });
-      });
+    const dbUpdates = {};
 
-      if (Object.keys(dbUpdates).length > 0) {
-        try {
-          await api.priceLists.upsertGeneral(activeContractorId, dbUpdates);
-        } catch (err) {
-          console.error('Failed to bulk save general price list:', err);
+    Object.entries(updates).forEach(([category, catUpdates]) => {
+      Object.entries(catUpdates).forEach(([indexStr, data]) => {
+        const index = parseInt(indexStr);
+        // Map Price
+        if (data.price !== undefined) {
+          const col = getDbColumnForItem(category, index);
+          if (col) dbUpdates[col] = data.price;
         }
-      }
+        // Map Capacity
+        if (data.capacity !== undefined) {
+          const col = getDbColumnForCapacity(category, index);
+          if (col) dbUpdates[col] = data.capacity;
+        }
+      });
+    });
+
+    if (Object.keys(dbUpdates).length > 0) {
+      await api.priceLists.upsertGeneral(contractorId, dbUpdates);
     }
   };
 
