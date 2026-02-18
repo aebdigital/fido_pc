@@ -1410,9 +1410,6 @@ export const translations = {
     "Invoice already exists for this period": "Faktúra pre toto obdobie už existuje",
     "Proforma invoice is not an accounting or tax document": "Zálohová faktúra nie je účtovným ani daňovým dokladom",
     "Goods received by": "Tovar prevzal",
-    "Name": "Meno",
-    "Date": "Dátum",
-    "Signature": "Podpis",
     "Member Permissions": "Povolenia člena",
     "Setting access for": "Nastavenie prístupu pre",
     "Section": "Sekcia",
@@ -1427,7 +1424,6 @@ export const translations = {
     "Poznámka k cenovej ponuke": "Poznámka k cenovej ponuke",
     "Poznámka k projektu": "Poznámka k projektu",
     "Súbory": "Súbory",
-    "Add Member": "Pridať člena",
   }
 };
 

@@ -462,8 +462,6 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     if (type === 'delivery') return '';
 
     const currentYear = new Date().getFullYear();
-    const yearPrefix = parseInt(`${currentYear}000`);
-    const yearMax = parseInt(`${currentYear}999`);
 
     // Filter invoices for the current contractor and current year AND matching type
     const contractorInvoices = (invoices || []).filter(inv => inv.contractorId === activeContractorId);
@@ -586,10 +584,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setSelectedClientId(null);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t, persistentSettings, dennikData]);
-  // Removed invoiceType from dependency array above to avoid overwriting user edits when type changes, 
-  // BUT we need to update note when type changes if we haven't typed anything yet? 
-  // Actually, we want to switch context.
 
   // Effect to switch notes when invoice type changes (Create Mode Only)
   useEffect(() => {
@@ -1450,155 +1446,155 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       </div>
 
       {/* Uncompleted Fields Modal */}
-  {
-    showUncompletedModal && (
-      <UncompletedFieldsModal
-        isOpen={showUncompletedModal}
-        onClose={() => setShowUncompletedModal(false)}
-        missingFields={missingFields}
-        onContinue={proceedWithGeneration}
-      />
-    )
-  }
+      {
+        showUncompletedModal && (
+          <UncompletedFieldsModal
+            isOpen={showUncompletedModal}
+            onClose={() => setShowUncompletedModal(false)}
+            missingFields={missingFields}
+            onContinue={proceedWithGeneration}
+          />
+        )
+      }
 
-  {/* Duplicate Number Modal */ }
-  {
-    showDuplicateNumberModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center gap-3 mb-4 text-amber-500">
-            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Duplicate Number')}</h3>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-            {t('This invoice number is already used for another invoice from this contractor. Do you want to use it anyway?')}
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowDuplicateNumberModal(false)}
-              className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              {t('Cancel')}
-            </button>
-            <button
-              onClick={handleConfirmDuplicateNumber}
-              className="flex-1 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-            >
-              {t('Use anyway')}
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  {/* Client Selection Modal */ }
-  {
-    showClientSelector && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => {
-        if (showCreateClientInModal) {
-          setShowCreateClientInModal(false);
-        } else {
-          setShowClientSelector(false);
-          setClientSearchQuery('');
-        }
-      }}>
-        <div className={`bg-white dark:bg-gray-900 rounded-3xl p-6 w-full ${showCreateClientInModal ? 'max-w-4xl h-[85vh]' : 'max-w-md'} max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in `} onClick={(e) => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {showCreateClientInModal ? t('New client') : t('Select Client')}
-            </h3>
-            <button
-              onClick={() => {
-                if (showCreateClientInModal) setShowCreateClientInModal(false);
-                else setShowClientSelector(false);
-              }}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          {showCreateClientInModal ? (
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              <ClientForm
-                onSave={handleCreateClientInModal}
-                onCancel={() => setShowCreateClientInModal(false)}
-              />
-            </div>
-          ) : (
-            <>
-              {/* Search bar */}
-              <div className="relative mb-6">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  autoFocus
-                  value={clientSearchQuery}
-                  onChange={(e) => setClientSearchQuery(e.target.value)}
-                  placeholder={t('Search Clients...')}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 border-none text-lg"
-                />
+      {/* Duplicate Number Modal */}
+      {
+        showDuplicateNumberModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-4 text-amber-500">
+                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Duplicate Number')}</h3>
               </div>
-
-              <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar mb-6">
-                {clients
-                  .filter(client =>
-                    !clientSearchQuery ||
-                    client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
-                    client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
-                  )
-                  .map(client => (
-                    <button
-                      key={client.id}
-                      onClick={() => handleClientSelect(client)}
-                      className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'} `}
-                    >
-                      <div className="font-bold text-gray-900 dark:text-white text-lg">{client.name}</div>
-                      {client.email && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5">
-                          <div className="w-1 h-1 rounded-full bg-gray-400" />
-                          {client.email}
-                        </div>
-                      )}
-                    </button>
-                  ))}
-
-                {clients.filter(client =>
-                  !clientSearchQuery ||
-                  client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
-                  client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
-                ).length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      {t('No clients found')}
-                    </div>
-                  )}
-              </div>
-
-              <div className="space-y-3">
+              <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                {t('This invoice number is already used for another invoice from this contractor. Do you want to use it anyway?')}
+              </p>
+              <div className="flex gap-3">
                 <button
-                  onClick={() => setShowCreateClientInModal(true)}
-                  className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
-                >
-                  <Plus className="w-5 h-5" />
-                  {t('Add Client')}
-                </button>
-
-                <button
-                  onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }}
-                  className="w-full py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-bold transition-colors"
+                  onClick={() => setShowDuplicateNumberModal(false)}
+                  className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
                   {t('Cancel')}
                 </button>
+                <button
+                  onClick={handleConfirmDuplicateNumber}
+                  className="flex-1 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                >
+                  {t('Use anyway')}
+                </button>
               </div>
-            </>
-          )}
-        </div>
-      </div>
-    )
-  }
+            </div>
+          </div>
+        )
+      }
+
+      {/* Client Selection Modal */}
+      {
+        showClientSelector && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => {
+            if (showCreateClientInModal) {
+              setShowCreateClientInModal(false);
+            } else {
+              setShowClientSelector(false);
+              setClientSearchQuery('');
+            }
+          }}>
+            <div className={`bg-white dark:bg-gray-900 rounded-3xl p-6 w-full ${showCreateClientInModal ? 'max-w-4xl h-[85vh]' : 'max-w-md'} max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in `} onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {showCreateClientInModal ? t('New client') : t('Select Client')}
+                </h3>
+                <button
+                  onClick={() => {
+                    if (showCreateClientInModal) setShowCreateClientInModal(false);
+                    else setShowClientSelector(false);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {showCreateClientInModal ? (
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                  <ClientForm
+                    onSave={handleCreateClientInModal}
+                    onCancel={() => setShowCreateClientInModal(false)}
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* Search bar */}
+                  <div className="relative mb-6">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={clientSearchQuery}
+                      onChange={(e) => setClientSearchQuery(e.target.value)}
+                      placeholder={t('Search Clients...')}
+                      className="w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 border-none text-lg"
+                    />
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar mb-6">
+                    {clients
+                      .filter(client =>
+                        !clientSearchQuery ||
+                        client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                        client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                      )
+                      .map(client => (
+                        <button
+                          key={client.id}
+                          onClick={() => handleClientSelect(client)}
+                          className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'} `}
+                        >
+                          <div className="font-bold text-gray-900 dark:text-white text-lg">{client.name}</div>
+                          {client.email && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5">
+                              <div className="w-1 h-1 rounded-full bg-gray-400" />
+                              {client.email}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+
+                    {clients.filter(client =>
+                      !clientSearchQuery ||
+                      client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                      client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                    ).length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          {t('No clients found')}
+                        </div>
+                      )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => setShowCreateClientInModal(true)}
+                      className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
+                    >
+                      <Plus className="w-5 h-5" />
+                      {t('Add Client')}
+                    </button>
+
+                    <button
+                      onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }}
+                      className="w-full py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-bold transition-colors"
+                    >
+                      {t('Cancel')}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      }
     </>
   );
 };
