@@ -1458,6 +1458,7 @@ export const translations = {
     "Invitation accepted": "Pozvánka prijatá",
     "Invitation declined": "Pozvánka odmietnutá",
     "Pending": "Čakajúce",
+    "Položky projektu": "Položky projektu",
   }
 };
 

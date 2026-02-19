@@ -12,7 +12,7 @@ import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 // Helper to generate UUID for new work items (prevents duplicate inserts on autosave)
 const generateWorkItemId = () => crypto.randomUUID();
 
-const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, projectOwnerId }) => {
+const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, projectOwnerId, isServicesProject = false }) => {
   useScrollLock(true);
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -169,7 +169,13 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
   const mainProperties = workProperties.filter(prop => !othersIds.includes(prop.id) && !prop.hidden);
 
   // Construct others list with split Custom Work/Material
-  const othersPropertiesSource = workProperties.filter(prop => othersIds.includes(prop.id) && !prop.hidden);
+  const othersPropertiesSource = workProperties.filter(prop => {
+    if (prop.hidden) return false;
+    if (!othersIds.includes(prop.id)) return false;
+    // For services projects, remove rentals
+    if (isServicesProject && prop.id === WORK_ITEM_PROPERTY_IDS.RENTALS) return false;
+    return true;
+  });
   const othersProperties = [];
 
   othersPropertiesSource.forEach(prop => {
@@ -805,7 +811,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t(room.name) !== room.name ? t(room.name) : room.name}</h2>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+              {isServicesProject ? t('Položky projektu') : (t(room.name) !== room.name ? t(room.name) : room.name)}
+            </h2>
             <div className="flex items-center gap-2 sm:gap-3">
               <div
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-medium transition-colors ${saveStatus === 'saved'
@@ -844,53 +852,59 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
             >
               {/* Work Section */}
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 lg:p-6 pb-20 sm:pb-6">
-                <div className="flex items-center gap-3 pb-2">
-                  <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h3>
-                </div>
+                {!isServicesProject && (
+                  <div className="flex items-center gap-3 pb-2">
+                    <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                    <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h3>
+                  </div>
+                )}
 
                 {/* Main properties - Single column on mobile, 3 columns on desktop */}
-                <div className="space-y-3 lg:space-y-0 lg:flex lg:gap-2">
-                  <div className="lg:hidden space-y-3">
-                    {/* Mobile: Single column layout */}
-                    {mainProperties.map(renderWorkPropertyCard)}
-                  </div>
-                  <div className="hidden lg:flex lg:gap-2 w-full">
-                    {/* Desktop: 3 column layout - custom distribution */}
-                    {Array.from({ length: 3 }, (_, colIndex) => {
-                      let startIndex, endIndex;
-                      if (colIndex === 0) {
-                        // First column: exactly 8 items (positions 1-8)
-                        startIndex = 0;
-                        endIndex = 8;
-                      } else if (colIndex === 1) {
-                        // Second column: positions 9-18 (includes Maľovanie items)
-                        startIndex = 8;
-                        endIndex = Math.min(18, mainProperties.length);
-                      } else {
-                        // Third column: remaining items from position 19+
-                        startIndex = 18;
-                        endIndex = mainProperties.length;
-                      }
+                {!isServicesProject && (
+                  <div className="space-y-3 lg:space-y-0 lg:flex lg:gap-2">
+                    <div className="lg:hidden space-y-3">
+                      {/* Mobile: Single column layout */}
+                      {mainProperties.map(renderWorkPropertyCard)}
+                    </div>
+                    <div className="hidden lg:flex lg:gap-2 w-full">
+                      {/* Desktop: 3 column layout - custom distribution */}
+                      {Array.from({ length: 3 }, (_, colIndex) => {
+                        let startIndex, endIndex;
+                        if (colIndex === 0) {
+                          // First column: exactly 8 items (positions 1-8)
+                          startIndex = 0;
+                          endIndex = 8;
+                        } else if (colIndex === 1) {
+                          // Second column: positions 9-18 (includes Maľovanie items)
+                          startIndex = 8;
+                          endIndex = Math.min(18, mainProperties.length);
+                        } else {
+                          // Third column: remaining items from position 19+
+                          startIndex = 18;
+                          endIndex = mainProperties.length;
+                        }
 
-                      return (
-                        <div key={colIndex} className="flex-1 space-y-2">
-                          {mainProperties
-                            .slice(startIndex, endIndex)
-                            .map(renderWorkPropertyCard)}
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div key={colIndex} className="flex-1 space-y-2">
+                            {mainProperties
+                              .slice(startIndex, endIndex)
+                              .map(renderWorkPropertyCard)}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Others section */}
                 {othersProperties.length > 0 && (
                   <div className="space-y-3 lg:space-y-2">
-                    <div className="flex items-center gap-3 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700">
-                      <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                      <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h3>
-                    </div>
+                    {!isServicesProject && (
+                      <div className="flex items-center gap-3 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700">
+                        <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                        <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h3>
+                      </div>
+                    )}
                     <div className="space-y-3 lg:space-y-0 lg:flex lg:gap-2">
                       <div className="lg:hidden space-y-3">
                         {/* Mobile: Single column layout */}

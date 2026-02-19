@@ -1524,7 +1524,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   </button>
                   <button
                     className="p-3 rounded-2xl flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                    onClick={() => setShowNewRoomModal(true)}
+                    onClick={async () => {
+                      if (project.category === 'services') {
+                        // For services projects, skip room type selection and create directly
+                        const newRoom = await addRoomToProject(projectId, { name: 'Položky projektu' });
+                        setSelectedRoom(newRoom);
+                        setShowRoomDetailsModal(true);
+                      } else {
+                        setShowNewRoomModal(true);
+                      }
+                    }}
                   >
                     <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
                   </button>
@@ -2186,6 +2195,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             isReadOnly={project.is_archived}
             priceList={activePriceList}
             projectOwnerId={project.user_id}
+            isServicesProject={project.category === 'services'}
           />
         )
       }
