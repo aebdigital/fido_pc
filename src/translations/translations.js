@@ -1451,6 +1451,13 @@ export const translations = {
     "Poznámka k cenovej ponuke": "Poznámka k cenovej ponuke",
     "Poznámka k projektu": "Poznámka k projektu",
     "Súbory": "Súbory",
+    "Pending invitations": "Čakajúce pozvánky",
+    "Accept": "Prijať",
+    "Decline": "Odmietnuť",
+    "invited you to project": "vás pozval/a do projektu",
+    "Invitation accepted": "Pozvánka prijatá",
+    "Invitation declined": "Pozvánka odmietnutá",
+    "Pending": "Čakajúce",
   }
 };
 

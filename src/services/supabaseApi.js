@@ -299,7 +299,7 @@ export const projectsApi = {
         }
       }
 
-      // 3. Get projects where user is a member in project_members (Dennik)
+      // 3. Get projects where user is a member in project_members (Dennik) - only accepted
       const { data: dennikMemberships, error: dennikError } = await supabase
         .from('project_members')
         .select(`
@@ -309,6 +309,7 @@ export const projectsApi = {
           projects(*, owner: profiles(id, email, full_name, avatar_url))
         `)
         .eq('user_id', userId)
+        .eq('status', 'accepted')
 
       if (dennikError) console.warn('Error fetching dennik memberships:', dennikError)
 
@@ -2296,7 +2297,7 @@ export const dennikApi = {
     }
   },
 
-  // Add a member to a project
+  // Add a member to a project (creates a pending invitation)
   addProjectMember: async (projectId, userId, role = 'member', permissions = null) => {
     try {
       // Check for existing alias
@@ -2315,7 +2316,8 @@ export const dennikApi = {
           user_id: userId,
           role,
           member_name: memberName,
-          permissions
+          permissions,
+          status: 'pending'
         })
         .select()
         .single()
@@ -2339,6 +2341,60 @@ export const dennikApi = {
       return data
     } catch (error) {
       handleError('dennikApi.addProjectMember', error)
+    }
+  },
+
+  // Get pending invitations for the current user
+  getPendingInvitations: async () => {
+    try {
+      const userId = await getCurrentUserId()
+      const { data, error } = await supabase
+        .from('project_members')
+        .select(`
+          *,
+          projects(c_id, name, category, user_id, owner:profiles(id, email, full_name, avatar_url))
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      handleError('dennikApi.getPendingInvitations', error)
+      return []
+    }
+  },
+
+  // Accept an invitation
+  acceptInvitation: async (membershipId) => {
+    try {
+      const { data, error } = await supabase
+        .from('project_members')
+        .update({ status: 'accepted' })
+        .eq('id', membershipId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      handleError('dennikApi.acceptInvitation', error)
+    }
+  },
+
+  // Decline an invitation (deletes the record)
+  declineInvitation: async (membershipId) => {
+    try {
+      const { error } = await supabase
+        .from('project_members')
+        .delete()
+        .eq('id', membershipId)
+
+      if (error) throw error
+      return true
+    } catch (error) {
+      handleError('dennikApi.declineInvitation', error)
     }
   },
 
@@ -2677,6 +2733,7 @@ export const dennikApi = {
         .from('project_members')
         .select('user_id, project_id, member_name')
         .in('project_id', projectIds)
+        .eq('status', 'accepted')
 
       if (error) throw error
       if (!members || members.length === 0) return []
@@ -2741,7 +2798,7 @@ export const dennikApi = {
 
       if (ownedError) throw ownedError
 
-      // Get projects where user is a member
+      // Get projects where user is a member (only accepted)
       const { data: memberProjects, error: memberError } = await supabase
         .from('project_members')
         .select(`
@@ -2750,6 +2807,7 @@ export const dennikApi = {
           projects(*, owner: profiles(id, email, full_name, avatar_url))
             `)
         .eq('user_id', userId)
+        .eq('status', 'accepted')
         .eq('projects.is_dennik_enabled', true)
         .neq('projects.is_deleted', true)
         .neq('projects.is_archived', true)

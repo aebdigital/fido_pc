@@ -4,7 +4,10 @@ import {
     Loader2,
     Users,
     ChevronDown,
-    Clock
+    Clock,
+    Check,
+    X,
+    Mail
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +16,7 @@ import api from '../services/supabaseApi';
 import { useNavigate } from 'react-router-dom';
 import ConsolidatedInvoiceModal from '../components/ConsolidatedInvoiceModal';
 import InvoiceCreationModal from '../components/InvoiceCreationModal';
-import { FileText } from 'lucide-react'; // Import icon for button
+import { FileText } from 'lucide-react';
 
 const DAY_NAMES_SK = ['Ne', 'Po', 'Ut', 'St', 'Št', 'Pi', 'So'];
 const toLocalDateStr = (d) => {
@@ -47,6 +50,10 @@ const Dennik = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [totalDays, setTotalDays] = useState(INITIAL_DAYS);
+
+    // Pending invitations state
+    const [pendingInvitations, setPendingInvitations] = useState([]);
+    const [processingInvitation, setProcessingInvitation] = useState(null);
 
     // Member filter state
     const [allMembers, setAllMembers] = useState([]); // unique members across all owned projects
@@ -176,10 +183,51 @@ const Dennik = () => {
         }
     }, [selectedMemberFilter, totalDays, loadMemberEntries]);
 
+    // Load pending invitations
+    const loadPendingInvitations = useCallback(async () => {
+        try {
+            const invitations = await api.dennik.getPendingInvitations();
+            setPendingInvitations(invitations);
+        } catch (error) {
+            console.error('Error loading pending invitations:', error);
+        }
+    }, []);
+
+    // Accept invitation handler
+    const handleAcceptInvitation = useCallback(async (invitation) => {
+        setProcessingInvitation(invitation.id);
+        try {
+            await api.dennik.acceptInvitation(invitation.id);
+            setPendingInvitations(prev => prev.filter(i => i.id !== invitation.id));
+            // Reload dennik projects since a new one was accepted
+            await loadData(totalDays);
+        } catch (error) {
+            console.error('Error accepting invitation:', error);
+        } finally {
+            setProcessingInvitation(null);
+        }
+    }, [loadData, totalDays]);
+
+    // Decline invitation handler
+    const handleDeclineInvitation = useCallback(async (invitation) => {
+        setProcessingInvitation(invitation.id);
+        try {
+            await api.dennik.declineInvitation(invitation.id);
+            setPendingInvitations(prev => prev.filter(i => i.id !== invitation.id));
+        } catch (error) {
+            console.error('Error declining invitation:', error);
+        } finally {
+            setProcessingInvitation(null);
+        }
+    }, []);
+
     useEffect(() => {
         const init = async () => {
             setIsLoading(true);
-            await loadData(totalDays);
+            await Promise.all([
+                loadData(totalDays),
+                loadPendingInvitations()
+            ]);
             setIsLoading(false);
         };
         init();
@@ -444,6 +492,68 @@ const Dennik = () => {
                     {t('Invoice')}
                 </button>
             </div>
+
+            {/* Pending Invitations */}
+            {pendingInvitations.length > 0 && (
+                <div className="flex-shrink-0 pb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">{t('Pending invitations')}</span>
+                        <span className="bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{pendingInvitations.length}</span>
+                    </div>
+                    <div className="space-y-2">
+                        {pendingInvitations.map(invitation => {
+                            const projectName = invitation.projects?.name || t('Unknown project');
+                            const ownerName = invitation.projects?.owner?.full_name || invitation.projects?.owner?.email || '';
+                            const isProcessing = processingInvitation === invitation.id;
+
+                            return (
+                                <div
+                                    key={invitation.id}
+                                    className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                                            {projectName}
+                                        </p>
+                                        {ownerName && (
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                {ownerName} {t('invited you to project')}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button
+                                            onClick={() => handleDeclineInvitation(invitation)}
+                                            disabled={isProcessing}
+                                            className="p-2 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                                            title={t('Decline')}
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <X className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => handleAcceptInvitation(invitation)}
+                                            disabled={isProcessing}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 active:scale-95"
+                                        >
+                                            {isProcessing ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                                <Check className="w-3.5 h-3.5" />
+                                            )}
+                                            {t('Accept')}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Member Filter */}
             {!isLoading && allMembers.length > 0 && (

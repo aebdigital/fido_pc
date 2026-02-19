@@ -115,8 +115,13 @@ const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatD
                             )}
                         </div>
                     )}
-                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1.5">
                         {member.profiles?.email}
+                        {member.status === 'pending' && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-[10px] font-bold rounded-full uppercase">
+                                {t('Pending')}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
