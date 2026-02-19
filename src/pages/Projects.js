@@ -15,6 +15,7 @@ import ContractorProfileModal from '../components/ContractorProfileModal';
 import ProjectDetailView from '../components/ProjectDetailView';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/supabaseApi';
 
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
@@ -67,6 +68,7 @@ const Projects = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { user } = useAuth();
 
   const {
     projectCategories,
@@ -93,7 +95,7 @@ const Projects = () => {
   // Special state for viewing orphan projects (projects without contractor)
   const [viewingOrphanProjects, setViewingOrphanProjects] = useState(false);
 
-  const [activeCategory, setActiveCategory] = useState('flats');
+  const [activeCategory, setActiveCategory] = useState('construction');
   const [selectedProject, setSelectedProject] = useState(null);
   const [currentView, setCurrentView] = useState(window.innerWidth < 1024 ? 'categories' : 'projects'); // 'categories', 'projects', 'details'
   const [viewSource, setViewSource] = useState('projects'); // 'projects' or 'archive'
@@ -300,12 +302,31 @@ const Projects = () => {
         }
       }
 
-      // If still not found, try fetching it directly (e.g., shared project)
+      // If still not found, try fetching it directly (e.g., shared project or member project)
       if (!projectFound && projectId) {
         const fetchMissingProject = async () => {
           try {
             const fetchedProject = await api.projects.getById(projectId);
             if (fetchedProject) {
+              // Check if the current user is a member of this project and attach permissions
+              if (user?.id && fetchedProject.user_id !== user.id) {
+                try {
+                  const { data: membership } = await api.supabase
+                    .from('project_members')
+                    .select('role, permissions')
+                    .eq('project_id', projectId)
+                    .eq('user_id', user.id)
+                    .single();
+                  if (membership) {
+                    fetchedProject.userRole = membership.role || 'member';
+                    fetchedProject.memberPermissions = membership.permissions;
+                  }
+                } catch (e) {
+                  console.warn('Could not fetch member permissions for project:', e);
+                }
+              } else {
+                fetchedProject.userRole = 'owner';
+              }
               setSelectedProject(fetchedProject);
               setCurrentView('details');
               openDennikAfterMount();
@@ -316,8 +337,13 @@ const Projects = () => {
         };
         fetchMissingProject();
       }
+
+      // IMPORTANT: Clear the location state after processing it.
+      // This prevents the project from switching back or the modal reopening
+      // on every refresh or when data reloads from the background.
+      window.history.replaceState({}, document.title);
     }
-  }, [location.state, projectCategories, archivedProjects, setActiveCategory, setSelectedProject, setCurrentView]);
+  }, [location.state, projectCategories, archivedProjects, setActiveCategory, setSelectedProject, setCurrentView, user]);
 
   const handleNewProject = async () => {
     if (newProjectName.trim()) {
@@ -742,6 +768,20 @@ const Projects = () => {
                   </div>
                   {(() => {
                     const sortedProjects = [...activeProjects].sort((a, b) => {
+                      const numA = formatProjectNumber(a);
+                      const numB = formatProjectNumber(b);
+
+                      if (numA && numB) {
+                        // Priority 1: Project Number sequence
+                        const numCompare = numB.localeCompare(numA);
+                        if (numCompare !== 0) return numCompare;
+                      } else if (numA) {
+                        return -1;
+                      } else if (numB) {
+                        return 1;
+                      }
+
+                      // Priority 2: Creation Date
                       const dateA = new Date(a.created_at || a.createdAt || 0);
                       const dateB = new Date(b.created_at || b.createdAt || 0);
                       return dateB - dateA;

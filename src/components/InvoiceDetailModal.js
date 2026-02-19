@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Eye, Send, User, Edit3, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, Trash } from 'lucide-react';
+import { X, Eye, Send, User, Edit3, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, Trash, RotateCcw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,8 @@ import { useScrollLock } from '../hooks/useScrollLock';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/supabaseApi';
 import Linkify from '../utils/linkify';
+import CreditNoteReasonModal from './CreditNoteReasonModal';
+import { generateNextInvoiceNumber } from '../utils/dataTransformers';
 
 /**
  * InvoiceDetailModal - iOS-aligned invoice detail view
@@ -30,7 +32,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   useScrollLock(true);
   const { user } = useAuth();
   const { t, language } = useLanguage();
-  const { updateInvoice, deleteInvoice, updateClient, updateContractor, contractors, findProjectById, calculateProjectTotalPrice, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
+  const { updateInvoice, deleteInvoice, updateClient, updateContractor, contractors, findProjectById, calculateProjectTotalPrice, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject, createInvoice, activeContractorId } = useAppData();
   const navigate = useNavigate();
 
   // Modal states
@@ -39,6 +41,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
+  const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
 
@@ -250,6 +253,51 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
 
   const handleMarkAsPaid = () => {
     updateInvoice(invoice.id, { status: 'paid' });
+  };
+
+  const handleCreateCreditNote = async (reason) => {
+    try {
+      setShowCreditNoteModal(false);
+
+      const projectResult = findProjectById(invoice.projectId);
+      const project = projectResult?.project;
+
+      // Prepare invoice items with negative values
+      const creditNoteItems = invoice.invoiceItems.map(item => ({
+        ...item,
+        id: crypto.randomUUID(),
+        pieces: -Math.abs(item.pieces),
+        price: -Math.abs(item.price),
+        active: true
+      }));
+
+      const nextInvoiceNumber = generateNextInvoiceNumber(invoices, activeContractorId, 'credit_note');
+
+      const creditNoteData = {
+        invoiceNumber: nextInvoiceNumber,
+        originalInvoiceNumber: invoice.invoiceNumber,
+        returnReason: reason,
+        issueDate: new Date().toISOString().split('T')[0],
+        dispatchDate: new Date().toISOString().split('T')[0],
+        paymentMethod: invoice.paymentMethod,
+        paymentDays: invoice.paymentDays || 30,
+        notes: `${t('Credit Note for invoice')} ${invoice.invoiceNumber}`,
+        invoiceItems: creditNoteItems,
+        priceWithoutVat: -Math.abs(invoice.priceWithoutVat),
+        cumulativeVat: invoice.cumulativeVat !== undefined ? -Math.abs(invoice.cumulativeVat) : undefined,
+        clientId: invoice.clientId,
+        invoiceType: 'credit_note'
+      };
+
+      const newInvoice = await createInvoice(project, invoice.categoryId, creditNoteData, findProjectById);
+      if (newInvoice) {
+        onClose(true);
+        // Optionally navigate or show the new invoice
+      }
+    } catch (error) {
+      console.error('Error creating credit note:', error);
+      alert(t('Failed to create credit note'));
+    }
   };
 
   const handleViewProject = () => {
@@ -938,6 +986,15 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 <span className="text-base font-bold text-gray-900 dark:text-white">{t('Edit')}</span>
               </button>
             </div>
+            {invoice.invoiceType !== 'credit_note' && invoice.invoiceType !== 'delivery' && (
+              <button
+                onClick={() => setShowCreditNoteModal(true)}
+                className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm mt-3"
+              >
+                <RotateCcw className="w-6 h-6 text-gray-900 dark:text-white" />
+                <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Issue Credit Note')}</span>
+              </button>
+            )}
           </div>
 
           {/* Cash Receipt Section - iOS style (only if cash payment) */}
@@ -1043,6 +1100,12 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           editingContractor={contractor}
         />
       )}
+
+      <CreditNoteReasonModal
+        isOpen={showCreditNoteModal}
+        onClose={() => setShowCreditNoteModal(false)}
+        onConfirm={handleCreateCreditNote}
+      />
     </div>
   );
 };

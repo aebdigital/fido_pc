@@ -414,29 +414,40 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
 
     const loadInvoices = useCallback(async () => {
         try {
-            // 1. Fetch project-specific invoices
-            const projectInvoices = await api.invoices.getInvoicesByProject(project.c_id || project.id);
+            const currentProjectId = project.c_id || project.id;
+
+            // 1. Fetch project-specific invoices (project_id matches directly)
+            const projectInvoices = await api.invoices.getInvoicesByProject(currentProjectId);
             let combinedInvoices = [...(projectInvoices || [])];
 
-            // 2. Fetch standalone invoices (Consolidated) - visible if they match this project's owner
-            // Only relevant if we know who the owner is (ownerContractorData)
-            // And we only look for invoices created by CURRENT USER (if member) 
-            // because api.invoices.getAll() returns only user's invoices.
-            // (If isOwner, getAll returns owner's invoices, but consolidated invoices are usually FROM member TO owner)
-            // So this logic mainly serves the Member view as requested.
-            if (currentUser?.id && ownerContractorData) {
+            // 2. Fetch standalone invoices (Consolidated / Joint) created by current user
+            // These have project_id = null but may reference this project in their items' projectId field
+            // Also catch invoices where client_id matches the owner's contractor (member → owner invoices)
+            if (currentUser?.id) {
                 const allMyInvoices = await api.invoices.getAll();
                 const standalone = (allMyInvoices || []).filter(inv => {
-                    // Must be standalone (no project_id in DB)
-                    // Note: API response might have project_id as null or missing
+                    // Only look at standalone invoices (no direct project_id)
                     if (inv.project_id) return false;
 
-                    // Client must match Owner's Contractor ID
-                    // The API returns 'contractor_id' (Supplier) and joined 'clients' or we match invoice.client_id
-                    // Check if 'client_id' matches matches ownerContractorData.id
-                    // Note: inv might not have client_id property directly if it was joined? 
-                    // Let's check api response structure. It usually has client_id column.
-                    return inv.client_id === (ownerContractorData.c_id || ownerContractorData.id);
+                    // Check 1: client_id matches owner's contractor (existing logic)
+                    if (ownerContractorData && inv.client_id === (ownerContractorData.c_id || ownerContractorData.id)) {
+                        return true;
+                    }
+
+                    // Check 2: Any item in the invoice references this project via projectId
+                    // This catches consolidated/joint invoices spanning multiple projects
+                    try {
+                        const items = typeof inv.invoice_items_data === 'string'
+                            ? JSON.parse(inv.invoice_items_data)
+                            : inv.invoice_items_data;
+                        if (Array.isArray(items)) {
+                            return items.some(item => item.projectId === currentProjectId);
+                        }
+                    } catch (e) {
+                        // ignore parse errors
+                    }
+
+                    return false;
                 });
                 combinedInvoices = [...combinedInvoices, ...standalone];
             }

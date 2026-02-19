@@ -8,7 +8,8 @@ import { useLanguage } from './LanguageContext'; // Import useLanguage
 import {
   transformClientFromDB,
   transformContractorFromDB,
-  transformInvoiceFromDB
+  transformInvoiceFromDB,
+  formatProjectNumber
 } from '../utils/dataTransformers';
 import {
   calculateRoomPrice,
@@ -21,10 +22,8 @@ import { useProjectManager } from '../hooks/useProjectManager';
 import { useInvoiceManager } from '../hooks/useInvoiceManager';
 import { useContractorManager } from '../hooks/useContractorManager';
 import { dbColumnsToPriceList, getDbColumnForItem, getDbColumnForCapacity } from '../services/priceListMapping';
-import flatsImage from '../images/flats.jpg';
-import housesImage from '../images/houses.jpg';
-import firmsImage from '../images/firms.jpg';
-import cottagesImage from '../images/cottages.jpg';
+import constructionImage from '../images/construction.jpg';
+import servicesImage from '../images/services.jpg';
 import { Loader2 } from 'lucide-react'; // Import Loader2
 
 const AppDataContext = createContext();
@@ -215,31 +214,17 @@ export const AppDataProvider = ({ children }) => {
     clients: [],
     projectCategories: [
       {
-        id: 'flats',
-        name: 'Flats',
+        id: 'construction',
+        name: 'Stavebníctvo',
         count: 0,
-        image: flatsImage,
+        image: constructionImage,
         projects: []
       },
       {
-        id: 'houses',
-        name: 'Houses',
+        id: 'services',
+        name: 'Služby a ostatné',
         count: 0,
-        image: housesImage,
-        projects: []
-      },
-      {
-        id: 'firms',
-        name: 'Companies',
-        count: 0,
-        image: firmsImage,
-        projects: []
-      },
-      {
-        id: 'cottages',
-        name: 'Cottages',
-        count: 0,
-        image: cottagesImage,
+        image: servicesImage,
         projects: []
       }
     ],
@@ -353,31 +338,17 @@ export const AppDataProvider = ({ children }) => {
   // Helper function to get default categories structure
   const getDefaultCategories = () => [
     {
-      id: 'flats',
-      name: 'Flats',
+      id: 'construction',
+      name: 'Stavebníctvo',
       count: 0,
-      image: flatsImage,
+      image: constructionImage,
       projects: []
     },
     {
-      id: 'houses',
-      name: 'Houses',
+      id: 'services',
+      name: 'Služby a ostatné',
       count: 0,
-      image: housesImage,
-      projects: []
-    },
-    {
-      id: 'firms',
-      name: 'Companies',
-      count: 0,
-      image: firmsImage,
-      projects: []
-    },
-    {
-      id: 'cottages',
-      name: 'Cottages',
-      count: 0,
-      image: cottagesImage,
+      image: servicesImage,
       projects: []
     }
   ];
@@ -516,6 +487,27 @@ export const AppDataProvider = ({ children }) => {
         return projectData;
       });
 
+      // Sort projects globally by project number descending, then by created_at DESC
+      // This ensures a consistent sequential order across different project sources
+      transformedProjects.sort((a, b) => {
+        const numA = formatProjectNumber(a);
+        const numB = formatProjectNumber(b);
+        if (numA && numB) {
+          // Both have numbers, compare them as strings (YYYYNNN)
+          const numCompare = numB.localeCompare(numA);
+          if (numCompare !== 0) return numCompare;
+        } else if (numA) {
+          return -1; // a has number, b doesn't -> a comes first
+        } else if (numB) {
+          return 1; // b has number, a doesn't -> b comes first
+        }
+
+        // Fallback to date
+        const dateA = new Date(a.created_at || a.createdAt || 0);
+        const dateB = new Date(b.created_at || b.createdAt || 0);
+        return dateB - dateA;
+      });
+
       // Build contractor projects structure
       const contractorProjects = {};
 
@@ -529,16 +521,60 @@ export const AppDataProvider = ({ children }) => {
         const contractorProjectsList = transformedProjects.filter(p => p.contractor_id === contractor.id);
 
         // Group projects by category
-        const categories = getDefaultCategories().map(cat => ({
-          ...cat,
-          projects: contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived),
-          count: contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived).length
-        }));
+        const constructionCategories = ['flats', 'houses', 'firms', 'companies', 'cottages', 'construction'];
+        const categories = getDefaultCategories().map(cat => {
+          let projectsInCat = [];
+          if (cat.id === 'construction') {
+            projectsInCat = contractorProjectsList.filter(p => constructionCategories.includes(p.category) && !p.is_archived);
+          } else if (cat.id === 'services') {
+            projectsInCat = contractorProjectsList.filter(p => p.category === 'services' && !p.is_archived);
+          } else {
+            // Fallback for any other category that might exist
+            projectsInCat = contractorProjectsList.filter(p => p.category === cat.id && !p.is_archived);
+          }
+          return {
+            ...cat,
+            projects: projectsInCat,
+            count: projectsInCat.length
+          };
+        });
         contractorProjects[contractor.id] = {
           categories,
           archivedProjects: contractorProjectsList.filter(p => p.is_archived)
         };
       });
+
+      // Include member projects (from project_members) that have a different contractor_id
+      // These are projects where the user is a member but not the owner,
+      // so contractor_id belongs to the owner's contractor and won't match the member's contractors.
+      const allBucketedProjectIds = new Set();
+      Object.values(contractorProjects).forEach(cp => {
+        cp.categories?.forEach(cat => cat.projects?.forEach(p => allBucketedProjectIds.add(p.id)));
+        cp.archivedProjects?.forEach(p => allBucketedProjectIds.add(p.id));
+      });
+
+      const unbucketedMemberProjects = transformedProjects.filter(p =>
+        p.userRole && p.userRole !== 'owner' && !allBucketedProjectIds.has(p.id) && !p.is_archived
+      );
+
+      if (unbucketedMemberProjects.length > 0 && activeContractorId && contractorProjects[activeContractorId]) {
+        const constructionCategories = ['flats', 'houses', 'firms', 'companies', 'cottages', 'construction'];
+        unbucketedMemberProjects.forEach(project => {
+          const cp = contractorProjects[activeContractorId];
+          let targetCat;
+          if (constructionCategories.includes(project.category)) {
+            targetCat = cp.categories.find(c => c.id === 'construction');
+          } else if (project.category === 'services') {
+            targetCat = cp.categories.find(c => c.id === 'services');
+          } else {
+            targetCat = cp.categories.find(c => c.id === project.category) || cp.categories.find(c => c.id === 'construction');
+          }
+          if (targetCat) {
+            targetCat.projects = [...targetCat.projects, project];
+            targetCat.count = targetCat.projects.length;
+          }
+        });
+      }
 
       // activeContractorId was already determined in Phase 1 above (for filtering)
       const activeContractor = transformedContractors.find(c => c.id === activeContractorId);

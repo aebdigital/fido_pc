@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Check, ChevronRight, Loader2, Building, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Check, ChevronRight, Loader2, Building, AlertTriangle, FileText } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 
@@ -17,6 +17,8 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
     // Step 3
     const [projectDetails, setProjectDetails] = useState({}); // { projectId: { hours: 0, rate: 0, name: '' } }
     const [grandTotal, setGrandTotal] = useState(0);
+    const [projectsWithInvoice, setProjectsWithInvoice] = useState(new Set()); // project IDs that already have an invoice this month
+    const [isCheckingInvoices, setIsCheckingInvoices] = useState(false);
 
     // Initialize Owners
     useEffect(() => {
@@ -78,6 +80,77 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
             setProjectDetails({});
         }
     }, [isOpen, projects]);
+
+    // Check which projects already have an invoice for the current month
+    const checkProjectInvoices = useCallback(async (ownerProjects) => {
+        setIsCheckingInvoices(true);
+        try {
+            const invoicedProjectIds = new Set();
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            // Fetch all current user's invoices
+            const allMyInvoices = await api.invoices.getAll();
+
+            for (const project of ownerProjects) {
+                const pid = project.c_id || project.id;
+
+                // 1. Check project-specific invoices
+                const projectInvoices = await api.invoices.getInvoicesByProject(pid);
+                const hasDirectInvoice = (projectInvoices || []).some(inv => {
+                    if (inv.invoice_type && inv.invoice_type !== 'regular') return false;
+                    const d = new Date(inv.date_created || inv.created_at);
+                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                });
+                if (hasDirectInvoice) {
+                    invoicedProjectIds.add(pid);
+                    continue;
+                }
+
+                // 2. Check standalone/consolidated invoices whose items reference this project
+                const hasConsolidatedInvoice = (allMyInvoices || []).some(inv => {
+                    if (inv.project_id) return false; // not standalone
+                    if (inv.invoice_type && inv.invoice_type !== 'regular') return false;
+                    const d = new Date(inv.date_created || inv.created_at);
+                    if (d.getMonth() !== currentMonth || d.getFullYear() !== currentYear) return false;
+
+                    try {
+                        const items = typeof inv.invoice_items_data === 'string'
+                            ? JSON.parse(inv.invoice_items_data)
+                            : inv.invoice_items_data;
+                        if (Array.isArray(items)) {
+                            return items.some(item => item.projectId === pid);
+                        }
+                    } catch (e) { /* ignore */ }
+                    return false;
+                });
+
+                if (hasConsolidatedInvoice) {
+                    invoicedProjectIds.add(pid);
+                }
+            }
+
+            setProjectsWithInvoice(invoicedProjectIds);
+
+            // Auto-deselect any already-invoiced projects that may have been selected
+            setSelectedProjectIds(prev => prev.filter(id => !invoicedProjectIds.has(id)));
+        } catch (error) {
+            console.error('Error checking project invoices:', error);
+        } finally {
+            setIsCheckingInvoices(false);
+        }
+    }, []);
+
+    // Run invoice check when owner is selected (entering Step 2)
+    useEffect(() => {
+        if (step === 2 && selectedOwnerId) {
+            const ownerData = owners.find(o => o.id === selectedOwnerId);
+            if (ownerData?.projects) {
+                checkProjectInvoices(ownerData.projects);
+            }
+        }
+    }, [step, selectedOwnerId, owners, checkProjectInvoices]);
 
     // Calculate totals when entering Step 3
     useEffect(() => {
@@ -150,6 +223,8 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
     };
 
     const toggleProject = (pid) => {
+        // Don't allow toggling projects that already have an invoice
+        if (projectsWithInvoice.has(pid)) return;
         setSelectedProjectIds(prev => {
             if (prev.includes(pid)) return prev.filter(id => id !== pid);
             return [...prev, pid];
@@ -262,25 +337,45 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                                 </span>
 
                             </div>
+                            {isCheckingInvoices && (
+                                <div className="flex items-center justify-center py-4 gap-2 text-sm text-gray-500">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    {t('Checking existing invoices...')}
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 gap-3">
                                 {owners.find(o => o.id === selectedOwnerId)?.projects.map(project => {
                                     const pid = project.c_id || project.id;
                                     const isSelected = selectedProjectIds.includes(pid);
+                                    const hasInvoice = projectsWithInvoice.has(pid);
                                     return (
                                         <button
                                             key={pid}
                                             onClick={() => toggleProject(pid)}
-                                            className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isSelected
-                                                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                                                : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                            disabled={hasInvoice}
+                                            className={`flex items-center justify-between p-4 rounded-xl border transition-all ${hasInvoice
+                                                ? 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 opacity-60 cursor-not-allowed'
+                                                : isSelected
+                                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                                                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                                                 }`}
                                         >
-                                            <span className="font-medium text-gray-900 dark:text-white">{project.name}</span>
-                                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${isSelected
-                                                ? 'bg-purple-500 border-purple-500'
-                                                : 'border-gray-300 dark:border-gray-600'
+                                            <div className="flex flex-col items-start">
+                                                <span className={`font-medium ${hasInvoice ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{project.name}</span>
+                                                {hasInvoice && (
+                                                    <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                                        <FileText className="w-3 h-3" />
+                                                        {t('Invoice already exists for this month')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${hasInvoice
+                                                ? 'border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700'
+                                                : isSelected
+                                                    ? 'bg-purple-500 border-purple-500'
+                                                    : 'border-gray-300 dark:border-gray-600'
                                                 }`}>
-                                                {isSelected && <Check className="w-3 h-3 text-white" />}
+                                                {isSelected && !hasInvoice && <Check className="w-3 h-3 text-white" />}
                                             </div>
                                         </button>
                                     );

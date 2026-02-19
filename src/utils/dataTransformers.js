@@ -201,7 +201,9 @@ export const transformInvoiceFromDB = (dbInvoice) => {
     cumulativeVat: dbInvoice.cumulative_vat || 0,
     contractors: dbInvoice.contractors, // Pass through contractors object for display logic
     invoiceType: dbInvoice.invoice_type || 'regular',
-    depositSettings: dbInvoice.deposit_settings || null
+    depositSettings: dbInvoice.deposit_settings || null,
+    returnReason: dbInvoice.return_reason || null,
+    originalInvoiceNumber: dbInvoice.original_invoice_number || null
   };
 };
 
@@ -307,3 +309,53 @@ export const transformClientToDB = (clientData) => {
     type: normalizeClientType(clientData.type) // Use iOS values: personal/corporation
   };
 };
+
+/**
+ * Helper to generate the next invoice number based on type and existing invoices
+ * Format: YYYYMMXXX (e.g. 202602001)
+ */
+export const generateNextInvoiceNumber = (invoices, contractorId, type) => {
+  if (type === 'delivery') return '';
+
+  const currentYear = new Date().getFullYear();
+
+  // Filter invoices for the current contractor and matching type
+  const contractorInvoices = (invoices || []).filter(inv =>
+    (inv.contractorId === contractorId || inv.c_id === contractorId)
+  );
+
+  const typeToMatch = type || 'regular';
+
+  const sameTypeInvoices = contractorInvoices.filter(inv => {
+    const invType = inv.invoiceType || 'regular';
+    // Only consider invoices of the same type for numbering sequence
+    if (invType !== typeToMatch) return false;
+
+    const num = parseInt(inv.invoiceNumber || 0);
+    return !isNaN(num);
+  });
+
+  const now = new Date();
+  const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+  // Format: YYYYMMXXX (e.g. 202602001)
+  const yearMonthPrefix = `${currentYear}${currentMonth}`;
+  const prefixInt = parseInt(`${yearMonthPrefix}000`);
+  const prefixMax = parseInt(`${yearMonthPrefix}999`);
+
+  // Filter invoices that match the current month's prefix pattern
+  const currentMonthInvoices = sameTypeInvoices.filter(inv => {
+    const num = parseInt(inv.invoiceNumber || 0);
+    return num >= prefixInt && num <= prefixMax;
+  });
+
+  // If there are invoices with the NEW format in this month, increment
+  if (currentMonthInvoices.length > 0) {
+    const maxNumber = Math.max(...currentMonthInvoices.map(inv => parseInt(inv.invoiceNumber || 0)));
+    return String(maxNumber + 1);
+  }
+
+  // For a new month, start with 001
+  return `${yearMonthPrefix}001`;
+};
+

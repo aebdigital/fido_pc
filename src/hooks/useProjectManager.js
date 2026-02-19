@@ -5,17 +5,13 @@ import { analyzeReceipt } from '../services/openaiReceiptService';
 import { priceListToDbColumns } from '../services/priceListMapping';
 import { PROJECT_EVENTS } from '../utils/dataTransformers';
 import { computeWorkItemsDelta, computeDoorWindowDelta } from '../utils/workItemsDelta';
-import flatsImage from '../images/flats.jpg';
-import housesImage from '../images/houses.jpg';
-import firmsImage from '../images/firms.jpg';
-import cottagesImage from '../images/cottages.jpg';
+import constructionImage from '../images/construction.jpg';
+import servicesImage from '../images/services.jpg';
 
 // Duplicated from AppDataContext
 const getDefaultCategories = () => [
-  { id: 'flats', name: 'Flats', count: 0, image: flatsImage, projects: [] },
-  { id: 'houses', name: 'Houses', count: 0, image: housesImage, projects: [] },
-  { id: 'companies', name: 'Companies', count: 0, image: firmsImage, projects: [] },
-  { id: 'cottages', name: 'Cottages', count: 0, image: cottagesImage, projects: [] }
+  { id: 'construction', name: 'Stavebníctvo', count: 0, image: constructionImage, projects: [] },
+  { id: 'services', name: 'Služby a ostatné', count: 0, image: servicesImage, projects: [] }
 ];
 
 export const useProjectManager = (appData, setAppData) => {

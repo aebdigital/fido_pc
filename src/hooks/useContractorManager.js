@@ -1,18 +1,14 @@
 import { useCallback } from 'react';
 import api from '../services/supabaseApi';
 import { transformContractorToDB, transformContractorFromDB } from '../utils/dataTransformers';
-import flatsImage from '../images/flats.jpg';
-import housesImage from '../images/houses.jpg';
-import firmsImage from '../images/firms.jpg';
-import cottagesImage from '../images/cottages.jpg';
+import constructionImage from '../images/construction.jpg';
+import servicesImage from '../images/services.jpg';
 
 // Duplicated from AppDataContext to avoid circular dependency or import issues for now
 // Ideally this should be a constant
 const getDefaultCategories = () => [
-  { id: 'flats', name: 'Flats', count: 0, image: flatsImage, projects: [] },
-  { id: 'houses', name: 'Houses', count: 0, image: housesImage, projects: [] },
-  { id: 'companies', name: 'Companies', count: 0, image: firmsImage, projects: [] },
-  { id: 'cottages', name: 'Cottages', count: 0, image: cottagesImage, projects: [] }
+  { id: 'construction', name: 'Stavebníctvo', count: 0, image: constructionImage, projects: [] },
+  { id: 'services', name: 'Služby a ostatné', count: 0, image: servicesImage, projects: [] }
 ];
 
 export const useContractorManager = (appData, setAppData) => {
@@ -120,11 +116,22 @@ export const useContractorManager = (appData, setAppData) => {
       });
 
       // Build contractor projects structure
-      const categories = getDefaultCategories().map(cat => ({
-        ...cat,
-        projects: transformedProjects.filter(p => p.category === cat.id && !p.is_archived),
-        count: transformedProjects.filter(p => p.category === cat.id && !p.is_archived).length
-      }));
+      const constructionCategories = ['flats', 'houses', 'firms', 'companies', 'cottages', 'construction'];
+      const categories = getDefaultCategories().map(cat => {
+        let projectsInCat = [];
+        if (cat.id === 'construction') {
+          projectsInCat = transformedProjects.filter(p => constructionCategories.includes(p.category) && !p.is_archived);
+        } else if (cat.id === 'services') {
+          projectsInCat = transformedProjects.filter(p => p.category === 'services' && !p.is_archived);
+        } else {
+          projectsInCat = transformedProjects.filter(p => p.category === cat.id && !p.is_archived);
+        }
+        return {
+          ...cat,
+          projects: projectsInCat,
+          count: projectsInCat.length
+        };
+      });
 
       // Find contractor to get price offer settings
       const contractor = appData.contractors?.find(c => c.id === contractorId);

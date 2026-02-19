@@ -401,6 +401,13 @@ export const generateInvoicePDF = async ({
     } else if (invoice.invoiceType === 'credit_note') {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Credit Note')} ${invoice.invoiceNumber}`), 12.35, 20);
+      if (invoice.originalInvoiceNumber) {
+        doc.setFontSize(14);
+        doc.setFont('SF-Pro', 'normal');
+        doc.setTextColor(51, 51, 51);
+        doc.text(sanitizeText(`${t('To invoice')} ${invoice.originalInvoiceNumber}`), 12.35, 26);
+        doc.setTextColor(0, 0, 0); // reset
+      }
     } else {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
@@ -1353,6 +1360,15 @@ export const generateInvoicePDF = async ({
       // Podpis (Signature)
       doc.text(sanitizeText(`${t('Signature')}:`), 12.35, recipientLineY + (lineGap * 2));
       doc.line(12.35 + 15, recipientLineY + (lineGap * 2), 12.35 + 70, recipientLineY + (lineGap * 2));
+    }
+
+    // Reason for Return Section (Bottom Left for Credit Note)
+    if (invoice.invoiceType === 'credit_note' && invoice.returnReason) {
+      doc.setFontSize(9.3);
+      doc.setFont('SF-Pro', 'semibold'); // iOS bold equivalent
+      doc.text(sanitizeText(`${t('Reason for return')}:`), 12.35, signatureY);
+      doc.setFont('SF-Pro', 'normal');
+      doc.text(sanitizeText(t(invoice.returnReason)), 12.35, signatureY + 5);
     }
 
     // Calculate the bottom of the content (signature section bottom)

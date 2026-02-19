@@ -9,8 +9,39 @@ import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/c
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
 import { sortItemsByMasterList } from '../utils/itemSorting';
 import { useScrollLock } from '../hooks/useScrollLock';
+import { generateNextInvoiceNumber } from '../utils/dataTransformers';
 
-// Helper to determine work item unit based on propertyId and fields
+// Helper to safely parse invoice notes that might be stored as typed-JSON or plain string
+const getNoteForType = (noteData, type, t) => {
+  if (!noteData) return type === 'regular' ? t('Default Invoice Note') : '';
+
+  try {
+    // If it's already an object, use it directly
+    const parsed = typeof noteData === 'string' ? JSON.parse(noteData) : noteData;
+
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      // It's a typed-note object
+      const note = parsed[type] || (type === 'regular' ? parsed.default : '') || '';
+      // If we got an empty string for regular, use default translation
+      if (type === 'regular' && !note) return t('Default Invoice Note');
+      return note;
+    }
+
+    // It parsed but isn't an object we recognize (or it was a double-stringified plain string)
+    if (typeof parsed === 'string') {
+      // Check if the inner string is still JSON-like (rare but possible if double stringified)
+      if (parsed.startsWith('{') && parsed.endsWith('}')) {
+        return getNoteForType(parsed, type, t);
+      }
+      return type === 'regular' ? parsed : '';
+    }
+
+    return type === 'regular' ? String(noteData) : '';
+  } catch (e) {
+    // Not JSON, treat as plain string for regular invoices only
+    return type === 'regular' ? noteData : '';
+  }
+};
 const getWorkItemUnit = (item) => {
   // If already has unit in calculation, extract just the unit part
   if (item.calculation?.unit) {
@@ -458,55 +489,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   }, [isOpen, project, projectBreakdown, editMode, existingInvoice, t, dennikData]);
 
   // Initialize invoice number based on type and existing invoices
-  const generateNextInvoiceNumber = useCallback((type) => {
-    if (type === 'delivery') return '';
-
-    const currentYear = new Date().getFullYear();
-
-    // Filter invoices for the current contractor and current year AND matching type
-    const contractorInvoices = (invoices || []).filter(inv => inv.contractorId === activeContractorId);
-
-    // Determine the type we are looking for match
-    // If it's regular (or undefined/null in DB), we match 'regular'
-    const typeToMatch = type || 'regular';
-
-    const currentYearInvoices = contractorInvoices.filter(inv => {
-      const invType = inv.invoiceType || 'regular';
-      // Only consider invoices of the same type for numbering sequence
-      if (invType !== typeToMatch) return false;
-
-      const num = parseInt(inv.invoiceNumber || 0);
-      return !isNaN(num);
-    });
-
-    const now = new Date();
-    // currentYear already declared above
-    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-
-    // Format: YYYYMMXXX (e.g. 202602001)
-    const yearMonthPrefix = `${currentYear}${currentMonth}`;
-    const prefixInt = parseInt(`${yearMonthPrefix}000`);
-    const prefixMax = parseInt(`${yearMonthPrefix}999`);
-
-    // Filter invoices that match the current month's prefix pattern
-    const currentMonthInvoices = currentYearInvoices.filter(inv => {
-      const num = parseInt(inv.invoiceNumber || 0);
-      return num >= prefixInt && num <= prefixMax;
-    });
-
-    // Check if there are any invoices with the NEW format in this month
-    if (currentMonthInvoices.length > 0) {
-      const maxNumber = Math.max(...currentMonthInvoices.map(inv => parseInt(inv.invoiceNumber || 0)));
-      return String(maxNumber + 1);
-    }
-
-    // Fallback/Legacy handling:
-    // If no invoices exist for this month in the new format, check if we should start 001
-    // BUT we also need to respect legacy yearly format (YYYYXXX) to avoid collisions if someone uses that?
-    // Actually, user wants to switch to YYYYMMXXX.
-    // So for a new period (month), we start with 001.
-
-    return `${yearMonthPrefix}001`;
+  const generateInvoiceNumber = useCallback((type) => {
+    return generateNextInvoiceNumber(invoices, activeContractorId, type);
   }, [invoices, activeContractorId]);
 
   // Initialize invoice settings
@@ -558,20 +542,21 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         setPaymentDays(30);
         setCustomInputValue('');
 
-        // Use persistent note if available, otherwise use default translation
-        if (persistentSettings?.note) {
-          try {
-            const parsed = JSON.parse(persistentSettings.note);
-            if (typeof parsed === 'object' && parsed !== null) {
-              setNotes(parsed[invoiceType] || (invoiceType === 'regular' ? parsed.default : '') || '');
-            } else {
-              setNotes(invoiceType === 'regular' ? persistentSettings.note : '');
+        // Use safe parser to load note for current type
+        setNotes(getNoteForType(persistentSettings?.note, invoiceType, t));
+
+        // Load default maturity from settings if available
+        if (persistentSettings?.maturity_days) {
+          const daysNum = parseInt(persistentSettings.maturity_days);
+          if (!isNaN(daysNum)) {
+            setPaymentDays(daysNum);
+            if (!maturityOptions.includes(daysNum)) {
+              setCustomInputValue(String(daysNum));
             }
-          } catch (e) {
-            setNotes(invoiceType === 'regular' ? persistentSettings.note : '');
           }
         } else {
-          setNotes(invoiceType === 'regular' ? t('Default Invoice Note') : '');
+          setPaymentDays(30);
+          setCustomInputValue('');
         }
       }
 
@@ -587,39 +572,20 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, project, editMode, existingInvoice, invoices, activeContractorId, t, persistentSettings, dennikData]);
 
-  // Effect to switch notes when invoice type changes (Create Mode Only)
   useEffect(() => {
     if (isOpen && !editMode && persistentSettings) {
-      // Try to load note for the new type from settings
-      // We only overwrite if the current note matches the previous type's default OR is empty? 
-      // Simplified: Just switch to the saved note for this type.
-
-      try {
-        const parsed = JSON.parse(persistentSettings.note || '{}');
-        if (typeof parsed === 'object' && parsed !== null) {
-          setNotes(parsed[invoiceType] || (invoiceType === 'regular' ? parsed.default : '') || (invoiceType === 'regular' ? t('Default Invoice Note') : ''));
-          return;
-        }
-      } catch (e) {
-        // Legacy string
-        if (invoiceType === 'regular') {
-          setNotes(persistentSettings.note || t('Default Invoice Note'));
-          return;
-        }
-      }
-      // If we fall through, set empty or default
-      setNotes(invoiceType === 'regular' && (!persistentSettings?.note) ? t('Default Invoice Note') : '');
+      setNotes(getNoteForType(persistentSettings.note, invoiceType, t));
     }
   }, [invoiceType, isOpen, editMode, persistentSettings, t]);
 
   // Effect to update invoice number when type changes (Create Mode Only)
   useEffect(() => {
     if (isOpen && !editMode) {
-      const nextNum = generateNextInvoiceNumber(invoiceType);
+      const nextNum = generateInvoiceNumber(invoiceType);
       setInvoiceNumber(nextNum);
       setOriginalInvoiceNumber(nextNum);
     }
-  }, [invoiceType, isOpen, editMode, generateNextInvoiceNumber]);
+  }, [invoiceType, isOpen, editMode, generateInvoiceNumber]);
 
   // Calculate totals from invoice items
   const calculateTotals = useMemo(() => {
@@ -826,11 +792,27 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           dueDate: dueDate.toISOString().split('T')[0]
         });
 
-        // Save note as default for future invoices (Account-wide)
+        // Save note as default for future invoices (preserving JSON structure)
         const settingsToSave = {
           ...persistentSettings,
           contractor_id: null,
-          note: notes
+          note: (() => {
+            let noteObj = {};
+            try {
+              const currentNote = persistentSettings?.note;
+              const parsed = typeof currentNote === 'string' ? JSON.parse(currentNote || '{}') : (currentNote || {});
+              if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) noteObj = parsed;
+              else noteObj = { regular: String(currentNote || ''), default: String(currentNote || '') };
+            } catch {
+              noteObj = { regular: String(persistentSettings?.note || ''), default: String(persistentSettings?.note || '') };
+            }
+
+            noteObj[invoiceType || 'regular'] = notes;
+            if (invoiceType === 'regular') noteObj.default = notes;
+
+            return JSON.stringify(noteObj);
+          })(),
+          maturity_days: paymentDays
         };
 
         await upsertInvoiceSettings(settingsToSave);
@@ -864,18 +846,20 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
               // Update the JSON object with the current note for this type
               let noteObj = {};
               try {
-                const parsed = JSON.parse(persistentSettings?.note || '{}');
-                if (typeof parsed === 'object' && parsed !== null) noteObj = parsed;
-                else noteObj = { regular: persistentSettings?.note || '', default: persistentSettings?.note || '' };
+                const currentNote = persistentSettings?.note;
+                const parsed = typeof currentNote === 'string' ? JSON.parse(currentNote || '{}') : (currentNote || {});
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) noteObj = parsed;
+                else noteObj = { regular: String(currentNote || ''), default: String(currentNote || '') };
               } catch {
-                noteObj = { regular: persistentSettings?.note || '', default: persistentSettings?.note || '' };
+                noteObj = { regular: String(persistentSettings?.note || ''), default: String(persistentSettings?.note || '') };
               }
 
               noteObj[invoiceType || 'regular'] = notes;
               if (invoiceType === 'regular') noteObj.default = notes;
 
               return JSON.stringify(noteObj);
-            })()
+            })(),
+            maturity_days: paymentDays
           };
 
           await upsertInvoiceSettings(settingsToSave);
@@ -1005,8 +989,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
               {[
                 { id: 'regular', label: t('Invoice') },
                 { id: 'proforma', label: t('Proforma Invoice') },
-                { id: 'delivery', label: t('Delivery Note') },
-                { id: 'credit_note', label: t('Credit Note') }
+                { id: 'delivery', label: t('Delivery Note') }
               ].map(type => (
                 <button
                   key={type.id}
@@ -1273,37 +1256,34 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                             setPaymentDays(days);
                             setCustomInputValue(''); // Clear custom input when preset is selected
                           }}
-                          className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${paymentDays === days && customInputValue === ''
+                          className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${Number(paymentDays) === days && customInputValue === ''
                             ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
                             : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                             } `}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full mb-1 ${paymentDays === days && customInputValue === '' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                          <div className={`w-1.5 h-1.5 rounded-full mb-1 ${Number(paymentDays) === days && customInputValue === '' ? 'bg-blue-400' : 'bg-transparent'} `} />
                           <span className="text-lg font-semibold leading-none">{days}</span>
                           <span className="text-[10px] font-medium opacity-80">{t('days')}</span>
                         </button>
                       ))}
                       {/* Custom input */}
                       <div
-                        className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative ${!maturityOptions.includes(paymentDays) || customInputValue !== ''
+                        className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== ''
                           ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
                           : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300'
                           } `}
                       >
-                        <div className={`w-1.5 h-1.5 rounded-full mb-1 ${!maturityOptions.includes(paymentDays) || customInputValue !== '' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                        <div className={`w-1.5 h-1.5 rounded-full mb-1 ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== '' ? 'bg-blue-400' : 'bg-transparent'} `} />
                         <input
                           type="text"
-                          value={maturityOptions.includes(paymentDays) ? '' : (customInputValue === '' ? paymentDays : customInputValue)}
+                          value={maturityOptions.includes(Number(paymentDays)) ? '' : (customInputValue === '' ? paymentDays : customInputValue)}
                           onChange={handleCustomMaturityChange}
                           onFocus={handleCustomMaturityFocus}
                           onBlur={handleCustomMaturityBlur}
                           placeholder={t('Custom')}
-                          className={`w-full text-center text-lg font-semibold focus:outline-none bg-transparent ${!maturityOptions.includes(paymentDays) || customInputValue !== ''
-                            ? 'text-white dark:text-white placeholder-gray-400 dark:placeholder-gray-400'
-                            : 'text-gray-900 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-500'
-                            } `}
+                          className="w-full text-center text-lg font-semibold focus:outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500"
                         />
-                        <span className={`text-[10px] font-medium leading-none ${!maturityOptions.includes(paymentDays) || customInputValue !== '' ? 'opacity-80' : 'opacity-60'
+                        <span className={`text-[10px] font-medium leading-none ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== '' ? 'opacity-80' : 'opacity-60'
                           } `}>
                           {t('days')}
                         </span>
