@@ -254,12 +254,39 @@ const Clients = () => {
                             >
                               <FileText className="w-5 h-5 mb-1 text-blue-600 group-hover:scale-110 transition-transform" />
                               <span className="text-[10px] font-bold text-gray-900 dark:text-white">#{invoice.invoiceNumber}</span>
-                              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full mt-1 ${invoice.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                invoice.status === 'afterMaturity' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                }`}>
-                                {t(invoice.status)}
-                              </span>
+                              {(() => {
+                                const isPaid = invoice.status === 'paid';
+                                const maturityCutOffDate = new Date(invoice.dueDate);
+                                maturityCutOffDate.setHours(0, 0, 0, 0);
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const diffTime = maturityCutOffDate - today;
+                                const dayDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                const absDays = Math.abs(dayDiff);
+                                const isOverdue = !isPaid && dayDiff < 0;
+                                const daysLabel = absDays === 1 ? t('day') : (absDays >= 2 && absDays <= 4 ? t('days_2_4') : t('days'));
+
+                                let label, colorClass;
+                                if (isPaid) {
+                                  label = t('Paid');
+                                  colorClass = 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+                                } else if (isOverdue) {
+                                  label = `${t('Overdue by')} ${absDays} ${daysLabel}`;
+                                  colorClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                                } else if (dayDiff === 0) {
+                                  label = t('Matures today');
+                                  colorClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                                } else {
+                                  label = `${t('Matures in')} ${absDays} ${daysLabel}`;
+                                  colorClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                                }
+
+                                return (
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-1 ${colorClass}`}>
+                                    {label}
+                                  </span>
+                                );
+                              })()}
                             </button>
                           )}
                         </div>

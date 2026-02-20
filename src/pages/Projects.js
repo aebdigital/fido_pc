@@ -102,13 +102,25 @@ const Projects = () => {
     return invoices
       .filter(inv => inv.status !== 'paid' && !inv.is_deleted)
       .sort((a, b) => {
-        // Sort by maturity date ascending (most urgent first)
-        const dateA = new Date(a.maturityDate || a.maturity_date || a.issueDate || a.issue_date || 0);
-        const dateB = new Date(b.maturityDate || b.maturity_date || b.issueDate || b.issue_date || 0);
-        return dateA - dateB;
-      })
-      .slice(0, 10); // Show max 10
+        // Sort by invoice number descending (newest first) - matching Invoices page
+        return parseInt(b.invoiceNumber || 0) - parseInt(a.invoiceNumber || 0);
+      });
   }, [invoices]);
+
+  // Total unpaid amount
+  const unpaidTotal = useMemo(() => {
+    if (!invoices || invoices.length === 0) return 0;
+    return invoices
+      .filter(inv => inv.status !== 'paid' && !inv.is_deleted)
+      .reduce((sum, inv) => {
+        const price = parseFloat(inv.priceWithoutVat || 0);
+        if (!isNaN(price)) return sum + price;
+        const projectResult = findProjectById(inv.projectId);
+        if (!projectResult?.project) return sum;
+        const breakdown = calculateProjectTotalPriceWithBreakdown(inv.projectId);
+        return sum + (breakdown?.total || 0);
+      }, 0);
+  }, [invoices, findProjectById, calculateProjectTotalPriceWithBreakdown]);
 
   // Special state for viewing orphan projects (projects without contractor)
   const [viewingOrphanProjects, setViewingOrphanProjects] = useState(false);
@@ -441,11 +453,17 @@ const Projects = () => {
     setActiveCategory(categoryId);
     setSelectedProject(null);
     setCurrentView('projects');
+    // Push history entry so browser back returns to categories on mobile
+    if (window.innerWidth < 1024) {
+      window.history.pushState({ projectList: true }, '');
+    }
   };
 
   const handleProjectSelect = async (project) => {
     setSelectedProject(project);
     setCurrentView('details');
+    // Push history entry so browser back button returns to project list
+    window.history.pushState({ projectDetail: true, projectId: project.id }, '');
 
     // Load details asynchronously (optional here if ProjectDetailView also loads it, but good for pre-cache)
     // ProjectDetailView will handle displaying the specific details
@@ -462,6 +480,23 @@ const Projects = () => {
       setSelectedProject(null);
     }
   };
+
+  // Handle browser back button for state-based navigation
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // If we're in detail view and browser back was pressed, go back to projects
+      if (currentView === 'details') {
+        e.preventDefault();
+        setCurrentView('projects');
+        setSelectedProject(null);
+      } else if (currentView === 'projects' && window.innerWidth < 1024) {
+        // On mobile, go back from project list to categories
+        setCurrentView('categories');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentView]);
 
 
 
@@ -714,11 +749,34 @@ const Projects = () => {
                   <div className="mt-6">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                       <FileText className="w-5 h-5" />
-                      {t('Unpaid invoices')}
+                      {t('Unpaid invoices')} - {formatPrice(unpaidTotal)} €
                     </h2>
                     <div className="space-y-2">
                       {unpaidInvoices.map(invoice => {
                         const project = findProjectById(invoice.projectId);
+                        const isPaid = invoice.status === 'paid';
+                        const maturityCutOffDate = new Date(invoice.dueDate);
+                        maturityCutOffDate.setHours(0, 0, 0, 0);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const diffTime = maturityCutOffDate - today;
+                        const dayDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const absDays = Math.abs(dayDiff);
+                        const isOverdue = !isPaid && dayDiff < 0;
+                        const daysLabel = absDays === 1 ? t('day') : (absDays >= 2 && absDays <= 4 ? t('days_2_4') : t('days'));
+
+                        let statusLabel, statusColor;
+                        if (isOverdue) {
+                          statusLabel = `${t('Overdue by')} ${absDays} ${daysLabel}`;
+                          statusColor = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                        } else if (dayDiff === 0) {
+                          statusLabel = t('Matures today');
+                          statusColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                        } else {
+                          statusLabel = `${t('Matures in')} ${absDays} ${daysLabel}`;
+                          statusColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                        }
+
                         return (
                           <div
                             key={invoice.id}
@@ -738,10 +796,8 @@ const Projects = () => {
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                               <div className="text-right">
-                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${invoice.status === 'afterMaturity' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                  }`}>
-                                  {t(invoice.status)}
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor}`}>
+                                  {statusLabel}
                                 </span>
                                 <div className="font-semibold text-gray-900 dark:text-white text-sm mt-1">
                                   {getInvoiceTotal(invoice)}

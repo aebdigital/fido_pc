@@ -47,6 +47,7 @@ const Settings = () => {
 
   const handlePriceListClick = () => {
     setShowPriceList(true);
+    window.history.pushState({ settingsSubPage: 'priceList' }, '');
   };
 
   const handleBackFromPriceList = () => {
@@ -55,6 +56,7 @@ const Settings = () => {
 
   const handleArchiveClick = () => {
     setShowArchive(true);
+    window.history.pushState({ settingsSubPage: 'archive' }, '');
   };
 
   const handleBackFromArchive = () => {
@@ -63,11 +65,27 @@ const Settings = () => {
 
   const handlePriceOfferClick = () => {
     setShowPriceOffer(true);
+    window.history.pushState({ settingsSubPage: 'priceOffer' }, '');
   };
 
   const handleBackFromPriceOffer = () => {
     setShowPriceOffer(false);
   };
+
+  // Handle browser back button for sub-page navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      if (showPriceList) {
+        setShowPriceList(false);
+      } else if (showArchive) {
+        setShowArchive(false);
+      } else if (showPriceOffer) {
+        setShowPriceOffer(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showPriceList, showArchive, showPriceOffer]);
 
   const handleContactClick = () => {
     window.location.href = 'mailto:fidopo@gmail.com';

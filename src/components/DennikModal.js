@@ -98,7 +98,7 @@ const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatD
                                     <button
                                         onClick={() => setIsEditingName(true)}
                                         title={t('Rename Member')}
-                                        className="p-1 text-gray-400 hover:text-blue-600"
+                                        className="p-1 text-gray-400 hover:text-green-600"
                                     >
                                         <Pencil className="w-3 h-3" />
                                     </button>
@@ -134,7 +134,7 @@ const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatD
                 <div className="flex items-center gap-1 ml-2">
                     <button
                         onClick={() => onEditPermissions(member)}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                         title={t('Edit Permissions')}
                     >
                         <Shield className="w-5 h-5" />
@@ -202,6 +202,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const [showManualEntry, setShowManualEntry] = useState(false);
     const [manualStartTime, setManualStartTime] = useState('08:00');
     const [manualEndTime, setManualEndTime] = useState('16:00');
+    const [manualEntryNote, setManualEntryNote] = useState('');
     const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
     const [editingEntryId, setEditingEntryId] = useState(null);
     const [editStartTime, setEditStartTime] = useState('');
@@ -683,10 +684,12 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 date: dateStr,
                 start_time: startDateTime.toISOString(),
                 end_time: endDateTime.toISOString(),
-                hours_worked: hoursWorked
+                hours_worked: hoursWorked,
+                notes: manualEntryNote.trim() || null
             });
 
             setShowManualEntry(false);
+            setManualEntryNote('');
             await loadTimeEntries();
             await loadActiveDays(currentMonth);
         } catch (error) {
@@ -801,11 +804,13 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                 start_time: startDateTime.toISOString(),
                 end_time: endDateTime.toISOString(),
                 hours_worked: hoursWorked,
-                user_id: userId
+                user_id: userId,
+                notes: manualEntryNote.trim() || null
             });
 
             setShowManualEntry(false);
             setSelectedMemberForEntry(null);
+            setManualEntryNote('');
             await loadTimeEntries();
             await loadActiveDays(currentMonth);
         } catch (error) {
@@ -1038,7 +1043,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         <button
                             onClick={() => setActiveTab('timer')}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'timer'
-                                ? 'bg-blue-600 text-white'
+                                ? 'bg-green-600 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
@@ -1048,7 +1053,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         <button
                             onClick={() => setActiveTab('members')}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'members'
-                                ? 'bg-blue-600 text-white'
+                                ? 'bg-green-600 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
@@ -1058,7 +1063,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         <button
                             onClick={() => setActiveTab('analytics')}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'analytics'
-                                ? 'bg-blue-600 text-white'
+                                ? 'bg-green-600 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
@@ -1080,7 +1085,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                     className="w-full flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-2xl p-3"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <CalendarDays className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                        <CalendarDays className="w-5 h-5 text-green-600 dark:text-green-400" />
                                         <span className="font-bold text-gray-900 dark:text-white">
                                             {selectedDate.toLocaleDateString('sk-SK', {
                                                 weekday: 'long',
@@ -1126,15 +1131,15 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                             setMobileCalendarOpen(false);
                                                         }}
                                                         className={`aspect-square rounded-lg text-sm font-medium transition-colors relative flex flex-col items-center justify-center ${isSelected(day)
-                                                            ? 'bg-blue-600 text-white'
+                                                            ? 'bg-green-600 text-white'
                                                             : isToday(day)
-                                                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                                                                 : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                                                             }`}
                                                     >
                                                         {day}
                                                         {hasActivity && (
-                                                            <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-[1px] ${isSelected(day) ? 'bg-white' : 'bg-blue-500 dark:bg-blue-400'}`} />
+                                                            <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-[1px] ${isSelected(day) ? 'bg-white' : 'bg-green-500 dark:bg-green-400'}`} />
                                                         )}
                                                     </button>
                                                 );
@@ -1187,15 +1192,15 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     setSelectedDate(newDate);
                                                 }}
                                                 className={`aspect-square rounded-lg text-sm font-medium transition-colors relative flex flex-col items-center justify-center ${isSelected(day)
-                                                    ? 'bg-blue-600 text-white'
+                                                    ? 'bg-green-600 text-white'
                                                     : isToday(day)
-                                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                                                         : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                                                     }`}
                                             >
                                                 {day}
                                                 {hasActivity && (
-                                                    <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-[1px] ${isSelected(day) ? 'bg-white' : 'bg-blue-500 dark:bg-blue-400'}`} />
+                                                    <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-[1px] ${isSelected(day) ? 'bg-white' : 'bg-green-500 dark:bg-green-400'}`} />
                                                 )}
                                             </button>
                                         );
@@ -1206,10 +1211,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             {/* Right Column: Timer & Entries */}
                             <div className="space-y-4">
                                 {/* Timer Controls */}
-                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white">
+                                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 text-white">
                                     <div className="flex items-center justify-between mb-3">
                                         <div>
-                                            <p className="text-blue-100 text-sm mb-1">
+                                            <p className="text-green-100 text-sm mb-1">
                                                 {selectedDate.toLocaleDateString('sk-SK', {
                                                     weekday: 'long',
                                                     day: 'numeric',
@@ -1219,7 +1224,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             <h3 className="text-3xl font-bold">
                                                 {activeTimer ? elapsedTime : formatDuration(getTotalHours())}
                                             </h3>
-                                            <p className="text-blue-100 text-sm mt-1">
+                                            <p className="text-green-100 text-sm mt-1">
                                                 {activeTimer ? t('Active timer') : t('Total today')}
                                             </p>
                                         </div>
@@ -1233,7 +1238,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     <button
                                                         onClick={handleStartTimer}
                                                         disabled={isLoading}
-                                                        className="flex-1 bg-white text-blue-600 px-4 py-3 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                        className="flex-1 bg-white text-green-600 px-4 py-3 rounded-xl font-bold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                                     >
                                                         <Play className="w-5 h-5" />
                                                         {t('Start Timer')}
@@ -1268,11 +1273,11 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             {/* Member selector for owner */}
                                             {isOwner && members.length > 0 && (
                                                 <div>
-                                                    <label className="text-xs text-blue-100 mb-1 block">{t('Create for')}</label>
+                                                    <label className="text-xs text-green-100 mb-1 block">{t('Create for')}</label>
                                                     <select
                                                         value={selectedMemberForEntry || ''}
                                                         onChange={(e) => setSelectedMemberForEntry(e.target.value || null)}
-                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-blue-300"
+                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-green-300"
                                                     >
                                                         <option value="">{currentUser?.full_name || currentUser?.email || t('Myself')}</option>
                                                         {members.map(m => (
@@ -1285,28 +1290,38 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             )}
                                             <div className="flex gap-3">
                                                 <div className="flex-1">
-                                                    <label className="text-xs text-blue-100 mb-1 block">{t('Start')}</label>
+                                                    <label className="text-xs text-green-100 mb-1 block">{t('Start')}</label>
                                                     <input
                                                         type="time"
                                                         value={manualStartTime}
                                                         onChange={(e) => setManualStartTime(e.target.value)}
-                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-blue-300"
+                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-green-300"
                                                     />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <label className="text-xs text-blue-100 mb-1 block">{t('End')}</label>
+                                                    <label className="text-xs text-green-100 mb-1 block">{t('End')}</label>
                                                     <input
                                                         type="time"
                                                         value={manualEndTime}
                                                         onChange={(e) => setManualEndTime(e.target.value)}
-                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-blue-300"
+                                                        className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-green-300"
                                                     />
                                                 </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-green-100 mb-1 block">{t('Note')}</label>
+                                                <input
+                                                    type="text"
+                                                    value={manualEntryNote}
+                                                    onChange={(e) => setManualEntryNote(e.target.value)}
+                                                    placeholder={t('Add note...')}
+                                                    className="w-full px-3 py-2 bg-white text-gray-900 rounded-lg outline-none focus:ring-2 focus:ring-green-300 placeholder-gray-400"
+                                                />
                                             </div>
                                             <button
                                                 onClick={selectedMemberForEntry ? handleAddManualEntryForMember : handleAddManualEntry}
                                                 disabled={isLoading}
-                                                className="w-full bg-white text-blue-600 px-4 py-2 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                className="w-full bg-white text-green-600 px-4 py-2 rounded-xl font-bold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
                                                 <Plus className="w-4 h-4" />
                                                 {t('Add Entry')}
@@ -1366,8 +1381,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                             <div key={group.userId} className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
                                                                 <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-gray-800 pb-2">
                                                                     <div className="flex items-center gap-3">
-                                                                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                                                                            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                                                        <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700/30 rounded-full flex items-center justify-center">
+                                                                            <Users className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                                                                         </div>
                                                                         <div>
                                                                             <div className="font-bold text-gray-900 dark:text-white">
@@ -1385,7 +1400,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                                                                             </span>
                                                                         )}
-                                                                        <div className="text-sm font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
+                                                                        <div className="text-sm font-bold bg-gray-100 dark:bg-gray-700/30 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full">
                                                                             {formatDuration(group.totalHours)}
                                                                         </div>
                                                                     </div>
@@ -1413,18 +1428,18 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                                             type="time"
                                                                                                             value={editStartTime}
                                                                                                             onChange={(e) => setEditStartTime(e.target.value)}
-                                                                                                            className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                                                                                            className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                                                                                                         />
                                                                                                         <span className="text-gray-400">-</span>
                                                                                                         <input
                                                                                                             type="time"
                                                                                                             value={editEndTime}
                                                                                                             onChange={(e) => setEditEndTime(e.target.value)}
-                                                                                                            className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                                                                                            className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                                                                                                         />
                                                                                                         <button
                                                                                                             onClick={() => handleSaveEditTimestamp(entry.id)}
-                                                                                                            className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
+                                                                                                            className="px-2.5 py-1 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors"
                                                                                                         >
                                                                                                             {t('Save')}
                                                                                                         </button>
@@ -1439,7 +1454,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                                     <div className="flex items-center gap-2">
                                                                                                         <button
                                                                                                             onClick={() => (isOwnEntry || isOwner) ? handleRequestEditTimestamp(entry) : null}
-                                                                                                            className={`font-medium text-gray-900 dark:text-white ${(isOwnEntry || isOwner) ? 'hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer' : ''}`}
+                                                                                                            className={`font-medium text-gray-900 dark:text-white ${(isOwnEntry || isOwner) ? 'hover:text-green-600 dark:hover:text-green-400 cursor-pointer' : ''}`}
                                                                                                         >
                                                                                                             {formatTime(entry.start_time)} - {entry.end_time ? formatTime(entry.end_time) : t('Active')}
                                                                                                         </button>
@@ -1477,7 +1492,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                                         value={entry.notes || ''}
                                                                                                         onChange={(e) => handleEntryNoteChange(entry.id, e.target.value)}
                                                                                                         placeholder={t('Add note...')}
-                                                                                                        className="w-full text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-2.5 py-1.5 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-blue-400 dark:focus:border-blue-500 outline-none placeholder-gray-400 transition-colors"
+                                                                                                        className="w-full text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-2.5 py-1.5 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-green-400 dark:focus:border-green-500 outline-none placeholder-gray-400 transition-colors"
                                                                                                     />
                                                                                                     {entry.notes && /https?:\/\//.test(entry.notes) && (
                                                                                                         <div className="mt-1 text-xs">
@@ -1524,7 +1539,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             setSearchQuery(e.target.value);
                                             handleSearchUsers(e.target.value);
                                         }}
-                                        className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
                                     />
                                     {searchResults.length > 0 && (
                                         <div className="mt-2 space-y-1">
@@ -1538,7 +1553,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     className="w-full flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
+                                                        <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700/30 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-sm">
                                                             {user.full_name?.charAt(0) || user.email?.charAt(0)}
                                                         </div>
                                                         <div className="text-left">
@@ -1550,7 +1565,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <UserPlus className="w-4 h-4 text-blue-600" />
+                                                    <UserPlus className="w-4 h-4 text-green-600" />
                                                 </button>
                                             ))}
                                         </div>
@@ -1570,9 +1585,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             .filter(e => e.user_id === (project.user_id || project.owner_id))
                                             .reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
                                         return (
-                                            <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl">
+                                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                                                    <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
                                                         {ownerProfile?.full_name?.charAt(0) || ownerProfile?.email?.charAt(0) || '?'}
                                                     </div>
                                                     <div>
@@ -1582,13 +1597,13 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                         {ownerProfile?.email && (
                                                             <div className="text-xs text-gray-500">{ownerProfile.email}</div>
                                                         )}
-                                                        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">
                                                             {t('Owner')}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 {isOwner && ownerHours > 0 && (
-                                                    <div className="text-sm font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
+                                                    <div className="text-sm font-bold bg-gray-100 dark:bg-gray-700/30 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full">
                                                         {formatDuration(ownerHours)}
                                                     </div>
                                                 )}
@@ -1635,7 +1650,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             key={view}
                                             onClick={() => setAnalyticsView(view)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${analyticsView === view
-                                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                                                 : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                                                 }`}
                                         >
@@ -1696,9 +1711,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             {/* Stats Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {/* Total Hours */}
-                                <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+                                <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-200 dark:border-gray-700">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700/30 flex items-center justify-center text-gray-600 dark:text-gray-400">
                                             <Clock className="w-4 h-4" />
                                         </div>
                                         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Total Hours')}</span>
@@ -1707,7 +1722,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                         type="number"
                                         value={customHours !== null ? customHours : Number(analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0)).toFixed(2)}
                                         onChange={(e) => setCustomHours(e.target.value)}
-                                        className="text-2xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900/30 rounded-lg px-2 py-1 w-full transition-all outline-none"
+                                        className="text-2xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-transparent focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900/30 rounded-lg px-2 py-1 w-full transition-all outline-none"
                                     />
                                 </div>
 
@@ -1750,7 +1765,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                 <button
                                     onClick={handleGenerateInvoice}
                                     disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0)) || hasInvoiceForPeriod}
-                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full bg-gradient-to-br from-green-500 to-green-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-green-600 hover:to-green-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isGeneratingInvoice ? (
                                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />

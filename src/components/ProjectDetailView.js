@@ -1735,16 +1735,39 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       <div className="text-base text-gray-600 dark:text-gray-400">{new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1.5 text-sm font-semibold rounded-full text-white ${invoice.status === INVOICE_STATUS.PAID
-                        ? 'bg-green-500'
-                        : invoice.status === INVOICE_STATUS.AFTER_MATURITY
-                          ? 'bg-red-500'
-                          : 'bg-blue-500'
-                        }`}>
-                        {t(invoice.status === INVOICE_STATUS.PAID ? 'Paid'
-                          : invoice.status === INVOICE_STATUS.AFTER_MATURITY ? 'afterMaturity'
-                            : 'Unpaid')}
-                      </span>
+                      {(() => {
+                        const isPaid = invoice.status === INVOICE_STATUS.PAID;
+                        const maturityCutOffDate = new Date(invoice.dueDate);
+                        maturityCutOffDate.setHours(0, 0, 0, 0);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const diffTime = maturityCutOffDate - today;
+                        const dayDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const absDays = Math.abs(dayDiff);
+                        const isOverdue = !isPaid && dayDiff < 0;
+                        const daysLabel = absDays === 1 ? t('day') : (absDays >= 2 && absDays <= 4 ? t('days_2_4') : t('days'));
+
+                        let label, colorClass;
+                        if (isPaid) {
+                          label = t('Paid');
+                          colorClass = 'bg-green-500';
+                        } else if (isOverdue) {
+                          label = `${t('Overdue by')} ${absDays} ${daysLabel}`;
+                          colorClass = 'bg-red-500';
+                        } else if (dayDiff === 0) {
+                          label = t('Matures today');
+                          colorClass = 'bg-blue-500';
+                        } else {
+                          label = `${t('Matures in')} ${absDays} ${daysLabel}`;
+                          colorClass = 'bg-blue-500';
+                        }
+
+                        return (
+                          <span className={`px-3 py-1.5 text-sm font-semibold rounded-full text-white ${colorClass}`}>
+                            {label}
+                          </span>
+                        );
+                      })()}
                       {!project.is_archived && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
                     </div>
                   </div>
