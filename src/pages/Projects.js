@@ -747,7 +747,7 @@ const Projects = () => {
                 {/* Unpaid Invoices Section - Mobile */}
                 {unpaidInvoices.length > 0 && (
                   <div className="mt-6">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <h2 className="text-[1.125rem] font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                       <FileText className="w-5 h-5" />
                       {t('Unpaid invoices')} - {formatPrice(unpaidTotal)} €
                     </h2>
