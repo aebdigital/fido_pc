@@ -234,7 +234,7 @@ const WorkPropertyCard = ({
             />
           ) : (
             <NumberInput
-              value={value || 0}
+              value={value || ''}
               onChange={(value) => onUpdateWorkItem(item.id, fieldKey, value)}
               className="bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white"
               min={0}

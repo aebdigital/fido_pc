@@ -24,6 +24,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const onSaveRef = useRef(onSave);
   const isUnmounting = useRef(false);
   const saveTimerRef = useRef(null);
+  const initializedProjectRef = useRef(null);
 
   // Update ref when prop changes
   useEffect(() => {
@@ -31,8 +32,12 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   }, [onSave]);
 
   // Initialize project price data from general settings or load existing project overrides
+  // Only initialize once per projectId — do NOT re-initialize when initialData/generalPriceList
+  // changes from autosave feedback, as that would discard in-progress edits (e.g. setting to 0).
   useEffect(() => {
     if (!generalPriceList) return;
+    if (initializedProjectRef.current === projectId) return; // Already initialized
+    initializedProjectRef.current = projectId;
 
     // If we have saved project data, use it; otherwise use general prices
     let initialPrices;

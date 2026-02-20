@@ -280,7 +280,31 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       if (assignedClient) {
         setSelectedClientForProject(assignedClient);
       } else {
-        setSelectedClientForProject(null);
+        // Client not in local array (likely member viewing owner's client)
+        // Try fetching directly from the API
+        api.clients.getById(effectiveClientId)
+          .then(fetchedClient => {
+            if (fetchedClient) {
+              setSelectedClientForProject(fetchedClient);
+            } else {
+              // API also failed (RLS), fall back to project's embedded clientName
+              const clientName = project.clientName || project.client_name || latestProject?.clientName || latestProject?.client_name;
+              if (clientName) {
+                setSelectedClientForProject({ id: effectiveClientId, name: clientName, email: '', _readOnly: true });
+              } else {
+                setSelectedClientForProject(null);
+              }
+            }
+          })
+          .catch(() => {
+            // RLS blocked fetch, fall back to project's embedded clientName
+            const clientName = project.clientName || project.client_name || latestProject?.clientName || latestProject?.client_name;
+            if (clientName) {
+              setSelectedClientForProject({ id: effectiveClientId, name: clientName, email: '', _readOnly: true });
+            } else {
+              setSelectedClientForProject(null);
+            }
+          });
       }
     } else {
       setSelectedClientForProject(null);
@@ -1167,28 +1191,34 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   >
                     <BookOpen className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => setShowProjectPriceList(true)}
-                    title={t('Project price list')}
-                    className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                  >
-                    <Euro className="w-4 h-4 text-purple-500" />
-                  </button>
-                  <button
-                    onClick={handleDuplicateProject}
-                    disabled={isDuplicating}
-                    title={t('Duplicate')}
-                    className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center"
-                  >
-                    {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 text-blue-500" />}
-                  </button>
-                  <button
-                    onClick={() => setShowArchiveConfirmation(true)}
-                    title={t('ArchiveProjectAction')}
-                    className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                  >
-                    <Archive className="w-4 h-4 text-yellow-500" />
-                  </button>
+                  {canView('project_pricelist') && (
+                    <button
+                      onClick={() => setShowProjectPriceList(true)}
+                      title={t('Project price list')}
+                      className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                    >
+                      <Euro className="w-4 h-4 text-purple-500" />
+                    </button>
+                  )}
+                  {canView('duplicate') && (
+                    <button
+                      onClick={handleDuplicateProject}
+                      disabled={isDuplicating}
+                      title={t('Duplicate')}
+                      className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center"
+                    >
+                      {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                    </button>
+                  )}
+                  {canView('archive') && (
+                    <button
+                      onClick={() => setShowArchiveConfirmation(true)}
+                      title={t('ArchiveProjectAction')}
+                      className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                    >
+                      <Archive className="w-4 h-4 text-yellow-500" />
+                    </button>
+                  )}
                 </>
               )}
               {viewSource === 'team_modal' && (
@@ -1204,7 +1234,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
           {/* Mobile: Project name on its own row */}
           <div className="lg:hidden">
-            {isEditingProjectName ? (
+            {isEditingProjectName && isProjectOwner ? (
               <input
                 type="text"
                 value={editingProjectName}
@@ -1222,7 +1252,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
                   {project.name}
                 </h1>
-                {!project.is_archived && canEditProject && (
+                {!project.is_archived && canEditProject && isProjectOwner && (
                   <button
                     onClick={handleEditProjectName}
                     className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1245,7 +1275,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   <ChevronRight className="w-5 h-5 rotate-180" />
                 </button>
               )}
-              {isEditingProjectName ? (
+              {isEditingProjectName && isProjectOwner ? (
                 <input
                   type="text"
                   value={editingProjectName}
@@ -1263,7 +1293,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white truncate">
                     {project.name}
                   </h1>
-                  {!project.is_archived && canEditProject && (
+                  {!project.is_archived && canEditProject && isProjectOwner && (
                     <button
                       onClick={handleEditProjectName}
                       className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1294,30 +1324,36 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
                   <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700 mx-1"></div>
 
-                  <button
-                    onClick={() => setShowProjectPriceList(true)}
-                    title={t('Project price list')}
-                    className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                  >
-                    <Euro className="w-5 h-5 text-purple-500" />
-                  </button>
+                  {canView('project_pricelist') && (
+                    <button
+                      onClick={() => setShowProjectPriceList(true)}
+                      title={t('Project price list')}
+                      className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                    >
+                      <Euro className="w-5 h-5 text-purple-500" />
+                    </button>
+                  )}
 
-                  <button
-                    onClick={handleDuplicateProject}
-                    disabled={isDuplicating}
-                    title={t('Duplicate')}
-                    className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center"
-                  >
-                    {isDuplicating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Copy className="w-5 h-5 text-blue-500" />}
-                  </button>
+                  {canView('duplicate') && (
+                    <button
+                      onClick={handleDuplicateProject}
+                      disabled={isDuplicating}
+                      title={t('Duplicate')}
+                      className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center"
+                    >
+                      {isDuplicating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Copy className="w-5 h-5 text-blue-500" />}
+                    </button>
+                  )}
 
-                  <button
-                    onClick={() => setShowArchiveConfirmation(true)}
-                    title={t('ArchiveProjectAction')}
-                    className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                  >
-                    <Archive className="w-5 h-5 text-yellow-500" />
-                  </button>
+                  {canView('archive') && (
+                    <button
+                      onClick={() => setShowArchiveConfirmation(true)}
+                      title={t('ArchiveProjectAction')}
+                      className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                    >
+                      <Archive className="w-5 h-5 text-yellow-500" />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -2319,7 +2355,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       {selectedReceipt.merchant_name && (
                         <div>
                           <span className="text-sm text-gray-500 dark:text-gray-400">{t('Vendor')}</span>
-                          <p className="font-semibold text-gray-900 dark:text-white">{selectedReceipt.merchant_name}</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {selectedReceipt.merchant_name === 'Unknown' ? t('Unknown vendor') : selectedReceipt.merchant_name}
+                          </p>
                         </div>
                       )}
                       {selectedReceipt.receipt_date && (
@@ -2381,7 +2419,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-900 dark:text-white truncate">
-                            {receipt.merchant_name || t('Unknown vendor')}
+                            {(receipt.merchant_name && receipt.merchant_name !== 'Unknown') ? receipt.merchant_name : t('Unknown vendor')}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             {receipt.receipt_date ? new Date(receipt.receipt_date).toLocaleDateString('sk-SK') : t('No date')}

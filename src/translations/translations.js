@@ -263,6 +263,12 @@ export const translations = {
     "Poznámka k projektu": "Project note",
     "Súbory": "Files",
     "Add Member": "Add Member",
+    "Unpaid invoices": "Unpaid invoices",
+    "Unknown project": "Unknown project",
+    "Show more": "Show more",
+    "Show less": "Show less",
+    "Unknown vendor": "Unknown vendor",
+    "Unknown": "Unknown"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -774,6 +780,10 @@ export const translations = {
     "Associate project with client": "Asociovať projekt s klientom",
     "Client's projects": "Projekty klienta",
     "No clients available. Create a client first.": "Nie sú dostupní žiadni klienti. Najprv vytvorte klienta.",
+    "Unpaid invoices": "Neuhradené faktúry",
+    "Unknown project": "Neznámy projekt",
+    "Show more": "Zobraziť viac",
+    "Show less": "Zobraziť menej",
 
     // ========== FORM FIELDS ==========
     "Name": "Meno",
@@ -1384,6 +1394,21 @@ export const translations = {
     "Failed to end timer": "Nepodarilo sa zastaviť časovač",
     "Failed to add member": "Nepodarilo sa pridať člena",
     "Failed to remove member": "Nepodarilo sa odstrániť člena",
+    "Failed to reset member name": "Nepodarilo sa obnoviť meno člena",
+    "Reset Name": "Obnoviť meno",
+    "Rename Member": "Premenovať člena",
+    "Are you sure you want to reset the name to original?": "Naozaj chcete obnoviť pôvodné meno?",
+    "Edit Permissions": "Upraviť povolenia",
+    "Remove Member": "Odstrániť člena",
+    "Error: Missing ID": "Chyba: Chýba ID",
+    "Failed to rename member": "Nepodarilo sa premenovať člena",
+    "Edit Timestamp": "Upraviť čas",
+    "Are you sure you want to edit this time entry?": "Naozaj chcete upraviť tento časový záznam?",
+    "Edit": "Upraviť",
+    "Failed to update time entry": "Nepodarilo sa aktualizovať časový záznam",
+    "Create for": "Vytvoriť pre",
+    "Myself": "Ja",
+    "Member": "Člen",
     "Unknown User": "Neznámy užívateľ",
     "Selected Period": "Vybrané obdobie",
     "Delete Entry": "Vymazať záznam",
@@ -1459,6 +1484,11 @@ export const translations = {
     "Invitation declined": "Pozvánka odmietnutá",
     "Pending": "Čakajúce",
     "Položky projektu": "Položky projektu",
+    "Return percentage": "Percento vrátenia",
+    "Return amount": "Suma vrátenia",
+    "Total to return": "Celkom na vrátenie",
+    "Back": "Späť",
+    "Active": "Aktívny",
   }
 };
 

@@ -381,7 +381,7 @@ export const AppDataProvider = ({ children }) => {
       ]);
 
       const projectFilterYear = profileResult;
-      const transformedContractors = (contractors || []).map(transformContractorFromDB);
+      let transformedContractors = (contractors || []).map(transformContractorFromDB);
 
       // Determine active contractor early so we can filter subsequent queries
       const savedContractorId = localStorage.getItem('lastActiveContractorId');
@@ -412,7 +412,7 @@ export const AppDataProvider = ({ children }) => {
       // console.log('[DEBUG FILTER] Filter Year:', projectFilterYear);
 
       // Transform clients
-      const transformedClients = (clients || []).map(transformClientFromDB);
+      let transformedClients = (clients || []).map(transformClientFromDB);
 
       // Transform projects - ALWAYS prioritize price_lists table (shared with iOS)
       // Only fall back to price_list_snapshot JSON for old projects without price_list_id
@@ -507,6 +507,36 @@ export const AppDataProvider = ({ children }) => {
         const dateB = new Date(b.created_at || b.createdAt || 0);
         return dateB - dateA;
       });
+
+      // Fetch missing clients/contractors for member projects
+      // Members don't own the project owner's clients/contractors, so they aren't in the initial load
+      const loadedClientIds = new Set(transformedClients.map(c => c.id));
+      const loadedContractorIds = new Set(transformedContractors.map(c => c.id));
+
+      const missingClientIds = [...new Set(
+        transformedProjects
+          .filter(p => p.clientId && !loadedClientIds.has(p.clientId))
+          .map(p => p.clientId)
+      )];
+      const missingContractorIds = [...new Set(
+        transformedProjects
+          .filter(p => p.contractor_id && !loadedContractorIds.has(p.contractor_id))
+          .map(p => p.contractor_id)
+      )];
+
+      if (missingClientIds.length > 0 || missingContractorIds.length > 0) {
+        const [extraClients, extraContractors] = await Promise.all([
+          Promise.all(missingClientIds.map(id => api.clients.getById(id).catch(() => null))),
+          Promise.all(missingContractorIds.map(id => api.contractors.getById(id).catch(() => null)))
+        ]);
+
+        extraClients.filter(Boolean).forEach(c => {
+          transformedClients.push(transformClientFromDB(c));
+        });
+        extraContractors.filter(Boolean).forEach(c => {
+          transformedContractors.push(transformContractorFromDB(c));
+        });
+      }
 
       // Build contractor projects structure
       const contractorProjects = {};
@@ -906,10 +936,15 @@ export const AppDataProvider = ({ children }) => {
               if (projectToUse) {
                 // 1. Update Contractor Projects
                 const cp = { ...next.contractorProjects[contractorId] };
+                const constructionCategories = ['flats', 'houses', 'firms', 'companies', 'cottages', 'construction'];
                 const cats = cp.categories.map(cat => {
                   const projs = updateEntityArray(cat.projects, record, projectToUse, eventType);
                   // Re-filter by category to ensure correctness (if category changed)
-                  return { ...cat, projects: projs.filter(p => p.category === cat.id && !p.is_archived), count: projs.filter(p => p.category === cat.id && !p.is_archived).length };
+                  // 'construction' is a meta-category that includes multiple sub-categories
+                  const categoryFilter = cat.id === 'construction'
+                    ? (p => constructionCategories.includes(p.category) && !p.is_archived)
+                    : (p => p.category === cat.id && !p.is_archived);
+                  return { ...cat, projects: projs.filter(categoryFilter), count: projs.filter(categoryFilter).length };
                 });
 
                 let archived = updateEntityArray(cp.archivedProjects, record, projectToUse, eventType);

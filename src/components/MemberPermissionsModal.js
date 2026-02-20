@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Shield, Eye, EyeOff, Edit3, User, CheckCircle2 } from 'lucide-react';
+import { X, Shield, Eye, EyeOff, Edit3, User, CheckCircle2, Archive, Euro, Copy } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const sections = [
@@ -11,6 +11,9 @@ const sections = [
     { id: 'price_offer_note', label: 'Poznámka k cenovej ponuke', icon: Shield },
     { id: 'project_note', label: 'Poznámka k projektu', icon: Shield },
     { id: 'files', label: 'Súbory', icon: Shield },
+    { id: 'project_pricelist', label: 'Project Price List', icon: Euro },
+    { id: 'archive', label: 'ArchiveProjectAction', icon: Archive },
+    { id: 'duplicate', label: 'Duplicate', icon: Copy },
 ];
 
 const LEGACY_PERMISSION_MAP = {

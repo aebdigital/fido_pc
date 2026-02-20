@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Building2, X } from 'lucide-react';
+import { User, Building2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import RpoAutocomplete from './RpoAutocomplete';
 
@@ -15,6 +15,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
   };
   const [clientType, setClientType] = useState(normalizeType(initialData?.type));
   const [showRpoSearch, setShowRpoSearch] = useState(false);
+  const [showAllFields, setShowAllFields] = useState(!initialData); // Collapsed by default when editing on mobile
 
   const [clientForm, setClientForm] = useState({
     name: initialData?.name || '',
@@ -201,119 +202,137 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Phone number')}</label>
-            <input
-              type="tel"
-              value={clientForm.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              placeholder={t('Number')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Street')}</label>
-            <input
-              type="text"
-              value={clientForm.street}
-              onChange={(e) => handleInputChange('street', e.target.value)}
-              placeholder={t('Street')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Additional info')}</label>
-            <input
-              type="text"
-              value={clientForm.additionalInfo}
-              onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
-              placeholder={t('App #, Suite (optional)')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-base font-medium text-gray-900 dark:text-white">{t('City')}</label>
-            <input
-              type="text"
-              value={clientForm.city}
-              onChange={(e) => handleInputChange('city', e.target.value)}
-              placeholder={t('City')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Postal code')}</label>
-            <input
-              type="text"
-              value={clientForm.postalCode}
-              onChange={(e) => handleInputChange('postalCode', e.target.value)}
-              placeholder={t('ZIP Code')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Country')}</label>
-            <input
-              type="text"
-              value={clientForm.country}
-              onChange={(e) => handleInputChange('country', e.target.value)}
-              placeholder={t('Country')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-            />
-          </div>
-
-          {clientType === 'corporation' && (
-            <>
-              <div className="space-y-2">
-                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Business ID')}</label>
-                <input
-                  type="text"
-                  value={clientForm.businessId}
-                  onChange={(e) => handleInputChange('businessId', e.target.value)}
-                  placeholder={t('BID')}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Tax ID')}</label>
-                <input
-                  type="text"
-                  value={clientForm.taxId}
-                  onChange={(e) => handleInputChange('taxId', e.target.value)}
-                  placeholder={t('TID')}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('VAT ID number')}</label>
-                <input
-                  type="text"
-                  value={clientForm.vatId}
-                  onChange={(e) => handleInputChange('vatId', e.target.value)}
-                  placeholder={t('VAT ID')}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Contact person')}</label>
-                <input
-                  type="text"
-                  value={clientForm.contactPerson}
-                  onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                  placeholder={t('Name and surname')}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
-                />
-              </div>
-            </>
+          {/* Mobile toggle for remaining fields - only on mobile when editing */}
+          {isEditing && (
+            <div className="col-span-full lg:hidden">
+              <button
+                type="button"
+                onClick={() => setShowAllFields(!showAllFields)}
+                className="flex items-center gap-2 w-full justify-center py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                <span>{showAllFields ? t('Show less') : t('Show more')}</span>
+                {showAllFields ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </div>
           )}
+
+          {/* Remaining fields - hidden on mobile when collapsed, always visible on desktop */}
+          <div className={`${!showAllFields && isEditing ? 'hidden lg:contents' : 'contents'}`}>
+
+            <div className="space-y-2">
+              <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Phone number')}</label>
+              <input
+                type="tel"
+                value={clientForm.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder={t('Number')}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Street')}</label>
+              <input
+                type="text"
+                value={clientForm.street}
+                onChange={(e) => handleInputChange('street', e.target.value)}
+                placeholder={t('Street')}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Additional info')}</label>
+              <input
+                type="text"
+                value={clientForm.additionalInfo}
+                onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
+                placeholder={t('App #, Suite (optional)')}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-base font-medium text-gray-900 dark:text-white">{t('City')}</label>
+              <input
+                type="text"
+                value={clientForm.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                placeholder={t('City')}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Postal code')}</label>
+              <input
+                type="text"
+                value={clientForm.postalCode}
+                onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                placeholder={t('ZIP Code')}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Country')}</label>
+              <input
+                type="text"
+                value={clientForm.country}
+                onChange={(e) => handleInputChange('country', e.target.value)}
+                placeholder={t('Country')}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+
+            {clientType === 'corporation' && (
+              <>
+                <div className="space-y-2">
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Business ID')}</label>
+                  <input
+                    type="text"
+                    value={clientForm.businessId}
+                    onChange={(e) => handleInputChange('businessId', e.target.value)}
+                    placeholder={t('BID')}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Tax ID')}</label>
+                  <input
+                    type="text"
+                    value={clientForm.taxId}
+                    onChange={(e) => handleInputChange('taxId', e.target.value)}
+                    placeholder={t('TID')}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('VAT ID number')}</label>
+                  <input
+                    type="text"
+                    value={clientForm.vatId}
+                    onChange={(e) => handleInputChange('vatId', e.target.value)}
+                    placeholder={t('VAT ID')}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-base font-medium text-gray-900 dark:text-white">{t('Contact person')}</label>
+                  <input
+                    type="text"
+                    value={clientForm.contactPerson}
+                    onChange={(e) => handleInputChange('contactPerson', e.target.value)}
+                    placeholder={t('Name and surname')}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+                </div>
+              </>
+            )}
+          </div>
 
           <div className="mt-6 lg:mt-8 col-span-full flex gap-3">
             <button

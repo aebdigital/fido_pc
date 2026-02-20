@@ -8,7 +8,8 @@ import {
   X,
   CheckCircle,
   Flag,
-  Clock
+  Clock,
+  FileText
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ContractorProfileModal from '../components/ContractorProfileModal';
@@ -20,6 +21,7 @@ import api from '../services/supabaseApi';
 
 import { formatProjectNumber, PROJECT_STATUS } from '../utils/dataTransformers';
 import ConfirmationModal from '../components/ConfirmationModal';
+import InvoiceDetailModal from '../components/InvoiceDetailModal';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 const LiveTimer = ({ startTime, onClick, className = "", size = "normal" }) => {
@@ -89,14 +91,48 @@ const Projects = () => {
     updateProjectFilterYear,
     activeTimer,
     quickTravelToDennik,
-    findProjectById
+    findProjectById,
+    invoices,
+    calculateProjectTotalPriceWithBreakdown,
+    generalPriceList
   } = useAppData();
+
+  // Unpaid invoices - latest first
+  const unpaidInvoices = useMemo(() => {
+    if (!invoices || invoices.length === 0) return [];
+    return invoices
+      .filter(inv => inv.status !== 'paid' && !inv.is_deleted)
+      .sort((a, b) => {
+        // Sort by maturity date ascending (most urgent first)
+        const dateA = new Date(a.maturityDate || a.maturity_date || a.issueDate || a.issue_date || 0);
+        const dateB = new Date(b.maturityDate || b.maturity_date || b.issueDate || b.issue_date || 0);
+        return dateA - dateB;
+      })
+      .slice(0, 10); // Show max 10
+  }, [invoices]);
 
   // Special state for viewing orphan projects (projects without contractor)
   const [viewingOrphanProjects, setViewingOrphanProjects] = useState(false);
 
   const [activeCategory, setActiveCategory] = useState('construction');
   const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
+
+  // Helper to get invoice total price (matched to Invoices.js)
+  const getInvoiceTotal = (invoice) => {
+    if (invoice.priceWithoutVat !== undefined && invoice.priceWithoutVat !== null) {
+      return formatPrice(parseFloat(invoice.priceWithoutVat));
+    }
+
+    const projectResult = findProjectById(invoice.projectId);
+    if (!projectResult?.project) return formatPrice(0);
+
+    const breakdown = calculateProjectTotalPriceWithBreakdown(invoice.projectId);
+    if (!breakdown) return formatPrice(0);
+
+    return formatPrice(breakdown.total || 0);
+  };
   const [currentView, setCurrentView] = useState(window.innerWidth < 1024 ? 'categories' : 'projects'); // 'categories', 'projects', 'details'
   const [viewSource, setViewSource] = useState('projects'); // 'projects' or 'archive'
 
@@ -673,6 +709,53 @@ const Projects = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* Unpaid Invoices Section - Mobile */}
+                {unpaidInvoices.length > 0 && (
+                  <div className="mt-6">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      {t('Unpaid invoices')}
+                    </h2>
+                    <div className="space-y-2">
+                      {unpaidInvoices.map(invoice => {
+                        const project = findProjectById(invoice.projectId);
+                        return (
+                          <div
+                            key={invoice.id}
+                            className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-sm hover:shadow-md cursor-pointer transition-all"
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setShowInvoiceDetail(true);
+                            }}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-gray-900 dark:text-white truncate">
+                                {project?.project?.name || t('Unknown project')}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                #{invoice.invoiceNumber}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                              <div className="text-right">
+                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${invoice.status === 'afterMaturity' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                  }`}>
+                                  {t(invoice.status)}
+                                </span>
+                                <div className="font-semibold text-gray-900 dark:text-white text-sm mt-1">
+                                  {getInvoiceTotal(invoice)}
+                                </div>
+                              </div>
+                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -991,6 +1074,16 @@ const Projects = () => {
           cancelLabel="Cancel"
           confirmButtonClass="bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 text-white"
           icon={<Archive className="w-6 h-6 text-amber-500" />}
+        />
+
+        {/* Invoice Detail Modal */}
+        <InvoiceDetailModal
+          isOpen={showInvoiceDetail}
+          onClose={() => {
+            setShowInvoiceDetail(false);
+            setSelectedInvoice(null);
+          }}
+          invoice={selectedInvoice}
         />
       </div>
 

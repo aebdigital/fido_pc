@@ -18,24 +18,49 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn('Session restore error, will retry:', error.message)
+        // Don't immediately log out - the onAuthStateChange listener
+        // will handle recovery via TOKEN_REFRESHED event
+      }
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-
       if (event === 'PASSWORD_RECOVERY') {
         setRecoveryMode(true)
       } else if (event === 'SIGNED_OUT') {
         setRecoveryMode(false)
       }
+
+      // Only clear user on explicit sign out, not on transient errors
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+      } else if (session?.user) {
+        setUser(session.user)
+      }
+      setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Refresh session when app regains focus (e.g., user switches back to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            setUser(session.user)
+          }
+        })
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   const signOut = async () => {

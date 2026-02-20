@@ -961,7 +961,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const getTotalHours = () => {
         const dateStr = selectedDate.toLocaleDateString('en-CA');
         return timeEntries
-            .filter(entry => entry.date === dateStr)
+            .filter(entry => entry.date === dateStr && entry.user_id === currentUser?.id)
             .reduce((sum, entry) => sum + (entry.hours_worked || 0), 0);
     };
 
@@ -1378,8 +1378,16 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="text-sm font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
-                                                                        {formatDuration(group.totalHours)}
+                                                                    <div className="flex items-center gap-2">
+                                                                        {group.entries.some(e => !e.end_time) && (
+                                                                            <span className="relative flex h-2.5 w-2.5">
+                                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                                                                            </span>
+                                                                        )}
+                                                                        <div className="text-sm font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
+                                                                            {formatDuration(group.totalHours)}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
 
@@ -1428,12 +1436,20 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                                         </button>
                                                                                                     </div>
                                                                                                 ) : (
-                                                                                                    <button
-                                                                                                        onClick={() => (isOwnEntry || isOwner) ? handleRequestEditTimestamp(entry) : null}
-                                                                                                        className={`font-medium text-gray-900 dark:text-white ${(isOwnEntry || isOwner) ? 'hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer' : ''}`}
-                                                                                                    >
-                                                                                                        {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
-                                                                                                    </button>
+                                                                                                    <div className="flex items-center gap-2">
+                                                                                                        <button
+                                                                                                            onClick={() => (isOwnEntry || isOwner) ? handleRequestEditTimestamp(entry) : null}
+                                                                                                            className={`font-medium text-gray-900 dark:text-white ${(isOwnEntry || isOwner) ? 'hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer' : ''}`}
+                                                                                                        >
+                                                                                                            {formatTime(entry.start_time)} - {entry.end_time ? formatTime(entry.end_time) : t('Active')}
+                                                                                                        </button>
+                                                                                                        {!entry.end_time && (
+                                                                                                            <span className="relative flex h-2.5 w-2.5">
+                                                                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                                                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                                                                                                            </span>
+                                                                                                        )}
+                                                                                                    </div>
                                                                                                 )}
                                                                                             </div>
                                                                                             <div className="flex items-center gap-2">
@@ -1443,7 +1459,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                                                 {(isOwnEntry || isOwner) && (
                                                                                                     <button
                                                                                                         onClick={() => handleRequestDeleteEntry(entry.id)}
-                                                                                                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all"
+                                                                                                        className="p-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all"
                                                                                                         title={t('Delete')}
                                                                                                     >
                                                                                                         <Trash2 className="w-4 h-4" />
@@ -1571,7 +1587,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                         </div>
                                                     </div>
                                                 </div>
-                                                {ownerHours > 0 && (
+                                                {isOwner && ownerHours > 0 && (
                                                     <div className="text-sm font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full">
                                                         {formatDuration(ownerHours)}
                                                     </div>

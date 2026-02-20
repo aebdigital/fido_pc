@@ -395,6 +395,12 @@ export const generateInvoicePDF = async ({
     } else if (invoice.invoiceType === 'proforma') {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Proforma Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
+      if (!isDennik) {
+        doc.setFontSize(13.1);
+        doc.setFont('SF-Pro', 'medium');
+        doc.setTextColor(51, 51, 51);
+        doc.text(sanitizeText(`${t('Price offer')} ${projectNumber || invoice.invoiceNumber}`), 12.35, 26.5);
+      }
     } else if (invoice.invoiceType === 'delivery') {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Delivery Note')} ${invoice.invoiceNumber}`), 12.35, 20);
@@ -1078,11 +1084,17 @@ export const generateInvoicePDF = async ({
 
     // Render the items table - only 2 thick black lines (under header and at bottom)
     const isDelivery = invoice.invoiceType === 'delivery';
+    const isProforma = invoice.invoiceType === 'proforma';
 
     // Define columns based on type
     const tableHead = isDelivery ? [[
       sanitizeText(t('Description')),
       sanitizeText(t('Quantity'))
+    ]] : isProforma ? [[
+      sanitizeText(t('Description')),
+      sanitizeText(t('Quantity')),
+      sanitizeText(t('Price per Unit')),
+      sanitizeText(t('Price'))
     ]] : [[
       sanitizeText(t('Description')),
       sanitizeText(t('Quantity')),
@@ -1094,13 +1106,21 @@ export const generateInvoicePDF = async ({
 
     // Filter body rows for Delivery Note (keep only first 2 columns)
     // We need to handle category headers (colSpan=6) -> (colSpan=2)
+    // For Proforma: keep Description, Quantity, Price per Unit, Price (drop VAT columns 3,4)
     const finalTableData = isDelivery ? tableData.map(row => {
-      // If it's a category header row
       if (row.length === 1 && row[0].colSpan > 2) {
         return [{ ...row[0], colSpan: 2 }];
       }
-      // Normal row - keep first 2 cells
       return row.slice(0, 2);
+    }) : isProforma ? tableData.map(row => {
+      if (row.length === 1 && row[0].colSpan > 2) {
+        return [{ ...row[0], colSpan: 4 }];
+      }
+      // Keep columns 0,1,2,5 (Description, Quantity, Price per Unit, Price) — skip VAT%, VAT
+      if (row.length >= 6) {
+        return [row[0], row[1], row[2], row[5]];
+      }
+      return row;
     }) : tableData;
 
     autoTable(doc, {
@@ -1118,6 +1138,11 @@ export const generateInvoicePDF = async ({
       columnStyles: isDelivery ? {
         0: { cellWidth: 140, halign: 'left', overflow: 'linebreak', fontSize: 11.2 },
         1: { cellWidth: 45, halign: 'right' }
+      } : isProforma ? {
+        0: { cellWidth: 96, halign: 'left', overflow: 'linebreak', fontSize: 11.2 },
+        1: { cellWidth: 26.8, halign: 'right' },
+        2: { cellWidth: 31, halign: 'right' },
+        3: { cellWidth: 31.5, halign: 'right' }
       } : {
         0: { cellWidth: 69.5, halign: 'left', overflow: 'linebreak', fontSize: 11.2 }, // Description stays 11.2 (iOS 12pt)
         1: { cellWidth: 16.8, halign: 'right' }, // Others are 10.2 (iOS 11pt)
@@ -1129,7 +1154,9 @@ export const generateInvoicePDF = async ({
       didParseCell: (data) => {
         // Force header alignment to match body columns
         if (data.section === 'head') {
-          const alignments = ['left', 'right', 'right', 'right', 'right', 'right'];
+          const alignments = isProforma
+            ? ['left', 'right', 'right', 'right']
+            : ['left', 'right', 'right', 'right', 'right', 'right'];
           data.cell.styles.halign = alignments[data.column.index];
         }
       },
@@ -1234,26 +1261,30 @@ export const generateInvoicePDF = async ({
 
     // Only show totals for non-delivery notes
     if (invoice.invoiceType !== 'delivery') {
-      const rowSpacing = 6.5; // Increased from 5 for a small gap
+      if (isProforma) {
+        // Proforma: only one total price, no VAT breakdown
+        doc.setFontSize(15.9);
+        doc.setFont('SF-Pro', 'semibold');
+        doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
+        doc.text(sanitizeText(formatCurrency(finalTotalWithVAT)), rightX, totalY, { align: 'right' });
+      } else {
+        const rowSpacing = 6.5;
 
-      doc.setFontSize(14); // Scaled from iOS 15pt
-      doc.setFont('SF-Pro', 'normal');
-      // Restore keys with colons to match translation files, but value will be colon-free
-      doc.text(sanitizeText(t('Without VAT:')), totalsLabelX, totalY);
-      // Values are now normal font, not bold
-      doc.text(sanitizeText(formatCurrency(finalTotalWithoutVAT)), rightX, totalY, { align: 'right' });
+        doc.setFontSize(14);
+        doc.setFont('SF-Pro', 'normal');
+        doc.text(sanitizeText(t('Without VAT:')), totalsLabelX, totalY);
+        doc.text(sanitizeText(formatCurrency(finalTotalWithoutVAT)), rightX, totalY, { align: 'right' });
 
-      totalY += rowSpacing;
-      // doc.setFont('SF-Pro', 'normal'); // Already normal
-      doc.text(sanitizeText(t('VAT:')), totalsLabelX, totalY);
-      // Values are now normal font, not bold
-      doc.text(sanitizeText(formatCurrency(finalVat)), rightX, totalY, { align: 'right' });
+        totalY += rowSpacing;
+        doc.text(sanitizeText(t('VAT:')), totalsLabelX, totalY);
+        doc.text(sanitizeText(formatCurrency(finalVat)), rightX, totalY, { align: 'right' });
 
-      totalY += rowSpacing;
-      doc.setFontSize(15.9); // Scaled from iOS 17pt
-      doc.setFont('SF-Pro', 'semibold');
-      doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
-      doc.text(sanitizeText(formatCurrency(finalTotalWithVAT)), rightX, totalY, { align: 'right' });
+        totalY += rowSpacing;
+        doc.setFontSize(15.9);
+        doc.setFont('SF-Pro', 'semibold');
+        doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
+        doc.text(sanitizeText(formatCurrency(finalTotalWithVAT)), rightX, totalY, { align: 'right' });
+      }
     }
 
     // === QR CODE SECTION - Left side, below table (only for invoices, not price offers, credit notes, or delivery notes) ===

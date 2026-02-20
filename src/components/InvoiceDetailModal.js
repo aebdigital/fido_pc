@@ -29,7 +29,7 @@ import { generateNextInvoiceNumber } from '../utils/dataTransformers';
  * 5. Cash receipt section (if cash payment)
  */
 const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewProject = false, dennikOwnerContractor = null }) => {
-  useScrollLock(true);
+  useScrollLock(isOpen);
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const { updateInvoice, deleteInvoice, updateClient, updateContractor, contractors, findProjectById, calculateProjectTotalPrice, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject, createInvoice, activeContractorId } = useAppData();
@@ -255,19 +255,21 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     updateInvoice(invoice.id, { status: 'paid' });
   };
 
-  const handleCreateCreditNote = async (reason) => {
+  const handleCreateCreditNote = async (reason, percentage = 100) => {
     try {
       setShowCreditNoteModal(false);
 
       const projectResult = findProjectById(invoice.projectId);
       const project = projectResult?.project;
+      const factor = percentage / 100;
 
-      // Prepare invoice items with negative values
+      // Prepare invoice items - keep pieces/pricePerPiece positive, only total price negative
       const creditNoteItems = invoice.invoiceItems.map(item => ({
         ...item,
         id: crypto.randomUUID(),
-        pieces: -Math.abs(item.pieces),
-        price: -Math.abs(item.price),
+        pieces: Math.abs(item.pieces),
+        price: -Math.abs(item.price) * factor,
+        pricePerPiece: Math.abs(item.pricePerPiece || 0) * factor,
         active: true
       }));
 
@@ -283,8 +285,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         paymentDays: invoice.paymentDays || 30,
         notes: `${t('Credit Note for invoice')} ${invoice.invoiceNumber}`,
         invoiceItems: creditNoteItems,
-        priceWithoutVat: -Math.abs(invoice.priceWithoutVat),
-        cumulativeVat: invoice.cumulativeVat !== undefined ? -Math.abs(invoice.cumulativeVat) : undefined,
+        priceWithoutVat: -Math.abs(invoice.priceWithoutVat) * factor,
+        cumulativeVat: invoice.cumulativeVat !== undefined ? -Math.abs(invoice.cumulativeVat) * factor : undefined,
         clientId: invoice.clientId,
         invoiceType: 'credit_note'
       };
@@ -809,29 +811,52 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-white mb-1 truncate leading-[1.1]">
                 {invoice.invoiceNumber}
               </h1>
-              {project && (
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-400">
-                  {formatProjectNumber(project)}
-                </p>
-              )}
+              <div className="flex items-center gap-2">
+                {project && (
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-400">
+                    {formatProjectNumber(project)}
+                  </p>
+                )}
+                {/* Mobile Status Badge/Button */}
+                <div className="lg:hidden">
+                  {invoice.status !== INVOICE_STATUS.PAID ? (
+                    <button
+                      onClick={handleMarkAsPaid}
+                      className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full"
+                    >
+                      <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-500" />
+                      <span className="text-[11px] font-bold text-gray-900 dark:text-white uppercase">{t('Mark as Paid')}</span>
+                    </button>
+                  ) : (
+                    <div onClick={handleMarkAsPaid} className="cursor-pointer">
+                      <span className="px-2.5 py-1 text-[11px] font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full uppercase">
+                        {t('Paid')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {invoice.status !== INVOICE_STATUS.PAID ? (
-                <button
-                  onClick={handleMarkAsPaid}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg whitespace-nowrap"
-                >
-                  <Check className="w-4 h-4 text-green-600 dark:text-green-500" />
-                  <span className="text-base font-bold text-gray-900 dark:text-white">{t('Mark as Paid')}</span>
-                </button>
-              ) : (
-                <div onClick={handleMarkAsPaid} className="cursor-pointer">
-                  <span className="px-4 py-2 text-sm font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">
-                    {t('Paid')}
-                  </span>
-                </div>
-              )}
+              {/* Desktop Status Badge/Button */}
+              <div className="hidden lg:block">
+                {invoice.status !== INVOICE_STATUS.PAID ? (
+                  <button
+                    onClick={handleMarkAsPaid}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg whitespace-nowrap"
+                  >
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-500" />
+                    <span className="text-base font-bold text-gray-900 dark:text-white">{t('Mark as Paid')}</span>
+                  </button>
+                ) : (
+                  <div onClick={handleMarkAsPaid} className="cursor-pointer">
+                    <span className="px-4 py-2 text-sm font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">
+                      {t('Paid')}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={() => onClose()}
@@ -1105,6 +1130,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         isOpen={showCreditNoteModal}
         onClose={() => setShowCreditNoteModal(false)}
         onConfirm={handleCreateCreditNote}
+        invoiceItems={invoice?.invoiceItems || []}
       />
     </div>
   );

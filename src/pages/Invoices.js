@@ -521,16 +521,9 @@ const Invoices = () => {
                     {(() => {
                       const isPaid = invoice.status === INVOICE_STATUS.PAID;
 
-                      // iOS Logic Recreation
-                      // maturityCutOffDate = issueDate + maturity (in days)
-                      const issueDate = new Date(invoice.issueDate);
-                      issueDate.setHours(0, 0, 0, 0);
-
-                      // Default maturity to 14 days if not specified, matching common defaults or user setting
-                      const maturityDays = invoice.maturity || 14;
-
-                      const maturityCutOffDate = new Date(issueDate);
-                      maturityCutOffDate.setDate(issueDate.getDate() + maturityDays);
+                      // Use the actual due date (datum splatnosti) from the invoice
+                      const maturityCutOffDate = new Date(invoice.dueDate);
+                      maturityCutOffDate.setHours(0, 0, 0, 0);
 
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
