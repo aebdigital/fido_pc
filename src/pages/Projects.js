@@ -93,8 +93,7 @@ const Projects = () => {
     quickTravelToDennik,
     findProjectById,
     invoices,
-    calculateProjectTotalPriceWithBreakdown,
-    generalPriceList
+    calculateProjectTotalPriceWithBreakdown
   } = useAppData();
 
   // Unpaid invoices - latest first

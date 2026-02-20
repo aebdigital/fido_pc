@@ -1399,12 +1399,10 @@ export const translations = {
     "Rename Member": "Premenovať člena",
     "Are you sure you want to reset the name to original?": "Naozaj chcete obnoviť pôvodné meno?",
     "Edit Permissions": "Upraviť povolenia",
-    "Remove Member": "Odstrániť člena",
     "Error: Missing ID": "Chyba: Chýba ID",
     "Failed to rename member": "Nepodarilo sa premenovať člena",
     "Edit Timestamp": "Upraviť čas",
     "Are you sure you want to edit this time entry?": "Naozaj chcete upraviť tento časový záznam?",
-    "Edit": "Upraviť",
     "Failed to update time entry": "Nepodarilo sa aktualizovať časový záznam",
     "Create for": "Vytvoriť pre",
     "Myself": "Ja",
@@ -1487,7 +1485,6 @@ export const translations = {
     "Return percentage": "Percento vrátenia",
     "Return amount": "Suma vrátenia",
     "Total to return": "Celkom na vrátenie",
-    "Back": "Späť",
     "Active": "Aktívny",
   }
 };
