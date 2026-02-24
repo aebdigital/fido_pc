@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Hammer, Package, Menu, Info, RefreshCw, RefreshCcw, Wrench, ChevronDown, ChevronUp, Loader2, Check, X } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
 import ConfirmationModal from './ConfirmationModal';
 import { useScrollLock } from '../hooks/useScrollLock';
+import { findPriceListItem } from '../utils/priceCalculations';
+import { getMaterialKey, findMaterialByKey, getAdhesiveKey, findAdhesiveByKey } from '../config/materialKeys';
 
 const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
-  const { generalPriceList } = useAppData();
+  const { generalPriceList, projectRoomsData } = useAppData();
   const { t } = useLanguage();
   useScrollLock(true);
+
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [expandedSections, setExpandedSections] = useState({
@@ -26,10 +29,72 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const saveTimerRef = useRef(null);
   const initializedProjectRef = useRef(null);
 
-  // Update ref when prop changes
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
+
+  const usedItemsIndices = useMemo(() => {
+    if (!projectPriceData) return null;
+
+    const projectRooms = projectRoomsData[projectId] || [];
+
+    const used = {
+      work: new Set(),
+      material: new Set(),
+      installations: new Set(),
+      others: new Set()
+    };
+
+    // Special items that are always visible
+    const alwaysVisible = {
+      work: ['Auxiliary and finishing work'],
+      material: ['Auxiliary and fastening material'],
+      others: ['VAT']
+    };
+
+    // Mark always visible items
+    Object.keys(alwaysVisible).forEach(cat => {
+      alwaysVisible[cat].forEach(name => {
+        const idx = projectPriceData[cat]?.findIndex(item => item.name === name);
+        if (idx !== -1) used[cat].add(idx);
+      });
+    });
+
+    // Walk through all rooms and their work items
+    projectRooms.forEach(room => {
+      (room.workItems || []).forEach(workItem => {
+        // 1. Find matching Price List Item (covers Work, Installations, Others like Commute)
+        const matchedItem = findPriceListItem(workItem, projectPriceData);
+        if (matchedItem) {
+          for (const cat of ['work', 'installations', 'others']) {
+            const idx = projectPriceData[cat]?.indexOf(matchedItem);
+            if (idx !== -1) {
+              used[cat].add(idx);
+              break;
+            }
+          }
+        }
+
+        // 2. Find matching Material Items
+        const materialKey = getMaterialKey(workItem.propertyId, workItem.selectedType);
+        const material = findMaterialByKey(materialKey, projectPriceData.material);
+        if (material) {
+          const idx = projectPriceData.material.indexOf(material);
+          if (idx !== -1) used.material.add(idx);
+        }
+
+        // 3. Find matching Adhesive
+        const adhesiveKey = getAdhesiveKey(workItem.propertyId);
+        const adhesive = findAdhesiveByKey(adhesiveKey, projectPriceData.material);
+        if (adhesive) {
+          const idx = projectPriceData.material.indexOf(adhesive);
+          if (idx !== -1) used.material.add(idx);
+        }
+      });
+    });
+
+    return used;
+  }, [projectPriceData, projectRoomsData, projectId]);
 
   // Initialize project price data from general settings or load existing project overrides
   // Only initialize once per projectId — do NOT re-initialize when initialData/generalPriceList
@@ -369,9 +434,10 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
             {expandedSections.work && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                {projectPriceData.work.map((item, index) => (
-                  <PriceCard key={index} item={item} category="work" itemIndex={index} />
-                ))}
+                {projectPriceData.work.map((item, index) => {
+                  if (usedItemsIndices && !usedItemsIndices.work.has(index)) return null;
+                  return <PriceCard key={index} item={item} category="work" itemIndex={index} />;
+                })}
               </div>
             )}
           </div>
@@ -391,9 +457,10 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
             {expandedSections.material && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                {projectPriceData.material.map((item, index) => (
-                  <PriceCard key={index} item={item} category="material" itemIndex={index} />
-                ))}
+                {projectPriceData.material.map((item, index) => {
+                  if (usedItemsIndices && !usedItemsIndices.material.has(index)) return null;
+                  return <PriceCard key={index} item={item} category="material" itemIndex={index} />;
+                })}
               </div>
             )}
           </div>
@@ -414,9 +481,10 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
               {expandedSections.installations && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                  {projectPriceData.installations.map((item, index) => (
-                    <PriceCard key={index} item={item} category="installations" itemIndex={index} />
-                  ))}
+                  {projectPriceData.installations.map((item, index) => {
+                    if (usedItemsIndices && !usedItemsIndices.installations.has(index)) return null;
+                    return <PriceCard key={index} item={item} category="installations" itemIndex={index} />;
+                  })}
                 </div>
               )}
             </div>
@@ -437,9 +505,10 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
             {expandedSections.others && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                {projectPriceData.others.filter(item => item.name !== 'Custom work and material').map((item, index) => (
-                  <PriceCard key={index} item={item} category="others" itemIndex={index} />
-                ))}
+                {projectPriceData.others.filter(item => item.name !== 'Custom work and material').map((item, index) => {
+                  if (usedItemsIndices && !usedItemsIndices.others.has(index)) return null;
+                  return <PriceCard key={index} item={item} category="others" itemIndex={index} />;
+                })}
               </div>
             )}
           </div>
