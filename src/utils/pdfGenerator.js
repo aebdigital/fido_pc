@@ -395,11 +395,11 @@ export const generateInvoicePDF = async ({
     } else if (invoice.invoiceType === 'proforma') {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Proforma Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
-      if (!isDennik) {
+      if (!isDennik && projectNumber) {
         doc.setFontSize(13.1);
         doc.setFont('SF-Pro', 'medium');
         doc.setTextColor(51, 51, 51);
-        doc.text(sanitizeText(`${t('Price offer')} ${projectNumber || invoice.invoiceNumber}`), 12.35, 26.5);
+        doc.text(sanitizeText(`${t('Price offer')} ${projectNumber}`), 12.35, 26.5);
       }
     } else if (invoice.invoiceType === 'delivery') {
       doc.setTextColor(0, 0, 0);
@@ -417,11 +417,11 @@ export const generateInvoicePDF = async ({
     } else {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
-      if (!isDennik) {
+      if (!isDennik && projectNumber) {
         doc.setFontSize(13.1); // Scaled from iOS 14pt
         doc.setFont('SF-Pro', 'medium');
         doc.setTextColor(51, 51, 51); // matches iOS black.opacity(0.8)
-        doc.text(sanitizeText(`${t('Price offer')} ${projectNumber || invoice.invoiceNumber}`), 12.35, 26.5);
+        doc.text(sanitizeText(`${t('Price offer')} ${projectNumber}`), 12.35, 26.5);
       }
     }
     doc.setTextColor(0, 0, 0); // reset to black
