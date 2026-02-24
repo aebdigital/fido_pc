@@ -207,6 +207,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef(null);
+  const moreMenuRefMobile = useRef(null);
   const [isSharing, setIsSharing] = useState(false);
 
   // Invoices for this project to show in ClientForm
@@ -259,7 +260,10 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   useEffect(() => {
     if (!showMoreMenu) return;
     const handleClick = (e) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+      const isOutsideDesktop = !moreMenuRef.current || !moreMenuRef.current.contains(e.target);
+      const isOutsideMobile = !moreMenuRefMobile.current || !moreMenuRefMobile.current.contains(e.target);
+
+      if (isOutsideDesktop && isOutsideMobile) {
         setShowMoreMenu(false);
       }
     };
@@ -1202,37 +1206,52 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       }
                       setShowDennikModal(true);
                     }}
-                    className="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                    className="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center mr-1"
                   >
                     <BookOpen className="w-4 h-4" />
                   </button>
-                  {canView('project_pricelist') && (
-                    <button
-                      onClick={() => setShowProjectPriceList(true)}
-                      title={t('Project price list')}
-                      className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                    >
-                      <Euro className="w-4 h-4 text-purple-500" />
-                    </button>
-                  )}
-                  {canView('duplicate') && (
-                    <button
-                      onClick={handleDuplicateProject}
-                      disabled={isDuplicating}
-                      title={t('Duplicate')}
-                      className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center"
-                    >
-                      {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 text-blue-500" />}
-                    </button>
-                  )}
-                  {canView('archive') && (
-                    <button
-                      onClick={() => setShowArchiveConfirmation(true)}
-                      title={t('ArchiveProjectAction')}
-                      className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                    >
-                      <Archive className="w-4 h-4 text-yellow-500" />
-                    </button>
+
+                  {(canView('project_pricelist') || canView('duplicate') || canView('archive')) && (
+                    <div className="relative" ref={moreMenuRefMobile}>
+                      <button
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {showMoreMenu && (
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                          {canView('project_pricelist') && (
+                            <button
+                              onClick={() => { setShowProjectPriceList(true); setShowMoreMenu(false); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                            >
+                              <Euro className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Project price list')}</span>
+                            </button>
+                          )}
+                          {canView('duplicate') && (
+                            <button
+                              onClick={() => { handleDuplicateProject(); setShowMoreMenu(false); }}
+                              disabled={isDuplicating}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left disabled:opacity-50"
+                            >
+                              {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Duplicate')}</span>
+                            </button>
+                          )}
+                          {canView('archive') && (
+                            <button
+                              onClick={() => { setShowArchiveConfirmation(true); setShowMoreMenu(false); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                            >
+                              <Archive className="w-4 h-4 text-yellow-500" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('ArchiveProjectAction')}</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </>
               )}
