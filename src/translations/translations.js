@@ -78,8 +78,25 @@ export const translations = {
     "ks": "pc",
     "deň": "day",
     "dní": "days",
+    "€/pc": "€/pc",
+    "€/hr": "€/hr",
+    "€/day": "€/day",
+    "€/days": "€/days",
+    "€/pkg": "€/pkg",
+    "€/m2": "€/m²",
+    "€/m3": "€/m³",
+    "€/bm": "€/m",
+    "€/km": "€/km",
+    "€/kg": "€/kg",
+    "€/t": "€/t",
 
     "days_2_4": "days",
+
+    "Delete item": "Delete item",
+    "Are you sure you want to delete this item?": "Are you sure you want to delete this item?",
+    "Are you sure you want to delete this work item?": "Are you sure you want to delete this work item?",
+    "Are you sure you want to delete this material item?": "Are you sure you want to delete this material item?",
+    "Are you sure you want to delete this invoice item?": "Are you sure you want to delete this invoice item?",
 
     // ========== PROJECT CATEGORIES (Reciprocal) ==========
     "Flats": "Flats",
@@ -320,6 +337,17 @@ export const translations = {
     "day": "deň",
     "days": "dní",
     "pkg": "bal",
+    "€/pc": "€/ks",
+    "€/hr": "€/hod",
+    "€/day": "€/deň",
+    "€/days": "€/dní",
+    "€/pkg": "€/bal",
+    "€/m2": "€/m²",
+    "€/m3": "€/m³",
+    "€/bm": "€/m",
+    "€/km": "€/km",
+    "€/kg": "€/kg",
+    "€/t": "€/t",
 
     // Display names for aggregated material items
     "Windows": "Okná",
@@ -1518,6 +1546,11 @@ export const translations = {
     "Return amount": "Suma vrátenia",
     "Total to return": "Celkom na vrátenie",
     "Active": "Aktívny",
+    "Delete item": "Vymazať položku",
+    "Are you sure you want to delete this item?": "Naozaj chcete vymazať túto položku?",
+    "Are you sure you want to delete this work item?": "Naozaj chcete vymazať túto položku prác?",
+    "Are you sure you want to delete this material item?": "Naozaj chcete vymazať túto položku materiálu?",
+    "Are you sure you want to delete this invoice item?": "Naozaj chcete vymazať túto položku faktúry?",
   }
 };
 

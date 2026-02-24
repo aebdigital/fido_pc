@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -14,6 +14,7 @@ import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES } from '../config/constants';
 import { SimpleLayerIcon, DoubleLayerIcon, TripleLayerIcon, ActiveLayersIcon } from './LayerIcons';
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
 import { getItemLabel } from '../utils/itemNaming';
+import ConfirmationModal from './ConfirmationModal';
 
 // Helper to get the item label based on property type - MOVED TO UTILS/ITEMNAMING.JS
 
@@ -47,6 +48,23 @@ const WorkPropertyCard = ({
   const { t } = useLanguage();
   const [activeSuggestionId, setActiveSuggestionId] = React.useState(null);
   const [unitDropdownItemId, setUnitDropdownItemId] = React.useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  const handleDeleteClick = (itemId, type = null, subItemId = null, e = null) => {
+    if (e) e.stopPropagation();
+    setItemToDelete({ id: itemId, type, subItemId });
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      if (itemToDelete.subItemId) {
+        onRemoveDoorWindow(itemToDelete.id, itemToDelete.type, itemToDelete.subItemId);
+      } else {
+        onRemoveWorkItem(itemToDelete.id);
+      }
+      setItemToDelete(null);
+    }
+  };
 
   // For rentals, we need to match items with specific rental propertyIds (core_drill, tool_rental, scaffolding)
   // as well as the parent 'rentals' propertyId
@@ -127,10 +145,11 @@ const WorkPropertyCard = ({
                   <Copy className="w-4 h-4 lg:w-3 lg:h-3" />
                 </button>
                 <button
-                  onClick={(e) => onRemoveDoorWindow(item.id, type, subItem.id, e)}
-                  className="w-7 h-7 lg:w-6 lg:h-6 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                  onClick={(e) => handleDeleteClick(item.id, type, subItem.id, e)}
+                  className="bg-red-500 hover:bg-red-600 rounded-lg p-1.5 lg:p-1 transition-colors shadow-sm flex items-center justify-center"
+                  title={t('Delete item')}
                 >
-                  <Trash2 className="w-4 h-4 lg:w-3 lg:h-3" />
+                  <Trash2 className="w-4 h-4 lg:w-3.5 lg:h-3.5 text-white" />
                 </button>
               </div>
             </div>
@@ -193,7 +212,16 @@ const WorkPropertyCard = ({
       if (field.name === WORK_ITEM_NAMES.QUANTITY) {
         unitDisplay = displayUnit;
       } else if (field.name === WORK_ITEM_NAMES.PRICE) {
-        unitDisplay = `€/${displayUnit}`;
+        // First try translation of the composite string for efficiency/overrides
+        const compositeKey = `€/${displayUnit}`;
+        const translatedComposite = t(compositeKey);
+
+        if (translatedComposite !== compositeKey) {
+          unitDisplay = translatedComposite;
+        } else {
+          // Fallback: translate only the unit part
+          unitDisplay = `€/${t(displayUnit)}`;
+        }
       }
     }
 
@@ -254,7 +282,7 @@ const WorkPropertyCard = ({
                 <ChevronDown className="w-3 h-3" />
               </button>
               {unitDropdownItemId === item.id && (
-                <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl overflow-hidden">
+                <div className="absolute right-0 bottom-full mb-1 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-xl p-1.5 grid grid-cols-4 gap-1 w-max">
                   {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
                     <button
                       key={unit}
@@ -264,11 +292,10 @@ const WorkPropertyCard = ({
                         onUnitSelect(item.id, unit, e);
                         setUnitDropdownItemId(null);
                       }}
-                      className={`block w-full text-left px-3 py-1.5 text-sm transition-colors ${
-                        item.selectedUnit === unit
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
+                      className={`px-2.5 py-1.5 rounded-lg text-sm text-center transition-colors ${item.selectedUnit === unit
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
                     >
                       {t(unitToDisplaySymbol(unit))}
                     </button>
@@ -287,6 +314,7 @@ const WorkPropertyCard = ({
   // 1. Rentals
   if (property.id === WORK_ITEM_PROPERTY_IDS.RENTALS) {
     return (
+      <>
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm transition-all duration-300 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Always show header with plus button */}
         <div
@@ -298,11 +326,11 @@ const WorkPropertyCard = ({
             }
           }}
         >
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
           </div>
           <div
-            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex-shrink-0"
             onClick={(e) => onAddWorkItem(property.id, e)}
           >
             <Plus className="w-4 h-4" />
@@ -344,16 +372,19 @@ const WorkPropertyCard = ({
 
           return (
             <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3 animate-slide-in`}>
-              <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
-                {rentalLabel}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                </button>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1 min-w-0">
+                  {rentalLabel}
+                </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={(e) => handleDeleteClick(item.id, null, null, e)}
+                    className="bg-red-500 hover:bg-red-600 rounded-xl p-2.5 lg:p-2 transition-colors shadow-sm"
+                    title={t('Delete item')}
+                  >
+                    <Trash2 className="w-5 h-5 lg:w-4 lg:h-4 text-white" />
+                  </button>
+                </div>
               </div>
 
               {/* Rental fields */}
@@ -379,6 +410,16 @@ const WorkPropertyCard = ({
           );
         })}
       </div>
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete item"
+        message="Are you sure you want to delete this work item?"
+        confirmLabel="Delete"
+        isDestructive={true}
+      />
+      </>
     );
   }
 
@@ -411,6 +452,7 @@ const WorkPropertyCard = ({
     const isFilled = hasInput(existingItem);
 
     return (
+      <>
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm transition-all duration-300 ${isFilled ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Header with plus/minus button */}
         <div
@@ -434,18 +476,14 @@ const WorkPropertyCard = ({
           </div>
           {existingItem && expandedItems[existingItem.id] ? (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onRemoveWorkItem(existingItem.id, e);
-              }}
-              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-              title={t('Delete')}
+              onClick={(e) => handleDeleteClick(existingItem.id, null, null, e)}
+              className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm flex-shrink-0"
+              title={t('Delete item')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
           ) : (
-            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+            <div className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex-shrink-0">
               <ChevronDown className="w-4 h-4" />
             </div>
           )}
@@ -554,6 +592,16 @@ const WorkPropertyCard = ({
           </div>
         )}
       </div>
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete item"
+        message="Are you sure you want to delete this work item?"
+        confirmLabel="Delete"
+        isDestructive={true}
+      />
+      </>
     );
   }
 
@@ -563,6 +611,7 @@ const WorkPropertyCard = ({
     const existingItems = workData.filter(item => item.propertyId === property.id);
 
     return (
+      <>
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Always show header with plus button */}
         <div
@@ -574,14 +623,14 @@ const WorkPropertyCard = ({
             }
           }}
         >
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
           </div>
           <div
-            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex-shrink-0"
             onClick={(e) => onAddWorkItem(property.id, e)}
           >
             <Plus className="w-4 h-4" />
@@ -623,15 +672,16 @@ const WorkPropertyCard = ({
         {expandedItems[property.id] && existingItems.map((item, index) => (
           <div key={item.id} className={`bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3`}>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
+              <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1 min-w-0">
                 {getItemLabel(property, item, index, existingItems.length, t)}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  onClick={(e) => handleDeleteClick(item.id, null, null, e)}
+                  className="bg-red-500 hover:bg-red-600 rounded-xl p-2.5 lg:p-2 transition-colors shadow-sm"
+                  title={t('Delete item')}
                 >
-                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4 text-white" />
                 </button>
               </div>
             </div>
@@ -737,12 +787,23 @@ const WorkPropertyCard = ({
           </div>
         ))}
       </div>
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete item"
+        message="Are you sure you want to delete this work item?"
+        confirmLabel="Delete"
+        isDestructive={true}
+      />
+      </>
     );
   }
 
   // 4. Special handling for sanitary installation
   if (property.id === WORK_ITEM_PROPERTY_IDS.SANITY_INSTALLATION) {
     return (
+      <>
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 shadow-sm ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         {/* Always show header with plus button */}
         <div
@@ -760,14 +821,14 @@ const WorkPropertyCard = ({
             }
           }}
         >
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
             {property.subtitle && (
               <p className="text-base text-gray-600 dark:text-gray-400">{property.subtitle}</p>
             )}
           </div>
           <div
-            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex-shrink-0"
             onClick={(e) => {
               // Ensure we don't trigger the parent click which might toggle instead of add
               e.stopPropagation();
@@ -808,15 +869,16 @@ const WorkPropertyCard = ({
         {expandedItems[property.id] && existingItems.map(item => (
           <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1">
+              <span className="font-semibold text-gray-900 dark:text-white text-lg flex-1 min-w-0">
                 {t(item.selectedType)}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  onClick={(e) => handleDeleteClick(item.id, null, null, e)}
+                  className="bg-red-500 hover:bg-red-600 rounded-xl p-2.5 lg:p-2 transition-colors shadow-sm"
+                  title={t('Delete item')}
                 >
-                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4 text-white" />
                 </button>
               </div>
             </div>
@@ -859,6 +921,16 @@ const WorkPropertyCard = ({
           </div>
         ))}
       </div>
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete item"
+        message="Are you sure you want to delete this work item?"
+        confirmLabel="Delete"
+        isDestructive={true}
+      />
+      </>
     );
   }
 
@@ -956,10 +1028,11 @@ const WorkPropertyCard = ({
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={(e) => onRemoveWorkItem(item.id, e)}
-                  className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                  onClick={(e) => handleDeleteClick(item.id, null, null, e)}
+                  className="bg-red-500 hover:bg-red-600 rounded-xl p-2.5 lg:p-2 transition-colors shadow-sm flex-shrink-0"
+                  title={t('Delete item')}
                 >
-                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4 text-white" />
                 </button>
               </div>
             </div>
@@ -980,6 +1053,7 @@ const WorkPropertyCard = ({
     };
 
     return (
+      <>
       <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         <div
           className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
@@ -990,7 +1064,7 @@ const WorkPropertyCard = ({
             }
           }}
         >
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
               {(isVirtualWork || (!property.virtualType && property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK)) && (
@@ -1005,7 +1079,7 @@ const WorkPropertyCard = ({
             )}
           </div>
           <div
-            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex-shrink-0"
             onClick={(e) => onAddWorkItem(property.id, e)}
           >
             <Plus className="w-4 h-4" />
@@ -1037,216 +1111,240 @@ const WorkPropertyCard = ({
           </div>
         )}
       </div>
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete item"
+        message="Are you sure you want to delete this work item?"
+        confirmLabel="Delete"
+        isDestructive={true}
+      />
+      </>
     );
   }
 
   // 6. Regular property card for other properties (default)
   return (
-    <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
-      <div
-        className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
-        onClick={(e) => {
-          if (existingItems.length > 0) {
-            e.preventDefault();
-            onToggleExpanded(property.id, e);
-          }
-        }}
-      >
-        <div className="flex-1">
-          <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
-          {property.subtitle && (
-            <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
-          )}
-        </div>
+    <>
+      <div className={`bg-gray-200 dark:bg-gray-800 rounded-2xl p-3 lg:p-3 space-y-3 lg:space-y-2 ${existingItems.length > 0 ? 'ring-2 ring-gray-900 dark:ring-white' : ''}`}>
         <div
-          className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
-          onClick={(e) => onAddWorkItem(property.id, e)}
+          className={`flex items-center justify-between transition-opacity ${existingItems.length > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
+          onClick={(e) => {
+            if (existingItems.length > 0) {
+              e.preventDefault();
+              onToggleExpanded(property.id, e);
+            }
+          }}
         >
-          <Plus className="w-4 h-4" />
-        </div>
-      </div>
-
-      {/* Show existing work items for this property */}
-      {expandedItems[property.id] && existingItems.map((item, index) => (
-        <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <input
-                  id={`custom-work-name-${item.id}`}
-                  type="text"
-                  defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
-                  onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
-                  className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
-                  placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
-                />
-              </div>
-            ) : property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ? (
-              <span className="font-semibold text-gray-900 dark:text-white text-lg">
-                {t(property.name)}
-              </span>
-            ) : (
-              <span className="font-semibold text-gray-900 dark:text-white text-lg">
-                {getItemLabel(property, item, index, existingItems.length, t)}
-              </span>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{t(property.name)}</h4>
+            {property.subtitle && (
+              <p className="text-base text-gray-600 dark:text-gray-400">{t(property.subtitle)}</p>
             )}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={(e) => onRemoveWorkItem(item.id, e)}
-                className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
-              >
-                <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-              </button>
-            </div>
           </div>
+          <div
+            className="w-8 h-8 lg:w-8 lg:h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center cursor-pointer hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex-shrink-0"
+            onClick={(e) => onAddWorkItem(property.id, e)}
+          >
+            <Plus className="w-4 h-4" />
+          </div>
+        </div>
 
-          {/* Property type selection - for custom_work, only show if unit not yet selected */}
-          {property.types && (property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || !item.selectedUnit) && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {property.types.map(type => (
+        {/* Show existing work items for this property */}
+        {expandedItems[property.id] && existingItems.map((item, index) => (
+          <div key={item.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 lg:p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <input
+                    id={`custom-work-name-${item.id}`}
+                    type="text"
+                    defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
+                    onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
+                    className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
+                    placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
+                  />
+                </div>
+              ) : property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK ? (
+                <span className="font-semibold text-gray-900 dark:text-white text-lg">
+                  {t(property.name)}
+                </span>
+              ) : (
+                <span className="font-semibold text-gray-900 dark:text-white text-lg">
+                  {getItemLabel(property, item, index, existingItems.length, t)}
+                </span>
+              )}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  key={type}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onUpdateItemState(item.id, { selectedType: type });
-                  }}
-                  className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex flex-col items-center justify-center gap-1 ${item.selectedType === type
-                    ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
+                  onClick={(e) => handleDeleteClick(item.id, null, null, e)}
+                  className="bg-red-500 hover:bg-red-600 rounded-xl p-2.5 lg:p-2 transition-colors shadow-sm"
+                  title={t('Delete item')}
                 >
-                  {type === 'Work' && <Hammer className="w-4 h-4" />}
-                  {type === 'Material' && <Package className="w-4 h-4" />}
-                  {type === 'Simple' && <SimpleLayerIcon className="w-10 h-10" />}
-                  {type === 'Double' && <DoubleLayerIcon className="w-10 h-10" />}
-                  {type === 'Triple' && <TripleLayerIcon className="w-10 h-10" />}
-                  {t(type)}
+                  <Trash2 className="w-5 h-5 lg:w-4 lg:h-4 text-white" />
                 </button>
-              ))}
+              </div>
             </div>
-          )}
 
-          {/* Unit selector for custom work - only show after type is selected but before unit is selected */}
-          {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
-              <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Select unit')}</span>
-              <div className="grid grid-cols-4 gap-2">
-                {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
+            {/* Property type selection - for custom_work, only show if unit not yet selected */}
+            {property.types && (property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || !item.selectedUnit) && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {property.types.map(type => (
                   <button
-                    key={unit}
-                    onClick={(e) => onUnitSelect(item.id, unit, e)}
-                    className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                    key={type}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onUpdateItemState(item.id, { selectedType: type });
+                    }}
+                    className={`p-3 lg:p-2 rounded-lg text-sm lg:text-sm transition-colors flex flex-col items-center justify-center gap-1 ${item.selectedType === type
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      }`}
                   >
-                    {unit}
+                    {type === 'Work' && <Hammer className="w-4 h-4" />}
+                    {type === 'Material' && <Package className="w-4 h-4" />}
+                    {type === 'Simple' && <SimpleLayerIcon className="w-10 h-10" />}
+                    {type === 'Double' && <DoubleLayerIcon className="w-10 h-10" />}
+                    {type === 'Triple' && <TripleLayerIcon className="w-10 h-10" />}
+                    {t(type)}
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Property fields */}
-          {property.fields && (property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || item.selectedUnit) && (
-            <div className="space-y-3 lg:space-y-2">
-              {property.fields.map(field => (
-                <div key={field.name}>
-                  {renderField(item, field)}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Doors and Windows sections */}
-          {property.fields && (() => {
-            const hasDoors = property.fields.some(f => f.name === WORK_ITEM_NAMES.DOORS);
-            const hasWindows = property.fields.some(f => f.name === WORK_ITEM_NAMES.WINDOWS);
-
-            if (hasDoors && hasWindows) {
-              return (
-                <div className="grid grid-cols-2 gap-2 lg:gap-3">
-                  {renderDoorWindowSection(item, 'doors')}
-                  {renderDoorWindowSection(item, 'windows')}
-                </div>
-              );
-            } else if (hasWindows) {
-              return (
-                <div className="grid grid-cols-2 gap-2 lg:gap-3">
-                  {renderDoorWindowSection(item, 'windows')}
-                  <div className="hidden lg:block"></div>
-                </div>
-              );
-            } else if (hasDoors) {
-              return (
-                <div className="grid grid-cols-2 gap-2 lg:gap-3">
-                  {renderDoorWindowSection(item, 'doors')}
-                  <div className="hidden lg:block"></div>
-                </div>
-              );
-            }
-            return null;
-          })()}
-
-          {/* Additional Fields (toggles and extra inputs) */}
-          {property.additionalFields && (
-            <div className="space-y-3 lg:space-y-2">
-              {property.additionalFields.map((field, index) => (
-                <div key={`${field.name}-${field.subtitle || index}`}>
-                  {renderField(item, field)}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Complementary works */}
-          {property.complementaryWorks && (
-            <div className="space-y-3 lg:space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-base lg:text-sm font-semibold text-gray-900 dark:text-white">{t('Complementary works')}</span>
-                <button
-                  onClick={(e) => onToggleExpanded(`${item.id}_complementary`, e)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                >
-                  {expandedItems[`${item.id}_complementary`] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
-                </button>
-              </div>
-
-              {expandedItems[`${item.id}_complementary`] && (
-                <div className="space-y-3 lg:space-y-2 ">
-                  <div className="flex justify-end">
+            {/* Unit selector for custom work - only show after type is selected but before unit is selected */}
+            {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && property.hasUnitSelector && item.selectedType && !item.selectedUnit && (
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-3 space-y-3">
+                <span className="text-base font-semibold text-gray-900 dark:text-white">{t('Select unit')}</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {(item.selectedType === 'Work' ? property.workUnits : property.materialUnits)?.map(unit => (
                     <button
-                      onClick={(e) => onToggleAllComplementaryWorks(item.id, e)}
-                      className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
-                      title="Toggle all complementary works"
+                      key={unit}
+                      onClick={(e) => onUnitSelect(item.id, unit, e)}
+                      className="p-2 bg-white dark:bg-gray-700 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                     >
-                      <ActiveLayersIcon activeLayers={getToggleAllIconState(item, property.complementaryWorks, property.supportsDoubleComplementary)} className="w-full h-full" />
+                      {unit}
                     </button>
-                  </div>
-                  {property.complementaryWorks.map((work, index) => {
-                    // Count occurrences of this work type before current index
-                    const occurrenceIndex = property.complementaryWorks.slice(0, index).filter(w => w === work).length;
-                    const uniqueKey = `${work}_${occurrenceIndex}`;
-                    // Read the flag value from complementaryWorks (0, 1, or 2)
-                    const instanceCount = item.complementaryWorks?.[uniqueKey] || 0;
-
-                    return (
-                      <div key={`${work}_${index}`} className="flex items-center justify-between gap-3">
-                        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
-                        <button
-                          onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
-                          className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
-                        >
-                          <ActiveLayersIcon activeLayers={instanceCount} className="w-full h-full" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+              </div>
+            )}
+
+            {/* Property fields */}
+            {property.fields && (property.id !== WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK || item.selectedUnit) && (
+              <div className="space-y-3 lg:space-y-2">
+                {property.fields.map(field => (
+                  <div key={field.name}>
+                    {renderField(item, field)}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Doors and Windows sections */}
+            {property.fields && (() => {
+              const hasDoors = property.fields.some(f => f.name === WORK_ITEM_NAMES.DOORS);
+              const hasWindows = property.fields.some(f => f.name === WORK_ITEM_NAMES.WINDOWS);
+
+              if (hasDoors && hasWindows) {
+                return (
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
+                    {renderDoorWindowSection(item, 'doors')}
+                    {renderDoorWindowSection(item, 'windows')}
+                  </div>
+                );
+              } else if (hasWindows) {
+                return (
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
+                    {renderDoorWindowSection(item, 'windows')}
+                    <div className="hidden lg:block"></div>
+                  </div>
+                );
+              } else if (hasDoors) {
+                return (
+                  <div className="grid grid-cols-2 gap-2 lg:gap-3">
+                    {renderDoorWindowSection(item, 'doors')}
+                    <div className="hidden lg:block"></div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {/* Additional Fields (toggles and extra inputs) */}
+            {property.additionalFields && (
+              <div className="space-y-3 lg:space-y-2">
+                {property.additionalFields.map((field, index) => (
+                  <div key={`${field.name}-${field.subtitle || index}`}>
+                    {renderField(item, field)}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Complementary works */}
+            {property.complementaryWorks && (
+              <div className="space-y-3 lg:space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-base lg:text-sm font-semibold text-gray-900 dark:text-white">{t('Complementary works')}</span>
+                  <button
+                    onClick={(e) => onToggleExpanded(`${item.id}_complementary`, e)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    {expandedItems[`${item.id}_complementary`] ? <X className="w-5 h-5 lg:w-4 lg:h-4" /> : <Plus className="w-5 h-5 lg:w-4 lg:h-4" />}
+                  </button>
+                </div>
+
+                {expandedItems[`${item.id}_complementary`] && (
+                  <div className="space-y-3 lg:space-y-2 ">
+                    <div className="flex justify-end">
+                      <button
+                        onClick={(e) => onToggleAllComplementaryWorks(item.id, e)}
+                        className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
+                        title="Toggle all complementary works"
+                      >
+                        <ActiveLayersIcon activeLayers={getToggleAllIconState(item, property.complementaryWorks, property.supportsDoubleComplementary)} className="w-full h-full" />
+                      </button>
+                    </div>
+                    {property.complementaryWorks.map((work, index) => {
+                      // Count occurrences of this work type before current index
+                      const occurrenceIndex = property.complementaryWorks.slice(0, index).filter(w => w === work).length;
+                      const uniqueKey = `${work}_${occurrenceIndex}`;
+                      // Read the flag value from complementaryWorks (0, 1, or 2)
+                      const instanceCount = item.complementaryWorks?.[uniqueKey] || 0;
+
+                      return (
+                        <div key={`${work}_${index}`} className="flex items-center justify-between gap-3">
+                          <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1">{t(work)}</span>
+                          <button
+                            onClick={(e) => onToggleComplementaryWork(item.id, uniqueKey, e)}
+                            className="w-8 h-8 lg:w-7 lg:h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200"
+                          >
+                            <ActiveLayersIcon activeLayers={instanceCount} className="w-full h-full" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete item"
+        message={itemToDelete?.subItemId ? "Are you sure you want to delete this item?" : "Are you sure you want to delete this work item?"}
+        confirmLabel="Delete"
+        isDestructive={true}
+      />
+    </>
   );
 };
 

@@ -115,8 +115,8 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
                         <button
                             onClick={() => setActiveTab('all')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'all'
-                                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                                 }`}
                         >
                             {t('All Saved')}
@@ -124,8 +124,8 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
                         <button
                             onClick={() => setActiveTab('hidden')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'hidden'
-                                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                                 }`}
                         >
                             {t('Hidden')} ({hiddenItems.length})
@@ -156,10 +156,10 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
                                 {activeTab === 'all' ? (
                                     <button
                                         onClick={() => handleHideItem(item.title)}
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                        className="p-2.5 bg-red-500 text-white hover:bg-red-600 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 shadow-sm"
                                         title={t('Hide from suggestions')}
                                     >
-                                        <Trash2 className="w-5 h-5" />
+                                        <Trash2 className="w-4 h-4" />
                                     </button>
                                 ) : (
                                     <button

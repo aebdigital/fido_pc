@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Pencil } from 'lucide-react';
+import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
 
@@ -18,7 +18,9 @@ const InvoiceItemBubble = ({
   item,
   onUpdate,
   category = 'work',
-  suggestions = []
+  suggestions = [],
+  deleteMode = false,
+  onRemove
 }) => {
   const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(item.isNew || false);
@@ -264,26 +266,41 @@ const InvoiceItemBubble = ({
         {/* Action buttons - Collapsed state */}
         {!isExpanded && (
           <div className="flex gap-2 mt-2">
-            <button
-              onClick={handleActiveToggle}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-            >
-              <FileText className="w-4 h-4" />
-              {active ? t('Exclude') : t('Include')}
-            </button>
-            <button
-              onClick={() => {
-                if (!active) {
-                  setActive(true);
-                  notifyUpdate({ active: true });
-                }
-                setIsExpanded(true);
-              }}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-            >
-              <Pencil className="w-4 h-4" />
-              {t('Edit')}
-            </button>
+            {deleteMode ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove && onRemove();
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-600 rounded-xl text-sm font-bold text-white transition-colors shadow-sm"
+              >
+                <Trash2 className="w-4 h-4" />
+                {t('Delete')}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleActiveToggle}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  {active ? t('Exclude') : t('Include')}
+                </button>
+                <button
+                  onClick={() => {
+                    if (!active) {
+                      setActive(true);
+                      notifyUpdate({ active: true });
+                    }
+                    setIsExpanded(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                  {t('Edit')}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

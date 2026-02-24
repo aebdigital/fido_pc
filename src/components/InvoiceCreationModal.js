@@ -10,6 +10,7 @@ import { unitToDisplaySymbol } from '../services/workItemsMapping';
 import { sortItemsByMasterList } from '../utils/itemSorting';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { generateNextInvoiceNumber } from '../utils/dataTransformers';
+import ConfirmationModal from './ConfirmationModal';
 
 // Helper to safely parse invoice notes that might be stored as typed-JSON or plain string
 const getNoteForType = (noteData, type, t) => {
@@ -172,6 +173,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [showClientSelector, setShowClientSelector] = useState(false);
   const [showCreateClientInModal, setShowCreateClientInModal] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   // Handle initialClientContractor (Consolidated Invoice)
   useEffect(() => {
@@ -679,7 +682,14 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   // Remove an item
   const handleRemoveItem = (itemId) => {
-    setInvoiceItems(prev => prev.filter(item => item.id !== itemId));
+    setItemToDelete(itemId);
+  };
+
+  const confirmRemoveItem = () => {
+    if (itemToDelete) {
+      setInvoiceItems(prev => prev.filter(item => item.id !== itemToDelete));
+      setItemToDelete(null);
+    }
   };
 
   // Client Selection Handlers
@@ -1430,13 +1440,22 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Work')}</h4>
-                    <button
-                      onClick={() => handleAddItem('work')}
-                      className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                      title={t('Add work item')}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setDeleteMode(!deleteMode)}
+                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white`}
+                        title={t('Delete actions')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleAddItem('work')}
+                        className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                        title={t('Add work item')}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   {workItems.length > 0 && (
                     <div className="space-y-2">
@@ -1447,14 +1466,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                             onUpdate={handleItemUpdate}
                             category="work"
                             suggestions={getSuggestionsForCategory('work')}
+                            deleteMode={deleteMode}
+                            onRemove={() => handleRemoveItem(item.id)}
                           />
-                          <button
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
-                            title={t('Remove')}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -1465,13 +1479,22 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Material')}</h4>
-                    <button
-                      onClick={() => handleAddItem('material')}
-                      className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                      title={t('Add material item')}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setDeleteMode(!deleteMode)}
+                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white`}
+                        title={t('Delete actions')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleAddItem('material')}
+                        className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                        title={t('Add material item')}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   {materialItems.length > 0 && (
                     <div className="space-y-2">
@@ -1482,14 +1505,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                             onUpdate={handleItemUpdate}
                             category="material"
                             suggestions={getSuggestionsForCategory('material')}
+                            deleteMode={deleteMode}
+                            onRemove={() => handleRemoveItem(item.id)}
                           />
-                          <button
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
-                            title={t('Remove')}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -1500,13 +1518,22 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Other')}</h4>
-                    <button
-                      onClick={() => handleAddItem('other')}
-                      className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                      title={t('Add other item')}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setDeleteMode(!deleteMode)}
+                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white`}
+                        title={t('Delete actions')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleAddItem('other')}
+                        className="p-1.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                        title={t('Add other item')}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   {otherItems.length > 0 && (
                     <div className="space-y-2">
@@ -1517,14 +1544,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                             onUpdate={handleItemUpdate}
                             category="other"
                             suggestions={getSuggestionsForCategory('other')}
+                            deleteMode={deleteMode}
+                            onRemove={() => handleRemoveItem(item.id)}
                           />
-                          <button
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="absolute -right-2 -top-2 opacity-0 group-hover/item:opacity-100 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm"
-                            title={t('Remove')}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -1537,155 +1559,159 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       </div>
 
       {/* Uncompleted Fields Modal */}
-      {
-        showUncompletedModal && (
-          <UncompletedFieldsModal
-            isOpen={showUncompletedModal}
-            onClose={() => setShowUncompletedModal(false)}
-            missingFields={missingFields}
-            onContinue={proceedWithGeneration}
-          />
-        )
-      }
+      {showUncompletedModal && (
+        <UncompletedFieldsModal
+          isOpen={showUncompletedModal}
+          onClose={() => setShowUncompletedModal(false)}
+          missingFields={missingFields}
+          onContinue={proceedWithGeneration}
+        />
+      )}
 
       {/* Duplicate Number Modal */}
-      {
-        showDuplicateNumberModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
-            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-3 mb-4 text-amber-500">
-                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Duplicate Number')}</h3>
+      {showDuplicateNumberModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4 text-amber-500">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6" />
               </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-                {t('This invoice number is already used for another invoice from this contractor. Do you want to use it anyway?')}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDuplicateNumberModal(false)}
-                  className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  {t('Cancel')}
-                </button>
-                <button
-                  onClick={handleConfirmDuplicateNumber}
-                  className="flex-1 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
-                >
-                  {t('Use anyway')}
-                </button>
-              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Duplicate Number')}</h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+              {t('This invoice number is already used for another invoice from this contractor. Do you want to use it anyway?')}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDuplicateNumberModal(false)}
+                className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                {t('Cancel')}
+              </button>
+              <button
+                onClick={handleConfirmDuplicateNumber}
+                className="flex-1 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+              >
+                {t('Use anyway')}
+              </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* Client Selection Modal */}
-      {
-        showClientSelector && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => {
-            if (showCreateClientInModal) {
-              setShowCreateClientInModal(false);
-            } else {
-              setShowClientSelector(false);
-              setClientSearchQuery('');
-            }
-          }}>
-            <div className={`bg-white dark:bg-gray-900 rounded-3xl p-6 w-full ${showCreateClientInModal ? 'max-w-4xl h-[85vh]' : 'max-w-md'} max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in `} onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {showCreateClientInModal ? t('New client') : t('Select Client')}
-                </h3>
-                <button
-                  onClick={() => {
-                    if (showCreateClientInModal) setShowCreateClientInModal(false);
-                    else setShowClientSelector(false);
-                  }}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+      {showClientSelector && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => {
+          if (showCreateClientInModal) {
+            setShowCreateClientInModal(false);
+          } else {
+            setShowClientSelector(false);
+            setClientSearchQuery('');
+          }
+        }}>
+          <div className={`bg-white dark:bg-gray-900 rounded-3xl p-6 w-full ${showCreateClientInModal ? 'max-w-4xl h-[85vh]' : 'max-w-md'} max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {showCreateClientInModal ? t('New client') : t('Select Client')}
+              </h3>
+              <button
+                onClick={() => {
+                  if (showCreateClientInModal) setShowCreateClientInModal(false);
+                  else setShowClientSelector(false);
+                }}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
-              {showCreateClientInModal ? (
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                  <ClientForm
-                    onSave={handleCreateClientInModal}
-                    onCancel={() => setShowCreateClientInModal(false)}
+            {showCreateClientInModal ? (
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <ClientForm
+                  onSave={handleCreateClientInModal}
+                  onCancel={() => setShowCreateClientInModal(false)}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Search bar */}
+                <div className="relative mb-6">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    autoFocus
+                    value={clientSearchQuery}
+                    onChange={(e) => setClientSearchQuery(e.target.value)}
+                    placeholder={t('Search Clients...')}
+                    className="w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 border-none text-lg"
                   />
                 </div>
-              ) : (
-                <>
-                  {/* Search bar */}
-                  <div className="relative mb-6">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      autoFocus
-                      value={clientSearchQuery}
-                      onChange={(e) => setClientSearchQuery(e.target.value)}
-                      placeholder={t('Search Clients...')}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 border-none text-lg"
-                    />
-                  </div>
 
-                  <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar mb-6">
-                    {clients
-                      .filter(client =>
-                        !clientSearchQuery ||
-                        client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
-                        client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
-                      )
-                      .map(client => (
-                        <button
-                          key={client.id}
-                          onClick={() => handleClientSelect(client)}
-                          className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'} `}
-                        >
-                          <div className="font-bold text-gray-900 dark:text-white text-lg">{client.name}</div>
-                          {client.email && (
-                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5">
-                              <div className="w-1 h-1 rounded-full bg-gray-400" />
-                              {client.email}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-
-                    {clients.filter(client =>
+                <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar mb-6">
+                  {clients
+                    .filter(client =>
                       !clientSearchQuery ||
                       client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
                       client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
-                    ).length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          {t('No clients found')}
-                        </div>
-                      )}
-                  </div>
+                    )
+                    .map(client => (
+                      <button
+                        key={client.id}
+                        onClick={() => handleClientSelect(client)}
+                        className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'}`}
+                      >
+                        <div className="font-bold text-gray-900 dark:text-white text-lg">{client.name}</div>
+                        {client.email && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5">
+                            <div className="w-1 h-1 rounded-full bg-gray-400" />
+                            {client.email}
+                          </div>
+                        )}
+                      </button>
+                    ))}
 
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => setShowCreateClientInModal(true)}
-                      className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
-                    >
-                      <Plus className="w-5 h-5" />
-                      {t('Add Client')}
-                    </button>
+                  {clients.filter(client =>
+                    !clientSearchQuery ||
+                    client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+                    client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                  ).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      {t('No clients found')}
+                    </div>
+                  )}
+                </div>
 
-                    <button
-                      onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }}
-                      className="w-full py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-bold transition-colors"
-                    >
-                      {t('Cancel')}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setShowCreateClientInModal(true)}
+                    className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl flex items-center justify-center gap-2 font-bold text-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-lg active:scale-[0.98]"
+                  >
+                    <Plus className="w-5 h-5" />
+                    {t('Add Client')}
+                  </button>
+
+                  <button
+                    onClick={() => { setShowClientSelector(false); setClientSearchQuery(''); }}
+                    className="w-full py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl font-bold transition-colors"
+                  >
+                    {t('Cancel')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        )
-      }
+        </div>
+      )}
+
+      <ConfirmationModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmRemoveItem}
+        title="Delete item"
+        message="Are you sure you want to delete this invoice item?"
+        confirmLabel="Delete"
+        isDestructive={true}
+      />
     </>
   );
 };

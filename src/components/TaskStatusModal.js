@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, Clock, FileText, Camera, Upload, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { compressImage } from '../utils/imageCompression';
+import ConfirmationModal from './ConfirmationModal';
 
 const TaskStatusModal = ({ isOpen, onClose, assignment, onSave, onDelete, isOwner, taskName, onlyWorkerAndOwner }) => {
     const { t } = useLanguage();
@@ -12,6 +13,7 @@ const TaskStatusModal = ({ isOpen, onClose, assignment, onSave, onDelete, isOwne
     const [finishedAt, setFinishedAt] = useState(assignment?.finished_at || null);
     const [isUploading, setIsUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         if (isOpen && assignment) {
@@ -20,7 +22,7 @@ const TaskStatusModal = ({ isOpen, onClose, assignment, onSave, onDelete, isOwne
 
             // Parse photos if they're stored as JSON string in database
             let parsedPhotos = assignment.photos || [];
-            
+
             if (typeof parsedPhotos === 'string') {
                 try {
                     parsedPhotos = JSON.parse(parsedPhotos);
@@ -288,12 +290,9 @@ const TaskStatusModal = ({ isOpen, onClose, assignment, onSave, onDelete, isOwne
                     <div>
                         {isOwner && onDelete && (
                             <button
-                                onClick={() => {
-                                    if (window.confirm(t('Are you sure you want to delete this assignment?'))) {
-                                        onDelete();
-                                    }
-                                }}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="flex items-center gap-2 px-3 py-2 bg-red-500 rounded-xl text-sm font-bold text-white hover:bg-red-600 transition-colors shadow-sm"
+                                title={t('Delete item')}
                             >
                                 <Trash2 className="w-4 h-4" />
                                 <span className="hidden sm:inline">{t('Delete')}</span>
@@ -321,6 +320,19 @@ const TaskStatusModal = ({ isOpen, onClose, assignment, onSave, onDelete, isOwne
                     </div>
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => {
+                    onDelete();
+                    setShowDeleteConfirm(false);
+                }}
+                title={t('Delete item')}
+                message={t('Are you sure you want to delete this assignment?')}
+                confirmLabel={t('Delete')}
+                isDestructive={true}
+            />
         </div>
     );
 };

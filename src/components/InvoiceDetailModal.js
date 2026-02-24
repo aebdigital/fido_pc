@@ -10,6 +10,7 @@ import InvoiceCreationModal from './InvoiceCreationModal';
 import PDFPreviewModal from './PDFPreviewModal';
 import ClientForm from './ClientForm';
 import ContractorProfileModal from './ContractorProfileModal';
+import ConfirmationModal from './ConfirmationModal';
 
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useAuth } from '../context/AuthContext';
@@ -644,53 +645,6 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
     }
   };
 
-  // Delete confirmation dialog
-  if (showDeleteConfirm) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteConfirm(false)}>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
-              <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {(() => {
-                  if (invoice.invoiceType === 'proforma') return t('Delete Proforma Invoice');
-                  if (invoice.invoiceType === 'delivery') return t('Delete Delivery Note');
-                  if (invoice.invoiceType === 'credit_note') return t('Delete Credit Note');
-                  return t('Delete Invoice');
-                })()}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{invoice.invoiceNumber}</p>
-            </div>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {(() => {
-              if (invoice.invoiceType === 'proforma') return t('Are you sure you want to delete this proforma invoice? This action cannot be undone.');
-              if (invoice.invoiceType === 'delivery') return t('Are you sure you want to delete this delivery note? This action cannot be undone.');
-              if (invoice.invoiceType === 'credit_note') return t('Are you sure you want to delete this credit note? This action cannot be undone.');
-              return t('Are you sure you want to delete this invoice? This action cannot be undone.');
-            })()}
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white py-3 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              {t('Cancel')}
-            </button>
-            <button
-              onClick={handleDelete}
-              className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
-            >
-              {t('Delete')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // File Selection Modal
   if (showFileSelectionModal) {
@@ -999,16 +953,36 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
           {/* Delete Button - iOS style at bottom (only show if current user owns the invoice) */}
           {(!invoice?.user_id || invoice.user_id === user?.id) && (
-            <div className="pt-4 flex justify-center pb-8">
+            <div className="pt-4 flex justify-center pb-8 px-4">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full max-w-sm bg-red-600 text-white py-3 rounded-full font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-lg"
+                className="w-full max-w-sm bg-red-500 text-white py-4 rounded-2xl font-bold hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
               >
-                <Trash className="w-5 h-5" />
+                <Trash2 className="w-5 h-5" />
                 <span className="text-lg">{t('Delete')}</span>
               </button>
             </div>
           )}
+
+          <ConfirmationModal
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleDelete}
+            title={(() => {
+              if (invoice.invoiceType === 'proforma') return t('Delete Proforma Invoice');
+              if (invoice.invoiceType === 'delivery') return t('Delete Delivery Note');
+              if (invoice.invoiceType === 'credit_note') return t('Delete Credit Note');
+              return t('Delete Invoice');
+            })()}
+            message={(() => {
+              if (invoice.invoiceType === 'proforma') return t('Are you sure you want to delete this proforma invoice? This action cannot be undone.');
+              if (invoice.invoiceType === 'delivery') return t('Are you sure you want to delete this delivery note? This action cannot be undone.');
+              if (invoice.invoiceType === 'credit_note') return t('Are you sure you want to delete this credit note? This action cannot be undone.');
+              return t('Are you sure you want to delete this invoice? This action cannot be undone.');
+            })()}
+            confirmLabel={t('Delete')}
+            isDestructive={true}
+          />
         </div>
       </div>
 
