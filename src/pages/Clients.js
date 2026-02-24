@@ -11,7 +11,9 @@ import { useScrollLock } from '../hooks/useScrollLock';
 const Clients = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { clients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice, findProjectById, getProjectRooms, invoices } = useAppData();
+  const { clients: allClients, addClient, updateClient, deleteClient, calculateProjectTotalPrice, formatPrice, findProjectById, getProjectRooms, invoices } = useAppData();
+  // Filter out foreign clients (loaded for member projects, not owned by current user)
+  const clients = allClients.filter(c => !c._isForeign);
   const [showClientModal, setShowClientModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -172,7 +174,7 @@ const Clients = () => {
               <div className="w-14 h-14 lg:w-16 lg:h-16 bg-gray-900 dark:bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 lg:mb-6">
                 <User className="w-7 h-7 lg:w-8 lg:h-8 text-white dark:text-gray-900" />
               </div>
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-3 lg:mb-4">{t('Add Client')}</h2>
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-3 lg:mb-4">{t('Add Client')}</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4 lg:mb-6 text-lg leading-relaxed">{t('Fill in your client and then assign a project to them')}</p>
               <button
                 className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg w-full sm:w-auto"
@@ -196,7 +198,7 @@ const Clients = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
-              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
                 {selectedClient ? t('Edit client') : t('New client')}
               </h2>
               <button
@@ -217,7 +219,7 @@ const Clients = () => {
               {/* Client's Projects Section - Only shown when editing */}
               {selectedClient && (selectedClient.projects || []).length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t("Client's projects")}</h3>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{t("Client's projects")}</h3>
                   <div className="space-y-2">
                     {(selectedClient.projects || []).map((project, index) => {
                       const roomCount = getProjectRooms(project.id).length;
@@ -249,7 +251,7 @@ const Clients = () => {
                                 setSelectedInvoice(invoice);
                                 setShowInvoiceModal(true);
                               }}
-                              className="px-3 bg-gray-100 dark:bg-gray-800 rounded-xl flex flex-col items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-900 group min-w-[80px]"
+                              className="px-3 bg-gray-100 dark:bg-gray-800 rounded-xl flex flex-col items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-900 group w-[90px]"
                               title={t('Open invoice')}
                             >
                               <FileText className="w-5 h-5 mb-1 text-blue-600 group-hover:scale-110 transition-transform" />
@@ -282,7 +284,7 @@ const Clients = () => {
                                 }
 
                                 return (
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-1 ${colorClass}`}>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-1 whitespace-nowrap text-center ${colorClass}`}>
                                     {label}
                                   </span>
                                 );

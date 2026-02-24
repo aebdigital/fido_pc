@@ -7,7 +7,8 @@ import {
     Clock,
     Check,
     X,
-    Mail
+    Mail,
+    Trash2
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
@@ -284,6 +285,13 @@ const Dennik = () => {
         return clients?.find(c => c.id === clientId)?.name || null;
     };
 
+    // Zamestnanci modal state
+    const [showZamestnanciModal, setShowZamestnanciModal] = useState(false);
+    const [zamestnanciMembers, setZamestnanciMembers] = useState([]);
+    const [zamestnanciLoading, setZamestnanciLoading] = useState(false);
+    const [expandedMemberId, setExpandedMemberId] = useState(null);
+    const [memberToRemove, setMemberToRemove] = useState(null);
+
     // Consolidated Invoice State
     const [showConsolidatedWizard, setShowConsolidatedWizard] = useState(false);
     const [showInvoiceCreation, setShowInvoiceCreation] = useState(false);
@@ -304,6 +312,42 @@ const Dennik = () => {
         // Maybe not needed immediately as invoices are loaded in DennikModal
         setShowInvoiceCreation(false);
         setConsolidatedInvoiceData(null);
+    };
+
+    // Zamestnanci functions
+    const loadZamestnanciMembers = useCallback(async () => {
+        setZamestnanciLoading(true);
+        try {
+            const ownedProjectIds = dennikProjects
+                .filter(p => p.userRole === 'owner')
+                .map(p => p.id || p.c_id);
+            if (ownedProjectIds.length === 0) {
+                setZamestnanciMembers([]);
+                setZamestnanciLoading(false);
+                return;
+            }
+            const members = await api.dennik.getAllMembersForProjects(ownedProjectIds);
+            setZamestnanciMembers(members || []);
+        } catch (error) {
+            console.error('Failed to load zamestnanci:', error);
+        }
+        setZamestnanciLoading(false);
+    }, [dennikProjects]);
+
+    const handleOpenZamestnanci = () => {
+        setShowZamestnanciModal(true);
+        loadZamestnanciMembers();
+    };
+
+    const handleRemoveMember = async (projectId, userId) => {
+        try {
+            await api.dennik.removeProjectMember(projectId, userId);
+            // Refresh members list
+            await loadZamestnanciMembers();
+            setMemberToRemove(null);
+        } catch (error) {
+            console.error('Failed to remove member:', error);
+        }
     };
 
     // Build ALL days from future through today back to totalDays ago
@@ -484,13 +528,22 @@ const Dennik = () => {
             <div className="flex-shrink-0 pb-4 flex items-center justify-between">
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{t('Diary')}</h1>
 
-                <button
-                    onClick={handleOpenConsolidatedWizard}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
-                >
-                    <FileText className="w-4 h-4" />
-                    {t('Invoice')}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleOpenZamestnanci}
+                        className="flex items-center justify-center w-9 h-9 bg-gradient-to-br from-green-400 to-green-600 text-white rounded-full hover:from-green-500 hover:to-green-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
+                        title={t('Employees')}
+                    >
+                        <Users className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={handleOpenConsolidatedWizard}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
+                    >
+                        <FileText className="w-4 h-4" />
+                        {t('Invoice')}
+                    </button>
+                </div>
             </div>
 
             {/* Pending Invitations */}
@@ -697,6 +750,110 @@ const Dennik = () => {
                     isStandalone={true}
                     onInvoiceCreated={handleInvoiceCreated}
                 />
+            )}
+
+            {/* Zamestnanci Modal */}
+            {showZamestnanciModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowZamestnanciModal(false)}>
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b dark:border-gray-800">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Employees')}</h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                    {zamestnanciMembers.length} {t('members')}
+                                </p>
+                            </div>
+                            <button onClick={() => setShowZamestnanciModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="overflow-y-auto max-h-[calc(80vh-80px)] p-4">
+                            {zamestnanciLoading ? (
+                                <div className="flex justify-center py-12">
+                                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                                </div>
+                            ) : zamestnanciMembers.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                                    <p className="text-gray-500 dark:text-gray-400 font-medium">{t('No employees')}</p>
+                                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">{t('Add members to projects via the Dennik modal')}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {zamestnanciMembers.map(member => (
+                                        <div key={member.id} className="border dark:border-gray-800 rounded-xl overflow-hidden">
+                                            {/* Member header */}
+                                            <button
+                                                onClick={() => setExpandedMemberId(expandedMemberId === member.id ? null : member.id)}
+                                                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
+                                                        {(member.full_name || member.email || '?').charAt(0).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex-1 text-left min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                                        {member.member_name || member.full_name || member.email || 'Unknown'}
+                                                    </p>
+                                                    {member.email && (
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{member.email}</p>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex-shrink-0">
+                                                    {member.projectIds?.length || 0} {t('projects')}
+                                                </span>
+                                                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedMemberId === member.id ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {/* Expanded project list */}
+                                            {expandedMemberId === member.id && member.projectIds && (
+                                                <div className="border-t dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                                                    {member.projectIds.map(projectId => {
+                                                        const project = dennikProjects.find(p => (p.id || p.c_id) === projectId);
+                                                        return (
+                                                            <div key={projectId} className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0 dark:border-gray-800">
+                                                                <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">
+                                                                    {project?.name || project?.project_name || 'Project'}
+                                                                </span>
+                                                                {memberToRemove?.projectId === projectId && memberToRemove?.userId === member.id ? (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <button
+                                                                            onClick={() => handleRemoveMember(projectId, member.id)}
+                                                                            className="text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-2.5 py-1 rounded-lg transition-colors"
+                                                                        >
+                                                                            {t('Confirm')}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setMemberToRemove(null)}
+                                                                            className="text-xs font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1"
+                                                                        >
+                                                                            {t('Cancel')}
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => setMemberToRemove({ projectId, userId: member.id })}
+                                                                        className="p-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
 
         </div>

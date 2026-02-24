@@ -273,14 +273,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
             return;
         }
 
-        // Check if owner was already joined in the project object
-        if (project.owner) {
-            console.log('Using pre-loaded owner profile from project object:', project.owner);
-            setOwnerProfile(project.owner);
-            return;
-        }
-
-        const ownerId = project.user_id || project.owner_id; // Check both common patterns
+        const ownerId = project.user_id || project.owner_id || currentUser?.id;
         console.log('Detected ownerId:', ownerId);
 
         if (!ownerId) {
@@ -1080,77 +1073,57 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             {/* Left Column: Calendar */}
                             {/* Mobile: compact date selector */}
                             <div className="md:hidden">
-                                <button
-                                    onClick={() => setMobileCalendarOpen(!mobileCalendarOpen)}
-                                    className="w-full flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-2xl p-3"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <CalendarDays className="w-5 h-5 text-green-600 dark:text-green-400" />
-                                        <span className="font-bold text-gray-900 dark:text-white">
-                                            {selectedDate.toLocaleDateString('sk-SK', {
-                                                weekday: 'long',
-                                                day: 'numeric',
-                                                month: 'long',
-                                                year: 'numeric'
-                                            })}
-                                        </span>
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 animate-fade-in shadow-inner border border-gray-100 dark:border-gray-700">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
+                                            <ChevronLeft className="w-5 h-5" />
+                                        </button>
+                                        <h3 className="font-bold text-gray-900 dark:text-white capitalize">
+                                            {currentMonth.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' })}
+                                        </h3>
+                                        <button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
                                     </div>
-                                    <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${mobileCalendarOpen ? 'rotate-90' : ''}`} />
-                                </button>
-                                {mobileCalendarOpen && (
-                                    <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 mt-2 animate-fade-in">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
-                                                <ChevronLeft className="w-5 h-5" />
-                                            </button>
-                                            <h3 className="font-bold text-gray-900 dark:text-white">
-                                                {currentMonth.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' })}
-                                            </h3>
-                                            <button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
-                                                <ChevronRight className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-7 gap-1">
-                                            {['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'].map(day => (
-                                                <div key={day} className="text-center text-xs font-medium text-gray-500 pb-2">{day}</div>
-                                            ))}
-                                            {Array.from({ length: startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1 }).map((_, i) => (
-                                                <div key={`empty-${i}`} />
-                                            ))}
-                                            {Array.from({ length: daysInMonth }).map((_, i) => {
-                                                const day = i + 1;
-                                                const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                                const hasActivity = activeDays.has(dateStr);
-                                                return (
-                                                    <button
-                                                        key={day}
-                                                        onClick={() => {
-                                                            const newDate = new Date(currentMonth);
-                                                            newDate.setDate(day);
-                                                            setSelectedDate(newDate);
-                                                            setMobileCalendarOpen(false);
-                                                        }}
-                                                        className={`aspect-square rounded-lg text-sm font-medium transition-colors relative flex flex-col items-center justify-center ${isSelected(day)
-                                                            ? 'bg-green-600 text-white'
-                                                            : isToday(day)
-                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                                            }`}
-                                                    >
-                                                        {day}
-                                                        {hasActivity && (
-                                                            <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-[1px] ${isSelected(day) ? 'bg-white' : 'bg-green-500 dark:bg-green-400'}`} />
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'].map(day => (
+                                            <div key={day} className="text-center text-xs font-medium text-gray-500 pb-2">{day}</div>
+                                        ))}
+                                        {Array.from({ length: startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1 }).map((_, i) => (
+                                            <div key={`empty-${i}`} />
+                                        ))}
+                                        {Array.from({ length: daysInMonth }).map((_, i) => {
+                                            const day = i + 1;
+                                            const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                            const hasActivity = activeDays.has(dateStr);
+                                            return (
+                                                <button
+                                                    key={day}
+                                                    onClick={() => {
+                                                        const newDate = new Date(currentMonth);
+                                                        newDate.setDate(day);
+                                                        setSelectedDate(newDate);
+                                                    }}
+                                                    className={`aspect-square rounded-lg text-sm font-medium transition-colors relative flex flex-col items-center justify-center ${isSelected(day)
+                                                        ? 'bg-green-600 text-white shadow-md'
+                                                        : isToday(day)
+                                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                                            : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                        }`}
+                                                >
+                                                    {day}
+                                                    {hasActivity && (
+                                                        <div className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-[1px] ${isSelected(day) ? 'bg-white' : 'bg-green-500 dark:bg-green-400'}`} />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                )}
+                                </div>
                             </div>
 
                             {/* Desktop: full calendar */}
-                            <div className="hidden md:block bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 h-fit md:sticky md:top-0 md:self-start">
+                            <div className="hidden md:block h-fit md:sticky md:top-0 md:self-start bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 shadow-inner border border-gray-100 dark:border-gray-700">
                                 <div className="flex items-center justify-between mb-4">
                                     <button
                                         onClick={() => changeMonth(-1)}
@@ -1282,7 +1255,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                         <option value="">{currentUser?.full_name || currentUser?.email || t('Myself')}</option>
                                                         {members.map(m => (
                                                             <option key={m.user_id} value={m.user_id}>
-                                                                {m.profiles?.full_name || m.profiles?.email || t('Member')}
+                                                                {m.member_name || m.profiles?.full_name || m.profiles?.email || t('Member')}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -1343,8 +1316,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                     ) : (
                                         <div className="space-y-6">
                                             {(() => {
-                                                // Build groups from time entries
+                                                // Deduplicate entries by id, then build groups
+                                                const seenIds = new Set();
                                                 const groups = Object.values(timeEntries
+                                                    .filter(entry => {
+                                                        if (seenIds.has(entry.id)) return false;
+                                                        seenIds.add(entry.id);
+                                                        return true;
+                                                    })
                                                     .filter(entry => {
                                                         if (!entry.date) return false;
                                                         // Robust comparison using local YYYY-MM-DD strings
@@ -1357,9 +1336,11 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     .reduce((acc, entry) => {
                                                         const userId = entry.user_id;
                                                         if (!acc[userId]) {
+                                                            const memberRecord = members.find(m => m.user_id === userId);
                                                             acc[userId] = {
                                                                 userId,
                                                                 profile: entry.profiles,
+                                                                memberName: memberRecord?.member_name || null,
                                                                 entries: [],
                                                                 totalHours: 0
                                                             };
@@ -1375,7 +1356,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     : groups.filter(g => g.userId === currentUser?.id);
 
                                                 return visibleGroups
-                                                    .sort((a, b) => (a.profile?.full_name || '').localeCompare(b.profile?.full_name || ''))
+                                                    .sort((a, b) => (a.memberName || a.profile?.full_name || '').localeCompare(b.memberName || b.profile?.full_name || ''))
                                                     .map(group => {
                                                         return (
                                                             <div key={group.userId} className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
@@ -1386,11 +1367,13 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                                         </div>
                                                                         <div>
                                                                             <div className="font-bold text-gray-900 dark:text-white">
-                                                                                {group.profile?.full_name || group.profile?.email?.split('@')[0] || t('Unknown User')}
+                                                                                {group.memberName || group.profile?.full_name || group.profile?.email || t('Unknown User')}
                                                                             </div>
-                                                                            <div className="text-xs text-gray-500">
-                                                                                {group.profile?.email}
-                                                                            </div>
+                                                                            {(group.memberName || group.profile?.full_name) && group.profile?.email && (
+                                                                                <div className="text-xs text-gray-500">
+                                                                                    {group.profile.email}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">

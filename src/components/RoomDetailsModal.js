@@ -855,7 +855,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
                 {!isServicesProject && (
                   <div className="flex items-center gap-3 pb-2">
                     <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                    <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h3>
+                    <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{t('Work')}</h3>
                   </div>
                 )}
 
@@ -902,7 +902,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
                     {!isServicesProject && (
                       <div className="flex items-center gap-3 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700">
                         <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                        <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h3>
+                        <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">{t('Others')}</h3>
                       </div>
                     )}
                     <div className="space-y-3 lg:space-y-0 lg:flex lg:gap-2">

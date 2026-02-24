@@ -599,6 +599,14 @@ textarea.inline-note {
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000) !important;
 }
 
+/* Force white background and border on specific items in light mode */
+.bg-white,
+.dark\:bg-gray-800:not(.dark *) {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+
 /* Dark mode: white border/ring for active work items */
 /* Must override .dark .rounded-2xl box-shadow from line ~299 */
 .dark .ring-2.ring-gray-900,

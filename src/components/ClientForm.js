@@ -117,7 +117,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
       {/* Client Type Selection */}
       <div className="lg:w-80 flex-shrink-0 mb-6 lg:mb-0">
-        <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Type of client?')}</h3>
+        <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-4">{t('Type of client?')}</h3>
         <div className="flex sm:flex-col gap-3 mb-6 lg:mb-8">
           <button
             className={`py-3 px-4 lg:px-6 rounded-2xl font-semibold transition-all text-left flex-1 sm:flex-none flex items-center gap-3 shadow-sm ${clientType === 'personal'
@@ -145,7 +145,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
           <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8 lg:w-10 lg:h-10 text-white dark:text-gray-900" />
           </div>
-          <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
             {clientType === 'personal' ? t('Private entity') : t('Business entity')}
           </h2>
         </div>
@@ -351,7 +351,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
 
           {initialData && initialData.invoices && initialData.invoices.length > 0 && (
             <div className="mt-8 col-span-full border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Invoices')}</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t('Invoices')}</h3>
               <div className="space-y-3">
                 {initialData.invoices.map(inv => (
                   <div key={inv.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">

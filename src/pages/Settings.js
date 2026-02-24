@@ -136,7 +136,7 @@ const Settings = () => {
       <div className="mb-6 lg:mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Access')}</h2>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Access')}</h2>
         </div>
         <div className="bg-gray-100 dark:bg-gray-800 rounded-[25px] p-4 lg:p-5 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -181,7 +181,7 @@ const Settings = () => {
       <div className="mb-6 lg:mb-8">
         <div className="flex items-center gap-2 mb-4">
           <SettingsIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Preferences')}</h2>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Preferences')}</h2>
         </div>
         <div className="space-y-3 lg:space-y-4">
           <div
@@ -270,7 +270,7 @@ const Settings = () => {
       <div className="mb-6 lg:mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Send className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Others')}</h2>
         </div>
         <div className="space-y-3 lg:space-y-4">
           <div
@@ -310,7 +310,7 @@ const Settings = () => {
 
       {/* App Info */}
       <div className="text-center text-gray-500 dark:text-gray-400 space-y-2 px-4">
-        <div className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Fido Building Calcul')}</div>
+        <div className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Fido Building Calcul')}</div>
         <div className="text-base lg:text-lg">v1.4.7</div>
         <div className="text-sm lg:text-base leading-relaxed">©Fido, s.r.o. {t('All rights reserved')}.</div>
       </div>

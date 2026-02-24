@@ -16,13 +16,15 @@ import ConfirmationModal from '../components/ConfirmationModal';
 const PriceOfferSettings = ({ onBack }) => {
   const { t } = useLanguage();
   const {
-    contractors,
+    contractors: allContractors,
     priceOfferSettings,
     addContractor,
     updateContractor,
     deleteContractor,
     updatePriceOfferSettings
   } = useAppData();
+  // Filter out foreign contractors (loaded for member projects, not owned by current user)
+  const contractors = allContractors.filter(c => !c._isForeign);
 
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [editingContractor, setEditingContractor] = useState(null);
@@ -148,7 +150,7 @@ const PriceOfferSettings = ({ onBack }) => {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4 lg:mb-6">
             <Clock className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Price offer validity')}</h2>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Price offer validity')}</h2>
           </div>
           <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
             <div className="flex flex-col gap-4">
@@ -185,7 +187,7 @@ const PriceOfferSettings = ({ onBack }) => {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4 lg:mb-6">
             <Building2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Contractors')}</h2>
+            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Contractors')}</h2>
           </div>
 
           {contractors.length === 0 ? (

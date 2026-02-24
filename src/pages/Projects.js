@@ -599,7 +599,7 @@ const Projects = () => {
                   <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 flex flex-row items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-sm hover:shadow-md"
                     onClick={handleCreateContractorProfile}>
                     <div>
-                      <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
+                      <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
 
                     </div>
                     <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
@@ -829,7 +829,7 @@ const Projects = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
                       </button>
-                      <h2 className="text-lg sm:text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
+                      <h2 className="text-lg sm:text-xl lg:text-3xl font-bold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
                         {t(displayCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projects')}
                       </h2>
                     </div>
@@ -963,7 +963,7 @@ const Projects = () => {
                                   </div>
                                 )}
                               </div>
-                              <h3 className="text-xl lg:text-3xl font-semibold text-gray-900 dark:text-white lg:truncate">
+                              <h3 className="text-xl lg:text-3xl font-bold text-gray-900 dark:text-white lg:truncate">
                                 <span className="lg:hidden">{project.name.length > 17 ? `${project.name.substring(0, 17)}...` : project.name}</span>
                                 <span className="hidden lg:inline">{project.name}</span>
                               </h3>
@@ -1073,7 +1073,7 @@ const Projects = () => {
           showNewProjectModal && (
             <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
               <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md my-auto md:my-0 ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-base font-medium text-gray-900 dark:text-white mb-2">{t('Project Name')}</label>

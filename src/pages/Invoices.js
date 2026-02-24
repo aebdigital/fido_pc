@@ -287,7 +287,7 @@ const Invoices = () => {
                     setShowContractorModal(true);
                   }}>
                   <div>
-                    <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
+                    <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
                   </div>
                   <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
                     <Plus className="w-5 h-5" />
@@ -442,7 +442,7 @@ const Invoices = () => {
                     <span className="hidden lg:inline">{t('Due Date')}: {formatDate(invoice.dueDate)}</span>
                   </div>
                   {/* Project name */}
-                  <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-1">
+                  <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-1">
                     {(() => {
                       // Robust check for Dennik invoice
                       const isDennik = invoice.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
@@ -615,7 +615,7 @@ const Invoices = () => {
               {stats.map(yearStats => (
                 <div key={yearStats.year}>
                   {/* Year Label */}
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{yearStats.year}</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-white mb-4">{yearStats.year}</div>
 
                   {/* Total Card */}
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
@@ -628,7 +628,7 @@ const Invoices = () => {
                       </span>
                     </div>
                     <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-lg lg:text-xl font-semibold text-gray-600 dark:text-gray-400">
+                      <span className="text-lg lg:text-xl font-bold text-gray-600 dark:text-gray-400">
                         {formatPrice(yearStats.total.amountWithoutVAT)}
                       </span>
                       <span className="text-sm text-gray-500 dark:text-gray-500">

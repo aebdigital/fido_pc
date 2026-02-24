@@ -15,8 +15,7 @@ import { useScrollLock } from '../hooks/useScrollLock';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/supabaseApi';
 import Linkify from '../utils/linkify';
-import CreditNoteReasonModal from './CreditNoteReasonModal';
-import { generateNextInvoiceNumber } from '../utils/dataTransformers';
+
 
 /**
  * InvoiceDetailModal - iOS-aligned invoice detail view
@@ -41,7 +40,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const [showContractorModal, setShowContractorModal] = useState(false);
-  const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
+  const [showCreditNoteCreationModal, setShowCreditNoteCreationModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
 
@@ -255,52 +254,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     updateInvoice(invoice.id, { status: 'paid' });
   };
 
-  const handleCreateCreditNote = async (reason, percentage = 100) => {
-    try {
-      setShowCreditNoteModal(false);
 
-      const projectResult = findProjectById(invoice.projectId);
-      const project = projectResult?.project;
-      const factor = percentage / 100;
-
-      // Prepare invoice items - keep pieces/pricePerPiece positive, only total price negative
-      const creditNoteItems = invoice.invoiceItems.map(item => ({
-        ...item,
-        id: crypto.randomUUID(),
-        pieces: Math.abs(item.pieces),
-        price: -Math.abs(item.price) * factor,
-        pricePerPiece: Math.abs(item.pricePerPiece || 0) * factor,
-        active: true
-      }));
-
-      const nextInvoiceNumber = generateNextInvoiceNumber(invoices, activeContractorId, 'credit_note');
-
-      const creditNoteData = {
-        invoiceNumber: nextInvoiceNumber,
-        originalInvoiceNumber: invoice.invoiceNumber,
-        returnReason: reason,
-        issueDate: new Date().toISOString().split('T')[0],
-        dispatchDate: new Date().toISOString().split('T')[0],
-        paymentMethod: invoice.paymentMethod,
-        paymentDays: invoice.paymentDays || 30,
-        notes: `${t('Credit Note for invoice')} ${invoice.invoiceNumber}`,
-        invoiceItems: creditNoteItems,
-        priceWithoutVat: -Math.abs(invoice.priceWithoutVat) * factor,
-        cumulativeVat: invoice.cumulativeVat !== undefined ? -Math.abs(invoice.cumulativeVat) * factor : undefined,
-        clientId: invoice.clientId,
-        invoiceType: 'credit_note'
-      };
-
-      const newInvoice = await createInvoice(project, invoice.categoryId, creditNoteData, findProjectById);
-      if (newInvoice) {
-        onClose(true);
-        // Optionally navigate or show the new invoice
-      }
-    } catch (error) {
-      console.error('Error creating credit note:', error);
-      alert(t('Failed to create credit note'));
-    }
-  };
 
   const handleViewProject = () => {
     onClose();
@@ -812,11 +766,6 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 {invoice.invoiceNumber}
               </h1>
               <div className="flex items-center gap-2">
-                {project && (
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-400">
-                    {formatProjectNumber(project)}
-                  </p>
-                )}
                 {/* Mobile Status Badge/Button */}
                 <div className="lg:hidden">
                   {invoice.status !== INVOICE_STATUS.PAID ? (
@@ -1013,7 +962,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             </div>
             {invoice.invoiceType !== 'credit_note' && invoice.invoiceType !== 'delivery' && (
               <button
-                onClick={() => setShowCreditNoteModal(true)}
+                onClick={() => setShowCreditNoteCreationModal(true)}
                 className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm mt-3"
               >
                 <RotateCcw className="w-6 h-6 text-gray-900 dark:text-white" />
@@ -1095,12 +1044,22 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         title={`${t('Cash Receipt')} ${invoice.invoiceNumber}`}
       />
 
+      <InvoiceCreationModal
+        isOpen={showCreditNoteCreationModal}
+        onClose={() => setShowCreditNoteCreationModal(false)}
+        project={project}
+        categoryId={invoice.categoryId}
+        editMode={false}
+        existingInvoice={invoice}
+        isCreditNoteCreation={true}
+      />
+
       {/* Client Modal - Matching ProjectDetailView style/size */}
       {showClientModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
           <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
-              <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Edit client')}</h3>
+              <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>
               <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 <X className="w-6 h-6" />
               </button>
@@ -1126,12 +1085,6 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         />
       )}
 
-      <CreditNoteReasonModal
-        isOpen={showCreditNoteModal}
-        onClose={() => setShowCreditNoteModal(false)}
-        onConfirm={handleCreateCreditNote}
-        invoiceItems={invoice?.invoiceItems || []}
-      />
     </div>
   );
 };

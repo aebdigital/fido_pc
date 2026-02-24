@@ -314,8 +314,8 @@ export const transformClientToDB = (clientData) => {
  * Helper to generate the next invoice number based on type and existing invoices
  * Format: YYYYMMXXX (e.g. 202602001)
  */
-export const generateNextInvoiceNumber = (invoices, contractorId, type) => {
-  if (type === 'delivery') return '';
+export const generateNextInvoiceNumber = (invoices, contractorId, type, project) => {
+  if (type === 'delivery') return project ? formatProjectNumber(project) : '';
 
   const currentYear = new Date().getFullYear();
 

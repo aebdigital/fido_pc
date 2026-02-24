@@ -362,7 +362,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             >
               <div className="flex items-center gap-2">
                 <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Work')}</h2>
               </div>
               {expandedSections.work ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
@@ -384,7 +384,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             >
               <div className="flex items-center gap-2">
                 <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Material')}</h2>
               </div>
               {expandedSections.material ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
@@ -407,7 +407,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
               >
                 <div className="flex items-center gap-2">
                   <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
                 </div>
                 {expandedSections.installations ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </div>
@@ -430,7 +430,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             >
               <div className="flex items-center gap-2">
                 <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Others')}</h2>
               </div>
               {expandedSections.others ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>

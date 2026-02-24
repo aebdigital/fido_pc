@@ -38,7 +38,7 @@ const CreditNoteReasonModal = ({ isOpen, onClose, onConfirm, invoiceItems = [] }
             <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-md border border-gray-200 dark:border-gray-800 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {step === 1 ? t('Credit Note') : t('Reason for return')}
+                        {step === 1 ? t('Issue Credit Note') : t('Reason for return')}
                     </h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                         <X className="w-6 h-6" />
@@ -144,8 +144,8 @@ const CreditNoteReasonModal = ({ isOpen, onClose, onConfirm, invoiceItems = [] }
                                     key={reason}
                                     onClick={() => setSelectedReason(reason)}
                                     className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-2 ${selectedReason === reason
-                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-white'
-                                            : 'border-transparent bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-white'
+                                        : 'border-transparent bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                         }`}
                                 >
                                     <span className="text-lg font-medium">{t(reason)}</span>

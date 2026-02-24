@@ -22,7 +22,8 @@ import {
   Flag,
   CheckCircle,
   Euro,
-  FileText
+  FileText,
+  MoreVertical
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -204,6 +205,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [showDennikModal, setShowDennikModal] = useState(false);
   const [dennikInitialDate, setDennikInitialDate] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef(null);
   const [isSharing, setIsSharing] = useState(false);
 
   // Invoices for this project to show in ClientForm
@@ -251,6 +254,18 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
     initializeData();
   }, [projectId, loadProjectDetails, getProjectReceipts]);
+
+  // Close more menu on click outside
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handleClick = (e) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showMoreMenu]);
 
   // Handle event to open Dennik modal remotely (e.g. from quick travel)
   useEffect(() => {
@@ -1322,37 +1337,47 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <span>Denník</span>
                   </button>
 
-                  <div className="h-8 w-[1px] bg-gray-200 dark:bg-gray-700 mx-1"></div>
-
-                  {canView('project_pricelist') && (
-                    <button
-                      onClick={() => setShowProjectPriceList(true)}
-                      title={t('Project price list')}
-                      className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                    >
-                      <Euro className="w-5 h-5 text-purple-500" />
-                    </button>
-                  )}
-
-                  {canView('duplicate') && (
-                    <button
-                      onClick={handleDuplicateProject}
-                      disabled={isDuplicating}
-                      title={t('Duplicate')}
-                      className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center"
-                    >
-                      {isDuplicating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Copy className="w-5 h-5 text-blue-500" />}
-                    </button>
-                  )}
-
-                  {canView('archive') && (
-                    <button
-                      onClick={() => setShowArchiveConfirmation(true)}
-                      title={t('ArchiveProjectAction')}
-                      className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                    >
-                      <Archive className="w-5 h-5 text-yellow-500" />
-                    </button>
+                  {(canView('project_pricelist') || canView('duplicate') || canView('archive')) && (
+                    <div className="relative" ref={moreMenuRef}>
+                      <button
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                      {showMoreMenu && (
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                          {canView('project_pricelist') && (
+                            <button
+                              onClick={() => { setShowProjectPriceList(true); setShowMoreMenu(false); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                            >
+                              <Euro className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Project price list')}</span>
+                            </button>
+                          )}
+                          {canView('duplicate') && (
+                            <button
+                              onClick={() => { handleDuplicateProject(); setShowMoreMenu(false); }}
+                              disabled={isDuplicating}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left disabled:opacity-50"
+                            >
+                              {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 text-blue-500" />}
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Duplicate')}</span>
+                            </button>
+                          )}
+                          {canView('archive') && (
+                            <button
+                              onClick={() => { setShowArchiveConfirmation(true); setShowMoreMenu(false); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                            >
+                              <Archive className="w-4 h-4 text-yellow-500" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('ArchiveProjectAction')}</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </>
               )}
@@ -1435,7 +1460,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-2.5">
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">Klient a Dodávateľ</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Klient a Dodávateľ</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Client Block */}
@@ -1497,7 +1522,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     {showContractorSelector && canEdit('client_supplier') && (
                       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowContractorSelector(false)}>
                         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
-                          <h3 className="text-xl font-semibold mb-4">{t('Select Contractor')}</h3>
+                          <h3 className="text-xl font-bold mb-4">{t('Select Contractor')}</h3>
 
                           <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
                             {contractors.map(contractor => (
@@ -1548,7 +1573,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Project')}</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Project')}</h2>
               </div>
               {!project.is_archived && (
                 <div className="flex gap-2">
@@ -1644,7 +1669,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-2.5">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Total price offer')}</h2>
               </div>
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
                 <div className="space-y-2">
@@ -1781,7 +1806,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-2.5">
               <div className="flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
                   {t('Receipts')} - {calculateReceiptsTotal().toFixed(2).replace('.', ',')} €
                 </h2>
               </div>
@@ -1827,7 +1852,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-2.5 hidden lg:block">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('History')}</h2>
               </div>
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
                 {(() => {
@@ -1873,7 +1898,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-2.5">
               <div className="flex items-center gap-2">
                 <StickyNote className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Notes_Project')}</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Notes_Project')}</h2>
               </div>
               <div onBlur={handleNotesBlur} onFocus={canEdit('project_note') ? handleNotesFocus : undefined}>
                 <textarea
@@ -1922,7 +1947,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Image className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Files')}</h2>
+                  <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Files')}</h2>
                 </div>
                 {canEditProject && canEdit('files') && (
                   <div className="flex items-center gap-2">
@@ -2052,7 +2077,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-2.5 lg:hidden">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('History')}</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('History')}</h2>
               </div>
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
                 {(() => {
@@ -2098,7 +2123,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowNewRoomModal(false)}>
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('New room')}</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('New room')}</h3>
                 <button
                   onClick={() => setShowNewRoomModal(false)}
                   className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
@@ -2124,7 +2149,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowCustomRoomModal(false)}>
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
                 <button
                   onClick={() => setShowCustomRoomModal(false)}
                   className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
@@ -2157,7 +2182,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
             <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
-                <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Edit client')}</h3>
+                <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>
                 <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                   <X className="w-6 h-6" />
                 </button>
@@ -2187,7 +2212,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           }}>
             <div className={`bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full ${showCreateClientInModal ? 'max-w-7xl h-[85vh]' : 'max-w-md'} lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0`} onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
+                <h3 className="text-xl font-bold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
                 {showCreateClientInModal && (
                   <button onClick={() => setShowCreateClientInModal(false)} className="text-gray-500 hover:text-gray-700">
                     <X className="w-5 h-5" />
@@ -2285,7 +2310,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-3 mb-4">
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
-                <h3 className="text-xl font-semibold">{t('Contractor Required')}</h3>
+                <h3 className="text-xl font-bold">{t('Contractor Required')}</h3>
               </div>
               <p className="text-gray-600 mb-6">{t('A contractor must be assigned to duplicate a project.')}</p>
               <button onClick={() => setShowContractorWarning(false)} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl transition-colors">{t('Cancel')}</button>

@@ -389,7 +389,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <div className="mb-8 lg:mb-10 pt-4 lg:pt-6">
               <div className="flex items-center gap-2 mb-4 lg:mb-6">
                 <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Work')}</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Work')}</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {localPriceList.work?.map((item, index) => (
@@ -402,7 +402,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <div className="mb-8 lg:mb-10">
               <div className="flex items-center gap-2 mb-4 lg:mb-6">
                 <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Material')}</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Material')}</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {localPriceList.material?.map((item, index) => (
@@ -415,7 +415,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <div className="mb-8 lg:mb-10">
               <div className="flex items-center gap-2 mb-4 lg:mb-6">
                 <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {localPriceList.installations?.map((item, index) => (
@@ -428,7 +428,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <div className="mb-8 lg:mb-10">
               <div className="flex items-center gap-2 mb-4 lg:mb-6">
                 <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Others')}</h2>
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Others')}</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
                 {localPriceList.others?.map((item, index) => (
@@ -446,7 +446,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
       {showPercentageModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={handleCancelPercentageIncrease}>
           <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md animate-slide-in" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('Increase All Prices')}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t('Increase All Prices')}</h3>
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                 {t('Percentage Increase')}

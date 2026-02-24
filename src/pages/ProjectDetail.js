@@ -78,7 +78,7 @@ const ProjectDetail = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xl">👤</span>
-          <h2 className="text-xl font-semibold text-gray-900">{t('Client')}</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('Client')}</h2>
         </div>
         <div className="bg-gray-100 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 transition-colors cursor-pointer">
           <div>
@@ -94,7 +94,7 @@ const ProjectDetail = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-xl">📋</span>
-            <h2 className="text-xl font-semibold text-gray-900">{t('Project')}</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t('Project')}</h2>
           </div>
           <div className="flex gap-2">
             <button className="p-2 text-gray-600 hover:text-gray-900">🗑️</button>
@@ -163,7 +163,7 @@ const ProjectDetail = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xl">📊</span>
-          <h2 className="text-xl font-semibold text-gray-900">{t('Project management')}</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('Project management')}</h2>
         </div>
         <div className="space-y-3">
           <div className="bg-gray-100 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 transition-colors cursor-pointer">
@@ -192,7 +192,7 @@ const ProjectDetail = () => {
 
       {/* History */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('History')}</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">{t('History')}</h2>
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
           <div className="flex items-center gap-2">

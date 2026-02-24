@@ -135,7 +135,7 @@ const Archive = ({ onBack }) => {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4 lg:mb-6">
           <ArchiveIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">{t('Archiving period')}</h2>
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Archiving period')}</h2>
         </div>
         <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
           <div className="flex flex-col gap-4">
@@ -176,7 +176,7 @@ const Archive = ({ onBack }) => {
       {allArchivedProjects.length === 0 ? (
         <div className="text-center py-16">
           <ArchiveIcon className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">{t('No Archived Projects')}</h3>
+          <h3 className="text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">{t('No Archived Projects')}</h3>
           <p className="text-gray-500 dark:text-gray-500">{t('Archived projects will appear here')}</p>
         </div>
       ) : (
@@ -188,7 +188,7 @@ const Archive = ({ onBack }) => {
               onClick={() => handleProjectClick(project)}
             >
               <div className="flex-1 min-w-0">
-                <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
+                <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   {(() => {
                     if (!project.archivedDate) return '-';

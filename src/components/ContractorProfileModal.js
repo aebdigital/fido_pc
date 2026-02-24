@@ -229,7 +229,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
           {/* Contractor Details */}
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Contractor details')}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t('Contractor details')}</h3>
             <div className="space-y-4">
 
               {/* IČO Search Button / Component - Only for Slovak language */}
@@ -332,7 +332,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
           {/* Location */}
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Location')}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t('Location')}</h3>
             <div className="space-y-4">
 
               {/* Street */}
@@ -410,7 +410,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
           {/* Business Information */}
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Business information')}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t('Business information')}</h3>
             <div className="space-y-4">
 
               {/* Business ID */}
@@ -460,7 +460,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
           {/* Banking and Legal */}
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Banking and legal')}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t('Banking and legal')}</h3>
             <div className="space-y-4">
 
               {/* Bank Account Number */}
@@ -510,7 +510,7 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
 
           {/* Signature */}
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">{t('Signature')}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t('Signature')}</h3>
             <div
               className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mb-4 overflow-hidden relative cursor-pointer group border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
               onClick={() => signatureInputRef.current?.click()}

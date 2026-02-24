@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, FileText, Save, RotateCcw, Loader2, Plus, Trash2, User, Search, AlertTriangle } from 'lucide-react';
+import { X, FileText, Save, RotateCcw, Loader2, Plus, Trash2, User, Search, AlertTriangle, Check } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import UncompletedFieldsModal from './UncompletedFieldsModal';
@@ -162,7 +162,7 @@ const getMaterialItemDisplayName = (item, t) => {
 // Maturity quick-select options (matching iOS MaturityDuration)
 const maturityOptions = [7, 15, 30, 60, 90];
 
-const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null, initialClientContractor = null, isStandalone: propIsStandalone = false }) => {
+const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null, initialClientContractor = null, isStandalone: propIsStandalone = false, isCreditNoteCreation = false }) => {
   useScrollLock(true);
   const { t } = useLanguage();
   const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings, findProjectById, addClient, generalPriceList } = useAppData();
@@ -221,6 +221,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [invoiceType, setInvoiceType] = useState('regular'); // regular, proforma, delivery, credit_note
   const [depositValue, setDepositValue] = useState(0);
   const [depositType, setDepositType] = useState('percentage'); // percentage, fixed
+  const [returnPercentage, setReturnPercentage] = useState(100);
+  const [returnReason, setReturnReason] = useState('zrusenie zakazky');
   const [typeWarning, setTypeWarning] = useState(null);
 
   // Invoice settings state
@@ -407,6 +409,25 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       return;
     }
 
+    // 3.5 Credit Note Creation (from existing invoice)
+    if (isCreditNoteCreation && existingInvoice && !editMode) {
+      setInvoiceType('credit_note');
+      setReturnPercentage(100);
+      setReturnReason('zrusenie zakazky');
+      setOriginalInvoiceNumber(existingInvoice.invoiceNumber);
+
+      // Negate items and absolute pieces
+      setInvoiceItems(existingInvoice.invoiceItems.map(item => ({
+        ...item,
+        id: crypto.randomUUID(),
+        pieces: Math.abs(item.pieces || 0),
+        price: -Math.abs(item.price || 0),
+        pricePerPiece: Math.abs(item.pricePerPiece || 0),
+        active: true
+      })));
+      return;
+    }
+
 
     // 4. Project Breakdown-New
     if (project && projectBreakdown) {
@@ -490,8 +511,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   // Initialize invoice number based on type and existing invoices
   const generateInvoiceNumber = useCallback((type) => {
-    return generateNextInvoiceNumber(invoices, activeContractorId, type);
-  }, [invoices, activeContractorId]);
+    return generateNextInvoiceNumber(invoices, activeContractorId, type, project);
+  }, [invoices, activeContractorId, project]);
 
   // Initialize invoice settings
   useEffect(() => {
@@ -509,6 +530,14 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         if (existingInvoice.depositSettings) {
           setDepositType(existingInvoice.depositSettings.type || 'percentage');
           setDepositValue(existingInvoice.depositSettings.value || 0);
+        }
+
+        // Load credit note settings if present
+        if (existingInvoice.returnPercentage !== undefined) {
+          setReturnPercentage(existingInvoice.returnPercentage);
+        }
+        if (existingInvoice.returnReason) {
+          setReturnReason(existingInvoice.returnReason);
         }
 
         // Calculate payment days from issue and due dates
@@ -601,12 +630,19 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       }
     });
 
+    // Apply return percentage for credit notes
+    if (invoiceType === 'credit_note') {
+      const factor = returnPercentage / 100;
+      priceWithoutVat *= factor;
+      cumulativeVat *= factor;
+    }
+
     return {
       priceWithoutVat,
       cumulativeVat,
       totalPrice: priceWithoutVat + cumulativeVat
     };
-  }, [invoiceItems]);
+  }, [invoiceItems, invoiceType, returnPercentage]);
 
   // Handle item update
   const handleItemUpdate = (itemId, updatedItem) => {
@@ -715,8 +751,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       missing.push(t('No contractor selected'));
     }
 
-    // Check all client fields (skip for Denník invoices and standalone invoices)
-    if (!dennikData && !isStandalone) {
+    // Check all client fields (skip only for Denník invoices)
+    if (!dennikData) {
       if (currentClient) {
         if (!currentClient.name) missing.push(`${t('Client')}: ${t('Name')}`);
         if (!currentClient.email) missing.push(`${t('Client')}: ${t('Email')}`);
@@ -740,7 +776,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     if (activeItems.length === 0) {
       missing.push(t('No invoice items'));
     }
-    if (calculateTotals.priceWithoutVat <= 0) {
+    if (invoiceType !== 'credit_note' && calculateTotals.priceWithoutVat <= 0) {
       missing.push(t('Total price must be greater than 0'));
     }
 
@@ -774,7 +810,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         cumulativeVat: calculateTotals.cumulativeVat,
         clientId: selectedClientId, // Use selected client
         invoiceType,
-        depositSettings: invoiceType === 'proforma' ? { type: depositType, value: depositValue === '' ? 0 : depositValue } : null
+        depositSettings: invoiceType === 'proforma' ? { type: depositType, value: depositValue === '' ? 0 : depositValue } : null,
+        returnPercentage: invoiceType === 'credit_note' ? returnPercentage : undefined,
+        returnReason: invoiceType === 'credit_note' ? returnReason : undefined
       };
 
       console.log('[DEBUG proceedWithGeneration] editMode:', editMode, 'existingInvoice:', existingInvoice?.id);
@@ -972,7 +1010,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <FileText className="w-6 h-6 text-gray-900 dark:text-white" />
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {editMode ? t('Edit Invoice') : t('Invoice Builder')}
+                    {invoiceType === 'credit_note' ? t('Issue Credit Note') : editMode ? t('Edit Invoice') : t('Invoice Builder')}
                   </h2>
                 </div>
               </div>
@@ -984,25 +1022,27 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
               </button>
             </div>
 
-            {/* Invoice Type Selector */}
-            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-              {[
-                { id: 'regular', label: t('Invoice') },
-                { id: 'proforma', label: t('Proforma Invoice') },
-                { id: 'delivery', label: t('Delivery Note') }
-              ].map(type => (
-                <button
-                  key={type.id}
-                  onClick={() => setInvoiceType(type.id)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${invoiceType === type.id
-                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
-                    } `}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
+            {/* Invoice Type Selector - Hidden for specific credit note modal */}
+            {invoiceType !== 'credit_note' && (
+              <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                {[
+                  { id: 'regular', label: t('Invoice') },
+                  { id: 'proforma', label: t('Proforma Invoice') },
+                  { id: 'delivery', label: t('Delivery Note') }
+                ].map(type => (
+                  <button
+                    key={type.id}
+                    onClick={() => setInvoiceType(type.id)}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${invoiceType === type.id
+                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                      } `}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Proforma Settings */}
 
@@ -1012,7 +1052,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Summary Section-At top like iOS */}
             <div className="space-y-2">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Summary')}</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Summary')}</h3>
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-base font-semibold text-gray-900 dark:text-white">{t('without VAT')}</span>
@@ -1084,6 +1124,51 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 </div>
               )}
 
+              {/* Credit Note Settings */}
+              {invoiceType === 'credit_note' && (
+                <div className="py-2 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm font-medium text-gray-700 dark:text-gray-300 text-sm">
+                      <span>{t('Return percentage')}</span>
+                      <span className="font-bold">{returnPercentage}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={returnPercentage}
+                      onChange={(e) => setReturnPercentage(Number(e.target.value))}
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 text-sm">{t('Reason for return')}</span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        'zrusenie zakazky',
+                        'reklamacia',
+                        'nespravna fakturacia',
+                        'vratenie tovaru',
+                        'zlava po fakturacii'
+                      ].map((reason) => (
+                        <button
+                          key={reason}
+                          onClick={() => setReturnReason(reason)}
+                          className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${returnReason === reason
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
+                            }`}
+                        >
+                          <span className="text-sm font-semibold">{t(reason)}</span>
+                          {returnReason === reason && <Check className="w-4 h-4" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
                 <span className="text-lg font-bold text-gray-900 dark:text-white">{t('Total Price')}</span>
                 <span className="text-lg font-bold text-gray-900 dark:text-white">
@@ -1131,12 +1216,19 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Settings')}</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Settings')}</h3>
               <div className="space-y-3">
                 {/* Client / Recipient selection */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Client')}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Client')}</span>
+                      {!selectedClientId && (
+                        <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold animate-pulse">
+                          {t('Required')}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {selectedClientId ? (
@@ -1171,11 +1263,13 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {/* Invoice Number */}
+                  {/* Document Number */}
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
-                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Invoice Number')}</span>
+                    <span className="text-base font-medium text-gray-900 dark:text-white">
+                      {invoiceType === 'proforma' ? t('Proforma Invoice Number') : invoiceType === 'delivery' ? t('Delivery Note Number') : invoiceType === 'credit_note' ? t('Credit Note Number') : t('Invoice Number')}
+                    </span>
                     <div className="flex items-center gap-2">
-                      {invoiceNumber !== originalInvoiceNumber && (
+                      {invoiceType !== 'delivery' && invoiceNumber !== originalInvoiceNumber && (
                         <button
                           onClick={handleResetNumber}
                           className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -1188,113 +1282,122 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         type="text"
                         value={invoiceNumber}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
-                        className="w-32 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-right text-base font-medium focus:outline-none invoice-input-dark"
+                        readOnly={invoiceType === 'delivery'}
+                        className={`w-32 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-right text-base font-medium focus:outline-none invoice-input-dark ${invoiceType === 'delivery' ? 'opacity-60 cursor-not-allowed' : ''}`}
                         placeholder="2025001"
                       />
                     </div>
                   </div>
 
-                  {/* Issue Date */}
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of issue')}</span>
-                    <input
-                      type="date"
-                      value={issueDate}
-                      onChange={(e) => setIssueDate(e.target.value)}
-                      className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
-                    />
-                  </div>
-
-                  {/* Dispatch Date */}
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of dispatch')}</span>
-                    <input
-                      type="date"
-                      value={dispatchDate}
-                      onChange={(e) => setDispatchDate(e.target.value)}
-                      className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
-                    />
-                  </div>
-
-                  {/* Payment Type */}
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
-                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Payment type')}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setPaymentMethod('cash')}
-                        className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'cash'
-                          ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
-                          : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                          } `}
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'cash' ? 'bg-blue-400' : 'bg-transparent'} `} />
-                        {t('Cash')}
-                      </button>
-                      <button
-                        onClick={() => setPaymentMethod('transfer')}
-                        className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'transfer'
-                          ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
-                          : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                          } `}
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'transfer' ? 'bg-blue-400' : 'bg-transparent'} `} />
-                        {t('Bank transfer')}
-                      </button>
+                  {/* Issue Date - hidden for delivery notes */}
+                  {invoiceType !== 'delivery' && (
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of issue')}</span>
+                      <input
+                        type="date"
+                        value={issueDate}
+                        onChange={(e) => setIssueDate(e.target.value)}
+                        className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
+                      />
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                {/* Invoice Maturity-Grid like iOS */}
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
-                  <span className="text-base font-medium text-gray-900 dark:text-white block mb-3">{t('Invoice maturity')}</span>
-                  <div className="bg-white dark:bg-gray-700 rounded-2xl p-3">
-                    <div className="grid grid-cols-6 gap-2">
-                      {maturityOptions.map(days => (
+                  {/* Dispatch Date - hidden for delivery notes */}
+                  {invoiceType !== 'delivery' && (
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of dispatch')}</span>
+                      <input
+                        type="date"
+                        value={dispatchDate}
+                        onChange={(e) => setDispatchDate(e.target.value)}
+                        className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
+                      />
+                    </div>
+                  )}
+
+                  {/* Payment Type - hidden for delivery notes */}
+                  {invoiceType !== 'delivery' && (
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
+                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Payment type')}</span>
+                      <div className="flex gap-2">
                         <button
-                          key={days}
-                          onClick={() => {
-                            setPaymentDays(days);
-                            setCustomInputValue(''); // Clear custom input when preset is selected
-                          }}
-                          className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${Number(paymentDays) === days && customInputValue === ''
-                            ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
-                            : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          onClick={() => setPaymentMethod('cash')}
+                          className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'cash'
+                            ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
+                            : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                             } `}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full mb-1 ${Number(paymentDays) === days && customInputValue === '' ? 'bg-blue-400' : 'bg-transparent'} `} />
-                          <span className="text-lg font-semibold leading-none">{days}</span>
-                          <span className="text-[10px] font-medium opacity-80">{t('days')}</span>
+                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'cash' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                          {t('Cash')}
                         </button>
-                      ))}
-                      {/* Custom input */}
-                      <div
-                        className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== ''
-                          ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
-                          : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300'
-                          } `}
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full mb-1 ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== '' ? 'bg-blue-400' : 'bg-transparent'} `} />
-                        <input
-                          type="text"
-                          value={maturityOptions.includes(Number(paymentDays)) ? '' : (customInputValue === '' ? paymentDays : customInputValue)}
-                          onChange={handleCustomMaturityChange}
-                          onFocus={handleCustomMaturityFocus}
-                          onBlur={handleCustomMaturityBlur}
-                          placeholder={t('Custom')}
-                          className="w-full text-center text-lg font-semibold focus:outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500"
-                        />
-                        <span className={`text-[10px] font-medium leading-none ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== '' ? 'opacity-80' : 'opacity-60'
-                          } `}>
-                          {t('days')}
-                        </span>
+                        <button
+                          onClick={() => setPaymentMethod('transfer')}
+                          className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'transfer'
+                            ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
+                            : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                            } `}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'transfer' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                          {t('Bank transfer')}
+                        </button>
                       </div>
-
                     </div>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-right">
-                    {t('Maturity')}: {getMaturityDate()}
-                  </p>
+                  )}
                 </div>
+
+                {/* Invoice Maturity - hidden for delivery notes */}
+                {invoiceType !== 'delivery' && (
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
+                    <span className="text-base font-medium text-gray-900 dark:text-white block mb-3">{t('Invoice maturity')}</span>
+                    <div className="bg-white dark:bg-gray-700 rounded-2xl p-3">
+                      <div className="grid grid-cols-6 gap-2">
+                        {maturityOptions.map(days => (
+                          <button
+                            key={days}
+                            onClick={() => {
+                              setPaymentDays(days);
+                              setCustomInputValue(''); // Clear custom input when preset is selected
+                            }}
+                            className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${Number(paymentDays) === days && customInputValue === ''
+                              ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
+                              : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              } `}
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full mb-1 ${Number(paymentDays) === days && customInputValue === '' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                            <span className="text-lg font-semibold leading-none">{days}</span>
+                            <span className="text-[10px] font-medium opacity-80">{t('days')}</span>
+                          </button>
+                        ))}
+                        {/* Custom input */}
+                        <div
+                          className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== ''
+                            ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
+                            : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300'
+                            } `}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full mb-1 ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== '' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                          <input
+                            type="text"
+                            value={maturityOptions.includes(Number(paymentDays)) ? '' : (customInputValue === '' ? paymentDays : customInputValue)}
+                            onChange={handleCustomMaturityChange}
+                            onFocus={handleCustomMaturityFocus}
+                            onBlur={handleCustomMaturityBlur}
+                            placeholder={t('Custom')}
+                            className="w-full text-center text-lg font-semibold focus:outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500"
+                          />
+                          <span className={`text-[10px] font-medium leading-none ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== '' ? 'opacity-80' : 'opacity-60'
+                            } `}>
+                            {t('days')}
+                          </span>
+                        </div>
+
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-right">
+                      {t('Maturity')}: {getMaturityDate()}
+                    </p>
+                  </div>
+                )}
 
                 {/* Notes */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
@@ -1312,7 +1415,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
             {/* Items Section */}
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('Items')}</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Items')}</h3>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 {/* Work Items */}

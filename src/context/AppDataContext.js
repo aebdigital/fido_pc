@@ -531,10 +531,10 @@ export const AppDataProvider = ({ children }) => {
         ]);
 
         extraClients.filter(Boolean).forEach(c => {
-          transformedClients.push(transformClientFromDB(c));
+          transformedClients.push({ ...transformClientFromDB(c), _isForeign: true });
         });
         extraContractors.filter(Boolean).forEach(c => {
-          transformedContractors.push(transformContractorFromDB(c));
+          transformedContractors.push({ ...transformContractorFromDB(c), _isForeign: true });
         });
       }
 
