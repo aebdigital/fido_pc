@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Pencil, Trash2, Plus, CalendarDays, MessageSquare, Shield } from 'lucide-react';
+import { X, Clock, Play, Square, Users, UserPlus, UserMinus, Timer, ChevronLeft, ChevronRight, BarChart3, FileText, Pencil, Trash2, Plus, MessageSquare, Shield } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 import { useAppData } from '../context/AppDataContext';
@@ -203,7 +203,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const [manualStartTime, setManualStartTime] = useState('08:00');
     const [manualEndTime, setManualEndTime] = useState('16:00');
     const [manualEntryNote, setManualEntryNote] = useState('');
-    const [mobileCalendarOpen, setMobileCalendarOpen] = useState(false);
+
     const [editingEntryId, setEditingEntryId] = useState(null);
     const [editStartTime, setEditStartTime] = useState('');
     const [editEndTime, setEditEndTime] = useState('');

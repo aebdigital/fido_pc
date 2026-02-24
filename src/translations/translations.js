@@ -378,7 +378,7 @@ export const translations = {
     "Company": "Firma",
     "firms": "Firmy",
     "Cottages": "Chaty",
-    "projects": "projekty",
+
     "Stavebnictvo": "Stavebníctvo",
     "Stavebníctvo": "Stavebníctvo",
     "Construction": "Stavebníctvo",
