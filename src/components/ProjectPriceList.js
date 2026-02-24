@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Hammer, Package, Menu, Info, RefreshCw, RefreshCcw, Wrench, ChevronDown, ChevronUp, Loader2, Check, X } from 'lucide-react';
+import { Hammer, Package, Menu, Info, RefreshCw, RefreshCcw, Wrench, Loader2, Check, X } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -15,12 +15,6 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
-  const [expandedSections, setExpandedSections] = useState({
-    work: true,
-    material: true,
-    installations: true,
-    others: true
-  });
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const lastSavedData = useRef(null);
@@ -251,13 +245,6 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
     });
   };
 
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
 
   const handleResetAll = () => {
     if (!generalPriceList) return;
@@ -421,96 +408,72 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           {/* Work Section */}
           <div className="mb-6">
-            <div
-              className="flex items-center justify-between mb-4 cursor-pointer"
-              onClick={() => toggleSection('work')}
-            >
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Work')}</h2>
               </div>
-              {expandedSections.work ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
 
-            {expandedSections.work && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                {projectPriceData.work.map((item, index) => {
-                  if (usedItemsIndices && !usedItemsIndices.work.has(index)) return null;
-                  return <PriceCard key={index} item={item} category="work" itemIndex={index} />;
-                })}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
+              {projectPriceData.work.map((item, index) => {
+                if (usedItemsIndices && !usedItemsIndices.work.has(index)) return null;
+                return <PriceCard key={index} item={item} category="work" itemIndex={index} />;
+              })}
+            </div>
           </div>
 
           {/* Material Section */}
           <div className="mb-6">
-            <div
-              className="flex items-center justify-between mb-4 cursor-pointer"
-              onClick={() => toggleSection('material')}
-            >
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Package className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Material')}</h2>
               </div>
-              {expandedSections.material ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
 
-            {expandedSections.material && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                {projectPriceData.material.map((item, index) => {
-                  if (usedItemsIndices && !usedItemsIndices.material.has(index)) return null;
-                  return <PriceCard key={index} item={item} category="material" itemIndex={index} />;
-                })}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
+              {projectPriceData.material.map((item, index) => {
+                if (usedItemsIndices && !usedItemsIndices.material.has(index)) return null;
+                return <PriceCard key={index} item={item} category="material" itemIndex={index} />;
+              })}
+            </div>
           </div>
 
           {/* Installations Section */}
           {projectPriceData.installations && (
             <div className="mb-6">
-              <div
-                className="flex items-center justify-between mb-4 cursor-pointer"
-                onClick={() => toggleSection('installations')}
-              >
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Sanitary installations')}</h2>
                 </div>
-                {expandedSections.installations ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </div>
 
-              {expandedSections.installations && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                  {projectPriceData.installations.map((item, index) => {
-                    if (usedItemsIndices && !usedItemsIndices.installations.has(index)) return null;
-                    return <PriceCard key={index} item={item} category="installations" itemIndex={index} />;
-                  })}
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
+                {projectPriceData.installations.map((item, index) => {
+                  if (usedItemsIndices && !usedItemsIndices.installations.has(index)) return null;
+                  return <PriceCard key={index} item={item} category="installations" itemIndex={index} />;
+                })}
+              </div>
             </div>
           )}
 
           {/* Others Section */}
           <div className="mb-6">
-            <div
-              className="flex items-center justify-between mb-4 cursor-pointer"
-              onClick={() => toggleSection('others')}
-            >
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Others')}</h2>
               </div>
-              {expandedSections.others ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
 
-            {expandedSections.others && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-                {projectPriceData.others.filter(item => item.name !== 'Custom work and material').map((item, index) => {
-                  if (usedItemsIndices && !usedItemsIndices.others.has(index)) return null;
-                  return <PriceCard key={index} item={item} category="others" itemIndex={index} />;
-                })}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
+              {projectPriceData.others.filter(item => item.name !== 'Custom work and material').map((item, index) => {
+                if (usedItemsIndices && !usedItemsIndices.others.has(index)) return null;
+                return <PriceCard key={index} item={item} category="others" itemIndex={index} />;
+              })}
+            </div>
           </div>
         </div>
       </div>
