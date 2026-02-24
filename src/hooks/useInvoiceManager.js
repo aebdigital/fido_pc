@@ -208,6 +208,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       if (updates.paymentDays !== undefined) dbUpdates.maturity_days = updates.paymentDays;
       if (updates.notes !== undefined) dbUpdates.note = updates.notes;
       if (updates.status !== undefined) dbUpdates.status = invoiceStatusToDatabase(updates.status);
+      if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
 
       if (updates.invoiceItems !== undefined) {
         const iosItems = transformItemsForIOS(updates.invoiceItems);
