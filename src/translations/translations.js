@@ -268,7 +268,19 @@ export const translations = {
     "Show more": "Show more",
     "Show less": "Show less",
     "Unknown vendor": "Unknown vendor",
-    "Unknown": "Unknown"
+    "Unknown": "Unknown",
+    "Manage saved autocomplete items": "Manage saved autocomplete items",
+    "Search items...": "Search items...",
+    "All Saved": "All Saved",
+    "Hidden": "Hidden",
+    "No items found": "No items found",
+    "Try a different search term": "Try a different search term",
+    "Start by adding items to your invoices": "Start by adding items to your invoices",
+    "Hiding items only affects future autocomplete suggestions. It will not change existing invoices or the project price list.": "Hiding items only affects future autocomplete suggestions. It will not change existing invoices or the project price list.",
+    "Hide from suggestions": "Hide from suggestions",
+    "Restore to suggestions": "Restore to suggestions",
+    "Invoice Statistics": "Invoice Statistics",
+    "Manage Items": "Manage Items"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -333,7 +345,20 @@ export const translations = {
     "Total": "Spolu",
     "Date": "Dátum",
     "Failed to analyze receipt. Please try again.": "Nepodarilo sa analyzovať účtenku. Skúste to znova.",
-
+    "Unknown project": "Neznámy projekt",
+    "Unknown": "Neznáme",
+    "Manage saved autocomplete items": "Spravujte uložené položky automatického dopĺňania",
+    "Search items...": "Hľadať položky...",
+    "All Saved": "Všetky uložené",
+    "Hidden": "Skryté",
+    "No items found": "Nenašli sa žiadne položky",
+    "Try a different search term": "Skúste iný hľadaný výraz",
+    "Start by adding items to your invoices": "Začnite pridaním položiek do svojich faktúr",
+    "Hiding items only affects future autocomplete suggestions. It will not change existing invoices or the project price list.": "Skrytie položiek ovplyvňuje iba budúce návrhy automatického dopĺňania. Nezmení to existujúce faktúry ani cenník projektu.",
+    "Hide from suggestions": "Skryť z návrhov",
+    "Restore to suggestions": "Obnoviť do návrhov",
+    "Invoice Statistics": "Štatistiky faktúr",
+    "Manage Items": "Spravovať položky",
 
 
     // ========== NAVIGATION & MAIN SECTIONS ==========
@@ -368,7 +393,6 @@ export const translations = {
     "Archived projects will appear here": "Archivované projekty sa zobrazia tu",
     "Archived on": "Archivované",
     "From": "Z",
-    "Unknown": "Neznáme",
 
     // ========== PROJECT CATEGORIES ==========
     "Flats": "Byty",
@@ -787,7 +811,6 @@ export const translations = {
     "Client's projects": "Projekty klienta",
     "No clients available. Create a client first.": "Nie sú dostupní žiadni klienti. Najprv vytvorte klienta.",
     "Unpaid invoices": "Neuhradené faktúry",
-    "Unknown project": "Neznámy projekt",
     "Show more": "Zobraziť viac",
     "Show less": "Zobraziť menej",
 

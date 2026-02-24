@@ -165,7 +165,7 @@ const maturityOptions = [7, 15, 30, 60, 90];
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null, initialClientContractor = null, isStandalone: propIsStandalone = false, isCreditNoteCreation = false }) => {
   useScrollLock(true);
   const { t } = useLanguage();
-  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings, findProjectById, addClient, generalPriceList } = useAppData();
+  const { createInvoice, updateInvoice, contractors, activeContractorId, clients, calculateProjectTotalPriceWithBreakdown, invoices, getInvoiceSettings, upsertInvoiceSettings, findProjectById, addClient, generalPriceList, priceOfferSettings } = useAppData();
 
   // Client selection state
   const [selectedClientId, setSelectedClientId] = useState(null);
@@ -277,26 +277,34 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       .sort((a, b) => new Date(b.issueDate || b.date || 0) - new Date(a.issueDate || a.date || 0));
 
     const itemMap = new Map();
+    const hiddenItems = (priceOfferSettings?.hiddenAutocompleteItems || []).map(h => h.toLowerCase());
 
     contractorInvoices.forEach(inv => {
       if (inv.invoiceItems && Array.isArray(inv.invoiceItems)) {
         inv.invoiceItems.forEach(item => {
-          if (item.title && !itemMap.has(t(item.title).toLowerCase())) {
-            itemMap.set(t(item.title).toLowerCase(), {
-              title: t(item.title),
-              price: parseFloat(item.pricePerPiece || 0), // Base unit price
-              unit: item.unit || 'ks',
-              vat: item.vat !== undefined ? parseFloat(item.vat) : undefined,
-              // We try to preserve category if available, otherwise it's generic
-              category: item.category ? item.category.toLowerCase() : undefined
-            });
+          if (item.title) {
+            const titleNormalized = t(item.title).toLowerCase();
+
+            // Skip if item is hidden
+            if (hiddenItems.includes(titleNormalized)) return;
+
+            if (!itemMap.has(titleNormalized)) {
+              itemMap.set(titleNormalized, {
+                title: t(item.title),
+                price: parseFloat(item.pricePerPiece || 0), // Base unit price
+                unit: item.unit || 'ks',
+                vat: item.vat !== undefined ? parseFloat(item.vat) : undefined,
+                // We try to preserve category if available, otherwise it's generic
+                category: item.category ? item.category.toLowerCase() : undefined
+              });
+            }
           }
         });
       }
     });
 
     return Array.from(itemMap.values());
-  }, [invoices, activeContractorId, t]);
+  }, [invoices, activeContractorId, t, priceOfferSettings]);
 
   // Combine standard price list with history items
   const getSuggestionsForCategory = useCallback((category) => {

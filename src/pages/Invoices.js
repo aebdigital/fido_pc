@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Plus, Hash, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Hash, X, Package } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { INVOICE_STATUS } from '../utils/dataTransformers';
 import InvoiceDetailModal from '../components/InvoiceDetailModal';
 import InvoiceCreationModal from '../components/InvoiceCreationModal';
+import ItemsManagementModal from '../components/ItemsManagementModal';
 import ContractorProfileModal from '../components/ContractorProfileModal';
 
 const Invoices = () => {
@@ -20,6 +21,7 @@ const Invoices = () => {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [showStandaloneInvoice, setShowStandaloneInvoice] = useState(false);
+  const [showItemsModal, setShowItemsModal] = useState(false);
   const dropdownRef = useRef(null);
   const yearDropdownRef = useRef(null);
 
@@ -249,8 +251,16 @@ const Invoices = () => {
           <button
             onClick={() => setShowStatsModal(true)}
             className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+            title={t('Invoice Statistics')}
           >
             <Hash className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setShowItemsModal(true)}
+            className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700"
+            title={t('Manage Items')}
+          >
+            <Package className="w-6 h-6" />
           </button>
         </div>
       </div>
@@ -745,6 +755,11 @@ const Invoices = () => {
           display: none;
         }
       `}</style>
+      {/* Items Management Modal */}
+      <ItemsManagementModal
+        isOpen={showItemsModal}
+        onClose={() => setShowItemsModal(false)}
+      />
     </div>
   );
 };
