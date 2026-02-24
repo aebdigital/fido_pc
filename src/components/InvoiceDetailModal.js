@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Eye, Send, User, Edit3, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, Trash, RotateCcw } from 'lucide-react';
+import { X, Eye, Send, User, Edit3, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, RotateCcw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
