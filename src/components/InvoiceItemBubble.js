@@ -301,7 +301,8 @@ const InvoiceItemBubble = ({
                 </label>
                 <div className="flex items-center gap-2">
                   <NumberInput
-                    value={pieces}
+                    value={pieces === 0 ? '' : pieces}
+                    placeholder="0"
                     onChange={handlePiecesChange}
                     className="flex-1"
                     min={0}
@@ -329,7 +330,8 @@ const InvoiceItemBubble = ({
                 </label>
                 <div className="flex items-center gap-2">
                   <NumberInput
-                    value={pricePerPiece}
+                    value={pricePerPiece === 0 ? '' : pricePerPiece}
+                    placeholder="0,00"
                     onChange={handlePricePerPieceChange}
                     className="flex-1"
                     min={0}
@@ -348,8 +350,10 @@ const InvoiceItemBubble = ({
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    value={vatInputString}
+                    value={vatInputString === '0' ? '' : vatInputString}
                     onChange={(e) => handleVatInputStringChange(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0"
                     min={0}
                     max={100}
                     step={1}
@@ -366,7 +370,8 @@ const InvoiceItemBubble = ({
                 </label>
                 <div className="flex items-center gap-2">
                   <NumberInput
-                    value={price}
+                    value={price === 0 ? '' : price}
+                    placeholder="0,00"
                     onChange={handlePriceChange}
                     className="flex-1"
                     min={0}

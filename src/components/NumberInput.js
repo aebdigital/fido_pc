@@ -129,12 +129,11 @@ const NumberInput = ({
   const handleInputFocus = () => {
     setIsFocused(true);
 
-    // Always move cursor to the end of text so user can see what they're typing
+    // Select all text on focus for easier overwriting
     if (inputRef.current) {
       setTimeout(() => {
         if (inputRef.current) {
-          const len = inputRef.current.value.length;
-          inputRef.current.setSelectionRange(len, len);
+          inputRef.current.select();
         }
       }, 0);
     }
