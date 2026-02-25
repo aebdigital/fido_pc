@@ -454,26 +454,11 @@ const Invoices = () => {
                   {/* Project name */}
                   <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-1">
                     {(() => {
-                      // Robust check for Dennik invoice
                       const isDennik = invoice.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
+                      const projectName = invoice.projectName || '';
 
-                      // Get project name with fallback
-                      let projectName = invoice.projectName;
-                      if (!projectName && invoice.projectId) {
-                        const projectResult = findProjectById(invoice.projectId, invoice.categoryId);
-                        projectName = projectResult?.project?.name;
-                      }
-
-                      // Standalone invoice (no project)
-                      if (!projectName && !invoice.projectId) {
-                        const firstItem = invoice.invoiceItems?.[0];
-                        return firstItem?.title || t('Invoice');
-                      }
-
-                      projectName = projectName || '';
-
-                      if (isDennik) return `${t('Odpracované hodiny')} - ${projectName}`;
-                      return projectName;
+                      if (isDennik) return `${t('Odpracované hodiny')} - ${projectName || t('Unknown project')}`;
+                      return projectName || t('Unknown project');
                     })()}
                   </h3>
                   {/* Client name - below project name */}

@@ -10,6 +10,7 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
     const { invoices, activeContractorId, priceOfferSettings, updatePriceOfferSettings } = useAppData();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'hidden'
+    const [itemToHide, setItemToHide] = useState(null);
 
     // Extract all unique item titles from contractor's invoices
     const allHistoryItems = useMemo(() => {
@@ -78,6 +79,7 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
+      <>
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-6 animate-in fade-in duration-200">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
@@ -155,8 +157,8 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
 
                                 {activeTab === 'all' ? (
                                     <button
-                                        onClick={() => handleHideItem(item.title)}
-                                        className="p-2.5 bg-red-500 text-white hover:bg-red-600 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 shadow-sm"
+                                        onClick={() => setItemToHide(item.title)}
+                                        className="p-2.5 bg-red-500 text-white hover:bg-red-600 rounded-xl transition-all shadow-sm"
                                         title={t('Hide from suggestions')}
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -194,6 +196,45 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
                 </div>
             </div>
         </div>
+
+        {!!itemToHide && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+            <div
+              className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-[25px] shadow-2xl overflow-hidden flex flex-col animate-scale-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400">
+                  <Trash2 className="w-8 h-8" strokeWidth={2.5} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-tight">
+                  {t('Hide item')}
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 text-[15px] leading-relaxed">
+                  {t('This will hide the item from future autocomplete suggestions. Existing invoices will not be affected.')}
+                </p>
+                <div className="grid grid-cols-2 gap-3 w-full mt-6">
+                  <button
+                    onClick={() => setItemToHide(null)}
+                    className="py-3 px-4 rounded-xl font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    {t('Cancel')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleHideItem(itemToHide);
+                      setItemToHide(null);
+                    }}
+                    className="py-3 px-4 rounded-xl font-semibold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-colors"
+                  >
+                    {t('Hide')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     );
 };
 

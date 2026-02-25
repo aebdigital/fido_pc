@@ -914,15 +914,27 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 <span className="text-base font-bold text-gray-900 dark:text-white">{t('Edit')}</span>
               </button>
             </div>
-            {invoice.invoiceType !== 'credit_note' && invoice.invoiceType !== 'delivery' && (
-              <button
-                onClick={() => setShowCreditNoteCreationModal(true)}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm mt-3"
-              >
-                <RotateCcw className="w-6 h-6 text-gray-900 dark:text-white" />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Issue Credit Note')}</span>
-              </button>
-            )}
+            {invoice.invoiceType !== 'credit_note' && invoice.invoiceType !== 'delivery' && (() => {
+              const hasCreditNote = invoices?.some(inv =>
+                inv.invoiceType === 'credit_note' &&
+                inv.projectId === invoice.projectId &&
+                !inv.is_deleted
+              );
+              return hasCreditNote ? (
+                <div className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl mt-3 opacity-50">
+                  <RotateCcw className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                  <span className="text-xl font-bold text-gray-500 dark:text-gray-400">{t('Credit note already issued')}</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowCreditNoteCreationModal(true)}
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm mt-3"
+                >
+                  <RotateCcw className="w-6 h-6 text-gray-900 dark:text-white" />
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Issue Credit Note')}</span>
+                </button>
+              );
+            })()}
           </div>
 
           {/* Cash Receipt Section - iOS style (only if cash payment) */}

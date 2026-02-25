@@ -234,6 +234,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isAnalyzingReceipt, setIsAnalyzingReceipt] = useState(false);
   const [analyzingProgress, setAnalyzingProgress] = useState({ current: 0, total: 0 });
+  const [showDeleteReceiptConfirm, setShowDeleteReceiptConfirm] = useState(false);
+  const [receiptToDelete, setReceiptToDelete] = useState(null);
   const receiptInputRef = useRef(null);
 
   // Refs
@@ -2461,8 +2463,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     </div>
 
                     <button
-                      onClick={() => handleDeleteReceipt(selectedReceipt.id)}
-                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 rounded-xl font-semibold hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                      onClick={() => {
+                        setReceiptToDelete(selectedReceipt.id);
+                        setShowDeleteReceiptConfirm(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                       {t('Delete receipt')}
@@ -2530,6 +2535,24 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           </div>
         )
       }
+
+      {/* Delete Receipt Confirmation */}
+      <ConfirmationModal
+        isOpen={showDeleteReceiptConfirm}
+        onClose={() => {
+          setShowDeleteReceiptConfirm(false);
+          setReceiptToDelete(null);
+        }}
+        onConfirm={() => {
+          if (receiptToDelete) {
+            handleDeleteReceipt(receiptToDelete);
+          }
+        }}
+        title={t('Delete receipt')}
+        message={t('Are you sure you want to delete this receipt? This action cannot be undone.')}
+        confirmLabel={t('Delete')}
+        isDestructive={true}
+      />
 
       {/* Animated Lightbox */}
       {

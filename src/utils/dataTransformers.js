@@ -190,7 +190,8 @@ export const transformInvoiceFromDB = (dbInvoice) => {
     notes: dbInvoice.note,
     status: invoiceStatusFromDatabase(dbInvoice.status), // Convert DB status to iOS-compatible status
     projectId: dbInvoice.project_id,
-    projectName: dbInvoice.projects?.name || '',
+    projectName: dbInvoice.project_name_override || dbInvoice.projects?.name || '',
+    introductoryNote: dbInvoice.introductory_note || '',
     categoryId: dbInvoice.projects?.category || '',
     clientId: dbInvoice.client_id,
     contractorId: dbInvoice.contractor_id || dbInvoice.c_id,

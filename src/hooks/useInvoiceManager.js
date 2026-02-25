@@ -141,7 +141,9 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         invoice_type: invoiceData.invoiceType || 'regular',
         deposit_settings: invoiceData.depositSettings || null,
         return_reason: invoiceData.returnReason || null,
-        original_invoice_number: invoiceData.originalInvoiceNumber || null
+        original_invoice_number: invoiceData.originalInvoiceNumber || null,
+        introductory_note: invoiceData.introductoryNote || null,
+        project_name_override: invoiceData.projectName || null
       };
 
       // For Denník invoices (owner contractor), override client_id if needed
@@ -222,6 +224,8 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       if (updates.depositSettings !== undefined) dbUpdates.deposit_settings = updates.depositSettings;
       if (updates.returnReason !== undefined) dbUpdates.return_reason = updates.returnReason;
       if (updates.originalInvoiceNumber !== undefined) dbUpdates.original_invoice_number = updates.originalInvoiceNumber;
+      if (updates.introductoryNote !== undefined) dbUpdates.introductory_note = updates.introductoryNote;
+      if (updates.projectName !== undefined) dbUpdates.project_name_override = updates.projectName;
 
       if (Object.keys(dbUpdates).length > 0) {
         await api.invoices.update(invoiceId, dbUpdates);

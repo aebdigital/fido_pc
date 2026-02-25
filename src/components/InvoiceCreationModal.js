@@ -9,7 +9,7 @@ import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/c
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
 import { sortItemsByMasterList } from '../utils/itemSorting';
 import { useScrollLock } from '../hooks/useScrollLock';
-import { generateNextInvoiceNumber } from '../utils/dataTransformers';
+import { generateNextInvoiceNumber, formatProjectNumber } from '../utils/dataTransformers';
 import ConfirmationModal from './ConfirmationModal';
 
 // Helper to safely parse invoice notes that might be stored as typed-JSON or plain string
@@ -237,6 +237,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [paymentDays, setPaymentDays] = useState(30);
   const [customInputValue, setCustomInputValue] = useState(''); // Text state for custom input to allow typing "0" freely
   const [notes, setNotes] = useState('');
+  const [introductoryNote, setIntroductoryNote] = useState('');
+  const [projectDisplayName, setProjectDisplayName] = useState('');
   const [persistentSettings, setPersistentSettings] = useState(null);
   const [showUncompletedModal, setShowUncompletedModal] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
@@ -569,6 +571,20 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           setCustomInputValue('');
         }
         setNotes(existingInvoice.notes || '');
+        // Load introductory note, fallback to default subtitle
+        if (existingInvoice.introductoryNote) {
+          setIntroductoryNote(existingInvoice.introductoryNote);
+        } else {
+          const projNum = formatProjectNumber(project);
+          if (existingInvoice.invoiceType === 'credit_note' && existingInvoice.originalInvoiceNumber) {
+            setIntroductoryNote(`${t('To invoice')} ${existingInvoice.originalInvoiceNumber}`);
+          } else if (projNum) {
+            setIntroductoryNote(`${t('Price offer')} ${projNum}`);
+          } else {
+            setIntroductoryNote('');
+          }
+        }
+        setProjectDisplayName(existingInvoice.projectName || project?.name || '');
       } else {
         // Create mode-init defaults
         // Note: Number generation is handled in separate effect listening to type change
@@ -584,6 +600,16 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
         // Use safe parser to load note for current type
         setNotes(getNoteForType(persistentSettings?.note, invoiceType, t));
+        // Pre-fill introductory note with default subtitle (e.g. "Cenová ponuka 2026001")
+        const projNum = formatProjectNumber(project);
+        if (invoiceType === 'credit_note') {
+          setIntroductoryNote('');
+        } else if (projNum) {
+          setIntroductoryNote(`${t('Price offer')} ${projNum}`);
+        } else {
+          setIntroductoryNote('');
+        }
+        setProjectDisplayName(project?.name || '');
 
         // Load default maturity from settings if available
         if (persistentSettings?.maturity_days) {
@@ -820,6 +846,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         paymentMethod,
         paymentDays,
         notes,
+        introductoryNote,
+        projectName: projectDisplayName,
         // Save ALL items (including inactive ones) so they can be re-enabled later
         // iOS keeps excluded items in the invoice, just marks them as inactive
         // Explicitly map items to ensure properties like projectId are preserved if hidden
@@ -1208,34 +1236,43 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 </span>
               </div>
 
-              {/* Generate Invoice Button */}
-              <button
-                onClick={handleGenerate}
-                disabled={isSubmitting || !!typeWarning}
-                className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-4 rounded-full font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {t('Processing...')}
-                  </>
-                ) : (
-                  <>
-                    {editMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                    {editMode ? t('Save Changes') : (() => {
-                      if (invoiceType === 'proforma') return t('Issue Proforma Invoice');
-                      if (invoiceType === 'delivery') return t('Issue Delivery Note');
-                      if (invoiceType === 'credit_note') return t('Issue Credit Note');
-                      return t('Generate Invoice');
-                    })()}
-                  </>
-                )}
-              </button>
             </div>
 
             <div className="space-y-2">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Settings')}</h3>
               <div className="space-y-3">
+                {/* Project Name + Introductory Note - side by side on desktop */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {/* Project Display Name */}
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
+                    <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Project name')}</span>
+                    <input
+                      type="text"
+                      value={projectDisplayName}
+                      onChange={(e) => setProjectDisplayName(e.target.value)}
+                      placeholder={project?.name || t('Project name')}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Introductory Note - subheading below document title in PDF */}
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
+                    <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Introductory note')}</span>
+                    <input
+                      type="text"
+                      value={introductoryNote}
+                      onChange={(e) => setIntroductoryNote(e.target.value)}
+                      placeholder={(() => {
+                        if (invoiceType === 'credit_note') return `${t('To invoice')} ...`;
+                        if (project?.projectNumber) return `${t('Price offer')} ${project.projectNumber}`;
+                        return t('Introductory note placeholder');
+                      })()}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none"
+                    />
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">{t('Shown as subheading in PDF')}</span>
+                  </div>
+                </div>
+
                 {/* Client / Recipient selection */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
@@ -1554,6 +1591,32 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Sticky Footer - Generate Button */}
+          <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0 rounded-b-2xl">
+            <button
+              onClick={handleGenerate}
+              disabled={isSubmitting || !!typeWarning}
+              className="w-full bg-blue-500 text-white py-4 rounded-2xl font-semibold hover:bg-blue-600 transition-all shadow-sm hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {t('Processing...')}
+                </>
+              ) : (
+                <>
+                  {editMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                  {editMode ? t('Save Changes') : (() => {
+                    if (invoiceType === 'proforma') return t('Issue Proforma Invoice');
+                    if (invoiceType === 'delivery') return t('Issue Delivery Note');
+                    if (invoiceType === 'credit_note') return t('Issue Credit Note');
+                    return t('Generate Invoice');
+                  })()}
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

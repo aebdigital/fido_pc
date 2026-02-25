@@ -395,33 +395,45 @@ export const generateInvoicePDF = async ({
     } else if (invoice.invoiceType === 'proforma') {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Proforma Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
-      if (!isDennik && projectNumber) {
+      // Subtitle: introductory note or default "Cenová ponuka {number}"
+      const proformaSubtitle = invoice.introductoryNote || (!isDennik && projectNumber ? `${t('Price offer')} ${projectNumber}` : '');
+      if (proformaSubtitle) {
         doc.setFontSize(13.1);
         doc.setFont('SF-Pro', 'medium');
         doc.setTextColor(51, 51, 51);
-        doc.text(sanitizeText(`${t('Price offer')} ${projectNumber}`), 12.35, 26.5);
+        doc.text(sanitizeText(proformaSubtitle), 12.35, 26.5);
       }
     } else if (invoice.invoiceType === 'delivery') {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Delivery Note')} ${invoice.invoiceNumber}`), 12.35, 20);
+      if (invoice.introductoryNote) {
+        doc.setFontSize(13.1);
+        doc.setFont('SF-Pro', 'medium');
+        doc.setTextColor(51, 51, 51);
+        doc.text(sanitizeText(invoice.introductoryNote), 12.35, 26.5);
+      }
     } else if (invoice.invoiceType === 'credit_note') {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Credit Note')} ${invoice.invoiceNumber}`), 12.35, 20);
-      if (invoice.originalInvoiceNumber) {
+      // Subtitle: introductory note or default "K faktúre {number}"
+      const creditSubtitle = invoice.introductoryNote || (invoice.originalInvoiceNumber ? `${t('To invoice')} ${invoice.originalInvoiceNumber}` : '');
+      if (creditSubtitle) {
         doc.setFontSize(14);
         doc.setFont('SF-Pro', 'normal');
         doc.setTextColor(51, 51, 51);
-        doc.text(sanitizeText(`${t('To invoice')} ${invoice.originalInvoiceNumber}`), 12.35, 26);
+        doc.text(sanitizeText(creditSubtitle), 12.35, 26);
         doc.setTextColor(0, 0, 0); // reset
       }
     } else {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
-      if (!isDennik && projectNumber) {
+      // Subtitle: introductory note or default "Cenová ponuka {number}"
+      const invoiceSubtitle = invoice.introductoryNote || (!isDennik && projectNumber ? `${t('Price offer')} ${projectNumber}` : '');
+      if (invoiceSubtitle) {
         doc.setFontSize(13.1); // Scaled from iOS 14pt
         doc.setFont('SF-Pro', 'medium');
         doc.setTextColor(51, 51, 51); // matches iOS black.opacity(0.8)
-        doc.text(sanitizeText(`${t('Price offer')} ${projectNumber}`), 12.35, 26.5);
+        doc.text(sanitizeText(invoiceSubtitle), 12.35, 26.5);
       }
     }
     doc.setTextColor(0, 0, 0); // reset to black

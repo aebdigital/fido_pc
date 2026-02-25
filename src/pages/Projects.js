@@ -788,7 +788,7 @@ const Projects = () => {
                           >
                             <div className="min-w-0 flex-1">
                               <div className="font-semibold text-gray-900 dark:text-white truncate">
-                                {project?.project?.name || t('Unknown project')}
+                                {invoice.projectName || project?.project?.name || t('Unknown project')}
                               </div>
                               <div className="text-sm text-gray-500 dark:text-gray-400">
                                 #{invoice.invoiceNumber}
@@ -800,8 +800,9 @@ const Projects = () => {
                                   {statusLabel}
                                 </span>
                                 <div className="font-semibold text-gray-900 dark:text-white text-sm mt-1">
-                                  {getInvoiceTotal(invoice)}
+                                  {getInvoiceTotal(invoice)} €
                                 </div>
+                                <div className="text-[10px] text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                               </div>
                               <ChevronRight className="w-4 h-4 text-gray-400" />
                             </div>
