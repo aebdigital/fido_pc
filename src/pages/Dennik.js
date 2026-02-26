@@ -373,6 +373,14 @@ const Dennik = () => {
     const loadZamestnanciMembers = useCallback(async () => {
         setZamestnanciLoading(true);
         try {
+            // If allMembers is already loaded (from the main loadData call), reuse it directly.
+            // This avoids a stale-closure bug where dennikProjects may be [] at call time.
+            if (allMembers.length > 0) {
+                setZamestnanciMembers(allMembers);
+                setZamestnanciLoading(false);
+                return;
+            }
+            // Fallback: fetch fresh (e.g. modal opened before initial load finished)
             const ownedProjectIds = dennikProjects
                 .filter(p => p.userRole === 'owner')
                 .map(p => p.id || p.c_id);
@@ -387,7 +395,7 @@ const Dennik = () => {
             console.error('Failed to load zamestnanci:', error);
         }
         setZamestnanciLoading(false);
-    }, [dennikProjects]);
+    }, [dennikProjects, allMembers]);
 
     const handleOpenZamestnanci = () => {
         setShowZamestnanciModal(true);
@@ -864,7 +872,7 @@ const Dennik = () => {
                                             >
                                                 <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
                                                     <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
-                                                        {(member.full_name || member.email || '?').charAt(0).toUpperCase()}
+                                                        {(member.member_name || member.full_name || member.email || '?').charAt(0).toUpperCase()}
                                                     </span>
                                                 </div>
                                                 <div className="flex-1 text-left min-w-0">
