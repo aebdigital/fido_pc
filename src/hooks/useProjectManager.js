@@ -249,13 +249,18 @@ export const useProjectManager = (appData, setAppData) => {
 
         // CRITICAL: Also update the price_lists table for iOS sync compatibility
         // iOS reads from the price_lists table, not the JSON snapshot on the project
+        // Desktop also reads from price_lists on reload (PRIORITY 1), so this MUST succeed
         try {
           const priceListData = typeof projectData.priceListSnapshot === 'string'
             ? JSON.parse(projectData.priceListSnapshot)
             : projectData.priceListSnapshot;
           const dbPriceData = priceListToDbColumns(priceListData);
-          await api.priceLists.updateProjectPriceList(projectId, dbPriceData);
-          console.log('[updateProject] Updated price_lists table for iOS sync');
+          const result = await api.priceLists.updateProjectPriceList(projectId, dbPriceData);
+          if (result) {
+            console.log('[updateProject] Updated price_lists table for iOS sync, c_id:', result.id);
+          } else {
+            console.warn('[updateProject] price_lists update returned null — row may not exist for project:', projectId);
+          }
         } catch (priceListError) {
           console.error('[updateProject] Failed to update price_lists table:', priceListError);
         }

@@ -8,7 +8,7 @@ import { SFProMedium } from './fonts/SFProMedium';
 import { WORK_ITEM_PROPERTY_IDS, WORK_ITEM_NAMES, UNIT_TYPES } from '../config/constants';
 import { unitToDisplaySymbol } from '../services/workItemsMapping';
 import { sortItemsByMasterList } from './itemSorting';
-import { translations } from '../translations/translations';
+
 
 // SEPA countries list (European Payments Council members)
 const SEPA_COUNTRIES = new Set([
@@ -364,23 +364,7 @@ export const generateInvoicePDF = async ({
     doc.setFont('SF-Pro', 'semibold');
 
     if (isPriceOffer) {
-      // New format: CP {CategoryPrefix} {number} - {name} as MAIN TITLE (same style as invoice)
-      // Category prefix is the first letter of the translated category name (e.g. "F" for Flats, "H" for Houses)
-      let categoryPrefix = '';
-      if (options.projectCategory) {
-        // Capitalize category key to match translation keys (e.g. 'flats' -> 'Flats')
-        const categoryKey = options.projectCategory.charAt(0).toUpperCase() + options.projectCategory.slice(1).toLowerCase();
-
-        // Use explicit language passed in options, or fallback to 'sk'
-        const lang = options.language || 'sk';
-        const translatedCategory = translations[lang]?.[categoryKey];
-
-        if (translatedCategory && translatedCategory.length > 0) {
-          categoryPrefix = translatedCategory.charAt(0).toUpperCase() + ' ';
-        }
-      }
-
-      const title = `${t('Price Offer Abbr')} ${categoryPrefix}${projectNumber || ''} - ${invoice.projectName || ''}`;
+      const title = `${t('Price Offer Abbr')} ${projectNumber || ''} - ${invoice.projectName || ''}`;
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(title), 12.35, 20);
 

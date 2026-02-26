@@ -414,35 +414,38 @@ export const AppDataProvider = ({ children }) => {
       // Transform clients
       let transformedClients = (clients || []).map(transformClientFromDB);
 
-      // Transform projects - ALWAYS prioritize price_lists table (shared with iOS)
-      // Only fall back to price_list_snapshot JSON for old projects without price_list_id
+      // Transform projects - use the most up-to-date price list source
+      // Desktop saves to both price_list_snapshot (JSON) and price_lists table
+      // iOS only saves to price_lists table
       const transformedProjects = (projects || []).map(project => {
         let priceListSnapshot = null;
 
-        // PRIORITY 1: Load from price_lists table (iOS-compatible, source of truth)
-        // This ensures Desktop and iOS always see the same prices
-        if (project.price_list_id) {
+        // PRIORITY 1: Use price_list_snapshot JSON if available
+        // Desktop always writes this reliably, and it preserves full structure
+        if (project.price_list_snapshot) {
+          try {
+            const parsed = typeof project.price_list_snapshot === 'string'
+              ? JSON.parse(project.price_list_snapshot)
+              : project.price_list_snapshot;
+            // Verify it has valid structure (at minimum work array)
+            if (parsed && parsed.work && Array.isArray(parsed.work)) {
+              priceListSnapshot = parsed;
+            }
+          } catch (e) {
+            console.warn('Failed to parse price_list_snapshot for project:', project.id, e);
+          }
+        }
+
+        // PRIORITY 2: Load from price_lists table (iOS-compatible)
+        // Used when price_list_snapshot is missing (iOS-created projects)
+        if (!priceListSnapshot && project.price_list_id) {
           const linkedPriceList = (allPriceLists || []).find(pl => pl.c_id === project.price_list_id);
           if (linkedPriceList) {
             try {
               priceListSnapshot = dbColumnsToPriceList(linkedPriceList, getDefaultData().generalPriceList);
-              // console.log('[SUPABASE] Loaded priceListSnapshot from price_lists table for project:', project.id);
             } catch (e) {
               console.warn('Failed to build priceListSnapshot from price_lists for project:', project.id, e);
             }
-          }
-        }
-
-        // PRIORITY 2: Fallback to price_list_snapshot JSON for old projects
-        // (projects created before iOS sync was implemented)
-        if (!priceListSnapshot && project.price_list_snapshot) {
-          try {
-            priceListSnapshot = typeof project.price_list_snapshot === 'string'
-              ? JSON.parse(project.price_list_snapshot)
-              : project.price_list_snapshot;
-            console.log('[SUPABASE] Loaded priceListSnapshot from JSON fallback for project:', project.id);
-          } catch (e) {
-            console.warn('Failed to parse price_list_snapshot for project:', project.id);
           }
         }
         let photos = [];

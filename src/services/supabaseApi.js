@@ -1100,10 +1100,16 @@ export const priceListsApi = {
         .eq('project_id', projectId)
         .eq('is_general', false)
         .select()
-        .single()
 
       if (error) throw error
-      return data ? { ...data, id: data.c_id } : null
+      if (!data || data.length === 0) {
+        console.warn('[updateProjectPriceList] No price_lists row found for project:', projectId)
+        return null
+      }
+      if (data.length > 1) {
+        console.warn('[updateProjectPriceList] Multiple price_lists rows found for project:', projectId, '- updated all', data.length)
+      }
+      return data[0] ? { ...data[0], id: data[0].c_id } : null
     } catch (error) {
       handleError('priceListsApi.updateProjectPriceList', error)
     }

@@ -469,7 +469,8 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 lg:gap-4 animate-slide-in">
-              {projectPriceData.others.filter(item => item.name !== 'Custom work and material').map((item, index) => {
+              {projectPriceData.others.map((item, index) => {
+                if (item.name === 'Custom work and material') return null;
                 if (usedItemsIndices && !usedItemsIndices.others.has(index)) return null;
                 return <PriceCard key={index} item={item} category="others" itemIndex={index} />;
               })}

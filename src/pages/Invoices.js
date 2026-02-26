@@ -67,12 +67,12 @@ const Invoices = () => {
     if (selectedStatus === t('Paid')) {
       filtered = filtered.filter(inv => inv.status === 'paid');
     } else if (selectedStatus === t('Unpaid')) {
-      filtered = filtered.filter(inv => inv.status === 'unpaid' || inv.status === 'unsent');
+      filtered = filtered.filter(inv => (inv.status === 'unpaid' || inv.status === 'unsent') && (['regular', 'proforma'].includes(inv.invoiceType || 'regular')));
     } else if (selectedStatus === t('Overdue')) {
       const today = new Date();
       filtered = filtered.filter(inv => {
         const dueDate = new Date(inv.dueDate);
-        return dueDate < today && inv.status !== 'paid';
+        return dueDate < today && inv.status !== 'paid' && (['regular', 'proforma'].includes(inv.invoiceType || 'regular'));
       });
     }
 
