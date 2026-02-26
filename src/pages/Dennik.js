@@ -61,6 +61,7 @@ const Dennik = () => {
     const [selectedMemberFilter, setSelectedMemberFilter] = useState(null); // null = all projects
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const [memberEntriesByDate, setMemberEntriesByDate] = useState({}); // { date: { projectId: totalHours } }
+    const [memberInvoicedMonths, setMemberInvoicedMonths] = useState(new Set()); // Set of "YYYY-M-projectId" keys
     const filterDropdownRef = useRef(null);
 
     const sentinelRef = useRef(null);
@@ -176,11 +177,65 @@ const Dennik = () => {
         }
     }, [dennikProjects, getDateRange]);
 
+    // Load months that the selected member has already invoiced
+    const loadMemberInvoicedMonths = useCallback(async (memberUserId) => {
+        if (!memberUserId) {
+            setMemberInvoicedMonths(new Set());
+            return;
+        }
+        try {
+            const ownedProjects = dennikProjects.filter(p => p.userRole === 'owner');
+            const projectIds = ownedProjects.map(p => p.id || p.c_id);
+            if (projectIds.length === 0) return;
+
+            // Fetch invoices submitted by this member (their user_id) linked to these projects
+            const { data, error } = await import('../lib/supabase').then(m => {
+                return m.supabase
+                    .from('invoices')
+                    .select('date_created, project_id, invoice_items_data')
+                    .eq('user_id', memberUserId)
+                    .or('is_deleted.is.null,is_deleted.eq.false');
+            });
+
+            if (error) throw error;
+
+            const invoicedSet = new Set();
+            (data || []).forEach(inv => {
+                const d = new Date(inv.date_created);
+                if (isNaN(d.getTime())) return;
+                const yearMonth = `${d.getFullYear()}-${d.getMonth()}`;
+
+                if (inv.project_id && projectIds.includes(inv.project_id)) {
+                    // Directly linked project invoice
+                    invoicedSet.add(`${yearMonth}-${inv.project_id}`);
+                } else {
+                    // Check invoice items for projectId references (consolidated invoices)
+                    try {
+                        const items = typeof inv.invoice_items_data === 'string'
+                            ? JSON.parse(inv.invoice_items_data)
+                            : (inv.invoice_items_data || []);
+                        items.forEach(item => {
+                            if (item.projectId && projectIds.includes(item.projectId)) {
+                                invoicedSet.add(`${yearMonth}-${item.projectId}`);
+                            }
+                        });
+                    } catch { /* ignore parse errors */ }
+                }
+            });
+
+            setMemberInvoicedMonths(invoicedSet);
+        } catch (error) {
+            console.error('Error loading member invoiced months:', error);
+        }
+    }, [dennikProjects]);
+
     useEffect(() => {
         if (selectedMemberFilter) {
             loadMemberEntries(selectedMemberFilter, totalDays);
+            loadMemberInvoicedMonths(selectedMemberFilter);
         } else {
             setMemberEntriesByDate({});
+            setMemberInvoicedMonths(new Set());
         }
     }, [selectedMemberFilter, totalDays, loadMemberEntries]);
 
@@ -366,6 +421,16 @@ const Dennik = () => {
             const dateStr = toLocalDateStr(current);
             const projectIds = entriesByDate[dateStr] || [];
             const dayMemberHours = selectedMemberFilter ? memberEntriesByDate[dateStr] : null;
+            // For each project with member hours, check if that month is invoiced
+            const dayInvoicedProjects = new Set();
+            if (selectedMemberFilter && dayMemberHours) {
+                const yearMonth = `${current.getFullYear()}-${current.getMonth()}`;
+                Object.keys(dayMemberHours).forEach(pid => {
+                    if (memberInvoicedMonths.has(`${yearMonth}-${pid}`)) {
+                        dayInvoicedProjects.add(pid);
+                    }
+                });
+            }
 
             days.push({
                 date: dateStr,
@@ -376,7 +441,8 @@ const Dennik = () => {
                 isWeekend: current.getDay() === 0 || current.getDay() === 6,
                 isSunday: current.getDay() === 0,
                 projectIds,
-                memberHours: dayMemberHours
+                memberHours: dayMemberHours,
+                invoicedProjects: dayInvoicedProjects
             });
 
             current.setDate(current.getDate() - 1);
@@ -501,7 +567,10 @@ const Dennik = () => {
                                     )}
                                     <span className="truncate max-w-[140px] lg:max-w-[220px]">{project.name}</span>
                                     {selectedMemberFilter && memberHoursForProject ? (
-                                        <span className="text-blue-500 dark:text-blue-400 text-xs font-semibold flex-shrink-0">
+                                        <span className={`text-xs font-semibold flex-shrink-0 ${day.invoicedProjects?.has(projectId)
+                                                ? 'text-blue-500 dark:text-blue-400'
+                                                : 'text-green-500 dark:text-green-400'
+                                            }`}>
                                             {formatDuration(memberHoursForProject)}
                                         </span>
                                     ) : (
