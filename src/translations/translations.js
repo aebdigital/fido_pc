@@ -1149,8 +1149,6 @@ export const translations = {
     "Invoice maturity": "Splatnosť faktúry",
     "Price per piece": "Cena za kus",
     "count": "počet",
-    "Include": "Zahrnúť",
-    "Exclude": "Vylúčiť",
     "Tax obligation transfer": "Prenos daňovej povinnosti",
     "No work items found": "Neboli nájdené žiadne pracovné položky",
     "No invoice items": "Žiadne položky faktúry",

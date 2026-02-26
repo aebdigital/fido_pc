@@ -237,7 +237,7 @@ const Dennik = () => {
             setMemberEntriesByDate({});
             setMemberInvoicedMonths(new Set());
         }
-    }, [selectedMemberFilter, totalDays, loadMemberEntries]);
+    }, [selectedMemberFilter, totalDays, loadMemberEntries, loadMemberInvoicedMonths]);
 
     // Load pending invitations
     const loadPendingInvitations = useCallback(async () => {
@@ -568,8 +568,8 @@ const Dennik = () => {
                                     <span className="truncate max-w-[140px] lg:max-w-[220px]">{project.name}</span>
                                     {selectedMemberFilter && memberHoursForProject ? (
                                         <span className={`text-xs font-semibold flex-shrink-0 ${day.invoicedProjects?.has(projectId)
-                                                ? 'text-blue-500 dark:text-blue-400'
-                                                : 'text-green-500 dark:text-green-400'
+                                            ? 'text-blue-500 dark:text-blue-400'
+                                            : 'text-green-500 dark:text-green-400'
                                             }`}>
                                             {formatDuration(memberHoursForProject)}
                                         </span>
