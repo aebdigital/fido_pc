@@ -374,6 +374,7 @@ const Dennik = () => {
                 dayName: DAY_NAMES_SK[current.getDay()],
                 dayNum: current.getDate(),
                 isWeekend: current.getDay() === 0 || current.getDay() === 6,
+                isSunday: current.getDay() === 0,
                 projectIds,
                 memberHours: dayMemberHours
             });
@@ -455,7 +456,9 @@ const Dennik = () => {
                     className={`flex items-center gap-3 min-h-[40px] border-b transition-colors pl-2
                         ${isToday
                             ? 'bg-blue-50/60 dark:bg-blue-900/15 -mx-2 pl-4 pr-2 rounded-lg border-blue-100 dark:border-blue-900/30'
-                            : 'border-gray-50 dark:border-gray-800/40'}
+                            : day.isSunday
+                                ? 'bg-yellow-50/60 dark:bg-yellow-900/15 border-gray-50 dark:border-gray-800/40'
+                                : 'border-gray-50 dark:border-gray-800/40'}
                         ${day.isWeekend && !hasProjects ? 'opacity-40' : ''}
                     `}
                 >

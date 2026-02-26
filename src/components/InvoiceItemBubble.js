@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+
 import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import NumberInput from './NumberInput';
@@ -25,6 +26,7 @@ const InvoiceItemBubble = ({
   const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(item.isNew || false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const titleInputRef = useRef(null);
 
   // Local state for editing
   const [title, setTitle] = useState(item.title || '');
@@ -77,6 +79,13 @@ const InvoiceItemBubble = ({
     }
   };
 
+
+  // Auto-focus title input when a new item is added
+  useEffect(() => {
+    if (item.isNew && titleInputRef.current) {
+      setTimeout(() => titleInputRef.current?.focus(), 50);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync with parent item changes
   useEffect(() => {
@@ -187,8 +196,7 @@ const InvoiceItemBubble = ({
 
   return (
     <div
-      className={`rounded-2xl overflow-hidden transition-all duration-300 ${!active ? 'opacity-60' : ''}`}
-      style={{ backgroundColor: category === 'material' ? '#e5e7eb' : '#f3f4f6' }}
+      className={`rounded-2xl overflow-hidden transition-all duration-300 bg-white dark:bg-gray-800 ${!active ? 'opacity-60' : ''}`}
     >
       {/* Header - Always visible */}
       <div className="p-3">
@@ -198,6 +206,7 @@ const InvoiceItemBubble = ({
             {isExpanded ? (
               <div className="relative">
                 <input
+                  ref={titleInputRef}
                   type="text"
                   value={title}
                   onChange={(e) => {
@@ -280,8 +289,14 @@ const InvoiceItemBubble = ({
             ) : (
               <>
                 <button
-                  onClick={handleActiveToggle}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleActiveToggle();
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm ${active
+                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
                 >
                   <FileText className="w-4 h-4" />
                   {active ? t('Exclude') : t('Include')}
@@ -294,7 +309,7 @@ const InvoiceItemBubble = ({
                     }
                     setIsExpanded(true);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
                 >
                   <Pencil className="w-4 h-4" />
                   {t('Edit')}

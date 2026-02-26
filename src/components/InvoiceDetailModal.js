@@ -877,8 +877,18 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           )}
 
           {/* Notes Section - show if invoice has notes */}
+          {invoice.introductoryNote && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
+              <p className="text-sm font-bold text-gray-900 dark:text-white mb-2">{t('Poznámka úvodná')}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                <Linkify>{invoice.introductoryNote}</Linkify>
+              </p>
+            </div>
+          )}
+
           {invoice.notes && (
             <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
+              <p className="text-sm font-bold text-gray-900 dark:text-white mb-2">{t('Poznámka na záver')}</p>
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                 <Linkify>{invoice.notes}</Linkify>
               </p>

@@ -1257,7 +1257,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
                   {/* Introductory Note - subheading below document title in PDF */}
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
-                    <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Introductory note')}</span>
+                    <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Poznámka úvodná')}</span>
                     <input
                       type="text"
                       value={introductoryNote}
@@ -1456,7 +1456,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
                 {/* Notes */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
-                  <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Note')}</span>
+                  <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Poznámka na záver')}</span>
                   <textarea
                     id="invoice-note"
                     value={notes}
@@ -1738,10 +1738,10 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     client.name?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
                     client.email?.toLowerCase().includes(clientSearchQuery.toLowerCase())
                   ).length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      {t('No clients found')}
-                    </div>
-                  )}
+                      <div className="text-center py-8 text-gray-500">
+                        {t('No clients found')}
+                      </div>
+                    )}
                 </div>
 
                 <div className="space-y-3">

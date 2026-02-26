@@ -1108,7 +1108,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                         ? 'bg-green-600 text-white shadow-md'
                                                         : isToday(day)
                                                             ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                            : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                            : new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).getDay() === 0
+                                                                ? 'bg-yellow-50 dark:bg-yellow-900/10 text-gray-700 dark:text-gray-300'
+                                                                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                                                         }`}
                                                 >
                                                     {day}
@@ -1168,7 +1170,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     ? 'bg-green-600 text-white'
                                                     : isToday(day)
                                                         ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                        : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                        : new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).getDay() === 0
+                                                            ? 'bg-yellow-50 dark:bg-yellow-900/10 text-gray-700 dark:text-gray-300'
+                                                            : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                                                     }`}
                                             >
                                                 {day}
@@ -1748,7 +1752,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                 <button
                                     onClick={handleGenerateInvoice}
                                     disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0)) || hasInvoiceForPeriod}
-                                    className="w-full bg-gradient-to-br from-green-500 to-green-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-green-600 hover:to-green-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isGeneratingInvoice ? (
                                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
