@@ -43,7 +43,8 @@ const Dennik = () => {
     const { user } = useAuth();
     const {
         clients,
-        activeTimer
+        activeTimer,
+        memberActiveTimers
     } = useAppData();
 
     const [dennikProjects, setDennikProjects] = useState([]);
@@ -570,8 +571,10 @@ const Dennik = () => {
                                     }}
                                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-sm cursor-pointer active:scale-95"
                                 >
-                                    {hasActiveTimer && (
+                                    {hasActiveTimer ? (
                                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                                    ) : memberActiveTimers?.some(mt => mt.project_id === projectId) && (
+                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
                                     )}
                                     <span className="truncate max-w-[140px] lg:max-w-[220px]">{project.name}</span>
                                     {selectedMemberFilter && memberHoursForProject ? (
@@ -769,14 +772,16 @@ const Dennik = () => {
                                             }
                                         });
                                     }}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium transition-all bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:border-purple-400 dark:hover:border-purple-600 hover:shadow-sm cursor-pointer active:scale-95"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm cursor-pointer active:scale-95"
                                 >
-                                    {hasActiveTimer && (
+                                    {hasActiveTimer ? (
                                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                                    ) : memberActiveTimers?.some(mt => mt.project_id === pid) && (
+                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
                                     )}
                                     <span className="truncate max-w-[140px] lg:max-w-[220px]">{project.name}</span>
                                     {clientName && (
-                                        <span className="text-purple-400 dark:text-purple-500 text-xs truncate max-w-[80px] hidden sm:inline">
+                                        <span className="text-gray-500 dark:text-gray-400 text-xs truncate max-w-[80px] hidden sm:inline">
                                             {clientName}
                                         </span>
                                     )}

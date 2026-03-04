@@ -90,6 +90,7 @@ export const AppDataProvider = ({ children }) => {
   const [myJobs, setMyJobs] = useState([]);
   const [myInvitations, setMyInvitations] = useState([]);
   const [activeTimer, setActiveTimer] = useState(null); // { projectId, entryId, startTime, project: { name, c_id } }
+  const [memberActiveTimers, setMemberActiveTimers] = useState([]); // Array of member timers on owned projects
 
   const checkProStatus = useCallback(async () => {
     if (!user?.id) return;
@@ -712,8 +713,12 @@ export const AppDataProvider = ({ children }) => {
 
     const checkActiveTimer = async () => {
       try {
-        const timer = await api.dennik.getGlobalActiveTimer();
+        const [timer, memberTimers] = await Promise.all([
+          api.dennik.getGlobalActiveTimer(),
+          api.dennik.getGlobalActiveTimersForOwnedProjects()
+        ]);
         setActiveTimer(timer);
+        setMemberActiveTimers(memberTimers || []);
       } catch (error) {
         console.error('Error checking active timer:', error);
       }
@@ -729,8 +734,12 @@ export const AppDataProvider = ({ children }) => {
   const refreshActiveTimer = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const timer = await api.dennik.getGlobalActiveTimer();
+      const [timer, memberTimers] = await Promise.all([
+        api.dennik.getGlobalActiveTimer(),
+        api.dennik.getGlobalActiveTimersForOwnedProjects()
+      ]);
       setActiveTimer(timer);
+      setMemberActiveTimers(memberTimers || []);
     } catch (error) {
       console.error('Error refreshing active timer:', error);
     }
@@ -1240,14 +1249,47 @@ export const AppDataProvider = ({ children }) => {
       }
     });
 
+    const groupItems = (itemsList) => {
+      const groupedMap = new Map();
+      itemsList.forEach(item => {
+        const fieldsName = item.fields?.['Name'] || item.fields?.['Názov'] || '';
+        const key = [
+          item.propertyId || '',
+          item.name || '',
+          item.selectedType || '',
+          item.subtitle || '',
+          fieldsName,
+          !!item.isLargeFormat,
+          item.calculation?.unit || item.unit || ''
+        ].join('||');
+
+        if (groupedMap.has(key)) {
+          const existing = groupedMap.get(key);
+          const merged = { ...existing };
+          if (merged.calculation || item.calculation) {
+            merged.calculation = {
+              ...(merged.calculation || {}),
+              quantity: ((merged.calculation?.quantity) || 0) + ((item.calculation?.quantity) || 0),
+              workCost: ((merged.calculation?.workCost) || 0) + ((item.calculation?.workCost) || 0),
+              materialCost: ((merged.calculation?.materialCost) || 0) + ((item.calculation?.materialCost) || 0)
+            };
+          }
+          groupedMap.set(key, merged);
+        } else {
+          groupedMap.set(key, { ...item, calculation: item.calculation ? { ...item.calculation } : undefined });
+        }
+      });
+      return Array.from(groupedMap.values());
+    };
+
     return {
       workTotal: totalWorkPrice,
       materialTotal: totalMaterialPrice,
       othersTotal: totalOthersPrice,
       total: totalWorkPrice + totalMaterialPrice + totalOthersPrice,
-      items: allWorkItems,
-      materialItems: allMaterialItems,
-      othersItems: allOthersItems
+      items: groupItems(allWorkItems),
+      materialItems: groupItems(allMaterialItems),
+      othersItems: groupItems(allOthersItems)
     };
   };
 
@@ -1618,6 +1660,7 @@ export const AppDataProvider = ({ children }) => {
 
     // Denník
     activeTimer,
+    memberActiveTimers,
     setActiveTimer,
     refreshActiveTimer,
     quickTravelToDennik

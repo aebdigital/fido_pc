@@ -1324,7 +1324,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                       {invoiceType === 'proforma' ? t('Proforma Invoice Number') : invoiceType === 'delivery' ? t('Delivery Note Number') : invoiceType === 'credit_note' ? t('Credit Note Number') : t('Invoice Number')}
                     </span>
                     <div className="flex items-center gap-2">
-                      {invoiceType !== 'delivery' && invoiceNumber !== originalInvoiceNumber && (
+                      {invoiceNumber !== originalInvoiceNumber && (
                         <button
                           onClick={handleResetNumber}
                           className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -1337,8 +1337,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         type="text"
                         value={invoiceNumber}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
-                        readOnly={invoiceType === 'delivery'}
-                        className={`w-32 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-right text-base font-medium focus:outline-none invoice-input-dark ${invoiceType === 'delivery' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        className={`w-32 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-right text-base font-medium focus:outline-none invoice-input-dark`}
                         placeholder="2025001"
                       />
                     </div>

@@ -2488,6 +2488,27 @@ export const dennikApi = {
         .maybeSingle()
 
       if (error) throw error
+
+      if (data) {
+        const startTime = new Date(data.start_time);
+        const now = new Date();
+        const startLocal = startTime.toLocaleDateString('en-CA');
+        const nowLocal = now.toLocaleDateString('en-CA');
+
+        if (startLocal !== nowLocal && startTime < now) {
+          const endOfDay = new Date(startTime);
+          endOfDay.setHours(23, 59, 59, 999);
+          const hoursWorked = Math.max(0, (endOfDay - startTime) / 3600000);
+
+          await supabase
+            .from('dennik_time_entries')
+            .update({ end_time: endOfDay.toISOString(), hours_worked: hoursWorked })
+            .eq('id', data.id);
+
+          return null;
+        }
+      }
+
       return data
     } catch (error) {
       handleError('dennikApi.getActiveTimer', error)
@@ -2508,9 +2529,86 @@ export const dennikApi = {
         .maybeSingle()
 
       if (error) throw error
+
+      if (data) {
+        const startTime = new Date(data.start_time);
+        const now = new Date();
+        const startLocal = startTime.toLocaleDateString('en-CA');
+        const nowLocal = now.toLocaleDateString('en-CA');
+
+        if (startLocal !== nowLocal && startTime < now) {
+          const endOfDay = new Date(startTime);
+          endOfDay.setHours(23, 59, 59, 999);
+          const hoursWorked = Math.max(0, (endOfDay - startTime) / 3600000);
+
+          await supabase
+            .from('dennik_time_entries')
+            .update({ end_time: endOfDay.toISOString(), hours_worked: hoursWorked })
+            .eq('id', data.id);
+
+          return null;
+        }
+      }
+
       return data
     } catch (error) {
       handleError('dennikApi.getGlobalActiveTimer', error)
+    }
+  },
+
+  // Get active timers for ALL members in projects owned by the current user
+  getGlobalActiveTimersForOwnedProjects: async () => {
+    try {
+      const userId = await getCurrentUserId();
+
+      const { data: ownedProjects, error: projectsError } = await supabase
+        .from('projects')
+        .select('c_id')
+        .eq('user_id', userId);
+
+      if (projectsError) throw projectsError;
+
+      if (!ownedProjects || ownedProjects.length === 0) return [];
+
+      const projectIds = ownedProjects.map(p => p.c_id);
+
+      const { data, error } = await supabase
+        .from('dennik_time_entries')
+        .select('*, projects!inner(name, c_id)')
+        .in('project_id', projectIds)
+        .neq('user_id', userId) // exclude current user
+        .is('end_time', null)
+        .order('start_time', { ascending: false });
+
+      if (error) throw error;
+
+      const cleanData = [];
+      const now = new Date();
+      const nowLocal = now.toLocaleDateString('en-CA');
+
+      for (const entry of data) {
+        if (!entry.start_time) continue;
+        const startTime = new Date(entry.start_time);
+        const startLocal = startTime.toLocaleDateString('en-CA');
+
+        if (startLocal !== nowLocal && startTime < now) {
+          const endOfDay = new Date(startTime);
+          endOfDay.setHours(23, 59, 59, 999);
+          const hoursWorked = Math.max(0, (endOfDay - startTime) / 3600000);
+
+          await supabase
+            .from('dennik_time_entries')
+            .update({ end_time: endOfDay.toISOString(), hours_worked: hoursWorked })
+            .eq('id', entry.id);
+        } else {
+          cleanData.push(entry);
+        }
+      }
+
+      return cleanData;
+    } catch (error) {
+      handleError('dennikApi.getGlobalActiveTimersForOwnedProjects', error);
+      return [];
     }
   },
 

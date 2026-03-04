@@ -1070,7 +1070,7 @@ export const translations = {
     "There is no Invoice for selected Contractor.": "Pre vybraného dodávateľa nebola vytvorená žiadna faktúra.",
     "No invoice has been created for the selected supplier.": "Pre vybraného dodávateľa nebola vytvorená žiadna faktúra.",
     "Create Invoice": "Vystavenie dokladu",
-    "Edit Invoice": "Upraviť faktúru",
+    "Edit Invoice": "Úprava dokumentu",
     "Save Changes": "Uložiť zmeny",
     "Duplicate Invoice Number": "Duplicitné číslo faktúry",
     "Invoice number": "Číslo faktúry",
@@ -1144,7 +1144,7 @@ export const translations = {
     "In case of non-payment of the invoice will automatically claim over to a collections company...": "V prípade neuhradenia faktúry bude automaticky postúpená inkasnej spoločnosti...",
 
     // ========== INVOICE BUILDER (iOS-aligned) ==========
-    "Invoice Builder": "Tvorba faktúry",
+    "Invoice Builder": "Vystavenie dokladu",
     "Summary": "Zhrnutie",
     "Invoice maturity": "Splatnosť faktúry",
     "Price per piece": "Cena za kus",

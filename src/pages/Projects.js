@@ -90,6 +90,7 @@ const Projects = () => {
     projectFilterYear: filterYear,
     updateProjectFilterYear,
     activeTimer,
+    memberActiveTimers,
     quickTravelToDennik,
     findProjectById,
     invoices,
@@ -675,7 +676,7 @@ const Projects = () => {
                 >
                   <div className="h-24 lg:h-20 xl:h-24 2xl:h-28 relative shadow-lg">
                     {/* Active Timer Live Display */}
-                    {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) && (
+                    {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) ? (
                       <LiveTimer
                         startTime={activeTimer.start_time}
                         onClick={(e) => {
@@ -683,6 +684,8 @@ const Projects = () => {
                           quickTravelToDennik(activeTimer.project_id);
                         }}
                       />
+                    ) : memberActiveTimers?.some(mt => category.projects?.some(p => p.id === mt.project_id)) && (
+                      <div className="absolute top-3 right-3 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-md animate-pulse z-20" title={t('Member active timer')} />
                     )}
                     <img
                       src={category.image}
@@ -724,7 +727,7 @@ const Projects = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
 
                       {/* Active Timer Live Display Mobile */}
-                      {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) && (
+                      {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) ? (
                         <div className="absolute top-3 right-3 z-20">
                           <LiveTimer
                             startTime={activeTimer.start_time}
@@ -734,6 +737,8 @@ const Projects = () => {
                             }}
                           />
                         </div>
+                      ) : memberActiveTimers?.some(mt => category.projects?.some(p => p.id === mt.project_id)) && (
+                        <div className="absolute top-4 right-4 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-lg animate-pulse z-20" />
                       )}
 
                       <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between items-end">
@@ -951,7 +956,7 @@ const Projects = () => {
                                     <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
                                       {t('Denník')}
                                     </span>
-                                    {activeTimer && activeTimer.project_id === project.id && (
+                                    {activeTimer && activeTimer.project_id === project.id ? (
                                       <LiveTimer
                                         size="small"
                                         startTime={activeTimer.start_time}
@@ -960,6 +965,8 @@ const Projects = () => {
                                           quickTravelToDennik(project.id);
                                         }}
                                       />
+                                    ) : memberActiveTimers?.some(mt => mt.project_id === project.id) && (
+                                      <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" title={t('Member active timer')} />
                                     )}
                                   </div>
                                 )}
