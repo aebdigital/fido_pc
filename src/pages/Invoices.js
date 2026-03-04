@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Plus, Hash, X, Package } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Hash, X, Package, MoreVertical } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { INVOICE_STATUS } from '../utils/dataTransformers';
@@ -24,6 +24,9 @@ const Invoices = () => {
   const [showItemsModal, setShowItemsModal] = useState(false);
   const dropdownRef = useRef(null);
   const yearDropdownRef = useRef(null);
+  const moreMenuRef = useRef(null);
+  const moreMenuRefMobile = useRef(null);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -33,6 +36,10 @@ const Invoices = () => {
       }
       if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target)) {
         setShowYearDropdown(false);
+      }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target) &&
+        moreMenuRefMobile.current && !moreMenuRefMobile.current.contains(event.target)) {
+        setShowMoreMenu(false);
       }
     };
 
@@ -248,20 +255,33 @@ const Invoices = () => {
           >
             <Plus className="w-6 h-6" />
           </button>
-          <button
-            onClick={() => setShowStatsModal(true)}
-            className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
-            title={t('Invoice Statistics')}
-          >
-            <Hash className="w-6 h-6" />
-          </button>
-          <button
-            onClick={() => setShowItemsModal(true)}
-            className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700"
-            title={t('Manage Items')}
-          >
-            <Package className="w-6 h-6" />
-          </button>
+
+          <div className="relative" ref={moreMenuRef}>
+            <button
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700"
+            >
+              <MoreVertical className="w-6 h-6" />
+            </button>
+            {showMoreMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                <button
+                  onClick={() => { setShowStatsModal(true); setShowMoreMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                >
+                  <Hash className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Invoice Statistics')}</span>
+                </button>
+                <button
+                  onClick={() => { setShowItemsModal(true); setShowMoreMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                >
+                  <Package className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Manage Items')}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -344,12 +364,32 @@ const Invoices = () => {
           >
             <Plus className="w-5 h-5" />
           </button>
-          <button
-            onClick={() => setShowStatsModal(true)}
-            className="w-10 h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
-          >
-            <Hash className="w-5 h-5" />
-          </button>
+          <div className="relative" ref={moreMenuRefMobile}>
+            <button
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+            {showMoreMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                <button
+                  onClick={() => { setShowStatsModal(true); setShowMoreMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                >
+                  <Hash className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Invoice Statistics')}</span>
+                </button>
+                <button
+                  onClick={() => { setShowItemsModal(true); setShowMoreMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                >
+                  <Package className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Manage Items')}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
