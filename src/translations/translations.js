@@ -1525,7 +1525,6 @@ export const translations = {
     "Drop files here": "Sem pretiahnite súbory",
     "No files yet": "Zatiaľ žiadne súbory",
     "Processing...": "Vystavujem...",
-    "Items": "Položky",
     "Search and add item...": "Hľadať a pridať položku...",
 
     // ========== CONSOLIDATED INVOICE ==========
@@ -1581,7 +1580,6 @@ export const translations = {
     "Are you sure you want to delete this work item?": "Naozaj chcete vymazať túto položku prác?",
     "Are you sure you want to delete this material item?": "Naozaj chcete vymazať túto položku materiálu?",
     "Are you sure you want to delete this invoice item?": "Naozaj chcete vymazať túto položku faktúry?",
-    "Project notes": "Poznámky k projektu",
     "Add your notes here...": "Kliknutím pridajte poznámky k projektu",
   }
 };
