@@ -129,7 +129,7 @@ const Clients = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('Search')}
-              className="w-full pr-4 py-1.5 lg:py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg px-4"
+              className="w-full pr-4 py-[8px] lg:py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-[15px] lg:rounded-2xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[20px] lg:text-lg px-[12px] lg:px-4"
             />
           </div>
         </div>
@@ -145,7 +145,7 @@ const Clients = () => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{client.name}</h3>
+                    <h3 className="text-[20px] lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{client.name}</h3>
                     {getClientAddress(client) && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{getClientAddress(client)}</p>
                     )}

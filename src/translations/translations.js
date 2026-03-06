@@ -407,6 +407,8 @@ export const translations = {
     "No employees": "Žiadni zamestnanci",
     "members": "členov",
     "projects": "projektov",
+    "project_singular": "projekt",
+    "projects_few": "projekty",
     "Add members to projects via the Dennik modal": "Pridajte členov do projektov cez Denník modal",
     "Confirm": "Potvrdiť",
     "To invoice": "K faktúre",

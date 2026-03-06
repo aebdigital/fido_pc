@@ -478,22 +478,21 @@ const Invoices = () => {
                 setSelectedInvoice(invoice);
                 setShowInvoiceDetail(true);
               }}
-              className="bg-white dark:bg-gray-800 rounded-[30px] pl-4 pr-1.5 pt-2.5 pb-2.5 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
+              className="bg-white dark:bg-gray-800 rounded-[24px] px-[15px] py-[10px] lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
             >
               <div className="flex items-center justify-between min-w-0">
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 min-h-[50px] flex flex-col justify-center">
                   {/* Invoice number with dates */}
-                  {/* Document Type Badge */}
                   <div className="flex items-center gap-1 lg:gap-2 flex-wrap whitespace-nowrap overflow-hidden">
-                    <span className="text-sm lg:text-base font-medium text-gray-600 dark:text-gray-400 shrink-0">
+                    <span className="text-[13px] lg:text-base font-medium text-gray-600 dark:text-gray-400 shrink-0">
                       {invoice.invoiceType === 'delivery' ? '' : invoice.invoiceNumber}
                     </span>
-                    <span className="text-sm lg:text-base font-medium text-gray-600 dark:text-gray-400 shrink-0">
+                    <span className="text-[13px] lg:text-base font-semibold lg:font-medium text-gray-600 dark:text-gray-400 shrink-0">
                       {formatDate(invoice.issueDate)}
                     </span>
                   </div>
                   {/* Project name */}
-                  <h3 className="text-xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate leading-[1.1]">
+                  <h3 className="text-[20px] lg:text-3xl font-semibold lg:font-bold text-gray-900 dark:text-white truncate leading-[1.1]">
                     {(() => {
                       const isDennik = invoice.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
                       const projectName = invoice.projectName || '';
@@ -503,7 +502,7 @@ const Invoices = () => {
                     })()}
                   </h3>
                   {/* Client name - below project name */}
-                  <div className="text-sm lg:text-base font-medium text-gray-600 dark:text-gray-400 truncate">
+                  <div className="text-[13px] lg:text-base font-medium text-gray-600 dark:text-gray-400 truncate">
                     {(() => {
                       // First check if invoice has a direct clientId
                       if (invoice.clientId) {
@@ -585,11 +584,11 @@ const Invoices = () => {
                       );
                     })()}
                     {/* Price */}
-                    <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{getInvoiceTotal(invoice)}</div>
+                    <div className="font-semibold text-gray-900 dark:text-white text-[20px] lg:text-lg">{getInvoiceTotal(invoice)}</div>
                     {/* VAT not included - below price */}
                     <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 -mr-1" />
+                  <ChevronRight className="w-6 h-6 lg:w-5 lg:h-5 text-gray-400 dark:text-gray-500 -mr-1" />
                 </div>
               </div>
             </div>

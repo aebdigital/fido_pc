@@ -716,7 +716,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               {/* Large Invoice Number - iOS style (40pt equivalent) */}
-              <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-white mb-1 truncate leading-[1.1]">
+              <h1 className="text-[40px] lg:text-5xl font-[900] text-gray-900 dark:text-white mb-1 truncate leading-[1.1]">
                 {invoice.invoiceNumber}
               </h1>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:text-base font-semibold text-gray-900 dark:text-gray-200">
@@ -778,7 +778,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        <div className="flex-1 overflow-y-auto px-[15px] py-6 lg:p-6 space-y-8">
           {/* Clickable Client Card - iOS style */}
           {client && (
             <div className="space-y-2">
@@ -788,10 +788,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               </div>
               <button
                 onClick={handleViewClient}
-                className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                className="w-full bg-gray-100 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
               >
                 <div className="min-w-0">
-                  <p className="text-xl font-[900] text-gray-900 dark:text-white leading-tight truncate">{client.name}</p>
+                  <p className="text-[20px] lg:text-xl font-semibold lg:font-[900] text-gray-900 dark:text-white leading-tight truncate">{client.name}</p>
                   {(client.street || client.city) && (
                     <p className="text-base text-gray-500 dark:text-gray-400 truncate mt-1">
                       {[client.street, client.city].filter(Boolean).join(', ')}
@@ -812,7 +812,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               </div>
               <button
                 onClick={handleViewProject}
-                className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center transition-colors duration-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 cursor-pointer text-left"
+                className="w-full bg-gray-100 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center transition-colors duration-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 cursor-pointer text-left"
               >
                 <div className="flex-1 transition-all duration-300 min-w-0">
                   <div className="flex items-center gap-1 mb-1 flex-wrap">
@@ -862,10 +862,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               </div>
               <button
                 onClick={handleViewContractor}
-                className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                className="w-full bg-gray-100 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
               >
                 <div className="min-w-0">
-                  <p className="text-xl font-[900] text-gray-900 dark:text-white leading-tight truncate">{contractor.name}</p>
+                  <p className="text-[20px] lg:text-xl font-semibold lg:font-[900] text-gray-900 dark:text-white leading-tight truncate">{contractor.name}</p>
                   {contractor.ico && (
                     <p className="text-base text-gray-500 dark:text-gray-400 truncate mt-1">
                       {t('BID Abbr')}: {contractor.ico}
@@ -884,7 +884,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
           {/* Notes Section - show if invoice has notes */}
           {invoice.introductoryNote && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4">
               <p className="text-sm font-bold text-gray-900 dark:text-white mb-2">{t('Poznámka úvodná')}</p>
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                 <Linkify>{invoice.introductoryNote}</Linkify>
@@ -893,7 +893,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           )}
 
           {invoice.notes && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4">
               <p className="text-sm font-bold text-gray-900 dark:text-white mb-2">{t('Poznámka na záver')}</p>
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                 <Linkify>{invoice.notes}</Linkify>
@@ -910,24 +910,24 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={handlePreview}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[16px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
                 <Eye className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Preview')}</span>
+                <span className="text-[16px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Preview')}</span>
               </button>
               <button
                 onClick={handleSend}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[16px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
                 <Send className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Send')}</span>
+                <span className="text-[16px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Send')}</span>
               </button>
               <button
                 onClick={handleStartEdit}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[16px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
                 <Edit3 className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
-                <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Edit')}</span>
+                <span className="text-[16px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Edit')}</span>
               </button>
             </div>
             {invoice.invoiceType !== 'credit_note' && invoice.invoiceType !== 'delivery' && (() => {

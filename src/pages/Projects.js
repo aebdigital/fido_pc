@@ -69,7 +69,7 @@ const LiveTimer = ({ startTime, onClick, className = "", size = "normal" }) => {
 const Projects = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, tPlural } = useLanguage();
   const { user } = useAuth();
 
   const {
@@ -717,14 +717,15 @@ const Projects = () => {
                     <button
                       key={category.id}
                       onClick={() => handleCategorySelect(category.id)}
-                      className="w-full h-[193px] rounded-[30px] overflow-hidden transition-all duration-200 relative shadow-lg hover:shadow-xl"
+                      className="w-full h-[193px] rounded-[30px] overflow-hidden transition-all duration-200 relative hover:shadow-xl"
+                      style={{ boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)' }}
                     >
                       <img
                         src={category.image}
                         alt={category.name}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 h-[90px]" style={{ background: 'linear-gradient(to top, #E9E9E9, rgba(233,233,233,0.7) 50%, rgba(233,233,233,0) 100%)' }}></div>
 
                       {/* Active Timer Live Display Mobile */}
                       {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) ? (
@@ -741,9 +742,9 @@ const Projects = () => {
                         <div className="absolute top-4 right-4 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-lg animate-pulse z-20" />
                       )}
 
-                      <div className="absolute bottom-0 left-0 right-0 p-4 flex justify-between items-end">
-                        <h3 className="text-3xl font-bold text-gray-900">{t(category.name)}</h3>
-                        <span className="text-sm font-medium text-gray-900">{category.count} {t('projects')}</span>
+                      <span className="absolute top-[15px] right-[20px] text-[16px] font-semibold text-gray-900 z-10">{category.count} {tPlural(category.count, 'project_singular', 'projects_few', 'projects')}</span>
+                      <div className="absolute bottom-0 left-0 p-5 pb-[15px]">
+                        <h3 className="text-[35px] font-bold text-gray-900">{t(category.name)}</h3>
                       </div>
                     </button>
                   ))}
@@ -752,9 +753,10 @@ const Projects = () => {
                 {/* Unpaid Invoices Section - Mobile */}
                 {unpaidInvoices.length > 0 && (
                   <div className="mt-6">
-                    <h2 className="text-[1.125rem] font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <h2 className="text-[20px] font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                       <FileText className="w-5 h-5" />
-                      Neuhradené faktúry - {formatPrice(unpaidTotal).replace('€', '')} €
+                      <span>{t('Unpaid invoices')}</span>
+                      <span className="ml-auto">{formatPrice(unpaidTotal).replace('€', '')} €</span>
                     </h2>
                     <div className="space-y-2">
                       {unpaidInvoices.map(invoice => {
@@ -782,23 +784,23 @@ const Projects = () => {
                         return (
                           <div
                             key={invoice.id}
-                            className="bg-white dark:bg-gray-800 rounded-[30px] pl-4 pr-1.5 pt-2.5 pb-2.5 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
+                            className="bg-white dark:bg-gray-800 rounded-[24px] px-[15px] py-[10px] lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
                             onClick={() => {
                               setSelectedInvoice(invoice);
                               setShowInvoiceDetail(true);
                             }}
                           >
                             <div className="flex items-center justify-between min-w-0">
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 min-h-[50px] flex flex-col justify-center">
                                 <div className="flex items-center gap-1 flex-wrap whitespace-nowrap overflow-hidden">
-                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 shrink-0">
+                                  <span className="text-[13px] lg:text-sm font-medium text-gray-600 dark:text-gray-400 shrink-0">
                                     {invoice.invoiceNumber}
                                   </span>
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white truncate leading-[1.1]">
+                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white truncate leading-[1.1]">
                                   {invoice.projectName || project?.project?.name || t('Unknown project')}
                                 </h3>
-                                <div className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                                <div className="text-[13px] lg:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                                   {invoice.clientId ? clients.find(c => c.id === invoice.clientId)?.name || t('No client') : project?.project?.clientId ? clients.find(c => c.id === project.project.clientId)?.name || t('No client') : t('No client')}
                                 </div>
                               </div>
@@ -812,10 +814,10 @@ const Projects = () => {
                                   >
                                     {statusLabel}
                                   </span>
-                                  <div className="font-semibold text-gray-900 dark:text-white text-base">{getInvoiceTotal(invoice)}</div>
+                                  <div className="font-semibold text-gray-900 dark:text-white text-[20px] lg:text-base">{getInvoiceTotal(invoice)}</div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                                 </div>
-                                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 -mr-1" />
+                                <ChevronRight className="w-6 h-6 lg:w-5 lg:h-5 text-gray-400 dark:text-gray-500 -mr-1" />
                               </div>
                             </div>
                           </div>
@@ -955,7 +957,7 @@ const Projects = () => {
                         {filteredProjects.map(project => (
                           <div
                             key={project.id}
-                            className={`bg-white dark:bg-gray-800 rounded-[30px] pl-5 pr-2 pt-3 pb-3 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
+                            className={`bg-white dark:bg-gray-800 rounded-[24px] px-[15px] py-[10px] lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
                               ? 'justify-between'
                               : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
                               }`}
@@ -963,7 +965,7 @@ const Projects = () => {
                           >
                             <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
                               <div className="flex items-center gap-2 flex-wrap whitespace-nowrap overflow-hidden">
-                                <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400 shrink-0">{formatProjectNumber(project) || project.id}</span>
+                                <span className="text-[13px] lg:text-base text-gray-500 dark:text-gray-400 shrink-0">{formatProjectNumber(project) || project.id}</span>
                                 {project.is_dennik_enabled && (
                                   <div className="flex items-center gap-2 shrink-0">
                                     <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
@@ -984,11 +986,11 @@ const Projects = () => {
                                   </div>
                                 )}
                               </div>
-                              <h3 className="text-xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate leading-tight">
+                              <h3 className="text-[20px] lg:text-3xl font-semibold lg:font-bold text-gray-900 dark:text-white truncate leading-tight">
                                 {project.name}
                               </h3>
                               {/* Client name - visible on all screen sizes */}
-                              <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base truncate">
+                              <p className="text-gray-500 dark:text-gray-400 text-[13px] lg:text-base truncate">
                                 {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
                               </p>
                             </div>
@@ -1054,10 +1056,10 @@ const Projects = () => {
                                     )}
                                   </span>
                                   {/* Price */}
-                                  <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                                  <div className="font-semibold text-gray-900 dark:text-white text-[20px] lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
                                   <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                                 </div>
-                                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 ml-0 lg:ml-2" />
+                                <ChevronRight className="w-6 h-6 lg:w-5 lg:h-5 text-gray-400 dark:text-gray-500 ml-0 lg:ml-2" />
                               </div>
                             )}
                           </div>
