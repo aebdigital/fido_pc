@@ -529,6 +529,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         detailNotes: project.detailNotes,
         clientId: project.clientId, // Ensure client is linked
         photos: project.photos ? JSON.parse(JSON.stringify(project.photos)).map(p => ({ ...p, id: crypto.randomUUID() })) : [],
+        // Copy project-specific price list if it exists
+        priceListSnapshot: project.priceListSnapshot ? JSON.parse(JSON.stringify(project.priceListSnapshot)) : null,
         // Explicitly set invoice related fields to null/false
         hasInvoice: false,
         invoiceId: null,

@@ -1011,14 +1011,17 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-2 lg:p-4 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose}>
             <div className="bg-white dark:bg-gray-900 w-full max-w-6xl h-[100dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[100dvh] sm:max-h-[calc(100dvh-6rem)] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
-                <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="px-[20px] pt-[20px] pb-[15px] sm:p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2 sm:mb-4">
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
+                            <h2 className="text-[28px] sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
                                 {t('Denník')}
-                                <span className="text-gray-400 dark:text-gray-500 font-normal"> — </span>
-                                <span className="text-gray-400 dark:text-gray-500 font-normal inline-block max-w-[13ch] lg:max-w-none truncate align-bottom">{project.name}</span>
+                                <span className="hidden sm:inline text-gray-400 dark:text-gray-500 font-normal"> — </span>
+                                <span className="hidden sm:inline text-gray-400 dark:text-gray-500 font-normal lg:max-w-none truncate align-bottom">{project.name}</span>
                             </h2>
+                            <p className="sm:hidden text-[15px] font-medium text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                                — {project.name}
+                            </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 {project.location}
                             </p>
@@ -1027,40 +1030,40 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             onClick={onClose}
                             className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                         >
-                            <X className="w-5 h-5 text-gray-500" />
+                            <X className="w-7 h-7 sm:w-5 sm:h-5 text-gray-400 sm:text-gray-500" />
                         </button>
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 sm:gap-2">
                         <button
                             onClick={() => setActiveTab('timer')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'timer'
-                                ? 'bg-green-600 text-white'
+                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors ${activeTab === 'timer'
+                                ? 'bg-green-500 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
-                            <Clock className="w-4 h-4" />
+                            <Clock className="w-[11px] h-[11px] sm:w-4 sm:h-4" />
                             {t('Time Tracking')}
                         </button>
                         <button
                             onClick={() => setActiveTab('members')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'members'
-                                ? 'bg-green-600 text-white'
+                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors ${activeTab === 'members'
+                                ? 'bg-green-500 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
-                            <Users className="w-4 h-4" />
+                            <Users className="w-[11px] h-[11px] sm:w-4 sm:h-4" />
                             {t('Members')} ({members.length + (project.user_id ? 1 : 0)})
                         </button>
                         <button
                             onClick={() => setActiveTab('analytics')}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:gap-2 sm:px-4 sm:py-2 rounded-xl text-sm sm:text-base font-medium transition-colors ${activeTab === 'analytics'
-                                ? 'bg-green-600 text-white'
+                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors ${activeTab === 'analytics'
+                                ? 'bg-green-500 text-white'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
-                            <BarChart3 className="w-4 h-4" />
+                            <BarChart3 className="w-[11px] h-[11px] sm:w-4 sm:h-4" />
                             {t('Analytics')}
                         </button>
                     </div>
@@ -1073,7 +1076,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             {/* Left Column: Calendar */}
                             {/* Mobile: compact date selector */}
                             <div className="md:hidden">
-                                <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 animate-fade-in shadow-inner border border-gray-100 dark:border-gray-700">
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] p-3 animate-fade-in border border-gray-100 dark:border-gray-700" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                     <div className="flex items-center justify-between mb-4">
                                         <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
                                             <ChevronLeft className="w-5 h-5" />
@@ -1188,7 +1191,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             {/* Right Column: Timer & Entries */}
                             <div className="space-y-4">
                                 {/* Timer Controls */}
-                                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 text-white">
+                                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-[20px] sm:rounded-2xl p-4 text-white">
                                     <div className="flex items-center justify-between mb-3">
                                         <div>
                                             <p className="text-green-100 text-sm mb-1">
@@ -1363,7 +1366,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     .sort((a, b) => (a.memberName || a.profile?.full_name || '').localeCompare(b.memberName || b.profile?.full_name || ''))
                                                     .map(group => {
                                                         return (
-                                                            <div key={group.userId} className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 border border-gray-100 dark:border-gray-800">
+                                                            <div key={group.userId} className="bg-gray-50 dark:bg-gray-800/50 rounded-[20px] p-4 border border-gray-100 dark:border-gray-800">
                                                                 <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-gray-800 pb-2">
                                                                     <div className="flex items-center gap-3">
                                                                         <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700/30 rounded-full flex items-center justify-center">
@@ -1513,7 +1516,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         <div className="space-y-6">
                             {/* Add Member Section (Owner Only) */}
                             {isOwner && (
-                                <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] p-4">
                                     <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                                         <UserPlus className="w-5 h-5" />
                                         {t('Add Member')}
@@ -1630,14 +1633,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         /* Analytics Tab */
                         <div className="space-y-6 h-full flex flex-col">
                             {/* Controls */}
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 dark:bg-gray-800 p-2 rounded-2xl">
-                                <div className="flex">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50 dark:bg-gray-800 p-2 rounded-[20px]">
+                                <div className="flex w-full">
                                     {['day', 'week', 'month'].map(view => (
                                         <button
                                             key={view}
                                             onClick={() => setAnalyticsView(view)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${analyticsView === view
-                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                            className={`flex-1 px-4 py-2 rounded-[12px] text-sm font-medium transition-all ${analyticsView === view
+                                                ? 'bg-green-500 text-white'
                                                 : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                                                 }`}
                                         >
@@ -1655,7 +1658,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             else d.setDate(d.getDate() - 1);
                                             setAnalyticsDate(d);
                                         }}
-                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                        className="w-[36px] h-[36px] sm:w-auto sm:h-auto flex items-center justify-center sm:p-2 bg-gray-50 dark:bg-gray-800 sm:bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                                     >
                                         <ChevronLeft className="w-5 h-5 text-gray-500" />
                                     </button>
@@ -1688,7 +1691,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             else d.setDate(d.getDate() + 1);
                                             setAnalyticsDate(d);
                                         }}
-                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                                        className="w-[36px] h-[36px] sm:w-auto sm:h-auto flex items-center justify-center sm:p-2 bg-gray-50 dark:bg-gray-800 sm:bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                                     >
                                         <ChevronRight className="w-5 h-5 text-gray-500" />
                                     </button>
@@ -1698,51 +1701,57 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             {/* Stats Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {/* Total Hours */}
-                                <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-200 dark:border-gray-700">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700/30 flex items-center justify-center text-gray-600 dark:text-gray-400">
-                                            <Clock className="w-4 h-4" />
+                                <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-[16px] border border-gray-200 dark:border-gray-700">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700/30 flex items-center justify-center text-gray-600 dark:text-gray-400">
+                                                <Clock className="w-4 h-4" />
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Total Hours')}</span>
                                         </div>
-                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Total Hours')}</span>
+                                        <input
+                                            type="number"
+                                            value={customHours !== null ? customHours : Number(analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0)).toFixed(2)}
+                                            onChange={(e) => setCustomHours(e.target.value)}
+                                            className="text-xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-transparent focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900/30 rounded-lg px-2 py-1 w-24 text-right transition-all outline-none"
+                                        />
                                     </div>
-                                    <input
-                                        type="number"
-                                        value={customHours !== null ? customHours : Number(analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0)).toFixed(2)}
-                                        onChange={(e) => setCustomHours(e.target.value)}
-                                        className="text-2xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-transparent focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900/30 rounded-lg px-2 py-1 w-full transition-all outline-none"
-                                    />
                                 </div>
 
                                 {/* Hourly Rate */}
-                                <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-2xl border border-purple-100 dark:border-purple-900/30">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
-                                            <Users className="w-4 h-4" />
+                                <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-[16px] border border-purple-100 dark:border-purple-900/30">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
+                                                <Users className="w-4 h-4" />
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Hourly Rate')} (€)</span>
                                         </div>
-                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Hourly Rate')} (€)</span>
+                                        <input
+                                            type="number"
+                                            value={hourlyRate}
+                                            onChange={(e) => handleUpdateHourlyRate(e.target.value)}
+                                            className="text-xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-transparent focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900/30 rounded-lg px-2 py-1 w-24 text-right transition-all outline-none"
+                                            placeholder="0.00"
+                                        />
                                     </div>
-                                    <input
-                                        type="number"
-                                        value={hourlyRate}
-                                        onChange={(e) => handleUpdateHourlyRate(e.target.value)}
-                                        className="text-2xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-900 border border-transparent focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900/30 rounded-lg px-2 py-1 w-full transition-all outline-none"
-                                        placeholder="0.00"
-                                    />
                                 </div>
 
                                 {/* Total Amount */}
-                                <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100 dark:border-green-900/30">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">
-                                            <FileText className="w-4 h-4" />
+                                <div className="bg-green-50 dark:bg-green-900/10 p-4 rounded-[16px] border border-green-100 dark:border-green-900/30">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">
+                                                <FileText className="w-4 h-4" />
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Total Amount')}</span>
                                         </div>
-                                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('Total Amount')}</span>
-                                    </div>
-                                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                                        {(
-                                            (customHours !== null ? parseFloat(customHours) : analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0))
-                                            * parseFloat(hourlyRate || 0)
-                                        ).toFixed(2)} €
+                                        <div className="text-xl font-bold text-gray-900 dark:text-white">
+                                            {(
+                                                (customHours !== null ? parseFloat(customHours) : analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0))
+                                                * parseFloat(hourlyRate || 0)
+                                            ).toFixed(2)} €
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1752,7 +1761,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                 <button
                                     onClick={handleGenerateInvoice}
                                     disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0)) || hasInvoiceForPeriod}
-                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-4 px-4 rounded-[20px] font-bold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white h-[54px] sm:h-auto sm:py-4 px-4 rounded-[16px] sm:rounded-[20px] font-bold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isGeneratingInvoice ? (
                                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />

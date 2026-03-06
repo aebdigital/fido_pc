@@ -1077,13 +1077,10 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           {/* Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex flex-col gap-4 flex-shrink-0 rounded-t-2xl">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <FileText className="w-6 h-6 text-gray-900 dark:text-white" />
-                <div>
-                  <h2 className="text-[34px] font-bold text-gray-900 dark:text-white leading-tight">
-                    {invoiceType === 'credit_note' ? t('Issue Credit Note') : t('Vystaviť doklad')}
-                  </h2>
-                </div>
+              <div>
+                <h2 className="text-[34px] font-bold text-gray-900 dark:text-white leading-tight">
+                  {invoiceType === 'credit_note' ? t('Issue Credit Note') : t('Vystaviť doklad')}
+                </h2>
               </div>
               <button
                 onClick={() => onClose()}
@@ -1495,7 +1492,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             {/* Items Section */}
             <div className="space-y-6">
               <div className="flex flex-col gap-4">
-                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white uppercase lg:normal-case">{t('Items')}</h3>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">{t('Items')}</h3>
 
                 {/* Global Search Bar - iOS style */}
                 <div className="relative group/search">
@@ -1582,7 +1579,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 {/* Work Items */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-base font-bold text-gray-900 dark:text-white uppercase lg:normal-case">{t('Práca')}</h4>
+                    <h4 className="text-base font-bold text-gray-900 dark:text-white">{t('Práca')}</h4>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
@@ -1621,7 +1618,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 {/* Material Items */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-base font-bold text-gray-900 dark:text-white uppercase lg:normal-case">{t('Materiál')}</h4>
+                    <h4 className="text-base font-bold text-gray-900 dark:text-white">{t('Materiál')}</h4>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
@@ -1660,7 +1657,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 {/* Other Items */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-base font-bold text-gray-900 dark:text-white uppercase lg:normal-case">{t('Ostatné')}</h4>
+                    <h4 className="text-base font-bold text-gray-900 dark:text-white">{t('Ostatné')}</h4>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
