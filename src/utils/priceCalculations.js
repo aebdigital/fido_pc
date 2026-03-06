@@ -288,7 +288,7 @@ export const subtractOpeningsFromQuantity = (workItem, quantity) => {
 
 // Helper to format price string
 export const formatPrice = (price) => {
-  return `€${price.toFixed(2).replace('.', ',')}`;
+  return `${price.toFixed(2).replace('.', ',')} €`;
 };
 
 /**

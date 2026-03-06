@@ -188,7 +188,7 @@ const Layout = ({ children }) => {
                     }`}
                 />
                 <span
-                  className={`text-xs font-semibold ${isActive
+                  className={`text-xs font-medium ${isActive
                     ? 'text-blue-500 dark:text-blue-400' // Active text color
                     : 'text-gray-400'
                     }`}

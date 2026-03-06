@@ -1390,6 +1390,8 @@ export const translations = {
     "Paid": "Uhradené",
     "paid": "Uhradené",
     "afterMaturity": "Po splatnosti",
+    "Client and contractor": "Klient & Dodávateľ",
+    "Project notes": "Poznámky k projektu",
 
     // Price List Sync
     "Update prices from general price list?": "Aktualizovať ceny z hlavného cenníka?",
@@ -1418,7 +1420,7 @@ export const translations = {
     "After saving the client's details, you can see already created projects, as well as create a new one by clicking on: (+)": "Po uložení údajov klienta uvidíte už vytvorené projekty a môžete vytvoriť nový kliknutím na: (+)",
 
     "Work price list": "Cenník prác",
-    "The last item is - Auxiliary and finishing works.\nThis item includes: material purchase, handling, carrying out, cleaning, covering, taping, waste removal...\n\nFrom our experience, we have found that it is appropriate to set this item at 10%.\n\nExample:\nWork cost will be               1000€\nAuxiliary and finishing works   10%\nTotal work cost                 1100€": "Poslednou položkou sú - Pomocné a dokončovacie práce.\nTáto položka zahŕňa: nákup materiálu, manipuláciu, vynášanie, upratovanie, zakrývanie, páskovanie, odvoz odpadu...\n\nZ našich skúseností odporúčame nastaviť túto položku na 10%.\n\nPríklad:\nCena práce bude               1000€\nPomocné a dokončovacie práce   10%\nCelková cena práce                 11000€",
+    "The last item is - Auxiliary and finishing works.\nThis item includes: material purchase, handling, carrying out, cleaning, covering, taping, waste removal...\n\nFrom our experience, we have found that it is appropriate to set this item at 10%.\n\nExample:\nWork cost will be               1000€\nAuxiliary and finishing works   10%\nTotal work cost                 1100€": "Poslednou položkou sú - Pomocné a dokončovacie práce.\nTáto položka zahŕňa: nákup materiálu, manipuláciu, vynášanie, upratovanie, zakrývanie, páskovanie, odvoz odpadu...\n\nZ našich skúseností odporúčame nastaviť túto položku na 10%.\n\nPríklad:\nCena práce bude               1000€\nPomocné a dokončovacie práce   10%\nCelková cena práce                 1100€",
     "Material price list": "Cenník materiálu",
     "The last item is - Auxiliary and connecting material.\nThis item includes: cover films, tapes, rollers, brushes, knives, pencils...\n\nFrom our experience, we have found that it is appropriate to set this item at 10%.\n\nExample:\nMaterial cost will be               1000€\nAuxiliary and connecting material   10%\nTotal material cost                 1100€": "Poslednou položkou sú - Pomocný a spojovací materiál.\nTáto položka zahŕňa: zakrývacie fólie, pásky, valčeky, štetce, nože, ceruzky...\n\nZ našich skúseností odporúčame nastaviť túto položku na 10%.\n\nPríklad:\nCena materiálu bude               1000€\nPomocný a spojovací materiál   10%\nCelková cena materiálu                 1100€",
     "Next": "Ďalej",
