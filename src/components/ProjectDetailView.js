@@ -88,7 +88,6 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     addProjectHistoryEntry,
     addProject,
     assignProjectToClient,
-    removeProjectFromClient,
     priceOfferSettings,
     getProjectReceipts,
     addReceipt,
