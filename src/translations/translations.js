@@ -2,6 +2,8 @@ export const translations = {
   en: {
     "Notes_CP": "Notes for price offer",
     "Notes_Project": "Project Notes",
+    "Project notes": "Project notes",
+    "Add your notes here...": "Add your notes here...",
 
     "Price Offer Abbr": "PO",
 
@@ -261,6 +263,8 @@ export const translations = {
     "Drop files here": "Drop files here",
     "No files yet": "No files yet",
     "Processing...": "Processing...",
+    "Items": "Items",
+    "Search and add item...": "Search and add item...",
     "Poznámka na záver": "Final note",
     "Proforma invoice is not an accounting or tax document": "Proforma invoice is not an accounting or tax document",
     "Goods received by": "Goods received by",
@@ -1517,10 +1521,12 @@ export const translations = {
     "Are you sure you want to delete this credit note? This action cannot be undone.": "Naozaj chcete vymazať tento dobropis? Táto akcia je nevratná.",
 
     "Files": "Súbory",
-    "Click or drag files here": "Kliknite alebo pretiahnite súbory sem",
+    "Click or drag files here": "Kliknutím pridajte súbory",
     "Drop files here": "Sem pretiahnite súbory",
     "No files yet": "Zatiaľ žiadne súbory",
     "Processing...": "Vystavujem...",
+    "Items": "Položky",
+    "Search and add item...": "Hľadať a pridať položku...",
 
     // ========== CONSOLIDATED INVOICE ==========
     "Issue Consolidated Invoice": "Spoločná faktúra",
@@ -1575,6 +1581,8 @@ export const translations = {
     "Are you sure you want to delete this work item?": "Naozaj chcete vymazať túto položku prác?",
     "Are you sure you want to delete this material item?": "Naozaj chcete vymazať túto položku materiálu?",
     "Are you sure you want to delete this invoice item?": "Naozaj chcete vymazať túto položku faktúry?",
+    "Project notes": "Poznámky k projektu",
+    "Add your notes here...": "Kliknutím pridajte poznámky k projektu",
   }
 };
 

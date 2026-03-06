@@ -393,9 +393,9 @@ const Invoices = () => {
         </div>
       </div>
 
-      <div className="mb-6 lg:mb-8 flex flex-col gap-1 lg:gap-4 px-4 lg:px-0 -ml-4 lg:ml-0 overflow-visible">
+      <div className="mb-6 lg:mb-8 flex flex-col gap-0 lg:gap-4 px-4 lg:px-0 -ml-4 lg:ml-0 overflow-visible">
         {/* Invoice Type Tabs */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0">
           {invoiceTypes.map(type => (
             <button
               key={type.id}

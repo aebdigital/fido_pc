@@ -717,29 +717,26 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="flex-1 min-w-0">
               {/* Large Invoice Number - iOS style (40pt equivalent) */}
               <h1 className="text-[40px] lg:text-5xl font-[900] text-gray-900 dark:text-white mb-1 truncate leading-[1.1]">
-                {invoice.invoiceNumber}
+                {invoice.invoiceType === 'proforma' ? 'Cenová ponuka' :
+                  invoice.invoiceType === 'delivery' ? t('Delivery Note') :
+                    invoice.invoiceType === 'credit_note' ? t('Credit Note') :
+                      t('Invoice')} {invoice.invoiceNumber}
               </h1>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:text-base font-semibold text-gray-900 dark:text-gray-200">
-                <span>{t('Dátum vystavenia')}: {new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</span>
-                {invoice.invoiceType !== 'delivery' && (
-                  <span className={(invoice.status !== INVOICE_STATUS.PAID && new Date(invoice.dueDate) < new Date()) ? "text-red-500 font-bold" : ""}>
-                    {t('Splatnosť')}: {new Date(invoice.dueDate).toLocaleDateString('sk-SK')}
-                  </span>
-                )}
+                {/* Dates removed as per request */}
               </div>
-              {/* Mobile Status Badge/Button */}
               <div className="lg:hidden mt-2">
                 {invoice.status !== INVOICE_STATUS.PAID ? (
                   <button
                     onClick={handleMarkAsPaid}
-                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full"
+                    className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-[10px]"
                   >
                     <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-500" />
                     <span className="text-[11px] font-bold text-gray-900 dark:text-white uppercase">{t('Mark as Paid')}</span>
                   </button>
                 ) : (
                   <div onClick={handleMarkAsPaid} className="cursor-pointer">
-                    <span className="px-2.5 py-1 text-[11px] font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full uppercase">
+                    <span className="px-2.5 py-1 text-[11px] font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-[10px] uppercase">
                       {t('Paid')}
                     </span>
                   </div>
@@ -748,7 +745,6 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Desktop Status Badge/Button */}
               <div className="hidden lg:block">
                 {invoice.status !== INVOICE_STATUS.PAID ? (
                   <button
@@ -830,13 +826,13 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                   <div className="text-right">
                     {/* Status Badge */}
-                    <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full mb-0.5 ${project.status === PROJECT_STATUS.FINISHED
-                      ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                    <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full mb-0.5 text-white ${project.status === PROJECT_STATUS.FINISHED
+                      ? 'bg-gray-400 dark:bg-gray-600'
                       : project.status === PROJECT_STATUS.APPROVED
-                        ? 'bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-400'
+                        ? 'bg-[#73D38A]'
                         : project.status === PROJECT_STATUS.SENT
-                          ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                          : 'bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-400'
+                          ? 'bg-[#51A2F7]'
+                          : 'bg-[#FF857C]'
                       }`}>
                       {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
                         : project.status === PROJECT_STATUS.APPROVED ? 'approved'
@@ -866,14 +862,9 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               >
                 <div className="min-w-0">
                   <p className="text-[20px] lg:text-xl font-semibold lg:font-[900] text-gray-900 dark:text-white leading-tight truncate">{contractor.name}</p>
-                  {contractor.ico && (
+                  {contractor.businessId && (
                     <p className="text-base text-gray-500 dark:text-gray-400 truncate mt-1">
-                      {t('BID Abbr')}: {contractor.ico}
-                    </p>
-                  )}
-                  {(contractor.city || contractor.street) && (
-                    <p className="text-sm text-gray-400 dark:text-gray-500 truncate mt-0.5">
-                      {[contractor.street, contractor.city].filter(Boolean).join(', ')}
+                      {contractor.businessId}
                     </p>
                   )}
                 </div>
@@ -882,15 +873,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             </div>
           )}
 
-          {/* Notes Section - show if invoice has notes */}
-          {invoice.introductoryNote && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4">
-              <p className="text-sm font-bold text-gray-900 dark:text-white mb-2">{t('Poznámka úvodná')}</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                <Linkify>{invoice.introductoryNote}</Linkify>
-              </p>
-            </div>
-          )}
+
 
           {invoice.notes && (
             <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4">
@@ -910,23 +893,20 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={handlePreview}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[16px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-2 lg:py-3 bg-white dark:bg-gray-800 strictly-black-border rounded-[20px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
-                <Eye className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
                 <span className="text-[16px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Preview')}</span>
               </button>
               <button
                 onClick={handleSend}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[16px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-2 lg:py-3 bg-white dark:bg-gray-800 strictly-black-border rounded-[20px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
-                <Send className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
                 <span className="text-[16px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Send')}</span>
               </button>
               <button
                 onClick={handleStartEdit}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[16px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-2 lg:py-3 bg-white dark:bg-gray-800 strictly-black-border rounded-[20px] lg:rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
-                <Edit3 className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
                 <span className="text-[16px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Edit')}</span>
               </button>
             </div>
@@ -944,10 +924,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               ) : (
                 <button
                   onClick={() => setShowCreditNoteCreationModal(true)}
-                  className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm mt-3"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full hover:from-blue-600 hover:to-blue-700 transition-all shadow-md shadow-blue-500/30 !mt-[20px] lg:!mt-[30px]"
                 >
-                  <RotateCcw className="w-4 h-4 text-gray-900 dark:text-white" />
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Issue Credit Note')}</span>
+                  <RotateCcw className="w-4 h-4" />
+                  <span className="text-lg font-bold">{t('Issue Credit Note')}</span>
                 </button>
               );
             })()}
@@ -981,10 +961,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
           {/* Delete Button - iOS style at bottom (only show if current user owns the invoice) */}
           {(!invoice?.user_id || invoice.user_id === user?.id) && (
-            <div className="pt-4 flex justify-center pb-8 px-4">
+            <div className="flex justify-center pb-12 px-4 !mt-[20px] lg:!mt-[30px]">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full max-w-sm bg-red-500 text-white py-4 rounded-[24px] font-bold hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
+                className="w-full max-w-sm bg-red-500 text-white py-2.5 rounded-full font-bold hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
               >
                 <Trash2 className="w-5 h-5" />
                 <span className="text-xl">{t('Delete')}</span>

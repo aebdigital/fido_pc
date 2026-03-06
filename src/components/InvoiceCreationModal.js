@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, FileText, Save, RotateCcw, Loader2, Plus, Trash2, User, Search, AlertTriangle, Check } from 'lucide-react';
+import { X, FileText, Save, RotateCcw, Loader2, Plus, Trash2, User, Search, AlertTriangle, Check, PlusCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import UncompletedFieldsModal from './UncompletedFieldsModal';
@@ -236,7 +236,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [issueDate, setIssueDate] = useState('');
   const [dispatchDate, setDispatchDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('transfer');
-  const [paymentDays, setPaymentDays] = useState(30);
+  const [paymentDays, setPaymentDays] = useState(existingInvoice?.paymentDays || 30);
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [showItemSuggestions, setShowItemSuggestions] = useState(false);
   const [customInputValue, setCustomInputValue] = useState(''); // Text state for custom input to allow typing "0" freely
   const [notes, setNotes] = useState('');
   const [introductoryNote, setIntroductoryNote] = useState('');
@@ -1078,8 +1080,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
               <div className="flex items-center gap-3">
                 <FileText className="w-6 h-6 text-gray-900 dark:text-white" />
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {invoiceType === 'credit_note' ? t('Issue Credit Note') : editMode ? t('Edit Invoice') : t('Invoice Builder')}
+                  <h2 className="text-[34px] font-bold text-gray-900 dark:text-white leading-tight">
+                    {invoiceType === 'credit_note' ? t('Issue Credit Note') : t('Vystaviť doklad')}
                   </h2>
                 </div>
               </div>
@@ -1102,9 +1104,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                   <button
                     key={type.id}
                     onClick={() => setInvoiceType(type.id)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${invoiceType === type.id
-                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                    className={`px-4 py-2 rounded-[14px] text-sm font-semibold whitespace-nowrap transition-colors ${invoiceType === type.id
+                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md'
+                      : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:border-gray-700'
                       } `}
                   >
                     {type.label}
@@ -1491,14 +1493,96 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             </div>
 
             {/* Items Section */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Items')}</h3>
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4">
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white uppercase lg:normal-case">{t('Items')}</h3>
+
+                {/* Global Search Bar - iOS style */}
+                <div className="relative group/search">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <Search className="w-5 h-5 text-gray-400 group-focus-within/search:text-blue-500 transition-colors" />
+                  </div>
+                  <input
+                    type="text"
+                    value={itemSearchQuery}
+                    onChange={(e) => {
+                      setItemSearchQuery(e.target.value);
+                      setShowItemSuggestions(true);
+                    }}
+                    onFocus={() => setShowItemSuggestions(true)}
+                    placeholder={t('Search and add item...')}
+                    className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-gray-800 border-none rounded-[15px] text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
+                  />
+                  <div className="absolute inset-y-0 right-4 flex items-center">
+                    <button
+                      onClick={() => handleAddItem('work')} // Default to work or based on search
+                      className="text-gray-900 dark:text-white hover:scale-110 transition-transform"
+                    >
+                      <PlusCircle className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  {/* Global Suggestions Dropdown */}
+                  {showItemSuggestions && itemSearchQuery.trim() && (
+                    <div className="absolute z-[60] left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-[15px] shadow-2xl border border-gray-100 dark:border-gray-700 max-h-[300px] overflow-y-auto animate-in fade-in slide-in-from-top-2">
+                      {/* Filtered suggestions from dennikData or existing items */}
+                      {(() => {
+                        const search = itemSearchQuery.toLowerCase();
+                        const allSuggestions = [
+                          ...getSuggestionsForCategory('work'),
+                          ...getSuggestionsForCategory('material'),
+                          ...getSuggestionsForCategory('other')
+                        ].filter(s => s.title.toLowerCase().includes(search));
+
+                        if (allSuggestions.length === 0) {
+                          return (
+                            <div className="p-4 text-center text-gray-500 text-sm">
+                              {t('No items found')}
+                            </div>
+                          );
+                        }
+
+                        return allSuggestions.slice(0, 10).map((s, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              const newItem = {
+                                id: Math.random().toString(36).substr(2, 9),
+                                title: s.title,
+                                category: s.category || 'work',
+                                pieces: 1,
+                                pricePerPiece: s.price || 0,
+                                unit: s.unit || 'ks',
+                                vat: s.vat || 23,
+                                active: true,
+                                isNew: true
+                              };
+                              setInvoiceItems([...invoiceItems, newItem]);
+                              setItemSearchQuery('');
+                              setShowItemSuggestions(false);
+                            }}
+                            className="w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center justify-between border-b last:border-0 border-gray-100 dark:border-gray-700"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-gray-900 dark:text-white truncate">{s.title}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                {s.price} € / {t(s.unit)} • {t(s.category)}
+                              </div>
+                            </div>
+                            <Plus className="w-4 h-4 text-gray-400" />
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 {/* Work Items */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Work')}</h4>
+                    <h4 className="text-base font-bold text-gray-900 dark:text-white uppercase lg:normal-case">{t('Práca')}</h4>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
@@ -1537,7 +1621,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 {/* Material Items */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Material')}</h4>
+                    <h4 className="text-base font-bold text-gray-900 dark:text-white uppercase lg:normal-case">{t('Materiál')}</h4>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
@@ -1576,7 +1660,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 {/* Other Items */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">{t('Other')}</h4>
+                    <h4 className="text-base font-bold text-gray-900 dark:text-white uppercase lg:normal-case">{t('Ostatné')}</h4>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
@@ -1620,7 +1704,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             <button
               onClick={handleGenerate}
               disabled={isSubmitting || !!typeWarning}
-              className="w-full bg-blue-500 text-white py-4 rounded-2xl font-semibold hover:bg-blue-600 transition-all shadow-sm hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-4 rounded-[15px] font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md shadow-blue-500/30 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>

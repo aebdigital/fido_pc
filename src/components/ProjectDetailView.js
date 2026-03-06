@@ -1483,7 +1483,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   onFocus={(!project.is_archived && canEdit('price_offer_note')) ? handleEditProjectNotes : undefined}
                   onBlur={handleSaveProjectNotes}
                   readOnly={!isEditingProjectNotes || !canEdit('price_offer_note')}
-                  className={`w-full text-sm font-medium ${isEditingProjectNotes ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'} bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none no-gradient inline-note ${!project.is_archived && !isEditingProjectNotes && canEdit('price_offer_note') ? 'cursor-pointer' : ''}`}
+                  className={`w-full text-sm font-medium ${isEditingProjectNotes ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'} ios-note-grey border-none rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none no-border no-gradient ${!project.is_archived && !isEditingProjectNotes && canEdit('price_offer_note') ? 'cursor-pointer' : ''}`}
                   placeholder={t('Notes_CP')}
                 />
               </div>
@@ -1503,7 +1503,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-1 lg:space-y-2.5">
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white uppercase lg:normal-case">{t('Client and contractor')}</h2>
+                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{t('Client and contractor')}</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Client Block */}
@@ -1519,18 +1519,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   }}
                   className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived && canEdit('client_supplier') ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[18px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white leading-none lg:leading-tight truncate">
+                      {selectedClientForProject ? selectedClientForProject.name : t('Select client')}
                     </div>
-                    <div>
-                      <div className="text-[18px] lg:text-xl font-bold text-gray-900 dark:text-white leading-tight">
-                        {selectedClientForProject ? selectedClientForProject.name : t('Select client')}
+                    {selectedClientForProject && (selectedClientForProject.street || selectedClientForProject.address) && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-tight truncate">
+                        {selectedClientForProject.street || selectedClientForProject.address}
                       </div>
-                      {selectedClientForProject && selectedClientForProject.address && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{selectedClientForProject.address}</div>
-                      )}
-                    </div>
+                    )}
                   </div>
                   {!project.is_archived && canEdit('client_supplier') && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
                 </div>
@@ -1544,18 +1541,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   }}
                   className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm ${!project.is_archived && canEdit('client_supplier') ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md' : ''}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[18px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white leading-none lg:leading-tight truncate">
+                      {getCurrentContractor()?.name || t('Select contractor')}
                     </div>
-                    <div>
-                      <div className="text-[18px] lg:text-xl font-bold text-gray-900 dark:text-white leading-tight">
-                        {project.contractor_name || t('Select contractor')}
+                    {getCurrentContractor()?.businessId && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-tight truncate">
+                        {getCurrentContractor().businessId}
                       </div>
-                      {project.contractor_ico && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{project.contractor_ico}</div>
-                      )}
-                    </div>
+                    )}
                   </div>
                   {!project.is_archived && canEdit('client_supplier') && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
                 </div>
@@ -1568,7 +1562,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white uppercase lg:normal-case">{t('Project')}</h2>
+                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{t('Project')}</h2>
               </div>
               {!project.is_archived && (
                 <div className="flex gap-2">
@@ -1617,7 +1611,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                         }}
                       >
                         <div className={`transition-all duration-300 flex-1 min-w-0 ${deleteMode ? 'mr-4' : ''}`}>
-                          <div className="font-bold text-gray-900 dark:text-white text-[18px] lg:text-xl truncate leading-tight">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
+                          <div className="font-semibold lg:font-bold text-gray-900 dark:text-white text-[18px] lg:text-xl truncate leading-none lg:leading-tight">{t(room.name) !== room.name ? t(room.name) : room.name}</div>
                           <div className="text-sm lg:text-base text-gray-500 dark:text-gray-400 mt-0.5">{worksCount} {tPlural(worksCount, 'work_singular', 'works', 'works_many')}</div>
                         </div>
 
@@ -1634,8 +1628,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                         ) : (
                           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                             <div className="text-right">
-                              <div className="text-[8px] lg:text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap uppercase lg:normal-case">{t('VAT not included')}</div>
-                              <div className="font-bold text-gray-900 dark:text-white text-[18px] lg:text-xl whitespace-nowrap">
+                              <div className="text-[8px] lg:text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('VAT not included')}</div>
+                              <div className="font-semibold lg:font-bold text-gray-900 dark:text-white text-[18px] lg:text-xl whitespace-nowrap">
                                 {formatPrice((() => {
                                   const calc = calculateRoomPriceWithMaterials(room, activePriceList);
                                   return calc.workTotal + calc.materialTotal + calc.othersTotal;
@@ -1664,7 +1658,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-1 lg:space-y-2.5">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white uppercase lg:normal-case">{t('Total price offer')}</h2>
+                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{t('Total price offer')}</h2>
               </div>
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
                 <div className="flex flex-col gap-0">
@@ -1712,7 +1706,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white uppercase lg:normal-case">{t('Invoices')}</h2>
+                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{t('Invoices')}</h2>
               </div>
 
               {projectInvoices.length > 0 && (
@@ -1802,7 +1796,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-1 lg:space-y-2.5">
               <div className="flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white uppercase lg:normal-case">
+                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">
                   {t('Receipts')} - {calculateReceiptsTotal().toFixed(2).replace('.', ',')} €
                 </h2>
               </div>
@@ -1894,15 +1888,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="space-y-1 lg:space-y-2.5">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white uppercase lg:normal-case">{t('Project notes')}</h2>
+                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{t('Project notes')}</h2>
               </div>
               <div onBlur={handleNotesBlur} onFocus={canEdit('project_note') ? handleNotesFocus : undefined}>
                 <textarea
                   value={projectDetailNotes}
                   onChange={handleNotesChange}
-                  placeholder={t('Add project notes...')}
-                  className="w-full h-40 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none mb-2"
-                  disabled={project.is_archived || !canEdit('project_note')}
+                  className="w-full min-h-[120px] p-4 ios-note-grey border-none rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none no-border no-gradient"
+                  placeholder={t('Add your notes here...')}
+                  disabled={!canEdit('project_note')}
                 />
                 {!project.is_archived && isNoteFocused && canEdit('project_note') && (
                   <div className="flex gap-2 animate-fade-in">
@@ -1942,7 +1936,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Paperclip className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white uppercase lg:normal-case">{t('Files')}</h2>
+                  <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{t('Files')}</h2>
                 </div>
                 {canEditProject && canEdit('files') && (
                   <div className="flex items-center gap-2">
@@ -2296,6 +2290,47 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             onClose={() => setShowContractorModal(false)}
             onSave={handleSaveContractor}
           />
+        )
+      }
+
+      {
+        showContractorSelector && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => setShowContractorSelector(false)}>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full max-w-md lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Select contractor')}</h3>
+                <button onClick={() => setShowContractorSelector(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {contractors.map(contractor => (
+                  <button
+                    key={contractor.id}
+                    onClick={() => handleAssignProjectContractor(contractor.id)}
+                    className={`w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 text-left border-2 transition-all ${project.contractor_id === contractor.id ? 'border-blue-500 bg-blue-50/10' : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`}
+                  >
+                    <div className="font-bold text-gray-900 dark:text-white">{contractor.name}</div>
+                    {contractor.ico && <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{contractor.ico}</div>}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowContractorSelector(false);
+                  setShowContractorModal(true);
+                }}
+                className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2 font-semibold shadow-sm hover:bg-blue-700 transition-all"
+              >
+                <Plus className="w-5 h-5" />
+                {t('Add contractor')}
+              </button>
+
+              <button onClick={() => setShowContractorSelector(false)} className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-semibold transition-colors hover:bg-gray-200 dark:hover:bg-gray-600">{t('Cancel')}</button>
+            </div>
+          </div>
         )
       }
 
