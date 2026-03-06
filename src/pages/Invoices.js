@@ -410,7 +410,7 @@ const Invoices = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {/* Year dropdown */}
           <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button
@@ -446,7 +446,7 @@ const Invoices = () => {
           <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 self-center flex-shrink-0" />
 
           {/* Status filters - Scrollable area */}
-          <div className="flex-1 flex gap-4 py-2 overflow-x-auto scrollbar-hide">
+          <div className="flex-1 flex gap-2 py-2 overflow-x-auto scrollbar-hide">
             {statusFilters.map(filter => (
               <button
                 key={filter}
@@ -470,7 +470,7 @@ const Invoices = () => {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-1.5 lg:space-y-3">
           {invoices.map(invoice => (
             <div
               key={invoice.id}
@@ -478,22 +478,22 @@ const Invoices = () => {
                 setSelectedInvoice(invoice);
                 setShowInvoiceDetail(true);
               }}
-              className="bg-white dark:bg-gray-800 rounded-[30px] pl-5 pr-5 pt-3 pb-3 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
+              className="bg-white dark:bg-gray-800 rounded-[30px] pl-4 pr-1.5 pt-2.5 pb-2.5 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
             >
               <div className="flex items-center justify-between min-w-0">
                 <div className="flex-1 min-w-0">
                   {/* Invoice number with dates */}
                   {/* Document Type Badge */}
-                  <div className="flex items-center gap-2 flex-wrap whitespace-nowrap overflow-hidden">
-                    <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400 shrink-0">
+                  <div className="flex items-center gap-1 lg:gap-2 flex-wrap whitespace-nowrap overflow-hidden">
+                    <span className="text-sm lg:text-base font-medium text-gray-600 dark:text-gray-400 shrink-0">
                       {invoice.invoiceType === 'delivery' ? '' : invoice.invoiceNumber}
                     </span>
-                    <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400 shrink-0">
+                    <span className="text-sm lg:text-base font-medium text-gray-600 dark:text-gray-400 shrink-0">
                       {formatDate(invoice.issueDate)}
                     </span>
                   </div>
                   {/* Project name */}
-                  <h3 className="text-xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate leading-tight">
+                  <h3 className="text-xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate leading-[1.1]">
                     {(() => {
                       const isDennik = invoice.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
                       const projectName = invoice.projectName || '';
@@ -503,7 +503,7 @@ const Invoices = () => {
                     })()}
                   </h3>
                   {/* Client name - below project name */}
-                  <div className="text-sm lg:text-base text-gray-500 dark:text-gray-400 truncate">
+                  <div className="text-sm lg:text-base font-medium text-gray-600 dark:text-gray-400 truncate">
                     {(() => {
                       // First check if invoice has a direct clientId
                       if (invoice.clientId) {
@@ -546,7 +546,7 @@ const Invoices = () => {
                   </div>
                   {/* Mobile: repositioned date removed as per request */}
                 </div>
-                <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
+                <div className="flex items-center gap-1 lg:gap-4 flex-shrink-0 ml-auto">
                   <div className="text-right">
                     {/* Status badge - above price (iOS compatible: unpaid, paid, afterMaturity) */}
                     {(() => {
@@ -589,7 +589,7 @@ const Invoices = () => {
                     {/* VAT not included - below price */}
                     <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 ml-2" />
+                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 -mr-1" />
                 </div>
               </div>
             </div>

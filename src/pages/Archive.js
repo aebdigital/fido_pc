@@ -182,7 +182,7 @@ const Archive = ({ onBack }) => {
         </div>
       ) : (
         <>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 hidden lg:block">Archivované projekty</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 block">Archivované projekty</h2>
           <div className="space-y-3 lg:space-y-4">
             {allArchivedProjects.map((project) => (
               <div
@@ -220,10 +220,7 @@ const Archive = ({ onBack }) => {
                 </div>
 
                 <div className="flex items-center gap-4 flex-shrink-0">
-                  <div className="text-left sm:text-right lg:hidden">
-                    <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
-                    <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</div>
-                  </div>
+                  {/* Price and VAT removed on mobile as requested */}
 
                   <div className="flex gap-2">
                     <button

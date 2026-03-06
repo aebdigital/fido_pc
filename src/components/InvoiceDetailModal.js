@@ -719,25 +719,31 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-white mb-1 truncate leading-[1.1]">
                 {invoice.invoiceNumber}
               </h1>
-              <div className="flex items-center gap-2">
-                {/* Mobile Status Badge/Button */}
-                <div className="lg:hidden">
-                  {invoice.status !== INVOICE_STATUS.PAID ? (
-                    <button
-                      onClick={handleMarkAsPaid}
-                      className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full"
-                    >
-                      <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-500" />
-                      <span className="text-[11px] font-bold text-gray-900 dark:text-white uppercase">{t('Mark as Paid')}</span>
-                    </button>
-                  ) : (
-                    <div onClick={handleMarkAsPaid} className="cursor-pointer">
-                      <span className="px-2.5 py-1 text-[11px] font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full uppercase">
-                        {t('Paid')}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:text-base font-semibold text-gray-900 dark:text-gray-200">
+                <span>{t('Dátum vystavenia')}: {new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</span>
+                {invoice.invoiceType !== 'delivery' && (
+                  <span className={(invoice.status !== INVOICE_STATUS.PAID && new Date(invoice.dueDate) < new Date()) ? "text-red-500 font-bold" : ""}>
+                    {t('Splatnosť')}: {new Date(invoice.dueDate).toLocaleDateString('sk-SK')}
+                  </span>
+                )}
+              </div>
+              {/* Mobile Status Badge/Button */}
+              <div className="lg:hidden mt-2">
+                {invoice.status !== INVOICE_STATUS.PAID ? (
+                  <button
+                    onClick={handleMarkAsPaid}
+                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full"
+                  >
+                    <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-500" />
+                    <span className="text-[11px] font-bold text-gray-900 dark:text-white uppercase">{t('Mark as Paid')}</span>
+                  </button>
+                ) : (
+                  <div onClick={handleMarkAsPaid} className="cursor-pointer">
+                    <span className="px-2.5 py-1 text-[11px] font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full uppercase">
+                      {t('Paid')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -785,7 +791,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
               >
                 <div className="min-w-0">
-                  <p className="text-xl font-bold text-gray-900 dark:text-white leading-tight truncate">{client.name}</p>
+                  <p className="text-xl font-[900] text-gray-900 dark:text-white leading-tight truncate">{client.name}</p>
                   {(client.street || client.city) && (
                     <p className="text-base text-gray-500 dark:text-gray-400 truncate mt-1">
                       {[client.street, client.city].filter(Boolean).join(', ')}
@@ -812,7 +818,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                   <div className="flex items-center gap-1 mb-1 flex-wrap">
                     <span className="text-xs text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                  <h3 className="text-xl font-[900] text-gray-900 dark:text-white truncate">
                     <span>{project.name}</span>
                   </h3>
                   {/* Client name */}
@@ -859,7 +865,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 className="w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
               >
                 <div className="min-w-0">
-                  <p className="text-xl font-bold text-gray-900 dark:text-white leading-tight truncate">{contractor.name}</p>
+                  <p className="text-xl font-[900] text-gray-900 dark:text-white leading-tight truncate">{contractor.name}</p>
                   {contractor.ico && (
                     <p className="text-base text-gray-500 dark:text-gray-400 truncate mt-1">
                       {t('BID Abbr')}: {contractor.ico}
@@ -1051,37 +1057,41 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
       />
 
       {/* Client Modal - Matching ProjectDetailView style/size */}
-      {showClientModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
-          <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
-              <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>
-              <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
-              <ClientForm
-                ref={clientFormRef}
-                initialData={clientWithInvoices}
-                onSave={handleSaveClient}
-                onCancel={() => setShowClientModal(false)}
-              />
+      {
+        showClientModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
+            <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
+                <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>
+                <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
+                <ClientForm
+                  ref={clientFormRef}
+                  initialData={clientWithInvoices}
+                  onSave={handleSaveClient}
+                  onCancel={() => setShowClientModal(false)}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Contractor Modal */}
-      {showContractorModal && (
-        <ContractorProfileModal
-          onClose={() => setShowContractorModal(false)}
-          onSave={handleSaveContractor}
-          editingContractor={contractor}
-        />
-      )}
+      {
+        showContractorModal && (
+          <ContractorProfileModal
+            onClose={() => setShowContractorModal(false)}
+            onSave={handleSaveContractor}
+            editingContractor={contractor}
+          />
+        )
+      }
 
-    </div>
+    </div >
   );
 };
 

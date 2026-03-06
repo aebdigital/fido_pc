@@ -502,7 +502,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
           <span className="font-semibold text-gray-700 dark:text-gray-300">{t('VAT')}</span>
           <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(vatAmount)}</span>
         </div>
-        <div className="flex justify-between items-center text-lg font-bold">
+        <div className="flex justify-between items-center font-bold">
           <span className="text-gray-900 dark:text-white">{t('Total price')}</span>
           <span className="text-gray-900 dark:text-white">{formatPrice(totalWithVat)}</span>
         </div>

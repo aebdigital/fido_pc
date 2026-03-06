@@ -770,46 +770,53 @@ const Projects = () => {
                         const isOverdue = !isPaid && dayDiff < 0;
                         const daysLabel = absDays === 1 ? t('day') : (absDays >= 2 && absDays <= 4 ? t('days_2_4') : t('days'));
 
-                        let statusLabel, statusColor;
+                        let statusLabel;
                         if (isOverdue) {
                           statusLabel = `${t('Overdue by')} ${absDays} ${daysLabel}`;
-                          statusColor = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
                         } else if (dayDiff === 0) {
                           statusLabel = t('Matures today');
-                          statusColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
                         } else {
                           statusLabel = `${t('Matures in')} ${absDays} ${daysLabel}`;
-                          statusColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
                         }
 
                         return (
                           <div
                             key={invoice.id}
-                            className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-sm hover:shadow-md cursor-pointer transition-all"
+                            className="bg-white dark:bg-gray-800 rounded-[30px] pl-4 pr-1.5 pt-2.5 pb-2.5 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
                             onClick={() => {
                               setSelectedInvoice(invoice);
                               setShowInvoiceDetail(true);
                             }}
                           >
-                            <div className="min-w-0 flex-1">
-                              <div className="font-semibold text-gray-900 dark:text-white truncate">
-                                {invoice.projectName || project?.project?.name || t('Unknown project')}
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                {invoice.invoiceNumber}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                              <div className="text-right">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor}`}>
-                                  {statusLabel}
-                                </span>
-                                <div className="font-semibold text-gray-900 dark:text-white text-sm mt-1">
-                                  {getInvoiceTotal(invoice)}
+                            <div className="flex items-center justify-between min-w-0">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1 flex-wrap whitespace-nowrap overflow-hidden">
+                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 shrink-0">
+                                    {invoice.invoiceNumber}
+                                  </span>
                                 </div>
-                                <div className="text-[10px] text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white truncate leading-[1.1]">
+                                  {invoice.projectName || project?.project?.name || t('Unknown project')}
+                                </h3>
+                                <div className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                                  {invoice.clientId ? clients.find(c => c.id === invoice.clientId)?.name || t('No client') : project?.project?.clientId ? clients.find(c => c.id === project.project.clientId)?.name || t('No client') : t('No client')}
+                                </div>
                               </div>
-                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                              <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+                                <div className="text-right">
+                                  <span
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full mb-1 text-white shrink-0"
+                                    style={{
+                                      backgroundColor: isOverdue ? '#FF857C' : '#51A2F7'
+                                    }}
+                                  >
+                                    {statusLabel}
+                                  </span>
+                                  <div className="font-semibold text-gray-900 dark:text-white text-base">{getInvoiceTotal(invoice)}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
+                                </div>
+                                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 -mr-1" />
+                              </div>
                             </div>
                           </div>
                         );
@@ -948,7 +955,7 @@ const Projects = () => {
                         {filteredProjects.map(project => (
                           <div
                             key={project.id}
-                            className={`bg-white dark:bg-gray-800 rounded-[30px] pl-5 pr-5 pt-3 pb-3 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
+                            className={`bg-white dark:bg-gray-800 rounded-[30px] pl-5 pr-2 pt-3 pb-3 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
                               ? 'justify-between'
                               : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
                               }`}
@@ -1003,7 +1010,7 @@ const Projects = () => {
 
                             {/* Status and Price - Only show if NOT deleting */}
                             {!projectDeleteMode && (
-                              <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
+                              <div className="flex items-center gap-1 lg:gap-4 flex-shrink-0 ml-2 lg:ml-3">
                                 <div className="text-right">
                                   {/* Status Badge */}
                                   <span
@@ -1050,7 +1057,7 @@ const Projects = () => {
                                   <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
                                   <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                                 </div>
-                                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 ml-2" />
+                                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 ml-0 lg:ml-2" />
                               </div>
                             )}
                           </div>
