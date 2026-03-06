@@ -17,8 +17,6 @@ const Archive = ({ onBack }) => {
     archivedProjects,
     unarchiveProject,
     deleteArchivedProject,
-    calculateProjectTotalPrice,
-    formatPrice,
     priceOfferSettings,
     updatePriceOfferSettings
   } = useAppData();
