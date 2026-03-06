@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
-  Trash2,
   Plus,
   Clock,
   Building2,

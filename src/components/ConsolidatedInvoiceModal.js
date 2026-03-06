@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Check, ChevronRight, Loader2, Building, AlertTriangle, FileText } from 'lucide-react';
+import { X, Check, ChevronRight, Loader2, AlertTriangle, FileText } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/supabaseApi';
 

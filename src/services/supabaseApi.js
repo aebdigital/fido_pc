@@ -941,6 +941,7 @@ export const priceListsApi = {
       const { data, error } = await supabase
         .from('price_lists')
         .select('*')
+        .eq('user_id', userId)
         .eq('contractor_id', contractorId)
         .eq('is_general', true)
         .single()
