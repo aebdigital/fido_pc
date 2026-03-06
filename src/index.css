@@ -16,6 +16,8 @@
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
     min-height: -webkit-fill-available;
+    font-size: 15px;
+    font-weight: 500;
   }
 
   h1,
@@ -285,8 +287,13 @@
 :root:not(.dark) [class*="bg-white"]:not(button):not(input):not(textarea):not(.no-border),
 :root:not(.dark) [class*="bg-gray-100"]:not(button):not(.no-border),
 :root:not(.dark) [class*="bg-gray-200"]:not(button):not(.no-border) {
-  border: 0.5px solid rgb(229, 231, 235);
-  box-shadow: rgba(255, 255, 255, 0.19) 0px 1px 2px inset, rgba(0, 0, 0, 0.19) 0px 1px 2px, rgba(0, 0, 0, 0.082) 0px 2px 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Specific black border for certain elements as requested */
+.black-border {
+  border: 1.5px solid black !important;
 }
 
 /* ========== DARK MODE OVERRIDES ========== */

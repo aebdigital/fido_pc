@@ -17,6 +17,7 @@ export const translations = {
     "Others": "Others",
     "Pristup k financiam": "Access to finances",
     "Allow member to see room total prices": "Allow member to see room total prices",
+    "Naspäť": "Back",
 
     // Main Labels (Reciprocal)
     "PRÁCA": "WORK",
@@ -298,7 +299,9 @@ export const translations = {
     "Hide from suggestions": "Hide from suggestions",
     "Restore to suggestions": "Restore to suggestions",
     "Invoice Statistics": "Invoice Statistics",
-    "Manage Items": "Manage Items"
+    "Manage Items": "Manage Items",
+    "Hours": "Hours",
+    "Rate (€)": "Rate (€)"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -1244,6 +1247,8 @@ export const translations = {
     "Delete client?": "Vymazať klienta?",
     "Delete contractor?": "Vymazať dodávateľa?",
     "Delete room?": "Vymazať miestnosť?",
+    "Delete photo?": "Vymazať fotku?",
+    "Are you sure you want to delete this photo? This action cannot be undone.": "Naozaj chcete vymazať túto fotku? Táto akcia je nevratná.",
     "Are you sure you want to delete this client?": "Ste si istí, že chcete vymazať tohto klienta?",
     "Are you sure you want to delete \"{name}\"? This action cannot be undone.": "Ste si istí, že chcete vymazať \"{name}\"? Táto akcia je nevratná.",
 
@@ -1514,7 +1519,7 @@ export const translations = {
     "Processing...": "Vystavujem...",
 
     // ========== CONSOLIDATED INVOICE ==========
-    "Issue Consolidated Invoice": "Vystaviť konsolidovanú faktúru",
+    "Issue Consolidated Invoice": "Spoločná faktúra",
     "Select Project Owner": "Vyberte vlastníka projektu",
     "No eligible project owners found.": "Nenašli sa žiadni vlastníci projektov.",
     "Projects owned by": "Projekty vlastníka",
@@ -1531,6 +1536,8 @@ export const translations = {
     "Checking existing invoices...": "Kontrolujem existujúce faktúry...",
     "Consolidated Services": "Konsolidované služby",
     "Invoice already exists for this period": "Faktúra pre toto obdobie už existuje",
+    "Hours": "Hodiny",
+    "Rate (€)": "Sadzba",
     "Proforma invoice is not an accounting or tax document": "Zálohová faktúra nie je účtovným ani daňovým dokladom",
     "Goods received by": "Tovar prevzal",
     "Member Permissions": "Povolenia člena",

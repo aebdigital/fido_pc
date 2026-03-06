@@ -133,12 +133,12 @@ const Settings = () => {
       <h1 className="block text-4xl font-bold text-gray-900 dark:text-white mb-8">{t('Settings')}</h1>
 
       {/* Access Section */}
-      <div className="mb-6 lg:mb-8">
+      <div className="mb-3 lg:mb-4">
         <div className="flex items-center gap-2 mb-4">
           <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Access')}</h2>
         </div>
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-[25px] p-4 lg:p-5 shadow-sm">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-[25px] p-4 lg:p-4 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               {/* Email Section */}
@@ -178,41 +178,41 @@ const Settings = () => {
       </div>
 
       {/* Preferences Section */}
-      <div className="mb-6 lg:mb-8">
+      <div className="mb-3 lg:mb-4">
         <div className="flex items-center gap-2 mb-4">
           <SettingsIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Preferences')}</h2>
         </div>
         <div className="space-y-3 lg:space-y-4">
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handleArchiveClick}
           >
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Archive')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('archived projects, archive duration')}</div>
+              <div className="font-semibold text-gray-900 dark:text-white text-lg leading-tight">{t('Archive')}</div>
+              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-0.5">{t('archived projects, archive duration')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handlePriceOfferClick}
           >
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Supplier')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('supplier information, validity of price offer')}</div>
+              <div className="font-semibold text-gray-900 dark:text-white text-lg leading-tight">{t('Supplier')}</div>
+              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-0.5">{t('supplier information, validity of price offer')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
             onClick={handlePriceListClick}
           >
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('General price list')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400">{t('set default price list')}</div>
+              <div className="font-semibold text-gray-900 dark:text-white text-lg leading-tight">{t('General price list')}</div>
+              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-0.5">{t('set default price list')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
@@ -267,7 +267,7 @@ const Settings = () => {
       </div>
 
       {/* Others Section */}
-      <div className="mb-6 lg:mb-8">
+      <div className="mb-3 lg:mb-4">
         <div className="flex items-center gap-2 mb-4">
           <Send className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Others')}</h2>

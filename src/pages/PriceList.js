@@ -310,16 +310,16 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
     <>
       <div className="pb-20 lg:pb-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 lg:mb-8">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBack}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
+        <div className="flex flex-col gap-2 mb-6 lg:mb-8">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors self-start"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium text-gray-900 dark:text-white">{t('Naspäť')}</span>
+          </button>
+          <div className="flex items-center justify-between">
             <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('General price list')}</h1>
-          </div>
 
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${saveStatus === 'saved'
@@ -343,6 +343,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
             <span className="hidden sm:inline">
               {saveStatus === 'saved' ? t('Saved') : saveStatus === 'saving' ? t('Saving...') : saveStatus === 'error' ? t('Error') : t('Saving...')}
             </span>
+          </div>
           </div>
         </div>
 

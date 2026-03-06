@@ -24,9 +24,9 @@ export const useProjectManager = (appData, setAppData) => {
     archivedProjects
   } = appData;
 
-  // Helper function to find project by ID across all categories
+  // Helper function to find project by ID across all sources
   const findProjectById = useCallback((projectId) => {
-    // First, search in contractor-specific projects if we have an active contractor
+    // 1. Check current filtered view first (fastest/most common)
     if (activeContractorId && contractorProjects[activeContractorId]?.categories) {
       for (const category of contractorProjects[activeContractorId].categories) {
         if (!category.projects) continue;
@@ -37,7 +37,15 @@ export const useProjectManager = (appData, setAppData) => {
       }
     }
 
-    // Fallback: search in global project categories
+    // 2. Check global allProjects list (covers assigned/member projects too)
+    if (appData.allProjects) {
+      const p = appData.allProjects.find(p => p.id === projectId);
+      if (p) {
+        return { project: p, category: p.category };
+      }
+    }
+
+    // 3. Fallback: search in global project categories
     for (const category of (projectCategories || [])) {
       if (!category.projects) continue;
       const project = category.projects.find(p => p.id === projectId);
@@ -47,7 +55,7 @@ export const useProjectManager = (appData, setAppData) => {
     }
 
     return null;
-  }, [activeContractorId, contractorProjects, projectCategories]);
+  }, [activeContractorId, contractorProjects, projectCategories, appData.allProjects]);
 
   const addProject = useCallback(async (categoryId, projectData) => {
     try {

@@ -765,7 +765,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 onClick={() => onClose()}
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ml-2"
               >
-                <X className="w-8 h-8" />
+                <X className="w-7 h-7" />
               </button>
             </div>
           </div>
@@ -904,24 +904,24 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={handlePreview}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
-                <Eye className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
-                <span className="text-base font-bold text-gray-900 dark:text-white">{t('Preview')}</span>
+                <Eye className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
+                <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Preview')}</span>
               </button>
               <button
                 onClick={handleSend}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
-                <Send className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
-                <span className="text-base font-bold text-gray-900 dark:text-white">{t('Send')}</span>
+                <Send className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
+                <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Send')}</span>
               </button>
               <button
                 onClick={handleStartEdit}
-                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="flex flex-col items-center justify-center py-3 bg-white dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
-                <Edit3 className="w-5 h-5 text-gray-900 dark:text-white mb-1" />
-                <span className="text-base font-bold text-gray-900 dark:text-white">{t('Edit')}</span>
+                <Edit3 className="w-4 h-4 text-gray-900 dark:text-white mb-1" />
+                <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Edit')}</span>
               </button>
             </div>
             {invoice.invoiceType !== 'credit_note' && invoice.invoiceType !== 'delivery' && (() => {
@@ -931,16 +931,16 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 !inv.is_deleted
               );
               return hasCreditNote ? (
-                <div className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl mt-3 opacity-50">
-                  <RotateCcw className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                <div className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 rounded-[24px] mt-3 opacity-50">
+                  <RotateCcw className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   <span className="text-xl font-bold text-gray-500 dark:text-gray-400">{t('Credit note already issued')}</span>
                 </div>
               ) : (
                 <button
                   onClick={() => setShowCreditNoteCreationModal(true)}
-                  className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm mt-3"
+                  className="w-full flex items-center justify-center gap-2 py-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm mt-3"
                 >
-                  <RotateCcw className="w-6 h-6 text-gray-900 dark:text-white" />
+                  <RotateCcw className="w-4 h-4 text-gray-900 dark:text-white" />
                   <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Issue Credit Note')}</span>
                 </button>
               );
@@ -952,23 +952,23 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="space-y-3">
               <button
                 onClick={handleCashReceiptPreview}
-                className="w-full flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="w-full flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <Eye className="w-6 h-6 text-gray-900 dark:text-white" />
+                  <Eye className="w-4 h-4 text-gray-900 dark:text-white" />
                   <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Preview Cash Receipt')}</span>
                 </div>
-                <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white" />
+                <ChevronRight className="w-5 h-5 text-gray-900 dark:text-white" />
               </button>
               <button
                 onClick={handleCashReceiptSend}
-                className="w-full flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                className="w-full flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-[1.5px] border-gray-900 dark:border-white rounded-[24px] hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <Send className="w-6 h-6 text-gray-900 dark:text-white" />
+                  <Send className="w-4 h-4 text-gray-900 dark:text-white" />
                   <span className="text-xl font-bold text-gray-900 dark:text-white">{t('Resend Cash Receipt')}</span>
                 </div>
-                <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white" />
+                <ChevronRight className="w-5 h-5 text-gray-900 dark:text-white" />
               </button>
             </div>
           )}
@@ -978,10 +978,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="pt-4 flex justify-center pb-8 px-4">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full max-w-sm bg-red-500 text-white py-4 rounded-2xl font-bold hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
+                className="w-full max-w-sm bg-red-500 text-white py-4 rounded-[24px] font-bold hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
               >
                 <Trash2 className="w-5 h-5" />
-                <span className="text-lg">{t('Delete')}</span>
+                <span className="text-xl">{t('Delete')}</span>
               </button>
             </div>
           )}

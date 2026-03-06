@@ -100,10 +100,10 @@ const Invoices = () => {
   const statusFilters = [t('All'), t('Paid'), t('Unpaid'), t('Overdue')];
 
   const invoiceTypes = [
-    { id: 'regular', label: t('Invoices') },
-    { id: 'proforma', label: t('Proforma Invoices') },
-    { id: 'delivery', label: t('Delivery Notes') },
-    { id: 'credit_note', label: t('Credit Notes') }
+    { id: 'regular', label: 'Faktúra' },
+    { id: 'proforma', label: 'Zálohová faktúra' },
+    { id: 'delivery', label: 'Dodací list' },
+    { id: 'credit_note', label: 'Dobropis' }
   ];
 
   const invoices = getInvoices();
@@ -259,7 +259,7 @@ const Invoices = () => {
           <div className="relative" ref={moreMenuRef}>
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700"
+              className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
             >
               <MoreVertical className="w-6 h-6" />
             </button>
@@ -360,16 +360,16 @@ const Invoices = () => {
         <div className="lg:hidden flex items-center gap-2">
           <button
             onClick={() => setShowStandaloneInvoice(true)}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
+            className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
           </button>
           <div className="relative" ref={moreMenuRefMobile}>
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700"
+              className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
             >
-              <MoreVertical className="w-5 h-5" />
+              <MoreVertical className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
             </button>
             {showMoreMenu && (
               <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
@@ -400,8 +400,8 @@ const Invoices = () => {
             <button
               key={type.id}
               onClick={() => setSelectedType(type.id)}
-              className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all ${selectedType === type.id
-                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md transform scale-105'
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedType === type.id
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
             >
@@ -415,7 +415,8 @@ const Invoices = () => {
           <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button
               onClick={() => setShowYearDropdown(!showYearDropdown)}
-              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap bg-transparent"
+              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap rounded-2xl px-3 py-1.5 no-gradient shadow-sm hover:opacity-70 transition-opacity"
+              style={{ border: '1.5px solid currentColor' }}
             >
               {selectedYear}
               <ChevronDown className={`w-4 h-4 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
@@ -477,22 +478,22 @@ const Invoices = () => {
                 setSelectedInvoice(invoice);
                 setShowInvoiceDetail(true);
               }}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-4 lg:p-6 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm"
+              className="bg-white dark:bg-gray-800 rounded-[30px] pl-5 pr-5 pt-3 pb-3 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
+              <div className="flex items-center justify-between min-w-0">
+                <div className="flex-1 min-w-0">
                   {/* Invoice number with dates */}
-                  <div className="flex items-center gap-2 mb-2 flex-wrap text-sm text-gray-500 dark:text-gray-400">
-                    <span className="lg:text-base">
+                  {/* Document Type Badge */}
+                  <div className="flex items-center gap-2 flex-wrap whitespace-nowrap overflow-hidden">
+                    <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400 shrink-0">
                       {invoice.invoiceType === 'delivery' ? '' : invoice.invoiceNumber}
                     </span>
-                    <span className="hidden lg:inline">•</span>
-                    <span className="hidden lg:inline">{t('Issue Date')}: {formatDate(invoice.issueDate)}</span>
-                    <span className="hidden lg:inline">•</span>
-                    <span className="hidden lg:inline">{t('Due Date')}: {formatDate(invoice.dueDate)}</span>
+                    <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400 shrink-0">
+                      {formatDate(invoice.issueDate)}
+                    </span>
                   </div>
                   {/* Project name */}
-                  <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                  <h3 className="text-xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate leading-tight">
                     {(() => {
                       const isDennik = invoice.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
                       const projectName = invoice.projectName || '';
@@ -502,7 +503,7 @@ const Invoices = () => {
                     })()}
                   </h3>
                   {/* Client name - below project name */}
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <div className="text-sm lg:text-base text-gray-500 dark:text-gray-400 truncate">
                     {(() => {
                       // First check if invoice has a direct clientId
                       if (invoice.clientId) {
@@ -543,14 +544,9 @@ const Invoices = () => {
                       return t('No client');
                     })()}
                   </div>
-                  {/* Mobile: dates below client */}
-                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1 lg:hidden">
-                    <span>{formatDate(invoice.issueDate)}</span>
-                    <span>→</span>
-                    <span>{formatDate(invoice.dueDate)}</span>
-                  </div>
+                  {/* Mobile: repositioned date removed as per request */}
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0 ml-3">
                   <div className="text-right">
                     {/* Status badge - above price (iOS compatible: unpaid, paid, afterMaturity) */}
                     {(() => {
@@ -573,7 +569,7 @@ const Invoices = () => {
 
                       return (
                         <span
-                          className="inline-block px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 text-white"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 text-white shrink-0"
                           style={{
                             backgroundColor: isPaid ? '#73D38A' // brandGreen
                               : isOverdue ? '#FF857C' // brandRed
@@ -589,11 +585,11 @@ const Invoices = () => {
                       );
                     })()}
                     {/* Price */}
-                    <div className="font-semibold text-gray-900 dark:text-white text-lg">{getInvoiceTotal(invoice)} €</div>
+                    <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{getInvoiceTotal(invoice)}</div>
                     {/* VAT not included - below price */}
                     <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 ml-2" />
                 </div>
               </div>
             </div>
@@ -650,7 +646,9 @@ const Invoices = () => {
               {stats.map(yearStats => (
                 <div key={yearStats.year}>
                   {/* Year Label */}
-                  <div className="text-lg font-bold text-gray-900 dark:text-white mb-4">{yearStats.year}</div>
+                  <div className="text-2xl font-black text-gray-900 dark:text-white flex items-baseline gap-1">
+                    {yearStats.year}
+                  </div>
 
                   {/* Total Card */}
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">

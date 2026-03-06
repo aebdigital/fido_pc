@@ -121,12 +121,13 @@ const Archive = ({ onBack }) => {
   return (
     <div className="pb-20 lg:pb-0">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6 lg:mb-8">
+      <div className="flex flex-col gap-2 mb-6 lg:mb-8">
         <button
           onClick={onBack}
-          className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors self-start"
         >
           <ArrowLeft className="w-5 h-5" />
+          <span className="text-sm font-medium">{t('Naspäť')}</span>
         </button>
         <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Archive')}</h1>
       </div>
@@ -159,7 +160,7 @@ const Archive = ({ onBack }) => {
                 <Loader2 className="w-4 h-4 text-gray-400 animate-spin ml-2" />
               )}
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-[10px] lg:text-sm text-gray-500 dark:text-gray-400">
               {archiveRetentionDays >= 99999
                 ? t('Your projects will remain in archive forever. They will not be deleted, unless you do so.')
                 : `${t('Your projects will remain in archive for')} ${archiveRetentionDays} ${t('days')}, ${t('after that they will be deleted automatically')}.`
@@ -180,78 +181,81 @@ const Archive = ({ onBack }) => {
           <p className="text-gray-500 dark:text-gray-500">{t('Archived projects will appear here')}</p>
         </div>
       ) : (
-        <div className="space-y-3 lg:space-y-4">
-          {allArchivedProjects.map((project) => (
-            <div
-              key={project.id}
-              className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-row items-center justify-between transition-all duration-300 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer gap-3"
-              onClick={() => handleProjectClick(project)}
-            >
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {(() => {
-                    if (!project.archivedDate) return '-';
-                    const archived = new Date(project.archivedDate);
-                    const deletionDate = new Date(archived);
-                    // Use the state but ensure it's a number
-                    const retention = parseInt(archiveRetentionDays) || 30;
+        <>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 hidden lg:block">Archivované projekty</h2>
+          <div className="space-y-3 lg:space-y-4">
+            {allArchivedProjects.map((project) => (
+              <div
+                key={project.id}
+                className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex flex-row items-center justify-between transition-all duration-300 shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer gap-3"
+                onClick={() => handleProjectClick(project)}
+              >
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-1 truncate">{project.name}</h3>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {(() => {
+                      if (!project.archivedDate) return '-';
+                      const archived = new Date(project.archivedDate);
+                      const deletionDate = new Date(archived);
+                      // Use the state but ensure it's a number
+                      const retention = parseInt(archiveRetentionDays) || 30;
 
-                    if (retention >= 99999) {
-                      return t('Forever');
-                    }
+                      if (retention >= 99999) {
+                        return t('Forever');
+                      }
 
-                    deletionDate.setDate(archived.getDate() + retention);
-                    const now = new Date();
-                    const diffTime = deletionDate - now;
-                    // Provide 0 if over time, ensure at least 0
-                    const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+                      deletionDate.setDate(archived.getDate() + retention);
+                      const now = new Date();
+                      const diffTime = deletionDate - now;
+                      // Provide 0 if over time, ensure at least 0
+                      const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
-                    let dayString = t('days'); // default 'dní' (5+)
-                    if (daysLeft === 1) dayString = t('day'); // 'deň'
-                    else if (daysLeft >= 2 && daysLeft <= 4) dayString = t('days_2_4'); // 'dni'
+                      let dayString = t('days'); // default 'dní' (5+)
+                      if (daysLeft === 1) dayString = t('day'); // 'deň'
+                      else if (daysLeft >= 2 && daysLeft <= 4) dayString = t('days_2_4'); // 'dni'
 
-                    return `${daysLeft} ${dayString} ${t('until deletion')}`;
-                  })()}
+                      return `${daysLeft} ${dayString} ${t('until deletion')}`;
+                    })()}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="text-left sm:text-right lg:hidden">
+                    <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
+                    <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => handleUnarchiveClick(project.id, e)}
+                      disabled={unarchivingProjectId === project.id || deletingProjectId === project.id}
+                      className="bg-black hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-2 transition-all duration-300"
+                      title={t('Unarchive')}
+                    >
+                      {unarchivingProjectId === project.id ? (
+                        <div className="w-3 h-3 lg:w-4 lg:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <ArchiveRestore className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteClick(project.id, e)}
+                      disabled={deletingProjectId === project.id || unarchivingProjectId === project.id}
+                      className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-2 transition-all duration-300"
+                      title={t('Delete Forever')}
+                    >
+                      {deletingProjectId === project.id ? (
+                        <div className="w-3 h-3 lg:w-4 lg:h-4 border-2 border-red-100 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3 lg:w-4 lg:h-4 text-red-100" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-4 flex-shrink-0">
-                <div className="text-left sm:text-right">
-                  <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
-                  <div className="font-semibold text-gray-900 dark:text-white text-lg">{formatPrice(calculateProjectTotalPrice(project.id, project))}</div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={(e) => handleUnarchiveClick(project.id, e)}
-                    disabled={unarchivingProjectId === project.id || deletingProjectId === project.id}
-                    className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-3 transition-all duration-300"
-                    title={t('Unarchive')}
-                  >
-                    {unarchivingProjectId === project.id ? (
-                      <div className="w-4 h-4 lg:w-5 lg:h-5 border-2 border-blue-100 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <ArchiveRestore className="w-4 h-4 lg:w-5 lg:h-5 text-blue-100" />
-                    )}
-                  </button>
-                  <button
-                    onClick={(e) => handleDeleteClick(project.id, e)}
-                    disabled={deletingProjectId === project.id || unarchivingProjectId === project.id}
-                    className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-3 transition-all duration-300"
-                    title={t('Delete Forever')}
-                  >
-                    {deletingProjectId === project.id ? (
-                      <div className="w-4 h-4 lg:w-5 lg:h-5 border-2 border-red-100 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-red-100" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
 

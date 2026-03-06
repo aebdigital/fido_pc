@@ -49,18 +49,44 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                         });
                         setOwners(ownersList);
 
-                        // Async fetch contractor details for these owners
+                        // Async fetch contractor details for each owner
+                        // Use the project's contractor_id (like DennikModal) instead of user_id
+                        // to get the CORRECT contractor linked to the project
                         uniqueOwnerIds.forEach(async (uid) => {
                             try {
-                                // Fetch using the same logic as DennikModal (by user_id)
-                                const { data } = await api.supabase
-                                    .from('contractors')
-                                    .select('*')
-                                    .eq('user_id', uid)
-                                    .order('created_at', { ascending: false })
-                                    .limit(1);
-                                if (data && data.length > 0) {
-                                    setOwnerContractors(prev => ({ ...prev, [uid]: data[0] }));
+                                // Find the first project for this owner to get the correct contractor_id
+                                const ownerProject = memberProjects.find(p => (p.user_id === uid || p.owner_id === uid));
+                                const contractorId = ownerProject?.contractor_id || ownerProject?.contractorId;
+
+                                let contractorData = null;
+
+                                // 1. Try by project's contractor_id first (most accurate)
+                                if (contractorId) {
+                                    const { data } = await api.supabase
+                                        .from('contractors')
+                                        .select('*')
+                                        .eq('c_id', contractorId)
+                                        .limit(1);
+                                    if (data && data.length > 0) {
+                                        contractorData = data[0];
+                                    }
+                                }
+
+                                // 2. Fallback: fetch by user_id (last created)
+                                if (!contractorData) {
+                                    const { data } = await api.supabase
+                                        .from('contractors')
+                                        .select('*')
+                                        .eq('user_id', uid)
+                                        .order('created_at', { ascending: false })
+                                        .limit(1);
+                                    if (data && data.length > 0) {
+                                        contractorData = data[0];
+                                    }
+                                }
+
+                                if (contractorData) {
+                                    setOwnerContractors(prev => ({ ...prev, [uid]: contractorData }));
                                 }
                             } catch (e) {
                                 console.warn('Failed to load contractor for owner', uid);
@@ -387,11 +413,6 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                     {step === 3 && (
                         <div className="space-y-6">
                             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl space-y-4 border border-gray-100 dark:border-gray-700">
-                                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <Building className="w-4 h-4 text-purple-500" />
-                                    {t('Invoicing Details')}
-                                </h3>
-
                                 <div className="space-y-4">
                                     {selectedProjectIds.map(pid => (
                                         <div key={pid} className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">

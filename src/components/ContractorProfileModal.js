@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Building2, Upload, X } from 'lucide-react';
+import { Building2, Upload, X, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { compressImage } from '../utils/imageCompression';
 import RpoAutocomplete from './RpoAutocomplete';
 import { useScrollLock } from '../hooks/useScrollLock';
 
-const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) => {
+const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor = null }) => {
   useScrollLock(true);
   const { t, isSlovak } = useLanguage();
   const [isClosing, setIsClosing] = useState(false);
@@ -569,6 +569,17 @@ const ContractorProfileModal = ({ onClose, onSave, editingContractor = null }) =
               {editingContractor ? t('Save') : t('Add contractor')}
             </button>
           </div>
+
+          {/* Delete Button - only when editing (like iOS) */}
+          {editingContractor && onDelete && (
+            <button
+              onClick={() => onDelete(editingContractor)}
+              className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-lg font-medium"
+            >
+              <Trash2 className="w-5 h-5" />
+              {t('Delete contractor')}
+            </button>
+          )}
 
         </div>
       </div>

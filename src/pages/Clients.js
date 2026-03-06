@@ -110,27 +110,26 @@ const Clients = () => {
             <div className="flex gap-2 flex-shrink-0">
               <button
                 onClick={() => setDeleteMode(!deleteMode)}
-                className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-gray-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}`}
+                className={`w-8 h-8 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-gray-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}`}
               >
-                <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                <Trash2 className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
               </button>
               <button
                 onClick={handleCreateClient}
-                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+                className="w-8 h-8 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
               >
-                <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
+                <Plus className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
               </button>
             </div>
           </div>
           {/* Search Bar */}
           <div className="relative flex-1 sm:w-72 sm:flex-none lg:w-96">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('Search')}
-              className="w-full pl-10 pr-4 py-2 lg:py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg"
+              className="w-full pr-4 py-1.5 lg:py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-lg px-4"
             />
           </div>
         </div>

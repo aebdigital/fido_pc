@@ -237,7 +237,6 @@ export const clientsApi = {
 
 export const projectsApi = {
   // Get all projects for contractor (excludes soft-deleted)
-  // Get all projects for contractor (excludes soft-deleted)
   getAll: async (contractorId) => {
     try {
       const userId = await getCurrentUserId()
@@ -942,7 +941,6 @@ export const priceListsApi = {
       const { data, error } = await supabase
         .from('price_lists')
         .select('*')
-        .eq('user_id', userId)
         .eq('contractor_id', contractorId)
         .eq('is_general', true)
         .single()
@@ -954,16 +952,31 @@ export const priceListsApi = {
     }
   },
 
+  // Get price list by ID (c_id)
+  getById: async (id) => {
+    try {
+      const { data, error } = await supabase
+        .from('price_lists')
+        .select('*')
+        .eq('c_id', id)
+        .single()
+
+      if (error) throw error
+      // Map c_id to id for app compatibility
+      return data ? { ...data, id: data.c_id } : null
+    } catch (error) {
+      handleError('priceListsApi.getById', error)
+    }
+  },
+
   // Get price list for a specific PROJECT (is_general = false, project_id = projectId)
   getByProject: async (projectId) => {
     try {
       if (!projectId) return null
 
-      const userId = await getCurrentUserId()
       const { data, error } = await supabase
         .from('price_lists')
         .select('*')
-        .eq('user_id', userId)
         .eq('project_id', projectId)
         .eq('is_general', false)
         .single()

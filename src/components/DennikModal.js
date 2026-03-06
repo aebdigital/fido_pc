@@ -1025,9 +1025,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                         >
-                            <X className="w-6 h-6 text-gray-500" />
+                            <X className="w-5 h-5 text-gray-500" />
                         </button>
                     </div>
 
@@ -1215,10 +1215,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     <button
                                                         onClick={handleStartTimer}
                                                         disabled={isLoading}
-                                                        className="flex-1 bg-white text-green-600 px-4 py-3 rounded-xl font-bold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                        className="flex-1 bg-white text-green-600 px-4 py-4 rounded-[20px] font-bold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                                     >
                                                         <Play className="w-5 h-5" />
-                                                        {t('Start Timer')}
+                                                        <span className="text-lg">{t('Start Timer')}</span>
                                                     </button>
                                                 ) : (
                                                     <div className="flex-1 bg-white/20 text-white/70 px-4 py-3 rounded-xl font-medium text-center text-sm">
@@ -1227,7 +1227,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                 )}
                                                 <button
                                                     onClick={() => setShowManualEntry(!showManualEntry)}
-                                                    className="bg-white/20 text-white px-4 py-3 rounded-xl font-bold hover:bg-white/30 transition-colors flex items-center justify-center gap-2"
+                                                    className="bg-white/20 text-white px-4 py-4 rounded-[20px] font-bold hover:bg-white/30 transition-colors flex items-center justify-center gap-2"
                                                 >
                                                     <Plus className="w-5 h-5" />
                                                 </button>
@@ -1236,10 +1236,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             <button
                                                 onClick={handleEndTimer}
                                                 disabled={isLoading}
-                                                className="flex-1 bg-red-500 text-white px-4 py-3 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                className="flex-1 bg-red-500 text-white px-4 py-4 rounded-[20px] font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
                                                 <Square className="w-5 h-5" />
-                                                {t('Stop Timer')}
+                                                <span className="text-lg">{t('Stop Timer')}</span>
                                             </button>
                                         )}
                                     </div>
@@ -1298,10 +1298,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             <button
                                                 onClick={selectedMemberForEntry ? handleAddManualEntryForMember : handleAddManualEntry}
                                                 disabled={isLoading}
-                                                className="w-full bg-white text-green-600 px-4 py-2 rounded-xl font-bold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                className="w-full bg-white text-green-600 px-4 py-3 rounded-[20px] font-bold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
-                                                <Plus className="w-4 h-4" />
-                                                {t('Add Entry')}
+                                                <Plus className="w-5 h-5" />
+                                                <span className="text-lg">{t('Add Entry')}</span>
                                             </button>
                                         </div>
                                     )}
@@ -1752,14 +1752,14 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                 <button
                                     onClick={handleGenerateInvoice}
                                     disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0)) || hasInvoiceForPeriod}
-                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-4 px-4 rounded-[20px] font-bold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isGeneratingInvoice ? (
                                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     ) : (
-                                        <Plus className="w-4 h-4" />
+                                        <Plus className="w-5 h-5" />
                                     )}
-                                    <span className="text-sm sm:text-lg">{t('Create Invoice')}</span>
+                                    <span className="text-lg">{t('Create Invoice')}</span>
                                 </button>
                                 {hasInvoiceForPeriod && (
                                     <p className="text-red-500 text-sm mt-2 text-center font-medium opacity-80 animate-fade-in">
@@ -1838,6 +1838,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         project={project}
                         categoryId={typeof project.category === 'object' ? project.category.id : project.category}
                         dennikData={dennikInvoiceData}
+                        initialClientContractor={ownerContractorData}
                     />
                 )}
             </div>

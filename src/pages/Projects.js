@@ -561,7 +561,7 @@ const Projects = () => {
 
         {/* Contractor Profile Dropdown */}
         {(currentView === 'categories' || currentView === 'projects') && (
-          <div className="mb-4 lg:mb-6 relative" ref={dropdownRef}>
+          <div className={`mb-4 lg:mb-6 relative ${currentView === 'projects' ? 'hidden lg:block' : ''}`} ref={dropdownRef}>
             <div className="flex items-center justify-between">
               <button
                 className="flex items-center gap-2 bg-transparent"
@@ -614,7 +614,7 @@ const Projects = () => {
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">
                         {t('Select contractor')}
                       </div>
-                      {contractors.map(contractor => (
+                      {contractors.filter(c => !c._isForeign).map(contractor => (
                         <div
                           key={contractor.id}
                           className={`p-3 rounded-xl cursor-pointer transition-colors ${activeContractorId === contractor.id && !viewingOrphanProjects
@@ -669,7 +669,7 @@ const Projects = () => {
                 <button
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
-                  className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-2xl overflow-hidden transition-all duration-200 ${activeCategory === category.id
+                  className={`flex-shrink-0 lg:w-full w-24 sm:w-28 rounded-[30px] overflow-hidden transition-all duration-200 ${activeCategory === category.id
                     ? 'ring-2 ring-gray-900 dark:ring-white shadow-lg border-2 border-white dark:border-gray-800'
                     : 'hover:shadow-md hover:scale-[1.02]'
                     }`}
@@ -717,7 +717,7 @@ const Projects = () => {
                     <button
                       key={category.id}
                       onClick={() => handleCategorySelect(category.id)}
-                      className="w-full h-56 rounded-3xl overflow-hidden transition-all duration-200 relative shadow-lg hover:shadow-xl"
+                      className="w-full h-[193px] rounded-[30px] overflow-hidden transition-all duration-200 relative shadow-lg hover:shadow-xl"
                     >
                       <img
                         src={category.image}
@@ -796,7 +796,7 @@ const Projects = () => {
                                 {invoice.projectName || project?.project?.name || t('Unknown project')}
                               </div>
                               <div className="text-sm text-gray-500 dark:text-gray-400">
-                                #{invoice.invoiceNumber}
+                                {invoice.invoiceNumber}
                               </div>
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0 ml-3">
@@ -822,44 +822,49 @@ const Projects = () => {
 
             {/* Project List View */}
             {currentView === 'projects' && (
-              <div className="pt-4 pb-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 w-full">
+              <div className="pb-4 lg:p-6 space-y-4 lg:space-y-6 pb-20 lg:pb-6 min-w-0 w-full">
                 {/* Project List Header */}
-                <div className="flex flex-col gap-4 w-full">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <button
-                        onClick={() => setCurrentView('categories')}
-                        className="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <h2 className="text-lg sm:text-xl lg:text-3xl font-bold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
-                        {t(displayCategories.find(cat => cat.id === activeCategory)?.name)} {t('Projects')}
+                {/* Sticky Back Button Container - hidden on desktop PC */}
+                <div className="sticky top-0 z-40 -mx-4 px-4 pb-2 pt-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md lg:hidden">
+                  <button
+                    onClick={() => setCurrentView('categories')}
+                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors w-fit"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span className="text-sm font-medium">{t('Naspäť')}</span>
+                  </button>
+                </div>
+
+                {/* Project List Header - No longer sticky */}
+                <div className="pt-2 pb-4 min-w-0 w-full lg:relative lg:p-0">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-4">
+                      <h2 className="text-4xl lg:text-5xl font-[900] text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
+                        {t(displayCategories.find(cat => cat.id === activeCategory)?.name)}
                       </h2>
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      {!viewingOrphanProjects && (
-                        <>
-                          <button
-                            onClick={toggleProjectDeleteMode}
-                            className={`p-3 rounded-2xl flex items-center justify-center transition-colors ${projectDeleteMode
-                              ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                              : 'bg-gray-900 text-white hover:bg-gray-800'
-                              }`}
-                          >
-                            <Archive className="w-4 h-4 lg:w-5 lg:h-5" />
-                          </button>
-                          <button
-                            onClick={() => setShowNewProjectModal(true)}
-                            className="flex items-center justify-center gap-1 sm:gap-2 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span className="hidden sm:inline">{t('Add Project')}</span>
-                          </button>
-                        </>
-                      )}
+                      <div className="flex gap-2 flex-shrink-0 items-center">
+                        {!viewingOrphanProjects && (
+                          <>
+                            <button
+                              onClick={toggleProjectDeleteMode}
+                              className={`w-8 h-8 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors ${projectDeleteMode
+                                ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                                : 'bg-gray-900 text-white hover:bg-gray-800'
+                                }`}
+                            >
+                              <Archive className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
+                            </button>
+                            <button
+                              onClick={() => setShowNewProjectModal(true)}
+                              className="w-8 h-8 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+                            >
+                              <Plus className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -871,7 +876,8 @@ const Projects = () => {
                     <div className="relative">
                       <button
                         onClick={() => setShowYearSelector(!showYearSelector)}
-                        className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white hover:opacity-70 transition-opacity border border-gray-900 dark:border-white rounded-xl px-3 py-1.5 no-gradient"
+                        className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white hover:opacity-70 transition-opacity rounded-2xl px-3 py-1.5 no-gradient shadow-sm"
+                        style={{ border: '1.5px solid currentColor' }}
                       >
                         <span>{filterYear === 'all' ? t('Whenever') : filterYear}</span>
                         <ChevronDown className="w-4 h-4" />
@@ -942,17 +948,17 @@ const Projects = () => {
                         {filteredProjects.map(project => (
                           <div
                             key={project.id}
-                            className={`bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-4 pt-4 pb-4 lg:p-6 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
+                            className={`bg-white dark:bg-gray-800 rounded-[30px] pl-5 pr-5 pt-3 pb-3 lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
                               ? 'justify-between'
                               : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
                               }`}
                             onClick={(projectDeleteMode && !viewingOrphanProjects) ? undefined : () => handleProjectSelect(project)}
                           >
                             <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
+                              <div className="flex items-center gap-2 flex-wrap whitespace-nowrap overflow-hidden">
+                                <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400 shrink-0">{formatProjectNumber(project) || project.id}</span>
                                 {project.is_dennik_enabled && (
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 shrink-0">
                                     <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
                                       {t('Denník')}
                                     </span>
@@ -971,12 +977,11 @@ const Projects = () => {
                                   </div>
                                 )}
                               </div>
-                              <h3 className="text-xl lg:text-3xl font-bold text-gray-900 dark:text-white lg:truncate">
-                                <span className="lg:hidden">{project.name.length > 17 ? `${project.name.substring(0, 17)}...` : project.name}</span>
-                                <span className="hidden lg:inline">{project.name}</span>
+                              <h3 className="text-xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate leading-tight">
+                                {project.name}
                               </h3>
                               {/* Client name - visible on all screen sizes */}
-                              <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base mt-1 truncate">
+                              <p className="text-gray-500 dark:text-gray-400 text-sm lg:text-base truncate">
                                 {project.clientId ? clients.find(c => c.id === project.clientId)?.name || t('No client') : t('No client')}
                               </p>
                             </div>
@@ -1002,7 +1007,7 @@ const Projects = () => {
                                 <div className="text-right">
                                   {/* Status Badge */}
                                   <span
-                                    className="inline-flex items-center gap-1.5 px-2 py-1 text-xs lg:text-sm font-medium rounded-full mb-1 text-white"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 text-white shrink-0"
                                     style={{
                                       backgroundColor:
                                         project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
@@ -1013,31 +1018,31 @@ const Projects = () => {
                                   >
                                     {project.status === PROJECT_STATUS.FINISHED ? (
                                       <>
-                                        <span className="inline-flex items-center justify-center w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full bg-white">
-                                          <Flag className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: '#C4C4C4' }} />
+                                        <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
+                                          <Flag size={9} style={{ color: '#C4C4C4' }} />
                                         </span>
-                                        <span>{t('finished')}</span>
+                                        <span className="whitespace-nowrap">{t('finished')}</span>
                                       </>
                                     ) : project.status === PROJECT_STATUS.APPROVED ? (
                                       <>
-                                        <span className="inline-flex items-center justify-center w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full bg-white">
-                                          <CheckCircle className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: '#73D38A' }} />
+                                        <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
+                                          <CheckCircle size={9} style={{ color: '#73D38A' }} />
                                         </span>
-                                        <span>{t('approved')}</span>
+                                        <span className="whitespace-nowrap">{t('approved')}</span>
                                       </>
                                     ) : project.status === PROJECT_STATUS.SENT ? (
                                       <>
-                                        <span className="inline-flex items-center justify-center w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full bg-white">
-                                          <span className="text-[10px] lg:text-xs font-bold" style={{ color: '#51A2F7' }}>?</span>
+                                        <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
+                                          <span className="text-[9px] lg:text-[10px] font-bold" style={{ color: '#51A2F7' }}>?</span>
                                         </span>
-                                        <span>{t('sent')}</span>
+                                        <span className="whitespace-nowrap">{t('sent')}</span>
                                       </>
                                     ) : (
                                       <>
-                                        <span className="inline-flex items-center justify-center w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full bg-white">
-                                          <X className="w-2.5 h-2.5 lg:w-3 lg:h-3" style={{ color: '#FF857C' }} />
+                                        <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
+                                          <X size={9} style={{ color: '#FF857C' }} />
                                         </span>
-                                        <span>{t('not sent')}</span>
+                                        <span className="whitespace-nowrap">{t('not sent')}</span>
                                       </>
                                     )}
                                   </span>
@@ -1045,7 +1050,7 @@ const Projects = () => {
                                   <div className="font-semibold text-gray-900 dark:text-white text-base lg:text-lg">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
                                   <div className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">{t('VAT not included')}</div>
                                 </div>
-                                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 ml-2" />
                               </div>
                             )}
                           </div>

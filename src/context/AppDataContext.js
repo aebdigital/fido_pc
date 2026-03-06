@@ -412,6 +412,24 @@ export const AppDataProvider = ({ children }) => {
       }); */
       // console.log('[DEBUG FILTER] Filter Year:', projectFilterYear);
 
+      // PHASE 2.5: Fetch missing Price Lists for member projects
+      // We need these BEFORE transforming projects so the priceListSnapshot is built correctly
+      const missingPriceListIds = (projects || [])
+        .filter(p => p.price_list_id && !allPriceLists?.some(pl => pl.c_id === p.price_list_id))
+        .map(p => p.price_list_id);
+
+      if (missingPriceListIds.length > 0) {
+        // console.log('[SUPABASE] Fetching missing price lists for member projects:', missingPriceListIds.length);
+        const extraPriceLists = await Promise.all(
+          missingPriceListIds.map(id => api.priceLists.getById(id).catch(() => null))
+        );
+        extraPriceLists.filter(Boolean).forEach(pl => {
+          if (!allPriceLists.some(existing => existing.c_id === pl.c_id)) {
+            allPriceLists.push(pl);
+          }
+        });
+      }
+
       // Transform clients
       let transformedClients = (clients || []).map(transformClientFromDB);
 
@@ -587,28 +605,9 @@ export const AppDataProvider = ({ children }) => {
         cp.archivedProjects?.forEach(p => allBucketedProjectIds.add(p.id));
       });
 
-      const unbucketedMemberProjects = transformedProjects.filter(p =>
-        p.userRole && p.userRole !== 'owner' && !allBucketedProjectIds.has(p.id) && !p.is_archived
-      );
-
-      if (unbucketedMemberProjects.length > 0 && activeContractorId && contractorProjects[activeContractorId]) {
-        const constructionCategories = ['flats', 'houses', 'firms', 'companies', 'cottages', 'construction'];
-        unbucketedMemberProjects.forEach(project => {
-          const cp = contractorProjects[activeContractorId];
-          let targetCat;
-          if (constructionCategories.includes(project.category)) {
-            targetCat = cp.categories.find(c => c.id === 'construction');
-          } else if (project.category === 'services') {
-            targetCat = cp.categories.find(c => c.id === 'services');
-          } else {
-            targetCat = cp.categories.find(c => c.id === project.category) || cp.categories.find(c => c.id === 'construction');
-          }
-          if (targetCat) {
-            targetCat.projects = [...targetCat.projects, project];
-            targetCat.count = targetCat.projects.length;
-          }
-        });
-      }
+      // Member projects bucketing removed - they should only appear under their own contractor
+      // if it was loaded as a foreign contractor, otherwise they stay in transformedProjects
+      // but aren't forced into the user's personal list.
 
       // activeContractorId was already determined in Phase 1 above (for filtering)
       const activeContractor = transformedContractors.find(c => c.id === activeContractorId);
@@ -657,6 +656,7 @@ export const AppDataProvider = ({ children }) => {
         projectHistory: projectHistoryMap, // Populate with loaded history
         contractors: transformedContractors || [],
         contractorProjects,
+        allProjects: transformedProjects,
         invoices: transformedInvoices,
         priceOfferSettings,
         activeContractorId,

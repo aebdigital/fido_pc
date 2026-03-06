@@ -30,7 +30,6 @@ const PriceOfferSettings = ({ onBack }) => {
   const [editingContractor, setEditingContractor] = useState(null);
   const [timeLimit, setTimeLimit] = useState(priceOfferSettings.timeLimit || 30);
   const [isSaving, setIsSaving] = useState(false);
-  const [deleteMode, setDeleteMode] = useState(false);
   const [contractorToDelete, setContractorToDelete] = useState(null);
   const debounceRef = useRef(null);
 
@@ -118,31 +117,15 @@ const PriceOfferSettings = ({ onBack }) => {
   return (
     <div className="pb-20 lg:pb-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 lg:mb-8">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Supplier')}</h1>
-        </div>
-
-        <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={() => setDeleteMode(!deleteMode)}
-            className={`w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-gray-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}`}
-          >
-            <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
-          </button>
-          <button
-            onClick={handleCreateContractor}
-            className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
-          >
-            <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
-          </button>
-        </div>
+      <div className="flex flex-col gap-2 mb-6 lg:mb-8">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors self-start"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="text-sm font-medium">{t('Naspäť')}</span>
+        </button>
+        <h1 className="text-4xl lg:text-4xl font-bold text-gray-900 dark:text-white">{t('Supplier')}</h1>
       </div>
 
       <div>
@@ -185,9 +168,17 @@ const PriceOfferSettings = ({ onBack }) => {
 
         {/* Contractors List */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4 lg:mb-6">
-            <Building2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Contractors')}</h2>
+          <div className="flex items-center justify-between mb-4 lg:mb-6">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Contractors')}</h2>
+            </div>
+            <button
+              onClick={handleCreateContractor}
+              className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+            >
+              <Plus className="w-3 h-3 lg:w-4 lg:h-4" />
+            </button>
           </div>
 
           {contractors.length === 0 ? (
@@ -207,8 +198,8 @@ const PriceOfferSettings = ({ onBack }) => {
               {contractors.map((contractor) => (
                 <div
                   key={contractor.id}
-                  className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${deleteMode ? '' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                  onClick={() => !deleteMode && handleEditContractor(contractor)}
+                  className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                  onClick={() => handleEditContractor(contractor)}
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -226,17 +217,7 @@ const PriceOfferSettings = ({ onBack }) => {
                     </div>
 
                     <div className="flex-shrink-0 ml-2">
-                      {deleteMode ? (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteContractor(contractor); }}
-                          className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors shadow-sm"
-                          title={t('Delete contractor')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                      )}
+                      <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     </div>
                   </div>
                 </div>
@@ -255,6 +236,11 @@ const PriceOfferSettings = ({ onBack }) => {
             setEditingContractor(null);
           }}
           onSave={handleSaveContractor}
+          onDelete={(contractor) => {
+            setShowContractorModal(false);
+            setEditingContractor(null);
+            handleDeleteContractor(contractor);
+          }}
         />
       )}
 

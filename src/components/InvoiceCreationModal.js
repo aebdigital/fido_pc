@@ -176,7 +176,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [deleteMode, setDeleteMode] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Handle initialClientContractor (Consolidated Invoice)
+  // Handle initialClientContractor (Consolidated Invoice / Denník Invoice)
   useEffect(() => {
     if (isOpen && initialClientContractor && clients) {
       const findAndSelectClient = async () => {
@@ -194,20 +194,22 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           setSelectedClientId(match.id);
         } else {
           // 3. Auto-create client from contractor data
+          // Note: addClient uses transformClientToDB which expects camelCase keys
           try {
             const newClient = {
               name: initialClientContractor.name,
               street: initialClientContractor.street,
-              second_row_street: initialClientContractor.second_row_street,
+              additionalInfo: initialClientContractor.second_row_street,
               city: initialClientContractor.city,
-              postal_code: initialClientContractor.postal_code,
+              postalCode: initialClientContractor.postal_code,
               country: initialClientContractor.country || 'Slovensko',
-              business_id: initialClientContractor.business_id,
-              tax_id: initialClientContractor.tax_id,
-              vat_registration_number: initialClientContractor.vat_registration_number,
+              businessId: initialClientContractor.business_id,
+              taxId: initialClientContractor.tax_id,
+              vatId: initialClientContractor.vat_registration_number,
               email: initialClientContractor.email,
               phone: initialClientContractor.phone,
-              // Map other fields if necessary
+              contactPerson: initialClientContractor.contact_person_name,
+              type: initialClientContractor.type,
             };
             const created = await addClient(newClient);
             if (created) setSelectedClientId(created.id);
@@ -600,9 +602,12 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
         // Use safe parser to load note for current type
         setNotes(getNoteForType(persistentSettings?.note, invoiceType, t));
-        // Pre-fill introductory note with default subtitle (e.g. "Cenová ponuka 2026001")
+        // Initialize introductory note
         const projNum = formatProjectNumber(project);
-        if (invoiceType === 'credit_note') {
+        if (invoiceType === 'credit_note' || isCreditNoteCreation) {
+          const sourceNum = existingInvoice?.invoiceNumber;
+          setIntroductoryNote(sourceNum ? `${t('To invoice')} ${sourceNum}` : '');
+        } else if (invoiceType === 'delivery') {
           setIntroductoryNote('');
         } else if (projNum) {
           setIntroductoryNote(`${t('Price offer')} ${projNum}`);
@@ -626,8 +631,11 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         }
       }
 
-      // Initialize selected client
-      if (editMode && existingInvoice?.clientId) {
+      // Initialize selected client — skip when initialClientContractor is provided
+      // (the dedicated useEffect for initialClientContractor handles that case)
+      if (initialClientContractor) {
+        // Let the initialClientContractor effect handle client selection
+      } else if (editMode && existingInvoice?.clientId) {
         setSelectedClientId(existingInvoice.clientId);
       } else if (project?.clientId) {
         setSelectedClientId(project.clientId);
@@ -652,6 +660,21 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       setOriginalInvoiceNumber(nextNum);
     }
   }, [invoiceType, isOpen, editMode, generateInvoiceNumber]);
+
+  // Effect to update introductory note when type changes (Create Mode Only)
+  useEffect(() => {
+    if (isOpen && !editMode && !editMode && !existingInvoice) {
+      const projNum = formatProjectNumber(project);
+      if (invoiceType === 'credit_note' || isCreditNoteCreation) {
+        const sourceNum = existingInvoice?.invoiceNumber;
+        setIntroductoryNote(sourceNum ? `${t('To invoice')} ${sourceNum}` : '');
+      } else if (invoiceType === 'delivery') {
+        setIntroductoryNote('');
+      } else if (projNum) {
+        setIntroductoryNote(`${t('Price offer')} ${projNum}`);
+      }
+    }
+  }, [invoiceType, isOpen, editMode, existingInvoice, project, isCreditNoteCreation, t]);
 
   // Calculate totals from invoice items
   const calculateTotals = useMemo(() => {
@@ -1068,8 +1091,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
               </button>
             </div>
 
-            {/* Invoice Type Selector - Hidden for specific credit note modal */}
-            {invoiceType !== 'credit_note' && (
+            {/* Invoice Type Selector - Hidden for credit notes and dennik-sourced invoices */}
+            {invoiceType !== 'credit_note' && !dennikData && (
               <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
                 {[
                   { id: 'regular', label: t('Invoice') },

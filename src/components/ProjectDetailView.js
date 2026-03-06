@@ -199,6 +199,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [lightboxDirection, setLightboxDirection] = useState(0); // -1 for left, 1 for right, 0 for initial
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
   const [photoDeleteMode, setPhotoDeleteMode] = useState(false);
+  const [photoToDelete, setPhotoToDelete] = useState(null);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [showArchiveConfirmation, setShowArchiveConfirmation] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
@@ -761,9 +762,15 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   };
 
   const handleDeletePhoto = (photoId) => {
-    const updatedPhotos = projectPhotos.filter(p => p.id !== photoId);
+    setPhotoToDelete(photoId);
+  };
+
+  const confirmDeletePhoto = () => {
+    if (!photoToDelete) return;
+    const updatedPhotos = projectPhotos.filter(p => p.id !== photoToDelete);
     setProjectPhotos(updatedPhotos);
     updateProject(project.category, projectId, { photos: updatedPhotos });
+    setPhotoToDelete(null);
   };
 
   const handleNotesChange = (e) => {
@@ -1153,14 +1160,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       <div className="mb-6">
         <div className="flex flex-col gap-2 lg:gap-4">
 
-          {/* Mobile: Back arrow on its own row */}
+          {/* Mobile: Sticky Back arrow on its own row */}
           {viewSource !== 'team_modal' && (
-            <div className="lg:hidden">
+            <div className="lg:hidden sticky top-0 z-40 -mx-4 px-4 pt-2 pb-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
               <button
                 onClick={onBack}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 <ChevronRight className="w-5 h-5 rotate-180" />
+                <span className="text-sm font-medium">{t('Naspäť')}</span>
               </button>
             </div>
           )}
@@ -1184,16 +1192,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 const config = statusConfig[project.status] || statusConfig[PROJECT_STATUS.NOT_SENT];
                 const StatusIcon = config.icon;
                 return (
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full shadow-sm"
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full shadow-sm"
                     style={{ backgroundColor: config.color }}>
-                    <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
+                    <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
                       {project.status === PROJECT_STATUS.SENT ? (
-                        <span className="text-[10px] font-bold" style={{ color: config.color }}>?</span>
+                        <span className="text-[9px] font-bold" style={{ color: config.color }}>?</span>
                       ) : (
-                        <StatusIcon size={10} color={config.color} strokeWidth={3} />
+                        <StatusIcon size={9} color={config.color} strokeWidth={3} />
                       )}
                     </div>
-                    <span className="text-xs font-medium text-white">{t(config.label)}</span>
+                    <span className="text-[10px] font-medium text-white">{t(config.label)}</span>
                   </div>
                 );
               })()}
@@ -1208,18 +1216,18 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       }
                       setShowDennikModal(true);
                     }}
-                    className="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center mr-1"
+                    className="bg-gradient-to-r from-green-500 to-green-600 text-white p-1.5 rounded-full font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center mr-1"
                   >
-                    <BookOpen className="w-4 h-4" />
+                    <BookOpen className="w-3.5 h-3.5" />
                   </button>
 
                   {(canView('project_pricelist') || canView('duplicate') || canView('archive')) && (
                     <div className="relative" ref={moreMenuRefMobile}>
                       <button
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className="p-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                        className="p-1.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
                       >
-                        <MoreVertical className="w-4 h-4" />
+                        <MoreVertical className="w-3.5 h-3.5" />
                       </button>
                       {showMoreMenu && (
                         <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
@@ -1285,7 +1293,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               />
             ) : (
               <div className="flex items-center gap-2 group">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
+                <h1 className="text-3xl lg:text-4xl font-[900] text-gray-900 dark:text-white truncate">
                   {project.name}
                 </h1>
                 {!project.is_archived && canEditProject && isProjectOwner && (
@@ -1300,17 +1308,22 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             )}
           </div>
 
-          {/* Desktop: Original layout - name + icons on one row, number + status below */}
+          {/* Desktop: Back button on its own row */}
+          {viewSource !== 'team_modal' && (
+            <div className="hidden lg:block">
+              <button
+                onClick={onBack}
+                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 rotate-180" />
+                <span className="text-sm font-medium">{t('Naspäť')}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Desktop: Project name + action buttons */}
           <div className="hidden lg:flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              {viewSource !== 'team_modal' && (
-                <button
-                  onClick={onBack}
-                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5 rotate-180" />
-                </button>
-              )}
               {isEditingProjectName && isProjectOwner ? (
                 <input
                   type="text"
@@ -1326,7 +1339,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 />
               ) : (
                 <div className="flex items-center gap-2 group">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white truncate">
+                  <h1 className="text-4xl lg:text-5xl font-[900] text-gray-900 dark:text-white truncate">
                     {project.name}
                   </h1>
                   {!project.is_archived && canEditProject && isProjectOwner && (
@@ -1362,7 +1375,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <div className="relative" ref={moreMenuRef}>
                       <button
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className="p-2.5 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                        className="p-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
                       >
                         <MoreVertical className="w-5 h-5" />
                       </button>
@@ -1407,9 +1420,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             {viewSource === 'team_modal' && (
               <button
                 onClick={onBack}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors ml-2"
+                className="p-1 px-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors ml-2"
               >
-                <X className="w-6 h-6" />
+                <X className="w-7 h-7" />
               </button>
             )}
           </div>
@@ -1432,16 +1445,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               const config = statusConfig[project.status] || statusConfig[PROJECT_STATUS.NOT_SENT];
               const StatusIcon = config.icon;
               return (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full shadow-sm"
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full shadow-sm"
                   style={{ backgroundColor: config.color }}>
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
+                  <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
                     {project.status === PROJECT_STATUS.SENT ? (
-                      <span className="text-xs font-bold" style={{ color: config.color }}>?</span>
+                      <span className="text-[9px] font-bold" style={{ color: config.color }}>?</span>
                     ) : (
-                      <StatusIcon size={12} color={config.color} strokeWidth={3} />
+                      <StatusIcon size={9} color={config.color} strokeWidth={3} />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-white">{t(config.label)}</span>
+                  <span className="text-[10px] font-medium text-white whitespace-nowrap">{t(config.label)}</span>
                 </div>
               );
             })()}
@@ -1504,6 +1517,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <div className="text-base text-gray-600 dark:text-gray-400 truncate">
                       {selectedClientForProject ? selectedClientForProject.email : t('Associate project with a client')}
                     </div>
+                    {selectedClientForProject && (selectedClientForProject.street || selectedClientForProject.city) && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                        {[selectedClientForProject.street, selectedClientForProject.city].filter(Boolean).join(', ')}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {!project.is_archived && selectedClientForProject && canEdit('client_supplier') && (
@@ -1532,9 +1550,17 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       className={`bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between shadow-sm h-full ${canEdit('client_supplier') ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md transition-colors' : ''}`}
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Project contractor')}</div>
+                        <div className="font-semibold text-gray-900 dark:text-white text-lg">{getCurrentContractor()?.name || t('Project contractor')}</div>
                         <div className="text-base text-gray-600 dark:text-gray-400 truncate">
-                          {getCurrentContractor()?.name || t('assign contractor to project')}
+                          {getCurrentContractor() ? (
+                            <>
+                              {getCurrentContractor().ico ? (
+                                <span className="font-bold">IČO: {getCurrentContractor().ico}</span>
+                              ) : (
+                                <span>{getCurrentContractor().email}</span>
+                              )}
+                            </>
+                          ) : t('assign contractor to project')}
                         </div>
                       </div>
                       {canEdit('client_supplier') && <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />}
@@ -1693,18 +1719,18 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Total price offer')}</h2>
               </div>
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 shadow-sm">
-                <div className="space-y-2">
+                <div className="flex flex-col gap-0">
                   <div className="flex justify-between items-baseline">
-                    <span className="font-semibold text-gray-900 dark:text-white text-base">{t('without VAT')}</span>
-                    <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project))}</span>
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">{t('without VAT')}</span>
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(projectId))}</span>
                   </div>
                   <div className="flex justify-between items-baseline">
-                    <span className="font-semibold text-gray-900 dark:text-white text-base">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
-                    <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project) * getVATRate())}</span>
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">{t('VAT')} ({Math.round(getVATRate() * 100)}%)</span>
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">{formatPrice(calculateProjectTotalPrice(projectId, project) * getVATRate())}</span>
                   </div>
-                  <div className="flex justify-between items-baseline">
-                    <span className="font-semibold text-gray-900 dark:text-white text-base">{t('Total price')}</span>
-                    <span className="font-semibold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(projectId, project) * (1 + getVATRate()))}</span>
+                  <div className="flex justify-between items-baseline mt-1">
+                    <span className="font-semibold text-gray-900 dark:text-white text-2xl">{t('Total price')}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white text-2xl">{formatPrice(calculateProjectTotalPrice(projectId, project) * (1 + getVATRate()))}</span>
                   </div>
                 </div>
 
@@ -1714,17 +1740,18 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <div className="flex gap-2 lg:gap-3">
                       <button
                         onClick={handlePreviewPriceOffer}
-                        className="flex-1 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white py-2.5 lg:py-3 px-4 rounded-xl lg:rounded-2xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                        className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-3 lg:py-3.5 px-4 rounded-[24px] font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                        style={{ border: '2px solid currentColor' }}
                       >
-                        <span className="text-sm lg:text-lg">{t('Preview')}</span>
-                        <Eye className="w-4 h-4" />
+                        <span className="text-base lg:text-lg">{t('Preview')}</span>
+                        <Eye className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={handleSendPriceOffer}
-                        className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-2.5 lg:py-3 px-4 rounded-xl lg:rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                        className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3 lg:py-3.5 px-4 rounded-[24px] font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                       >
-                        <span className="text-sm lg:text-lg">{t('Send')}</span>
-                        <Send className="w-4 h-4" />
+                        <span className="text-base lg:text-lg">{t('Send')}</span>
+                        <Send className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </>
@@ -1743,10 +1770,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     }
                   }}
                   disabled={!isProjectOwner && !canEdit('issue_document')}
-                  className={`w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-3 px-4 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2 shadow-sm ${(!isProjectOwner && !canEdit('issue_document')) ? 'opacity-50 cursor-not-allowed' : 'hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-[0.98]'}`}
+                  className={`w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-4 px-4 rounded-[24px] font-bold transition-all flex items-center justify-center gap-2 shadow-sm ${(!isProjectOwner && !canEdit('issue_document')) ? 'opacity-50 cursor-not-allowed' : 'hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-[0.98]'}`}
                 >
-                  <span className="text-sm sm:text-lg">{t('Issue Document')}</span>
-                  <Plus className="w-4 h-4 text-white" />
+                  <span className="text-base sm:text-lg">{t('Issue Document')}</span>
+                  <Plus className="w-5 h-5 text-white" />
                 </button>
               )}
             </div>
@@ -1833,9 +1860,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               </div>
               <div className="flex flex-row gap-2">
                 <button
-                  onClick={() => receiptInputRef.current?.click()}
+                  onClick={() => receiptInputRef.current.click()}
                   disabled={isAnalyzingReceipt || !canEdit('receipts')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 px-2 lg:px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm lg:text-base font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors whitespace-nowrap ${(!canEdit('receipts')) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-3 lg:py-4 px-2 lg:px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-[20px] text-base lg:text-lg font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors whitespace-nowrap ${(!canEdit('receipts')) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {isAnalyzingReceipt ? (
                     <>
@@ -1845,7 +1872,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   ) : (
                     <>
                       <span>{t('Add receipts')}</span>
-                      <Camera className="w-4 h-4" />
+                      <Camera className="w-5 h-5" />
                     </>
                   )}
                 </button>
@@ -1859,10 +1886,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 />
                 <button
                   onClick={() => setShowReceiptsModal(true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3 px-2 lg:px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl text-sm lg:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+                  className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-3 lg:py-4 px-2 lg:px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-[20px] text-base lg:text-lg font-bold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                 >
                   <span>{t('View receipts')}</span>
-                  <FileText className="w-4 h-4" />
+                  <FileText className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -2719,6 +2746,18 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           />
         )
       }
+
+      {/* Photo Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!photoToDelete}
+        onClose={() => setPhotoToDelete(null)}
+        onConfirm={confirmDeletePhoto}
+        title={t('Delete photo?')}
+        message={t('Are you sure you want to delete this photo? This action cannot be undone.')}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDestructive={true}
+      />
 
       {/* Room Delete Confirmation Modal */}
       <ConfirmationModal
