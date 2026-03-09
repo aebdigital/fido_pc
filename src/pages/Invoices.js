@@ -251,7 +251,7 @@ const Invoices = () => {
         <div className="flex items-center gap-3 absolute right-6 top-6">
           <button
             onClick={() => setShowStandaloneInvoice(true)}
-            className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
+            className="w-12 h-12 rounded-full btn-blue-gradient flex items-center justify-center transition-all active:scale-[0.98]"
           >
             <Plus className="w-6 h-6" />
           </button>
@@ -259,7 +259,7 @@ const Invoices = () => {
           <div className="relative" ref={moreMenuRef}>
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+              className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md active-white-bg"
             >
               <MoreVertical className="w-6 h-6" />
             </button>
@@ -293,7 +293,7 @@ const Invoices = () => {
             onClick={() => setShowContractorSelector(!showContractorSelector)}
           >
             {/* Mobile: truncated name */}
-            <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
+            <span className="text-4xl font-sf-heavy text-gray-900 dark:text-white lg:hidden">
               {(() => {
                 const name = getCurrentContractor()?.name || t('Select contractor');
                 return name.length > 12 ? name.substring(0, 12) + '...' : name;
@@ -319,8 +319,8 @@ const Invoices = () => {
                   <div>
                     <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
                   </div>
-                  <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
-                    <Plus className="w-5 h-5" />
+                  <button className="rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-sm hover:shadow-md active-white-bg">
+                    <Plus className="w-5 h-5 text-gray-900" />
                   </button>
                 </div>
 
@@ -333,9 +333,9 @@ const Invoices = () => {
                     {contractors.map(contractor => (
                       <div
                         key={contractor.id}
-                        className={`p-3 rounded-xl cursor-pointer transition-colors ${activeContractorId === contractor.id
-                          ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
-                          : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        className={`p-3 rounded-xl cursor-pointer transition-all border-2 ${activeContractorId === contractor.id
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md'
+                          : 'bg-gray-50 dark:bg-gray-700 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                           }`}
                         onClick={() => handleContractorSelect(contractor)}
                       >
@@ -360,14 +360,14 @@ const Invoices = () => {
         <div className="lg:hidden flex items-center gap-2">
           <button
             onClick={() => setShowStandaloneInvoice(true)}
-            className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
+            className="w-8 h-8 lg:w-10 lg:h-10 rounded-full btn-blue-gradient flex items-center justify-center transition-all active:scale-[0.98]"
           >
             <Plus className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
           </button>
           <div className="relative" ref={moreMenuRefMobile}>
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+              className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md active-white-bg"
             >
               <MoreVertical className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
             </button>
@@ -400,9 +400,9 @@ const Invoices = () => {
             <button
               key={type.id}
               onClick={() => setSelectedType(type.id)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedType === type.id
-                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all border-2 ${selectedType === type.id
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md active-white-bg'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
             >
               {type.label}
@@ -415,8 +415,7 @@ const Invoices = () => {
           <div className="relative flex-shrink-0" ref={yearDropdownRef}>
             <button
               onClick={() => setShowYearDropdown(!showYearDropdown)}
-              className="flex items-center gap-1 text-sm lg:text-base font-medium text-gray-900 dark:text-white whitespace-nowrap rounded-2xl px-3 py-1.5 no-gradient shadow-sm hover:opacity-70 transition-opacity"
-              style={{ border: '1.5px solid currentColor' }}
+              className="flex items-center gap-1 text-sm lg:text-base font-bold text-gray-900 dark:text-white whitespace-nowrap rounded-2xl px-3 py-1.5 no-gradient shadow-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-all border-2 border-gray-900 dark:border-white"
             >
               {selectedYear}
               <ChevronDown className={`w-4 h-4 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
@@ -450,8 +449,8 @@ const Invoices = () => {
             {statusFilters.map(filter => (
               <button
                 key={filter}
-                className={`text-sm lg:text-base font-medium transition-colors flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full border no-global-border ${selectedStatus === filter
-                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                className={`text-sm lg:text-base font-bold transition-all flex-shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full border-2 ${selectedStatus === filter
+                  ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md active-white-bg'
                   : 'bg-transparent border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 onClick={() => setSelectedStatus(filter)}
@@ -478,7 +477,7 @@ const Invoices = () => {
                 setSelectedInvoice(invoice);
                 setShowInvoiceDetail(true);
               }}
-              className="bg-white dark:bg-gray-800 rounded-[24px] px-[15px] py-[10px] lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
+              className="bg-white dark:bg-gray-800 rounded-[24px] px-[15px] py-[5px] lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
             >
               <div className="flex items-center justify-between min-w-0">
                 <div className="flex-1 min-w-0 min-h-[50px] flex flex-col justify-center">
@@ -492,7 +491,7 @@ const Invoices = () => {
                     </span>
                   </div>
                   {/* Project name */}
-                  <h3 className="text-[20px] lg:text-3xl font-semibold lg:font-bold text-gray-900 dark:text-white truncate leading-[1.1]">
+                  <h3 className="text-[22px] lg:text-3xl font-semibold text-gray-900 dark:text-white text-left leading-[1.1]">
                     {(() => {
                       const isDennik = invoice.invoiceItems?.some(item => item.unit === 'h' || item.unit === 'hour');
                       const projectName = invoice.projectName || '';
@@ -568,7 +567,7 @@ const Invoices = () => {
 
                       return (
                         <span
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 text-white shrink-0"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 text-white dark:text-gray-900 shrink-0 status-badge-dark"
                           style={{
                             backgroundColor: isPaid ? '#73D38A' // brandGreen
                               : isOverdue ? '#FF857C' // brandRed
@@ -626,12 +625,12 @@ const Invoices = () => {
 
       {/* Statistics Modal */}
       {showStatsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 animate-fade-in" onClick={() => setShowStatsModal(false)}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 animate-fade-in" onClick={() => setShowStatsModal(false)}>
           <div className="bg-white dark:bg-gray-900 rounded-t-3xl lg:rounded-2xl w-full lg:max-w-md max-h-[85vh] overflow-y-auto animate-slide-in-bottom lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="w-8"></div>
-              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Statistics')}</h2>
+              <h2 className="text-[20px] font-medium sm:text-xl lg:text-2xl sm:font-bold text-gray-900 dark:text-white">{t('Statistics')}</h2>
               <button
                 onClick={() => setShowStatsModal(false)}
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -643,19 +642,19 @@ const Invoices = () => {
             {/* Content */}
             <div className="p-4 lg:p-6 space-y-8">
               {stats.map(yearStats => (
-                <div key={yearStats.year}>
+                <div key={yearStats.year} className="bg-white dark:bg-gray-900 sm:bg-transparent rounded-[20px] sm:rounded-none p-[15px] sm:p-0 shadow-[0_0_10px_rgba(0,0,0,0.1)] sm:shadow-none mb-8 last:mb-0">
                   {/* Year Label */}
-                  <div className="text-2xl font-black text-gray-900 dark:text-white flex items-baseline gap-1">
+                  <div className="text-[16px] font-semibold sm:text-2xl sm:font-black text-gray-900 dark:text-white flex items-baseline gap-1 mb-2 sm:mb-0">
                     {yearStats.year}
                   </div>
 
                   {/* Total Card */}
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 lg:p-6 shadow-sm">
+                  <div className="bg-gray-100 dark:bg-gray-800 sm:bg-gray-100 sm:dark:bg-gray-800 rounded-2xl p-4 lg:p-6 sm:shadow-sm">
                     <div className="flex items-baseline gap-2 mb-1">
                       <span className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
                         {formatPrice(yearStats.total.amount)}
                       </span>
-                      <span className="text-sm lg:text-base text-gray-600 dark:text-gray-400">
+                      <span className="text-[14px] font-medium sm:text-sm lg:text-base text-gray-600 dark:text-gray-400">
                         {t('total, including VAT')}
                       </span>
                     </div>
@@ -663,24 +662,25 @@ const Invoices = () => {
                       <span className="text-lg lg:text-xl font-bold text-gray-600 dark:text-gray-400">
                         {formatPrice(yearStats.total.amountWithoutVAT)}
                       </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-500">
+                      <span className="text-[14px] font-medium sm:text-sm text-gray-500 dark:text-gray-500">
                         {t('total, without VAT')}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-gray-600 pb-3">
-                      {yearStats.total.count} {t('invoices')}
+                    <div className="hidden sm:block h-px bg-gray-900/30 dark:bg-white/30 my-[5px]"></div>
+                    <div className="text-[20px] font-semibold sm:text-sm text-gray-600 dark:text-gray-400 border-b sm:border-b-0 border-gray-300 dark:border-gray-600 pb-3 sm:pb-0">
+                      {yearStats.total.count} <span className="text-[14px] font-medium sm:text-sm">{t('invoices')}</span>
                     </div>
 
                     {/* Paid Section */}
                     {yearStats.paid.count > 0 && (
                       <div className="mt-4">
-                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Paid')}</div>
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                        <div className="text-[15px] font-medium sm:text-sm text-gray-700 dark:text-gray-300 mb-2">{t('Paid')}</div>
+                        <div className="bg-white sm:bg-gray-200 dark:bg-gray-800 sm:dark:bg-gray-700 rounded-[15px] sm:rounded-xl p-[10px] sm:p-3 border border-gray-200/50 sm:border-0 shadow-[0_2px_8px_rgba(0,0,0,0.05)] sm:shadow-none">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                            <span className="text-[24px] font-bold sm:text-xl lg:text-2xl text-gray-900 dark:text-white">
                               {formatPrice(yearStats.paid.amount)}
                             </span>
-                            <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-[11px] font-medium sm:text-xs lg:text-sm text-gray-600 dark:text-gray-400">
                               {t('total, including VAT')}
                             </span>
                           </div>
@@ -692,8 +692,8 @@ const Invoices = () => {
                               {t('total, without VAT')}
                             </span>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {yearStats.paid.count} {t('invoices total')}
+                          <div className="text-[16px] font-semibold sm:text-xs text-gray-500 dark:text-gray-400">
+                            {yearStats.paid.count} <span className="text-[11px] font-medium sm:text-xs">{t('invoices total')}</span>
                           </div>
                         </div>
                       </div>
@@ -702,13 +702,13 @@ const Invoices = () => {
                     {/* Unpaid Section */}
                     {yearStats.unpaid.count > 0 && (
                       <div className="mt-4">
-                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Unpaid')}</div>
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                        <div className="text-[15px] font-medium sm:text-sm text-gray-700 dark:text-gray-300 mb-2">{t('Unpaid')}</div>
+                        <div className="bg-white sm:bg-gray-200 dark:bg-gray-800 sm:dark:bg-gray-700 rounded-[15px] sm:rounded-xl p-[10px] sm:p-3 border border-gray-200/50 sm:border-0 shadow-[0_2px_8px_rgba(0,0,0,0.05)] sm:shadow-none">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                            <span className="text-[24px] font-bold sm:text-xl lg:text-2xl text-gray-900 dark:text-white">
                               {formatPrice(yearStats.unpaid.amount)}
                             </span>
-                            <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-[11px] font-medium sm:text-xs lg:text-sm text-gray-600 dark:text-gray-400">
                               {t('total, including VAT')}
                             </span>
                           </div>
@@ -720,8 +720,8 @@ const Invoices = () => {
                               {t('total, without VAT')}
                             </span>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {yearStats.unpaid.count} {t('invoices total')}
+                          <div className="text-[16px] font-semibold sm:text-xs text-gray-500 dark:text-gray-400">
+                            {yearStats.unpaid.count} <span className="text-[11px] font-medium sm:text-xs">{t('invoices total')}</span>
                           </div>
                         </div>
                       </div>
@@ -730,13 +730,13 @@ const Invoices = () => {
                     {/* Overdue Section */}
                     {yearStats.overdue.count > 0 && (
                       <div className="mt-4">
-                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Overdue')}</div>
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded-xl p-3">
+                        <div className="text-[15px] font-medium sm:text-sm text-gray-700 dark:text-gray-300 mb-2">{t('Overdue')}</div>
+                        <div className="bg-white sm:bg-gray-200 dark:bg-gray-800 sm:dark:bg-gray-700 rounded-[15px] sm:rounded-xl p-[10px] sm:p-3 border border-gray-200/50 sm:border-0 shadow-[0_2px_8px_rgba(0,0,0,0.05)] sm:shadow-none">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                            <span className="text-[24px] font-bold sm:text-xl lg:text-2xl text-gray-900 dark:text-white">
                               {formatPrice(yearStats.overdue.amount)}
                             </span>
-                            <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-[11px] font-medium sm:text-xs lg:text-sm text-gray-600 dark:text-gray-400">
                               {t('total, including VAT')}
                             </span>
                           </div>
@@ -748,8 +748,8 @@ const Invoices = () => {
                               {t('total, without VAT')}
                             </span>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {yearStats.overdue.count} {t('invoices total')}
+                          <div className="text-[16px] font-semibold sm:text-xs text-gray-500 dark:text-gray-400">
+                            {yearStats.overdue.count} <span className="text-[11px] font-medium sm:text-xs">{t('invoices total')}</span>
                           </div>
                         </div>
                       </div>

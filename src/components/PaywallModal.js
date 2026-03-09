@@ -67,14 +67,14 @@ const PaywallModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={onClose}>
       <div className="bg-gray-100 dark:bg-gray-900 rounded-[35px] w-full max-w-lg overflow-hidden shadow-2xl relative animate-in fade-in zoom-in duration-200 border-8 border-gray-100 dark:border-gray-900 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex justify-between items-center px-6 pt-6 pb-2 shrink-0">
           <h2 className="text-[33px] font-semibold text-gray-900 dark:text-white leading-tight">{t('Become Pro!')}</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
-            <X className="w-6 h-6 text-gray-900 dark:text-white" />
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+            <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
 

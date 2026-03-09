@@ -94,7 +94,8 @@ const Projects = () => {
     quickTravelToDennik,
     findProjectById,
     invoices,
-    calculateProjectTotalPriceWithBreakdown
+    calculateProjectTotalPriceWithBreakdown,
+    allProjects
   } = useAppData();
 
   // Unpaid invoices - latest first
@@ -210,6 +211,26 @@ const Projects = () => {
     }
     return projectCategories.find(cat => cat.id === activeCategory)?.projects || [];
   }, [projectCategories, activeCategory, viewingOrphanProjects, getOrphanProjectCategories]);
+
+  const memberAssignedProjects = useMemo(() => {
+    if (viewingOrphanProjects) return [];
+    if (!allProjects || allProjects.length === 0) return [];
+
+    const constructionCategories = new Set(['flats', 'houses', 'firms', 'companies', 'cottages', 'construction']);
+    const activeIds = new Set((activeProjects || []).map(p => p.id || p.c_id));
+
+    return allProjects.filter((project) => {
+      const projectId = project.id || project.c_id;
+      if (!projectId) return false;
+      if (project.is_archived || project.isArchived) return false;
+      if ((project.userRole || 'owner') === 'owner') return false;
+      if (activeIds.has(projectId)) return false;
+
+      if (activeCategory === 'construction') return constructionCategories.has(project.category);
+      if (activeCategory === 'services') return project.category === 'services';
+      return project.category === activeCategory;
+    });
+  }, [allProjects, activeProjects, activeCategory, viewingOrphanProjects]);
 
   // Get actual categories to display (normal or orphan)
   const displayCategories = useMemo(() => {
@@ -568,7 +589,7 @@ const Projects = () => {
                 onClick={() => setShowContractorSelector(!showContractorSelector)}
               >
                 {/* Mobile: truncated name */}
-                <span className="text-4xl font-bold text-gray-900 dark:text-white lg:hidden">
+                <span className="text-4xl font-sf-heavy text-gray-900 dark:text-white lg:hidden">
                   {(() => {
                     const name = viewingOrphanProjects ? t('Projects without contractor') : (getCurrentContractor()?.name || t('Select contractor'));
                     return name.length > 12 ? name.substring(0, 12) + '...' : name;
@@ -603,8 +624,8 @@ const Projects = () => {
                       <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-1">{t('New profile')}</h3>
 
                     </div>
-                    <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md">
-                      <Plus className="w-5 h-5" />
+                    <button className="rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-sm hover:shadow-md active-white-bg">
+                      <Plus className="w-5 h-5 text-gray-900" />
                     </button>
                   </div>
 
@@ -744,7 +765,7 @@ const Projects = () => {
 
                       <span className="absolute top-[15px] right-[20px] text-[16px] font-semibold text-gray-900 z-10">{category.count} {tPlural(category.count, 'project_singular', 'projects_few', 'projects')}</span>
                       <div className="absolute bottom-0 left-0 p-5 pb-[15px]">
-                        <h3 className="text-[35px] font-bold text-gray-900">{t(category.name)}</h3>
+                        <h3 className="text-[35px] font-semibold text-gray-900">{t(category.name)}</h3>
                       </div>
                     </button>
                   ))}
@@ -784,7 +805,7 @@ const Projects = () => {
                         return (
                           <div
                             key={invoice.id}
-                            className="bg-white dark:bg-gray-800 rounded-[24px] px-[15px] py-[10px] lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
+                            className="bg-white dark:bg-gray-800 rounded-[24px] px-[15px] py-[5px] lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer transition-all duration-300 shadow-sm min-w-0 w-full"
                             onClick={() => {
                               setSelectedInvoice(invoice);
                               setShowInvoiceDetail(true);
@@ -797,7 +818,7 @@ const Projects = () => {
                                     {invoice.invoiceNumber}
                                   </span>
                                 </div>
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white truncate leading-[1.1]">
+                                <h3 className="text-[22px] font-semibold text-gray-900 dark:text-white truncate leading-[1.1]">
                                   {invoice.projectName || project?.project?.name || t('Unknown project')}
                                 </h3>
                                 <div className="text-[13px] lg:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
@@ -807,7 +828,7 @@ const Projects = () => {
                               <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
                                 <div className="text-right">
                                   <span
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full mb-1 text-white shrink-0"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full mb-1 text-white dark:text-gray-900 shrink-0 status-badge-dark"
                                     style={{
                                       backgroundColor: isOverdue ? '#FF857C' : '#51A2F7'
                                     }}
@@ -847,10 +868,10 @@ const Projects = () => {
                 </div>
 
                 {/* Project List Header - No longer sticky */}
-                <div className="pt-2 pb-4 min-w-0 w-full lg:relative lg:p-0">
+                <div className="pt-2 pb-0 lg:pb-4 min-w-0 w-full lg:relative lg:p-0">
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-4">
-                      <h2 className="text-4xl lg:text-5xl font-[900] text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
+                      <h2 className="text-4xl lg:text-5xl font-sf-heavy lg:font-sf-reset lg:font-semibold text-gray-900 dark:text-white flex-1 min-w-0 truncate pr-2">
                         {t(displayCategories.find(cat => cat.id === activeCategory)?.name)}
                       </h2>
                       <div className="flex gap-2 flex-shrink-0 items-center">
@@ -860,14 +881,14 @@ const Projects = () => {
                               onClick={toggleProjectDeleteMode}
                               className={`w-8 h-8 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors ${projectDeleteMode
                                 ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                                : 'bg-gray-900 text-white hover:bg-gray-800'
+                                : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm hover:shadow-md active-white-bg'
                                 }`}
                             >
                               <Archive className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
                             </button>
                             <button
                               onClick={() => setShowNewProjectModal(true)}
-                              className="w-8 h-8 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+                              className="w-8 h-8 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md active-white-bg"
                             >
                               <Plus className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
                             </button>
@@ -879,9 +900,9 @@ const Projects = () => {
                 </div>
 
                 {/* Projects List */}
-                <div className="space-y-3 min-w-0 w-full relative">
+                <div className="mt-0 lg:mt-4 space-y-3 min-w-0 w-full relative">
                   {/* Year Filter Dropdown acting as Section Header */}
-                  <div className="flex items-center gap-4 mb-4 relative z-20">
+                  <div className="flex items-center gap-4 mb-4 mt-0 relative z-20">
                     <div className="relative">
                       <button
                         onClick={() => setShowYearSelector(!showYearSelector)}
@@ -904,7 +925,16 @@ const Projects = () => {
                                 {t('Whenever')}
                               </button>
                               {(() => {
-                                const years = [...new Set(activeProjects.map(p => {
+                                const yearProjects = [...activeProjects];
+                                memberAssignedProjects.forEach((project) => {
+                                  const projectId = project.id || project.c_id;
+                                  if (!projectId) return;
+                                  if (!yearProjects.some(p => (p.id || p.c_id) === projectId)) {
+                                    yearProjects.push(project);
+                                  }
+                                });
+
+                                const years = [...new Set(yearProjects.map(p => {
                                   const date = new Date(p.created_at || p.createdAt || Date.now());
                                   return date.getFullYear();
                                 }))].sort((a, b) => b - a);
@@ -926,7 +956,16 @@ const Projects = () => {
                     </div>
                   </div>
                   {(() => {
-                    const sortedProjects = [...activeProjects].sort((a, b) => {
+                    const mergedProjects = [...activeProjects];
+                    memberAssignedProjects.forEach((project) => {
+                      const projectId = project.id || project.c_id;
+                      if (!projectId) return;
+                      if (!mergedProjects.some(p => (p.id || p.c_id) === projectId)) {
+                        mergedProjects.push(project);
+                      }
+                    });
+
+                    const sortedProjects = [...mergedProjects].sort((a, b) => {
                       const numA = formatProjectNumber(a);
                       const numB = formatProjectNumber(b);
 
@@ -954,18 +993,25 @@ const Projects = () => {
 
                     return (
                       <div className="space-y-3">
-                        {filteredProjects.map(project => (
+                        {filteredProjects.map(project => {
+                          const isAssignedProject = (project.userRole || 'owner') !== 'owner';
+                          return (
                           <div
                             key={project.id}
-                            className={`bg-white dark:bg-gray-800 rounded-[24px] px-[15px] py-[10px] lg:px-8 lg:py-5 border border-gray-200 dark:border-gray-700 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects
+                            className={`${isAssignedProject ? 'bg-green-50/80 dark:bg-green-900/20 border-2 border-green-500 dark:border-green-400' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'} rounded-[24px] px-[15px] py-[5px] lg:px-8 lg:py-5 flex items-center transition-all duration-300 shadow-sm min-w-0 w-full ${projectDeleteMode && !viewingOrphanProjects && !isAssignedProject
                               ? 'justify-between'
-                              : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md cursor-pointer'
+                              : `${isAssignedProject ? 'hover:bg-green-100/80 dark:hover:bg-green-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'} hover:shadow-md cursor-pointer`
                               }`}
-                            onClick={(projectDeleteMode && !viewingOrphanProjects) ? undefined : () => handleProjectSelect(project)}
+                            onClick={(projectDeleteMode && !viewingOrphanProjects && !isAssignedProject) ? undefined : () => handleProjectSelect(project)}
                           >
                             <div className={`flex-1 transition-all duration-300 min-w-0 ${projectDeleteMode ? 'mr-4' : ''}`}>
                               <div className="flex items-center gap-2 flex-wrap whitespace-nowrap overflow-hidden">
                                 <span className="text-[13px] lg:text-base text-gray-500 dark:text-gray-400 shrink-0">{formatProjectNumber(project) || project.id}</span>
+                                {isAssignedProject && (
+                                  <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg border-2 border-green-500 dark:border-green-400">
+                                    {t('Assigned projects')}
+                                  </span>
+                                )}
                                 {project.is_dennik_enabled && (
                                   <div className="flex items-center gap-2 shrink-0">
                                     <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
@@ -986,7 +1032,7 @@ const Projects = () => {
                                   </div>
                                 )}
                               </div>
-                              <h3 className="text-[20px] lg:text-3xl font-semibold lg:font-bold text-gray-900 dark:text-white truncate leading-tight">
+                              <h3 className="text-[22px] lg:text-3xl font-semibold text-gray-900 dark:text-white text-left leading-tight">
                                 {project.name}
                               </h3>
                               {/* Client name - visible on all screen sizes */}
@@ -995,12 +1041,12 @@ const Projects = () => {
                               </p>
                             </div>
 
-                            {projectDeleteMode && !viewingOrphanProjects ? (
+                            {projectDeleteMode && !viewingOrphanProjects && !isAssignedProject ? (
                               <button
                                 onClick={() => handleArchiveProject(project.id)}
-                                className="bg-amber-100 hover:bg-amber-200 rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
+                                className="btn-red rounded-2xl p-3 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0 ml-3"
                               >
-                                <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
+                                <Archive className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                               </button>
                             ) : (
                               <div className="flex-shrink-0 ml-3">
@@ -1016,9 +1062,14 @@ const Projects = () => {
                                 <div className="text-right">
                                   {/* Status Badge */}
                                   <span
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 text-white shrink-0"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 text-white dark:text-gray-900 shrink-0 status-badge-dark"
                                     style={{
                                       backgroundColor:
+                                        project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
+                                          project.status === PROJECT_STATUS.APPROVED ? '#73D38A' :
+                                            project.status === PROJECT_STATUS.SENT ? '#51A2F7' :
+                                              '#FF857C',
+                                      '--status-color':
                                         project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
                                           project.status === PROJECT_STATUS.APPROVED ? '#73D38A' :
                                             project.status === PROJECT_STATUS.SENT ? '#51A2F7' :
@@ -1028,28 +1079,28 @@ const Projects = () => {
                                     {project.status === PROJECT_STATUS.FINISHED ? (
                                       <>
                                         <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
-                                          <Flag size={9} style={{ color: '#C4C4C4' }} />
+                                          <Flag size={9} className="cutout-icon" />
                                         </span>
                                         <span className="whitespace-nowrap">{t('finished')}</span>
                                       </>
                                     ) : project.status === PROJECT_STATUS.APPROVED ? (
                                       <>
                                         <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
-                                          <CheckCircle size={9} style={{ color: '#73D38A' }} />
+                                          <CheckCircle size={9} className="cutout-icon" />
                                         </span>
                                         <span className="whitespace-nowrap">{t('approved')}</span>
                                       </>
                                     ) : project.status === PROJECT_STATUS.SENT ? (
                                       <>
                                         <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
-                                          <span className="text-[9px] lg:text-[10px] font-bold" style={{ color: '#51A2F7' }}>?</span>
+                                          <span className="text-[9px] lg:text-[10px] font-bold cutout-text">?</span>
                                         </span>
                                         <span className="whitespace-nowrap">{t('sent')}</span>
                                       </>
                                     ) : (
                                       <>
                                         <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
-                                          <X size={9} style={{ color: '#FF857C' }} />
+                                          <X size={9} className="cutout-icon" />
                                         </span>
                                         <span className="whitespace-nowrap">{t('not sent')}</span>
                                       </>
@@ -1063,13 +1114,13 @@ const Projects = () => {
                               </div>
                             )}
                           </div>
-                        ))}
+                        )})}
                       </div>
                     );
                   })()}
                 </div>
 
-                {activeProjects.length === 0 && (
+                {activeProjects.length === 0 && memberAssignedProjects.length === 0 && (
                   <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                     <p>{t('No projects in this category yet.')}</p>
                   </div>
@@ -1093,7 +1144,7 @@ const Projects = () => {
         {/* New Project Modal */}
         {
           showNewProjectModal && (
-            <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
+            <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}>
               <div className={`bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md my-auto md:my-0 ${isClosingModal ? 'animate-slide-out' : 'animate-slide-in'}`}>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t('New Project')}</h3>
                 <div className="space-y-4">

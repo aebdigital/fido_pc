@@ -58,7 +58,7 @@ const ConfirmationModal = ({
                                 onClose();
                             }}
                             className={`py-3 px-4 rounded-xl font-semibold text-white transition-colors ${isDestructive
-                                ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30'
+                                ? 'btn-red hover:bg-red-600'
                                 : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
                                 }`}
                         >

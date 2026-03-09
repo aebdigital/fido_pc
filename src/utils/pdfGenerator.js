@@ -302,12 +302,14 @@ export const generateInvoicePDF = async ({
     if (type === 'percentage') {
       // Calculate percentage of the base amount
       finalTotalWithoutVAT = totalWithoutVAT * (value / 100);
-      finalVat = finalTotalWithoutVAT * (vatRate || 0.23);
+      const currentVatRate = (vatRate !== undefined && vatRate !== null) ? vatRate : 0.23;
+      finalVat = finalTotalWithoutVAT * currentVatRate;
       finalTotalWithVAT = finalTotalWithoutVAT + finalVat;
     } else if (type === 'fixed') {
       // Use fixed value directly (assuming it's base amount)
       finalTotalWithoutVAT = value;
-      finalVat = finalTotalWithoutVAT * (vatRate || 0.23);
+      const currentVatRate = (vatRate !== undefined && vatRate !== null) ? vatRate : 0.23;
+      finalVat = finalTotalWithoutVAT * currentVatRate;
       finalTotalWithVAT = finalTotalWithoutVAT + finalVat;
     }
   }
@@ -1694,7 +1696,7 @@ export const generateCashReceiptPDF = async ({
   contractor,
   client,
   totalWithVAT,
-  vatRate = 0.23,
+  vatRate,
   formatDate,
   formatPrice,
   t

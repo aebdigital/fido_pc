@@ -802,7 +802,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
   return (
     <>
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in"
         onClick={handleClose}
       >
         <div
@@ -836,9 +836,9 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
               </div>
               <button
                 onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
               >
-                <X className="w-5 h-5 lg:w-6 lg:h-6" />
+                <X className="w-6 h-6 text-gray-500" />
               </button>
             </div>
           </div>
@@ -851,7 +851,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
               className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 space-y-6 lg:space-y-8 overscroll-y-contain"
             >
               {/* Work Section */}
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 lg:p-6 pb-20 sm:pb-6">
+              <div className="pb-20 sm:pb-6">
                 {!isServicesProject && (
                   <div className="flex items-center gap-3 pb-2">
                     <Hammer className="w-5 h-5 text-gray-700 dark:text-gray-300" />

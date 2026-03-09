@@ -445,7 +445,7 @@ const PriceList = ({ onBack, onHasChangesChange, onSaveRef }) => {
 
       {/* Percentage Increase Modal */}
       {showPercentageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={handleCancelPercentageIncrease}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={handleCancelPercentageIncrease}>
           <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-md animate-slide-in" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t('Increase All Prices')}</h3>
             <div className="mb-6">

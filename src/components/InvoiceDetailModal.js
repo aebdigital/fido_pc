@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Eye, Send, User, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, RotateCcw } from 'lucide-react';
+import { X, Eye, Send, User, Trash2, ChevronRight, Building2, Check, PencilRuler, FileText as DocIcon, RotateCcw, Flag, CheckCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { useNavigate } from 'react-router-dom';
@@ -61,6 +61,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
 
   // Use live invoice data from global state
   const invoice = invoices?.find(inv => inv.id === invoiceProp?.id) || invoiceProp;
+  const invoiceNumber = invoice?.invoiceNumber || invoice?.number || '';
+  const invoiceForPdf = { ...invoice, invoiceNumber };
 
   // Detect Denník invoice: all items are hour-based work entries
   const isDennikInvoice = invoice?.invoiceItems?.length > 0
@@ -170,7 +172,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
           },
 
           unit: item.unit,
-          vatRate: (item.vat !== undefined) ? item.vat / 100 : (original.vatRate || 0.23),
+          vatRate: (item.vat !== undefined) ? item.vat / 100 : ((original.vatRate !== undefined && original.vatRate !== null) ? original.vatRate : 0.23),
 
 
           // Ensure propertyId is preserved for grouping logic in PDF generator
@@ -210,7 +212,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
 
   // Get VAT rate
   const getVATRate = () => {
-    const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
+    const source = project?.priceListSnapshot || generalPriceList || {};
+    const vatItem = source.others?.find(item => item.name === 'VAT' || item.name === 'DPH');
     return vatItem ? vatItem.price / 100 : 0.23;
   };
 
@@ -295,13 +298,29 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     }
   };
 
-  // Check if mobile device
+  // Mobile/PWA detection for PDF handling
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(window.navigator.userAgent);
+  const isStandalone = typeof window !== 'undefined' && (
+    window.matchMedia?.('(display-mode: standalone)')?.matches ||
+    window.navigator.standalone === true
+  );
+  const shouldUseNativePdfViewer = isMobile && !(isIOS && isStandalone);
+
+  const openPdfInNewTab = (blobUrl, filename) => {
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.target = '_blank';
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handlePreview = async () => {
     try {
       const result = await generateInvoicePDF({
-        invoice: invoice,
+        invoice: invoiceForPdf,
         contractor,
         client,
         projectBreakdown: isDennikInvoice ? null : projectBreakdown,
@@ -321,20 +340,13 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         }
       });
 
-      // On mobile, open directly in browser's native PDF viewer
-      if (isMobile) {
-        // Create a link with download attribute for proper filename
-        const filename = `${t('Invoice')} ${invoice.invoiceNumber}.pdf`;
-        const link = document.createElement('a');
-        link.href = result.blobUrl;
-        link.target = '_blank';
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      setPdfUrl(result.blobUrl);
+      setPdfBlob(result.pdfBlob);
+
+      if (shouldUseNativePdfViewer) {
+        const filename = `${t('Invoice')} ${invoiceNumber}.pdf`;
+        openPdfInNewTab(result.blobUrl, filename);
       } else {
-        setPdfUrl(result.blobUrl);
-        setPdfBlob(result.pdfBlob);
         setShowPDFPreview(true);
       }
     } catch (error) {
@@ -356,7 +368,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const handleCashReceiptPreview = async () => {
     try {
       const result = await generateCashReceiptPDF({
-        invoice,
+        invoice: invoiceForPdf,
         contractor,
         client,
         totalWithVAT,
@@ -366,20 +378,13 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
         t
       });
 
-      // On mobile, open directly in browser's native PDF viewer
-      if (isMobile) {
-        // Create a link with download attribute for proper filename
-        const filename = `${t('Cash Receipt')} ${invoice.invoiceNumber}.pdf`;
-        const link = document.createElement('a');
-        link.href = result.blobUrl;
-        link.target = '_blank';
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      setCashReceiptUrl(result.blobUrl);
+      setCashReceiptBlob(result.pdfBlob);
+
+      if (shouldUseNativePdfViewer) {
+        const filename = `${t('Cash Receipt')} ${invoiceNumber}.pdf`;
+        openPdfInNewTab(result.blobUrl, filename);
       } else {
-        setCashReceiptUrl(result.blobUrl);
-        setCashReceiptBlob(result.pdfBlob);
         setShowCashReceiptPreview(true);
       }
     } catch (error) {
@@ -400,8 +405,8 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const handleCashReceiptSend = async () => {
     // Generate cash receipt text to share
     const receiptText = `
-${t('Cash Receipt')} ${invoice.invoiceNumber}
-${t('Payment for Invoice')} ${invoice.invoiceNumber}
+${t('Cash Receipt')} ${invoiceNumber}
+${t('Payment for Invoice')} ${invoiceNumber}
 
 ${t('Customer')}: ${client?.name || '-'}
 ${t('Made by')}: ${contractor?.name || '-'}
@@ -416,7 +421,7 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
 
         if (!currentBlob) {
           const result = await generateCashReceiptPDF({
-            invoice,
+            invoice: invoiceForPdf,
             contractor,
             client,
             totalWithVAT,
@@ -428,10 +433,10 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
           currentBlob = result.pdfBlob;
         }
 
-        const pdfFile = new File([currentBlob], `${t('Cash Receipt')}_${invoice.invoiceNumber}.pdf`, { type: 'application/pdf' });
+        const pdfFile = new File([currentBlob], `${t('Cash Receipt')}_${invoiceNumber}.pdf`, { type: 'application/pdf' });
 
         await navigator.share({
-          title: `${t('Cash Receipt')} ${invoice.invoiceNumber}`,
+          title: `${t('Cash Receipt')} ${invoiceNumber}`,
           text: receiptText,
           files: [pdfFile]
         });
@@ -441,7 +446,7 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
           // Fallback to text share
           try {
             await navigator.share({
-              title: `${t('Cash Receipt')} ${invoice.invoiceNumber}`,
+              title: `${t('Cash Receipt')} ${invoiceNumber}`,
               text: receiptText
             });
           } catch (textError) {
@@ -536,7 +541,7 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
 
     addProjectHistoryEntry(invoice.projectId, {
       type: eventType,
-      invoiceNumber: invoice.invoiceNumber,
+      invoiceNumber,
       date: new Date().toISOString()
     });
 
@@ -545,7 +550,7 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
     if (!iType || iType === 'regular') {
       addProjectHistoryEntry(invoice.projectId, {
         type: PROJECT_EVENTS.FINISHED,
-        invoiceNumber: invoice.invoiceNumber,
+        invoiceNumber,
         date: new Date().toISOString()
       });
 
@@ -559,7 +564,7 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
 
     // Generate invoice data to share
     const invoiceText = `
-${t('Invoice')} ${invoice.invoiceNumber}
+${t('Invoice')} ${invoiceNumber}
 ${invoice.projectName}
 
 ${t('Contractor')}: ${contractor?.name || '-'}
@@ -581,7 +586,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
         if (!currentBlob) {
           const result = await generateInvoicePDF({
-            invoice: invoice,
+            invoice: invoiceForPdf,
             contractor,
             client,
             projectBreakdown: isDennikInvoice ? null : projectBreakdown,
@@ -604,10 +609,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         }
 
         const shareData = {
-          title: `${t('Invoice')} ${invoice.invoiceNumber}`,
+          title: `${t('Invoice')} ${invoiceNumber}`,
         };
 
-        const invoiceFile = new File([currentBlob], `${t('Invoice')} ${invoice.invoiceNumber}.pdf`, { type: 'application/pdf' });
+        const invoiceFile = new File([currentBlob], `${t('Invoice')} ${invoiceNumber}.pdf`, { type: 'application/pdf' });
         const allFiles = [invoiceFile, ...additionalFiles];
 
         if (navigator.canShare && navigator.canShare({ files: allFiles })) {
@@ -649,7 +654,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
   // File Selection Modal
   if (showFileSelectionModal) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => setShowFileSelectionModal(false)}>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-fade-in" onClick={() => setShowFileSelectionModal(false)}>
         <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{t('Attach Files')}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('Select files to send with the invoice:')}</p>
@@ -709,7 +714,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={() => onClose()}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={() => onClose()}>
       <div className="bg-white dark:bg-gray-900 rounded-t-3xl lg:rounded-2xl w-full max-w-3xl h-[100dvh] lg:h-auto lg:max-h-[90dvh] flex flex-col animate-slide-in-bottom lg:animate-slide-in my-0 lg:my-auto" onClick={(e) => e.stopPropagation()}>
         {/* Header - iOS style with large invoice number */}
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0 rounded-t-2xl">
@@ -720,7 +725,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 {invoice.invoiceType === 'proforma' ? 'Cenová ponuka' :
                   invoice.invoiceType === 'delivery' ? t('Delivery Note') :
                     invoice.invoiceType === 'credit_note' ? t('Credit Note') :
-                      t('Invoice')} {invoice.invoiceNumber}
+                      t('Invoice')} {invoiceNumber}
               </h1>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:text-base font-semibold text-gray-900 dark:text-gray-200">
                 {/* Dates removed as per request */}
@@ -765,9 +770,9 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
               <button
                 onClick={() => onClose()}
-                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ml-2"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors ml-2"
               >
-                <X className="w-7 h-7" />
+                <X className="w-6 h-6 text-gray-500" />
               </button>
             </div>
           </div>
@@ -826,18 +831,50 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                   <div className="text-right">
                     {/* Status Badge */}
-                    <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full mb-0.5 text-white ${project.status === PROJECT_STATUS.FINISHED
-                      ? 'bg-gray-400 dark:bg-gray-600'
-                      : project.status === PROJECT_STATUS.APPROVED
-                        ? 'bg-[#73D38A]'
-                        : project.status === PROJECT_STATUS.SENT
-                          ? 'bg-[#51A2F7]'
-                          : 'bg-[#FF857C]'
-                      }`}>
-                      {t(project.status === PROJECT_STATUS.FINISHED ? 'finished'
-                        : project.status === PROJECT_STATUS.APPROVED ? 'approved'
-                          : project.status === PROJECT_STATUS.SENT ? 'sent'
-                            : 'not sent')}
+                    <span
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 shrink-0 status-badge-dark`}
+                      style={{
+                        backgroundColor:
+                          project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
+                            project.status === PROJECT_STATUS.APPROVED ? '#73D38A' :
+                              project.status === PROJECT_STATUS.SENT ? '#51A2F7' :
+                                '#FF857C',
+                        '--status-color':
+                          project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
+                            project.status === PROJECT_STATUS.APPROVED ? '#73D38A' :
+                              project.status === PROJECT_STATUS.SENT ? '#51A2F7' :
+                                '#FF857C'
+                      }}
+                    >
+                      {project.status === PROJECT_STATUS.FINISHED ? (
+                        <>
+                          <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
+                            <Flag size={9} className="cutout-icon" />
+                          </span>
+                          <span className="whitespace-nowrap status-badge-dark-text">{t('finished')}</span>
+                        </>
+                      ) : project.status === PROJECT_STATUS.APPROVED ? (
+                        <>
+                          <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
+                            <CheckCircle size={9} className="cutout-icon" />
+                          </span>
+                          <span className="whitespace-nowrap status-badge-dark-text">{t('approved')}</span>
+                        </>
+                      ) : project.status === PROJECT_STATUS.SENT ? (
+                        <>
+                          <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
+                            <span className="text-[9px] lg:text-[10px] font-bold cutout-text">?</span>
+                          </span>
+                          <span className="whitespace-nowrap status-badge-dark-text">{t('sent')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center justify-center w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full bg-white">
+                            <X size={9} className="cutout-icon" />
+                          </span>
+                          <span className="whitespace-nowrap status-badge-dark-text">{t('not sent')}</span>
+                        </>
+                      )}
                     </span>
                     {/* Price */}
                     <div className="font-bold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
@@ -875,14 +912,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
 
 
-          {invoice.notes && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4">
-              <p className="text-sm font-bold text-gray-900 dark:text-white mb-2">{t('Poznámka na záver')}</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                <Linkify>{invoice.notes}</Linkify>
-              </p>
-            </div>
-          )}
+
 
           {/* PDF Section - iOS style with 3 buttons */}
           <div className="space-y-2">
@@ -924,7 +954,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
               ) : (
                 <button
                   onClick={() => setShowCreditNoteCreationModal(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full hover:from-blue-600 hover:to-blue-700 transition-all shadow-md shadow-blue-500/30 !mt-[20px] lg:!mt-[30px]"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full transition-all btn-blue-gradient bg-blue-600 text-white !mt-[20px] lg:!mt-[30px]"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span className="text-lg font-bold">{t('Issue Credit Note')}</span>
@@ -964,7 +994,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="flex justify-center pb-12 px-4 !mt-[20px] lg:!mt-[30px]">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full max-w-sm bg-red-500 text-white py-2.5 rounded-full font-bold hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
+                className="w-full max-w-sm py-2.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 btn-red active:scale-95"
               >
                 <Trash2 className="w-5 h-5" />
                 <span className="text-xl">{t('Delete')}</span>
@@ -1012,7 +1042,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           handleClosePDFPreview();
           handleSend();
         }}
-        title={`${t('Invoice')} ${invoice.invoiceNumber}`}
+        title={`${t('Invoice')} ${invoiceNumber}`}
       />
 
       <PDFPreviewModal
@@ -1023,7 +1053,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           handleCloseCashReceiptPreview();
           handleCashReceiptSend();
         }}
-        title={`${t('Cash Receipt')} ${invoice.invoiceNumber}`}
+        title={`${t('Cash Receipt')} ${invoiceNumber}`}
       />
 
       <InvoiceCreationModal
@@ -1039,7 +1069,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
       {/* Client Modal - Matching ProjectDetailView style/size */}
       {
         showClientModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-[70] p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
             <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
                 <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>

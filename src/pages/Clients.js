@@ -110,13 +110,13 @@ const Clients = () => {
             <div className="flex gap-2 flex-shrink-0">
               <button
                 onClick={() => setDeleteMode(!deleteMode)}
-                className={`w-8 h-8 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-gray-600 text-white' : 'bg-red-500 text-white hover:bg-red-600'}`}
+                className={`w-8 h-8 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-colors shadow-sm hover:shadow-md ${deleteMode ? 'bg-gray-600 dark:bg-gray-700 text-white' : 'btn-red'}`}
               >
-                <Trash2 className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
+                <Trash2 className="w-3.5 h-3.5 lg:w-5 lg:h-5 text-white" />
               </button>
               <button
                 onClick={handleCreateClient}
-                className="w-8 h-8 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+                className="w-8 h-8 lg:w-12 lg:h-12 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-md hover:shadow-lg border-2 border-gray-900 dark:border-white active-white-bg active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5 lg:w-5 lg:h-5" />
               </button>
@@ -129,7 +129,7 @@ const Clients = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('Search')}
-              className="w-full pr-4 py-[8px] lg:py-2 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-[15px] lg:rounded-2xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[20px] lg:text-lg px-[12px] lg:px-4"
+              className="w-full pr-4 py-[8px] lg:py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-[15px] lg:rounded-2xl border-2 border-gray-900 dark:border-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white placeholder-gray-400 dark:placeholder-gray-500 text-[20px] lg:text-lg px-[12px] lg:px-4"
             />
           </div>
         </div>
@@ -145,7 +145,7 @@ const Clients = () => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-[20px] lg:text-lg font-semibold text-gray-900 dark:text-white truncate">{client.name}</h3>
+                    <h3 className="text-[20px] lg:text-lg font-semibold text-gray-900 dark:text-white text-left">{client.name}</h3>
                     {getClientAddress(client) && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{getClientAddress(client)}</p>
                     )}
@@ -154,10 +154,10 @@ const Clients = () => {
                     {deleteMode ? (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteClient(client); }}
-                        className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors shadow-sm"
-                        title={t('Delete client')}
+                        className="p-2 rounded-xl transition-colors btn-red"
+                        title={t('Delete')}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5 text-white" />
                       </button>
                     ) : (
                       <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -176,7 +176,7 @@ const Clients = () => {
               <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-3 lg:mb-4">{t('Add Client')}</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4 lg:mb-6 text-lg leading-relaxed">{t('Fill in your client and then assign a project to them')}</p>
               <button
-                className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-lg w-full sm:w-auto"
+                className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-3 rounded-2xl font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-md hover:shadow-lg border-2 border-transparent active-white-bg text-lg w-full sm:w-auto active:scale-[0.98]"
                 onClick={handleCreateClient}
               >
                 {t('Create')}
@@ -189,7 +189,7 @@ const Clients = () => {
       {/* Client Modal - Used for both Create and Edit */}
       {showClientModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in"
           onClick={handleOverlayClick}
         >
           <div

@@ -448,6 +448,11 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
     // 4. Project Breakdown-New
     if (project && projectBreakdown) {
+      // Find default VAT rate from project snapshot or general price list
+      const priceListSource = project.priceListSnapshot || generalPriceList || {};
+      const vatItem = priceListSource.others?.find(i => i.name === 'VAT' || i.name === 'DPH');
+      const defaultVat = vatItem ? parseFloat(vatItem.price) : 23;
+
       // Create invoice items from project breakdown
       const items = [];
 
@@ -464,7 +469,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             pieces: calculation.quantity || 0,
             pricePerPiece: calculation.quantity > 0 ? (calculation.workCost || 0) / calculation.quantity : 0,
             price: calculation.workCost || 0,
-            vat: 23, // Default VAT
+            vat: defaultVat, // Use project default VAT
             unit: unit,
             category: 'work',
             active: true,
@@ -487,7 +492,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             pieces: calculation.quantity || 0,
             pricePerPiece: calculation.pricePerUnit || (calculation.quantity > 0 ? (calculation.materialCost || 0) / calculation.quantity : 0),
             price: calculation.materialCost || 0,
-            vat: 23, // Default VAT
+            vat: defaultVat, // Use project default VAT
             unit: materialUnit,
             category: 'material',
             active: true,
@@ -510,7 +515,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             pieces: calculation.quantity || 0,
             pricePerPiece: calculation.quantity > 0 ? (calculation.workCost || 0) / calculation.quantity : 0,
             price: calculation.workCost || 0,
-            vat: 23, // Default VAT
+            vat: defaultVat, // Use project default VAT
             unit: otherUnit,
             category: 'other',
             active: true,
@@ -1072,7 +1077,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in">
         <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-7xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex flex-col gap-4 flex-shrink-0 rounded-t-2xl">
@@ -1084,9 +1089,9 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
               </div>
               <button
                 onClick={() => onClose()}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X className="w-6 h-6 text-gray-500" />
               </button>
             </div>
 
@@ -1102,7 +1107,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     key={type.id}
                     onClick={() => setInvoiceType(type.id)}
                     className={`px-4 py-2 rounded-[14px] text-sm font-semibold whitespace-nowrap transition-colors ${invoiceType === type.id
-                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md'
+                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md active-white-bg'
                       : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:border-gray-700'
                       } `}
                   >
@@ -1150,21 +1155,19 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         <button
                           onClick={() => setDepositType('percentage')}
                           className={`flex-1 flex items-center justify-center rounded-md text-xs font-medium transition-all gap-1.5 ${depositType === 'percentage'
-                            ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md'
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md active-white-bg'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${depositType === 'percentage' ? 'bg-blue-400' : 'bg-transparent'} `} />
                           {t('Percentage')}
                         </button>
                         <button
                           onClick={() => setDepositType('fixed')}
                           className={`flex-1 flex items-center justify-center rounded-md text-xs font-medium transition-all gap-1.5 ${depositType === 'fixed'
-                            ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md'
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md active-white-bg'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${depositType === 'fixed' ? 'bg-blue-400' : 'bg-transparent'} `} />
                           €
                         </button>
                       </div>
@@ -1224,7 +1227,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                           key={reason}
                           onClick={() => setReturnReason(reason)}
                           className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${returnReason === reason
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                            ? 'border-gray-900 bg-gray-100 dark:border-white dark:bg-gray-800 text-gray-900 dark:text-white'
                             : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
                             }`}
                         >
@@ -1273,7 +1276,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                       value={projectDisplayName}
                       onChange={(e) => setProjectDisplayName(e.target.value)}
                       placeholder={project?.name || t('Project name')}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none invoice-input-dark"
                     />
                   </div>
 
@@ -1289,7 +1292,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         if (project?.projectNumber) return `${t('Price offer')} ${project.projectNumber}`;
                         return t('Introductory note placeholder');
                       })()}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none invoice-input-dark"
                     />
                     <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">{t('Shown as subheading in PDF')}</span>
                   </div>
@@ -1398,22 +1401,20 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                       <div className="flex gap-2">
                         <button
                           onClick={() => setPaymentMethod('cash')}
-                          className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'cash'
-                            ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
-                            : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center justify-center ${paymentMethod === 'cash'
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02] active-white-bg'
+                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 no-text-dark-override'
                             } `}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'cash' ? 'bg-blue-400' : 'bg-transparent'} `} />
                           {t('Cash')}
                         </button>
                         <button
                           onClick={() => setPaymentMethod('transfer')}
-                          className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center gap-2 ${paymentMethod === 'transfer'
-                            ? 'bg-gray-900 dark:bg-gray-700 text-white dark:text-white shadow-md transform scale-[1.02] border border-transparent dark:border-gray-600'
-                            : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center justify-center ${paymentMethod === 'transfer'
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02] active-white-bg'
+                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 no-text-dark-override'
                             } `}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${paymentMethod === 'transfer' ? 'bg-blue-400' : 'bg-transparent'} `} />
                           {t('Bank transfer')}
                         </button>
                       </div>
@@ -1435,11 +1436,10 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                               setCustomInputValue(''); // Clear custom input when preset is selected
                             }}
                             className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all ${Number(paymentDays) === days && customInputValue === ''
-                              ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
-                              : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02] active-white-bg'
+                              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent dark:border-gray-700 dark:bg-gray-800 no-text-dark-override'
                               } `}
                           >
-                            <div className={`w-1.5 h-1.5 rounded-full mb-1 ${Number(paymentDays) === days && customInputValue === '' ? 'bg-blue-400' : 'bg-transparent'} `} />
                             <span className="text-lg font-semibold leading-none">{days}</span>
                             <span className="text-[10px] font-medium opacity-80">{t('days')}</span>
                           </button>
@@ -1447,11 +1447,11 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                         {/* Custom input */}
                         <div
                           className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all relative ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== ''
-                            ? 'bg-gray-900 dark:bg-gray-600 text-white dark:text-white shadow-md transform scale-[1.02]'
-                            : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-300'
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02] active-white-bg'
+                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-transparent dark:border-gray-700 dark:bg-gray-800'
                             } `}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full mb-1 ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== '' ? 'bg-blue-400' : 'bg-transparent'} `} />
+                          {/* Removed indicator dot */}
                           <input
                             type="text"
                             value={maturityOptions.includes(Number(paymentDays)) ? '' : (customInputValue === '' ? paymentDays : customInputValue)}
@@ -1701,7 +1701,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
             <button
               onClick={handleGenerate}
               disabled={isSubmitting || !!typeWarning}
-              className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-4 rounded-[15px] font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md shadow-blue-500/30 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-blue-gradient bg-blue-600 text-white py-4 rounded-[15px] font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-black"
             >
               {isSubmitting ? (
                 <>
@@ -1736,7 +1736,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
       {/* Duplicate Number Modal */}
       {showDuplicateNumberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => setShowDuplicateNumberModal(false)}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-fade-in" onClick={() => setShowDuplicateNumberModal(false)}>
           <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-800 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4 text-amber-500">
               <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
@@ -1767,7 +1767,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
       {/* Client Selection Modal */}
       {showClientSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" onClick={() => {
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-fade-in" onClick={() => {
           if (showCreateClientInModal) {
             setShowCreateClientInModal(false);
           } else {
@@ -1809,7 +1809,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     value={clientSearchQuery}
                     onChange={(e) => setClientSearchQuery(e.target.value)}
                     placeholder={t('Search Clients...')}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 border-none text-lg"
+                    className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-700 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white border-2 border-gray-900 dark:border-white text-lg"
                   />
                 </div>
 
@@ -1824,7 +1824,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                       <button
                         key={client.id}
                         onClick={() => handleClientSelect(client)}
-                        className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-transparent'}`}
+                        className={`w-full bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl p-4 text-left transition-all border-2 ${selectedClientId === client.id ? 'border-gray-900 bg-gray-100 dark:border-white dark:bg-white/10' : 'border-transparent'}`}
                       >
                         <div className="font-bold text-gray-900 dark:text-white text-lg">{client.name}</div>
                         {client.email && (

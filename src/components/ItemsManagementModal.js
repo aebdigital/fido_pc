@@ -68,7 +68,7 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
     return (
         <>
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-6 animate-in fade-in duration-200">
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose} />
 
                 <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
                     {/* Header */}
@@ -82,7 +82,7 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
                                 <p className="text-sm text-gray-500 dark:text-gray-400">{t('Manage saved autocomplete items')}</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                             <X className="w-6 h-6 text-gray-500" />
                         </button>
                     </div>

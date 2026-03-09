@@ -234,6 +234,7 @@ export const AppDataProvider = ({ children }) => {
     projectHistory: {}, // Store history events by project ID: { [projectId]: [{ type, date, ... }] }
     contractors: [], // Store contractor profiles
     contractorProjects: {}, // Store projects by contractor ID: { [contractorId]: { categories: [...], archivedProjects: [] } }
+    allProjects: [], // All loaded projects including assigned/member projects
     invoices: [], // Store all invoices
     priceOfferSettings: {
       timeLimit: 30, // Days
@@ -494,7 +495,11 @@ export const AppDataProvider = ({ children }) => {
         // checking useInvoiceManager createInvoice it sends project_id.
         // checking supabaseApi.js usually returns data as is.
         // Let's assume snake_case project_id based on DB schema.
-        const linkedInvoice = (invoices || []).find(inv => inv.project_id === project.id);
+        const linkedInvoice = (invoices || []).find(inv =>
+          inv.project_id === project.id ||
+          inv.project_id === project.c_id ||
+          (inv.projects && inv.projects.c_id === project.c_id)
+        );
 
         const projectData = {
           ...project,
@@ -1554,6 +1559,7 @@ export const AppDataProvider = ({ children }) => {
     activeContractorId: appData.activeContractorId,
     projectFilterYear: appData.projectFilterYear,
     invoices: appData.invoices,
+    allProjects: appData.allProjects || [],
 
     // Helper functions
     getProjectCategoriesForContractor: contractorManager.getProjectCategoriesForContractor,

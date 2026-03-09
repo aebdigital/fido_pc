@@ -22,7 +22,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Settings = () => {
   const location = useLocation();
-  const { t, language, toggleLanguage } = useLanguage();
+  const { t, language, toggleLanguage, setLanguage } = useLanguage();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { signOut, user } = useAuth(); // Add user
   const { isPro, trialEndsAt } = useAppData(); // Add Pro context
@@ -138,7 +138,7 @@ const Settings = () => {
           <Wrench className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Access')}</h2>
         </div>
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-[25px] p-4 lg:p-4 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-[25px] p-4 lg:p-4 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               {/* Email Section */}
@@ -151,7 +151,7 @@ const Settings = () => {
               <div className="px-1">
                 {isPro ? (
                   <div className="flex flex-col items-start gap-1 mb-1">
-                    <div className="text-xl font-semibold text-green-600">{t('Pro User')}</div>
+                    <div className="text-xl font-semibold text-gray-900 dark:text-white">{t('Pro User')}</div>
                     {trialEndsAt && new Date(trialEndsAt) > new Date() && (
                       <CountdownTimer targetDate={trialEndsAt} t={t} />
                     )}
@@ -185,50 +185,46 @@ const Settings = () => {
         </div>
         <div className="space-y-3 lg:space-y-4">
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700"
             onClick={handleArchiveClick}
           >
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 dark:text-white text-lg leading-tight">{t('Archive')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-0.5">{t('archived projects, archive duration')}</div>
+            <div className="flex flex-col gap-0.5">
+              <div className="font-bold text-gray-900 dark:text-white text-[19px] leading-tight">{t('Archive')}</div>
+              <div className="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{t('archived projects, archive duration')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700"
             onClick={handlePriceOfferClick}
           >
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 dark:text-white text-lg leading-tight">{t('Supplier')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-0.5">{t('supplier information, validity of price offer')}</div>
+            <div className="flex flex-col gap-0.5">
+              <div className="font-bold text-gray-900 dark:text-white text-[19px] leading-tight">{t('Supplier')}</div>
+              <div className="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{t('supplier information, validity of price offer')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-3 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700"
             onClick={handlePriceListClick}
           >
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 dark:text-white text-lg leading-tight">{t('General price list')}</div>
-              <div className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-0.5">{t('set default price list')}</div>
+            <div className="flex flex-col gap-0.5">
+              <div className="font-bold text-gray-900 dark:text-white text-[19px] leading-tight">{t('General price list')}</div>
+              <div className="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{t('set default price list')}</div>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
           </div>
 
           {/* Dark Mode Toggle */}
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700"
             onClick={toggleDarkMode}
           >
-            <div className="flex items-center gap-3">
-              {isDarkMode ? (
-                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              ) : (
-                <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              )}
-              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Dark Mode')}</div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[19px] font-bold text-gray-900 dark:text-white leading-tight">{t('Dark Mode')}</span>
+              <span className="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{t('set appearance of the app')}</span>
             </div>
             <div className={`w-12 h-7 rounded-full p-1 transition-colors ${isDarkMode ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
               <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -236,19 +232,30 @@ const Settings = () => {
           </div>
 
           {/* Language Toggle */}
-          <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
-            onClick={toggleLanguage}
-          >
-            <div className="flex items-center gap-3">
-              <Globe className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Language')}</div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[19px] font-bold text-gray-900 dark:text-white leading-tight">{t('Language')}</span>
+              <span className="text-[13px] font-semibold text-gray-500 dark:text-gray-400">English / Slovenčina</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-base text-gray-600 dark:text-gray-400">
-                {language === 'en' ? 'English 🇺🇸' : 'Slovenčina 🇸🇰'}
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-sm font-bold transition-colors cursor-pointer ${language === 'en' ? 'text-blue-500' : 'text-gray-400 dark:text-gray-500'}`}
+                onClick={() => setLanguage('en')}
+              >
+                EN
               </span>
-              <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <div
+                className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${language === 'sk' ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                onClick={toggleLanguage}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${language === 'sk' ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
+              <span
+                className={`text-sm font-bold transition-colors cursor-pointer ${language === 'sk' ? 'text-blue-500' : 'text-gray-400 dark:text-gray-500'}`}
+                onClick={() => setLanguage('sk')}
+              >
+                SK
+              </span>
             </div>
           </div>
 
@@ -274,34 +281,34 @@ const Settings = () => {
         </div>
         <div className="space-y-3 lg:space-y-4">
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700"
             onClick={() => setShowTutorial(true)}
           >
-            <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Tutorial')}</div>
+            <div className="font-bold text-gray-900 dark:text-white text-[19px]">{t('Tutorial')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700"
             onClick={handleContactClick}
           >
-            <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Contact')}</div>
+            <div className="font-bold text-gray-900 dark:text-white text-[19px]">{t('Contact')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700"
             onClick={handleTermsClick}
           >
-            <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Terms of Use')}</div>
+            <div className="font-bold text-gray-900 dark:text-white text-[19px]">{t('Terms of Use')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 
           <div
-            className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-sm border border-gray-100 dark:border-gray-700"
             onClick={handlePrivacyClick}
           >
-            <div className="font-semibold text-gray-900 dark:text-white text-lg">{t('Privacy Policy')}</div>
+            <div className="font-bold text-gray-900 dark:text-white text-[19px]">{t('Privacy Policy')}</div>
             <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </div>
 

@@ -21,7 +21,7 @@ const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatD
     return (
         <div
             key={member.id}
-            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
+            className="flex items-center justify-between p-[10px] sm:p-4 bg-white sm:bg-gray-50 dark:bg-gray-900 sm:dark:bg-gray-800 border border-black/10 sm:border-0 shadow-[0_0_10px_rgba(0,0,0,0.1)] sm:shadow-none rounded-[18px] sm:rounded-xl"
         >
             <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold flex-shrink-0">
@@ -106,7 +106,7 @@ const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatD
                                         <button
                                             onClick={() => handleResetName(member)}
                                             title={t('Reset Name')}
-                                            className="p-1 text-gray-400 hover:text-red-600"
+                                            className="p-1 text-gray-400 hover:text-red-600 sm:block hidden"
                                         >
                                             <X className="w-3 h-3" />
                                         </button>
@@ -134,7 +134,7 @@ const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatD
                 <div className="flex items-center gap-1 ml-2">
                     <button
                         onClick={() => onEditPermissions(member)}
-                        className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                        className="p-2 text-gray-400 hover:text-green-600 transition-colors sm:block hidden"
                         title={t('Edit Permissions')}
                     >
                         <Shield className="w-5 h-5" />
@@ -1028,9 +1028,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                         >
-                            <X className="w-7 h-7 sm:w-5 sm:h-5 text-gray-400 sm:text-gray-500" />
+                            <X className="w-6 h-6 text-gray-500" />
                         </button>
                     </div>
 
@@ -1038,8 +1038,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                     <div className="flex gap-1.5 sm:gap-2">
                         <button
                             onClick={() => setActiveTab('timer')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors ${activeTab === 'timer'
-                                ? 'bg-green-500 text-white'
+                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors btn-green-tab ${activeTab === 'timer'
+                                ? 'active-green-tab'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
@@ -1048,8 +1048,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         </button>
                         <button
                             onClick={() => setActiveTab('members')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors ${activeTab === 'members'
-                                ? 'bg-green-500 text-white'
+                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors btn-green-tab ${activeTab === 'members'
+                                ? 'active-green-tab'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
@@ -1058,8 +1058,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         </button>
                         <button
                             onClick={() => setActiveTab('analytics')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors ${activeTab === 'analytics'
-                                ? 'bg-green-500 text-white'
+                            className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-1 px-[12px] py-[8px] sm:gap-2 sm:px-4 sm:py-2 rounded-[12px] text-[12.6px] sm:text-base font-semibold sm:font-medium transition-colors btn-green-tab ${activeTab === 'analytics'
+                                ? 'active-green-tab'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                 }`}
                         >
@@ -1076,7 +1076,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             {/* Left Column: Calendar */}
                             {/* Mobile: compact date selector */}
                             <div className="md:hidden">
-                                <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] p-3 animate-fade-in border border-gray-100 dark:border-gray-700" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] p-3 animate-fade-in" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                     <div className="flex items-center justify-between mb-4">
                                         <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
                                             <ChevronLeft className="w-5 h-5" />
@@ -1107,13 +1107,13 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                         newDate.setDate(day);
                                                         setSelectedDate(newDate);
                                                     }}
-                                                    className={`aspect-square rounded-lg text-sm font-medium transition-colors relative flex flex-col items-center justify-center ${isSelected(day)
-                                                        ? 'bg-green-600 text-white shadow-md'
+                                                    className={`aspect-square rounded-full text-sm font-medium transition-colors relative flex flex-col items-center justify-center dennik-day-btn ${isSelected(day)
+                                                        ? 'dennik-day-selected'
                                                         : isToday(day)
-                                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                                            ? 'dennik-day-today'
                                                             : new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).getDay() === 0
-                                                                ? 'bg-yellow-50 dark:bg-yellow-900/10 text-gray-700 dark:text-gray-300'
-                                                                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                                ? 'dennik-day-sunday text-gray-700 dark:text-gray-300'
+                                                                : 'text-gray-700 dark:text-gray-300'
                                                         }`}
                                                 >
                                                     {day}
@@ -1128,7 +1128,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                             </div>
 
                             {/* Desktop: full calendar */}
-                            <div className="hidden md:block h-fit md:sticky md:top-0 md:self-start bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 shadow-inner border border-gray-100 dark:border-gray-700">
+                            <div className="hidden md:block h-fit md:sticky md:top-0 md:self-start bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 shadow-inner">
                                 <div className="flex items-center justify-between mb-4">
                                     <button
                                         onClick={() => changeMonth(-1)}
@@ -1169,13 +1169,13 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     newDate.setDate(day);
                                                     setSelectedDate(newDate);
                                                 }}
-                                                className={`aspect-square rounded-lg text-sm font-medium transition-colors relative flex flex-col items-center justify-center ${isSelected(day)
-                                                    ? 'bg-green-600 text-white'
+                                                className={`aspect-square rounded-full text-sm font-medium transition-colors relative flex flex-col items-center justify-center dennik-day-btn ${isSelected(day)
+                                                    ? 'dennik-day-selected'
                                                     : isToday(day)
-                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                                                        ? 'dennik-day-today'
                                                         : new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).getDay() === 0
-                                                            ? 'bg-yellow-50 dark:bg-yellow-900/10 text-gray-700 dark:text-gray-300'
-                                                            : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                            ? 'dennik-day-sunday text-gray-700 dark:text-gray-300'
+                                                            : 'text-gray-700 dark:text-gray-300'
                                                     }`}
                                             >
                                                 {day}
@@ -1218,9 +1218,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                     <button
                                                         onClick={handleStartTimer}
                                                         disabled={isLoading}
-                                                        className="flex-1 bg-white text-green-600 px-4 py-4 rounded-[20px] font-bold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                        className="flex-1 px-4 py-4 rounded-[20px] font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 dennik-timer-btn"
                                                     >
-                                                        <Play className="w-5 h-5" />
+                                                        <Play className="w-5 h-5 fill-current" />
                                                         <span className="text-lg">{t('Start Timer')}</span>
                                                     </button>
                                                 ) : (
@@ -1230,7 +1230,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                                 )}
                                                 <button
                                                     onClick={() => setShowManualEntry(!showManualEntry)}
-                                                    className="bg-white/20 text-white px-4 py-4 rounded-[20px] font-bold hover:bg-white/30 transition-colors flex items-center justify-center gap-2"
+                                                    className="bg-white/30 text-white px-4 py-4 rounded-[20px] font-bold hover:bg-white/40 transition-colors flex items-center justify-center gap-2 dennik-timer-plus-btn"
                                                 >
                                                     <Plus className="w-5 h-5" />
                                                 </button>
@@ -1301,7 +1301,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             <button
                                                 onClick={selectedMemberForEntry ? handleAddManualEntryForMember : handleAddManualEntry}
                                                 disabled={isLoading}
-                                                className="w-full bg-white text-green-600 px-4 py-3 rounded-[20px] font-bold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                                className="w-full px-4 py-3 rounded-[20px] font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 dennik-timer-btn"
                                             >
                                                 <Plus className="w-5 h-5" />
                                                 <span className="text-lg">{t('Add Entry')}</span>
@@ -1312,7 +1312,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
 
                                 {/* Time Entries */}
                                 <div>
-                                    <h3 className="font-bold text-gray-900 dark:text-white mb-3">
+                                    <h3 className="font-bold text-gray-900 dark:text-white mb-3 md:hidden">
                                         {t('Time Entries')}
                                     </h3>
                                     {timeEntries.length === 0 ? (
@@ -1516,9 +1516,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                         <div className="space-y-6">
                             {/* Add Member Section (Owner Only) */}
                             {isOwner && (
-                                <div className="bg-gray-50 dark:bg-gray-800 rounded-[20px] p-4">
+                                <div className="bg-white sm:bg-gray-50 dark:bg-gray-900 sm:dark:bg-gray-800 rounded-[18px] sm:rounded-[20px] p-4 border border-black/10 sm:border-0 shadow-[0_0_10px_rgba(0,0,0,0.1)] sm:shadow-none">
                                     <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                        <UserPlus className="w-5 h-5" />
+                                        <UserPlus className="w-[16px] h-[16px] sm:w-5 sm:h-5" />
                                         {t('Add Member')}
                                     </h3>
                                     <input
@@ -1529,7 +1529,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                             setSearchQuery(e.target.value);
                                             handleSearchUsers(e.target.value);
                                         }}
-                                        className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
+                                        className="w-full px-[14px] py-[12px] sm:px-4 sm:py-3 text-[15px] sm:text-base bg-gray-50/60 sm:bg-white dark:bg-gray-800 sm:dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-[12px] sm:rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
                                     />
                                     {searchResults.length > 0 && (
                                         <div className="mt-2 space-y-1">
@@ -1565,29 +1565,28 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
 
                             {/* Members List */}
                             <div>
-                                <h3 className="font-bold text-gray-900 dark:text-white mb-3">
-                                    {t('Project Members')}
-                                </h3>
-                                <div className="space-y-2">
+                                <div className="space-y-4 sm:space-y-2">
                                     {/* Owner */}
                                     {(() => {
                                         const ownerHours = timeEntries
                                             .filter(e => e.user_id === (project.user_id || project.owner_id))
                                             .reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
                                         return (
-                                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl">
+                                            <div className="flex items-center justify-between p-[10px] sm:p-4 bg-white sm:bg-gray-50 dark:bg-gray-900 sm:dark:bg-gray-800 border border-black/10 sm:border-gray-200 dark:border-gray-700 shadow-[0_0_10px_rgba(0,0,0,0.1)] sm:shadow-none rounded-[18px] sm:rounded-xl">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
                                                         {ownerProfile?.full_name?.charAt(0) || ownerProfile?.email?.charAt(0) || '?'}
                                                     </div>
                                                     <div>
-                                                        <div className="font-bold text-gray-900 dark:text-white">
+                                                        <div className="text-[17px] font-semibold sm:text-[15px] sm:font-bold text-gray-900 dark:text-white leading-tight">
                                                             {ownerProfile?.full_name || ownerProfile?.email || t('Project Owner')}
                                                         </div>
                                                         {ownerProfile?.email && (
-                                                            <div className="text-xs text-gray-500">{ownerProfile.email}</div>
+                                                            <div className="text-[13px] font-medium text-[#AAAAAA] truncate leading-tight">
+                                                                {ownerProfile.email}
+                                                            </div>
                                                         )}
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1">
+                                                        <div className="text-[13px] font-medium text-[#AAAAAA] mt-0.5 uppercase tracking-wide">
                                                             {t('Owner')}
                                                         </div>
                                                     </div>
@@ -1618,13 +1617,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                         />
                                     ))}
 
-                                    {members.length === 0 && (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <Users className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                                            <p>{t('No members added yet')}</p>
-                                            {isOwner && <p className="text-sm mt-1">{t('Use the search above to add members')}</p>}
-                                        </div>
-                                    )}
+
                                 </div>
                             </div>
                         </div>
@@ -1639,9 +1632,9 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                         <button
                                             key={view}
                                             onClick={() => setAnalyticsView(view)}
-                                            className={`flex-1 px-4 py-2 rounded-[12px] text-sm font-medium transition-all ${analyticsView === view
-                                                ? 'bg-green-500 text-white'
-                                                : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                            className={`flex-1 px-4 py-2 rounded-[12px] text-sm font-medium transition-all btn-green-tab ${analyticsView === view
+                                                ? 'active-green-tab'
+                                                : 'text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700'
                                                 }`}
                                         >
                                             {t(view.charAt(0).toUpperCase() + view.slice(1))}
@@ -1761,7 +1754,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
                                 <button
                                     onClick={handleGenerateInvoice}
                                     disabled={isGeneratingInvoice || (analyticsEntries.length === 0 && (!customHours || parseFloat(customHours) <= 0)) || hasInvoiceForPeriod}
-                                    className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white h-[54px] sm:h-auto sm:py-4 px-4 rounded-[16px] sm:rounded-[20px] font-bold hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full btn-blue-gradient h-[54px] sm:h-auto sm:py-4 px-4 rounded-[16px] sm:rounded-[20px] font-bold transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isGeneratingInvoice ? (
                                         <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />

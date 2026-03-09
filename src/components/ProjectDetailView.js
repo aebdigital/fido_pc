@@ -58,7 +58,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();
 
   // Normalize project ID (Dennik projects use c_id, standard projects use id or c_id)
-  const projectId = project?.id || project?.c_id;
+  const projectId = project?.c_id || project?.id;
 
   const {
     clients,
@@ -381,7 +381,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const getVATRate = () => {
     // Use the memoized active price list
-    const vatItem = activePriceList?.others?.find(item => item.name === 'VAT');
+    const vatItem = activePriceList?.others?.find(item => item.name === 'VAT' || item.name === 'DPH');
     return vatItem ? vatItem.price / 100 : 0.23;
   };
 
@@ -968,8 +968,24 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showReceiptsModal, project?.id]);
 
-  // Check if mobile device
+  // Mobile/PWA detection for PDF handling
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(window.navigator.userAgent);
+  const isStandalone = typeof window !== 'undefined' && (
+    window.matchMedia?.('(display-mode: standalone)')?.matches ||
+    window.navigator.standalone === true
+  );
+  const shouldUseNativePdfViewer = isMobile && !(isIOS && isStandalone);
+
+  const openPdfInNewTab = (blobUrl, filename) => {
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.target = '_blank';
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handlePreviewPriceOffer = async () => {
     if (!isPro) { setShowPaywall(true); return; }
@@ -1031,20 +1047,13 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         priceList: project.priceListSnapshot
       }, t); // Pass t as the second argument
 
-      // On mobile, open directly in browser's native PDF viewer
-      if (isMobile) {
-        // Create a link with download attribute for proper filename
+      setPdfUrl(result.blobUrl);
+      setPdfBlob(result.pdfBlob);
+
+      if (shouldUseNativePdfViewer) {
         const filename = `${t('Price offer')} - ${project.name}.pdf`;
-        const link = document.createElement('a');
-        link.href = result.blobUrl;
-        link.target = '_blank';
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        openPdfInNewTab(result.blobUrl, filename);
       } else {
-        setPdfUrl(result.blobUrl);
-        setPdfBlob(result.pdfBlob);
         setShowPDFPreview(true);
       }
     } catch (error) {
@@ -1074,8 +1083,9 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     const vat = totalWithoutVAT * vatRate;
     const totalWithVAT = totalWithoutVAT + vat;
 
+    const projectNumber = formatProjectNumber(project);
     const text = `
-${t('Price offer')}
+${t('Price offer')}${projectNumber ? ` ${projectNumber}` : ''}
 ${project.name}
 
 ${t('Contractor')}: ${contractor?.name || '-'}
@@ -1125,20 +1135,24 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             totalWithVAT,
             formatDate: (dateString) => new Date(dateString).toLocaleDateString('sk-SK'),
             formatPrice,
-            projectNotes: project.notes
+            projectNotes: project.notes,
+            projectNumber: formatProjectNumber(project),
+            projectCategory: project.category,
+            offerValidityPeriod: priceOfferSettings?.timeLimit || 30,
+            priceList: project.priceListSnapshot
           }, t);
           currentBlob = result.pdfBlob;
           setPdfBlob(currentBlob);
           setPdfUrl(result.blobUrl);
         }
 
-        const shareData = {
-          title: `${t('Price offer')} - ${project.name}`,
-        };
+        const shareTitle = `${t('Price offer')}${projectNumber ? ` ${projectNumber}` : ''} - ${project.name}`;
+        const shareFilename = `${t('Price offer')}${projectNumber ? ` ${projectNumber}` : ''} - ${project.name}.pdf`;
+        const shareData = { title: shareTitle };
 
         // If we have a PDF blob, try to share it as a file
-        if (currentBlob && navigator.canShare && navigator.canShare({ files: [new File([currentBlob], 'test.pdf', { type: 'application/pdf' })] })) {
-          const file = new File([currentBlob], `${t('Price offer')} - ${project.name}.pdf`, { type: 'application/pdf' });
+        if (currentBlob && navigator.canShare && navigator.canShare({ files: [new File([currentBlob], shareFilename, { type: 'application/pdf' })] })) {
+          const file = new File([currentBlob], shareFilename, { type: 'application/pdf' });
           shareData.files = [file];
         } else {
           // Fallback to text if file sharing not supported
@@ -1165,29 +1179,32 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
     }
   };
 
+  const totalProjectPrice = calculateProjectTotalPrice(projectId);
+
   return (
     <div className="flex-1 p-0 lg:p-0 min-w-0">
+
+      {/* Mobile: Sticky Back arrow on its own row */}
+      {viewSource !== 'team_modal' && (
+        <div className={`lg:hidden sticky top-0 z-40 -mx-4 px-4 pt-2 pb-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md transition-all duration-300 ${isScrolled ? 'border-b border-gray-200 dark:border-gray-700' : 'border-none'}`}>
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <ChevronRight className="w-5 h-5 rotate-180" />
+            <span className="text-sm font-medium">{t('Naspäť')}</span>
+          </button>
+        </div>
+      )}
 
       {/* Project Header */}
       <div className="mb-6">
         <div className="flex flex-col gap-0 lg:gap-4">
-          {/* Mobile: Sticky Back arrow on its own row */}
-          {viewSource !== 'team_modal' && (
-            <div className={`lg:hidden sticky top-0 z-40 -mx-4 px-4 pt-2 pb-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md transition-all duration-300 ${isScrolled ? 'border-b border-gray-200 dark:border-gray-700' : 'border-none'}`}>
-              <button
-                onClick={onBack}
-                className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 rotate-180" />
-                <span className="text-sm font-medium">{t('Naspäť')}</span>
-              </button>
-            </div>
-          )}
 
           {/* Mobile: Project number + status + action buttons */}
           <div className="flex items-center justify-between lg:hidden">
             <div className="flex items-center gap-2">
-              <span className="text-base text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || projectId}</span>
+              <span className="text-lg lg:text-lg font-bold text-black dark:text-white">{formatProjectNumber(project) || projectId}</span>
               {project.is_archived && (
                 <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-semibold rounded-full">
                   {t('Archived')}
@@ -1203,16 +1220,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 const config = statusConfig[project.status] || statusConfig[PROJECT_STATUS.NOT_SENT];
                 const StatusIcon = config.icon;
                 return (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full shadow-sm"
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full shadow-sm status-badge-dark"
                     style={{ backgroundColor: config.color }}>
-                    <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
+                    <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 bg-white status-badge-icon">
                       {project.status === PROJECT_STATUS.SENT ? (
-                        <span className="text-[9px] font-bold" style={{ color: config.color }}>?</span>
+                        <span className="text-[9px] font-medium" style={{ color: config.color }}>?</span>
                       ) : (
-                        <StatusIcon size={9} color={config.color} strokeWidth={3} />
+                        <StatusIcon size={9} strokeWidth={3} className="block" style={{ color: config.color }} />
                       )}
                     </div>
-                    <span className="text-[10px] font-medium text-white">{t(config.label)}</span>
+                    <span className="text-[12px] font-medium text-white status-badge-dark-text">{t(config.label)}</span>
                   </div>
                 );
               })()}
@@ -1236,7 +1253,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <div className="relative" ref={moreMenuRefMobile}>
                       <button
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className="p-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                        className="p-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm hover:shadow-md flex items-center justify-center active-white-bg"
                       >
                         <MoreVertical className="w-5 h-5" />
                       </button>
@@ -1299,12 +1316,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   if (e.key === 'Enter') handleSaveProjectName();
                   if (e.key === 'Escape') setIsEditingProjectName(false);
                 }}
-                className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none w-full"
+                className={`${project.name?.length > 30 ? 'text-[22px]' : project.name?.length > 20 ? 'text-[28px]' : 'text-[38px]'} lg:text-[40px] font-black text-gray-900 dark:text-white bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 m-0 w-full shadow-none appearance-none`}
                 autoFocus
               />
             ) : (
               <div className="flex items-center gap-2 group">
-                <h1 className="text-[34px] lg:text-[40px] font-[900] text-gray-900 dark:text-white truncate">
+                <h1 className={`${project.name?.length > 30 ? 'text-[22px]' : project.name?.length > 20 ? 'text-[28px]' : 'text-[38px]'} lg:text-[40px] font-black text-gray-900 dark:text-white truncate`}>
                   {project.name}
                 </h1>
                 {!project.is_archived && canEditProject && isProjectOwner && (
@@ -1345,12 +1362,12 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     if (e.key === 'Enter') handleSaveProjectName();
                     if (e.key === 'Escape') setIsEditingProjectName(false);
                   }}
-                  className="text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-blue-500 focus:outline-none w-full"
+                  className={`${project.name?.length > 30 ? 'text-[22px]' : project.name?.length > 20 ? 'text-[28px]' : 'text-[40px]'} lg:text-[40px] font-black text-gray-900 dark:text-white bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 m-0 w-full shadow-none appearance-none`}
                   autoFocus
                 />
               ) : (
                 <div className="flex items-center gap-2 group">
-                  <h1 className="text-[40px] lg:text-[40px] font-[900] text-gray-900 dark:text-white truncate">
+                  <h1 className={`${project.name?.length > 30 ? 'text-[22px]' : project.name?.length > 20 ? 'text-[28px]' : 'text-[40px]'} lg:text-[40px] font-black text-gray-900 dark:text-white truncate`}>
                     {project.name}
                   </h1>
                   {!project.is_archived && canEditProject && isProjectOwner && (
@@ -1376,7 +1393,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       }
                       setShowDennikModal(true);
                     }}
-                    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+                    className="btn-green-gradient px-4 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2"
                   >
                     <BookOpen className="w-5 h-5" />
                     <span>Denník</span>
@@ -1386,7 +1403,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <div className="relative" ref={moreMenuRef}>
                       <button
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className="p-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                        className="p-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm hover:shadow-md flex items-center justify-center active-white-bg"
                       >
                         <MoreVertical className="w-5 h-5" />
                       </button>
@@ -1440,7 +1457,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
           {/* Desktop: Project number + status below name */}
           <div className="hidden lg:flex items-center gap-2">
-            <span className="text-lg text-gray-700 dark:text-gray-300">{formatProjectNumber(project) || projectId}</span>
+            <span className="text-lg font-bold text-black dark:text-white">{formatProjectNumber(project) || projectId}</span>
             {project.is_archived && (
               <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-sm font-semibold rounded-full">
                 {t('Archived')}
@@ -1456,16 +1473,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               const config = statusConfig[project.status] || statusConfig[PROJECT_STATUS.NOT_SENT];
               const StatusIcon = config.icon;
               return (
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full shadow-sm"
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full shadow-sm status-badge-dark"
                   style={{ backgroundColor: config.color }}>
-                  <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 bg-white">
+                  <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 bg-white status-badge-icon">
                     {project.status === PROJECT_STATUS.SENT ? (
-                      <span className="text-[9px] font-bold" style={{ color: config.color }}>?</span>
+                      <span className="text-[9px] font-medium" style={{ color: config.color }}>?</span>
                     ) : (
-                      <StatusIcon size={9} color={config.color} strokeWidth={3} />
+                      <StatusIcon size={9} strokeWidth={3} className="block" style={{ color: config.color }} />
                     )}
                   </div>
-                  <span className="text-[10px] font-medium text-white whitespace-nowrap">{t(config.label)}</span>
+                  <span className="text-[10px] font-medium text-white status-badge-dark-text whitespace-nowrap">{t(config.label)}</span>
                 </div>
               );
             })()}
@@ -1478,7 +1495,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             {canView('price_offer_note') && (
               <div className="mt-2">
                 <input
-                  ref={(el) => { if (el && isEditingProjectName) el.focus(); }}
+                  ref={(el) => { if (el && isEditingProjectNotes) el.focus(); }}
                   type="text"
                   value={isEditingProjectNotes ? editingProjectNotes : (project.notes || '')}
                   onChange={(e) => setEditingProjectNotes(e.target.value)}
@@ -1569,13 +1586,13 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               {!project.is_archived && (
                 <div className="flex gap-2">
                   <button
-                    className="p-2 rounded-2xl flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
+                    className="p-2 rounded-2xl flex items-center justify-center btn-red text-white hover:bg-red-600 transition-colors"
                     onClick={() => setDeleteMode(!deleteMode)}
                   >
-                    <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                    <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                   </button>
                   <button
-                    className="p-2 rounded-2xl flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                    className="p-2 rounded-2xl flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors active-white-bg"
                     onClick={async () => {
                       if (project.category === 'services') {
                         // For services projects, skip room type selection and create directly
@@ -1606,7 +1623,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     return (
                       <div
                         key={room.id}
-                        className={`bg-gray-100 dark:bg-gray-800 rounded-[16px] lg:rounded-2xl px-[20px] py-[16px] lg:p-4 flex items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
+                        className={`bg-gray-100 dark:bg-gray-800 border border-transparent dark:border-gray-700/50 rounded-[16px] lg:rounded-2xl px-[20px] py-[16px] lg:p-4 flex items-center transition-all duration-300 shadow-sm ${deleteMode ? 'justify-between' : 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer hover:shadow-md'}`}
                         onClick={deleteMode ? undefined : () => {
                           setSelectedRoom(room);
                           setShowRoomDetailsModal(true);
@@ -1623,7 +1640,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                               e.stopPropagation();
                               handleDeleteRoom(room);
                             }}
-                            className="bg-red-500 hover:bg-red-600 rounded-2xl p-2 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0"
+                            className="btn-red hover:bg-red-600 rounded-2xl p-2 transition-all duration-300 animate-in slide-in-from-right-5 flex-shrink-0"
                           >
                             <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                           </button>
@@ -1656,7 +1673,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           </div>
 
           {/* Price Overview */}
-          {canView('total_price_offer') && (
+          {canView('total_price_offer') && totalProjectPrice > 0 && (
             <div className="space-y-1 lg:space-y-2.5">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -1684,14 +1701,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     <div className="flex gap-2 lg:gap-3">
                       <button
                         onClick={handlePreviewPriceOffer}
-                        className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-1.5 lg:py-2 px-4 rounded-[18px] font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md border-2 border-current"
+                        className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-white py-2 lg:py-2.5 px-4 rounded-[18px] font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md border-2 border-current"
                       >
                         <span className="text-lg lg:text-xl">{t('Preview')}</span>
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={handleSendPriceOffer}
-                        className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-1.5 lg:py-2 px-4 rounded-[18px] font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                        className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-2 lg:py-2.5 px-4 rounded-[18px] font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                       >
                         <span className="text-lg lg:text-xl">{t('Send')}</span>
                         <Send className="w-4 h-4" />
@@ -1706,10 +1723,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
           {/* Invoices List and Button moved below */}
           {(isProjectOwner || canView('issue_document')) && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl lg:text-2xl font-black text-gray-900 dark:text-white">{t('Invoices')}</h2>
-              </div>
+
 
               {projectInvoices.length > 0 && (
                 <div className="space-y-3">
@@ -1732,7 +1746,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                             if (type === 'delivery') return t('Delivery Note');
                             if (type === 'credit_note') return t('Credit Note');
                             return t('Invoice');
-                          })()} {invoice.invoiceType !== 'delivery' ? invoice.invoiceNumber : ''}
+                          })()} {invoice.invoiceType !== 'delivery' ? (invoice.invoiceNumber || invoice.number || '') : ''}
                         </div>
                         <div className="text-[11px] lg:text-sm text-gray-500 dark:text-gray-400 mt-0.5">{new Date(invoice.issueDate).toLocaleDateString('sk-SK')}</div>
                       </div>
@@ -1774,7 +1788,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               )}
 
               {/* Issue Document Button moved below the list */}
-              {!project.is_archived && (
+              {!project.is_archived && totalProjectPrice > 0 && (
                 <button
                   onClick={() => {
                     if (!isPro && isProjectOwner) { setShowPaywall(true); return; }
@@ -1783,7 +1797,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     }
                   }}
                   disabled={!isProjectOwner && !canEdit('issue_document')}
-                  className={`w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white py-1.5 lg:py-2 px-4 rounded-[18px] font-bold transition-all flex items-center justify-center gap-2 shadow-sm ${(!isProjectOwner && !canEdit('issue_document')) ? 'opacity-50 cursor-not-allowed' : 'hover:from-blue-600 hover:to-blue-700 hover:shadow-lg active:scale-[0.98]'}`}
+                  className={`w-full btn-blue-gradient py-2 lg:py-3 px-4 rounded-[18px] font-bold transition-all flex items-center justify-center gap-2 ${(!isProjectOwner && !canEdit('issue_document')) ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]'}`}
                 >
                   <span className="text-lg lg:text-xl">{t('Issue Document')}</span>
                   <Plus className="w-5 h-5 text-white" />
@@ -1806,7 +1820,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <button
                   onClick={() => receiptInputRef.current.click()}
                   disabled={isAnalyzingReceipt || !canEdit('receipts')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-1.5 lg:py-2 px-2 lg:px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-[18px] text-base lg:text-lg font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors whitespace-nowrap ${(!canEdit('receipts')) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3.5 px-2 lg:px-4 bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm rounded-[18px] text-base lg:text-lg font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors active-white-bg ${(!canEdit('receipts')) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {isAnalyzingReceipt ? (
                     <>
@@ -1830,10 +1844,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 />
                 <button
                   onClick={() => setShowReceiptsModal(true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-1.5 lg:py-2 px-2 lg:px-4 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-[18px] text-base lg:text-lg font-bold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+                  className="flex-1 flex items-center justify-center gap-1.5 lg:gap-2 py-2.5 lg:py-3.5 px-2 lg:px-4 bg-white dark:bg-gray-700 border-[1px] border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-[18px] text-base lg:text-lg font-bold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
                 >
-                  <span>{t('View receipts')}</span>
-                  <FileText className="w-5 h-5" />
+                  <span className="text-gray-900 dark:text-white">{t('View receipts')}</span>
+                  <FileText className="w-5 h-5 text-gray-900 dark:text-white" />
                 </button>
               </div>
             </div>
@@ -1896,7 +1910,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <textarea
                   value={projectDetailNotes}
                   onChange={handleNotesChange}
-                  className="w-full min-h-[120px] p-4 ios-note-grey border-none rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none no-border no-gradient"
+                  className="w-full min-h-[120px] p-4 ios-note-grey border-none rounded-2xl text-sm max-sm:text-[12px] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none no-border no-gradient"
                   placeholder={t('Add your notes here...')}
                   disabled={!canEdit('project_note')}
                 />
@@ -1944,14 +1958,14 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   <div className="flex items-center gap-2">
                     {projectPhotos.length > 0 && (
                       <button
-                        className="p-2 rounded-[18px] flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        className="p-2 rounded-[18px] flex items-center justify-center btn-red text-white hover:bg-red-600 transition-colors"
                         onClick={() => setPhotoDeleteMode(!photoDeleteMode)}
                       >
-                        <Trash2 className="w-4 h-4 lg:w-5 lg:h-5" />
+                        <Trash2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                       </button>
                     )}
                     <button
-                      className="p-2 rounded-[18px] flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                      className="p-2 rounded-[18px] flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors active-white-bg"
                       onClick={() => photoInputRef.current?.click()}
                     >
                       <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -2001,8 +2015,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                           <img src={photo.url} alt={photo.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                         )}
                         {photoDeleteMode && (
-                          <div className="absolute inset-0 bg-red-500/40 flex items-center justify-center z-10">
-                            <Trash2 className="w-8 h-8 text-white" />
+                          <div className="absolute inset-0 bg-red-500/60 flex items-center justify-center z-10 transition-all">
+                            <div className="bg-red-500 rounded-full p-2 shadow-lg scale-in btn-red">
+                              <Trash2 className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2111,7 +2127,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       {/* Modals */}
       {
         showNewRoomModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowNewRoomModal(false)}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setShowNewRoomModal(false)}>
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('New room')}</h3>
@@ -2137,7 +2153,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {
         showCustomRoomModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto" onClick={() => setShowCustomRoomModal(false)}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 pt-20 md:pt-4 overflow-y-auto animate-fade-in" onClick={() => setShowCustomRoomModal(false)}>
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md relative my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
@@ -2170,7 +2186,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {
         showEditClientModal && selectedClientForProject && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
             <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
                 <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>
@@ -2193,7 +2209,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {
         showClientSelector && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => {
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto animate-fade-in" onClick={() => {
             if (showCreateClientInModal && createClientFormRef.current) {
               createClientFormRef.current.submit();
             } else {
@@ -2297,7 +2313,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {
         showContractorSelector && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto" onClick={() => setShowContractorSelector(false)}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-2 lg:p-4 pt-8 md:pt-4 overflow-y-auto animate-fade-in" onClick={() => setShowContractorSelector(false)}>
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full max-w-md lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Select contractor')}</h3>
@@ -2311,7 +2327,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   <button
                     key={contractor.id}
                     onClick={() => handleAssignProjectContractor(contractor.id)}
-                    className={`w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 text-left border-2 transition-all ${project.contractor_id === contractor.id ? 'border-blue-500 bg-blue-50/10' : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`}
+                    className={`w-full bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 text-left border-2 transition-all ${project.contractor_id === contractor.id ? 'border-gray-900 bg-gray-200 dark:border-white dark:bg-white/10' : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'}`}
                   >
                     <div className="font-bold text-gray-900 dark:text-white">{contractor.name}</div>
                     {contractor.ico && <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{contractor.ico}</div>}
@@ -2324,7 +2340,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   setShowContractorSelector(false);
                   setShowContractorModal(true);
                 }}
-                className="w-full mb-3 px-4 py-3 bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2 font-semibold shadow-sm hover:bg-blue-700 transition-all"
+                className="w-full mb-3 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl flex items-center justify-center gap-2 font-semibold shadow-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-all font-black"
               >
                 <Plus className="w-5 h-5" />
                 {t('Add contractor')}
@@ -2338,7 +2354,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {
         showContractorWarning && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowContractorWarning(false)}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setShowContractorWarning(false)}>
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center gap-3 mb-4">
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
@@ -2379,7 +2395,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
       {/* Receipts Modal */}
       {
         showReceiptsModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 lg:p-4" onClick={() => setShowReceiptsModal(false)}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 lg:p-4 animate-fade-in" onClick={() => setShowReceiptsModal(false)}>
             <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[75vh] lg:max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
@@ -2478,9 +2494,9 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                         setReceiptToDelete(selectedReceipt.id);
                         setShowDeleteReceiptConfirm(true);
                       }}
-                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 btn-red text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 text-white" />
                       {t('Delete receipt')}
                     </button>
                   </div>
@@ -2526,7 +2542,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                   <button
                     onClick={() => receiptInputRef.current?.click()}
                     disabled={isAnalyzingReceipt}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white text-gray-900 dark:bg-white dark:text-gray-900 active-white-bg rounded-xl font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 border border-gray-200"
                   >
                     {isAnalyzingReceipt ? (
                       <>

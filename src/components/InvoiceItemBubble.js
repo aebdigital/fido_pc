@@ -215,7 +215,7 @@ const InvoiceItemBubble = ({
                   }}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="w-full text-lg font-medium text-gray-900 dark:text-gray-900 bg-white border border-gray-300 rounded-xl px-3 py-2 focus:border-gray-900 outline-none"
+                  className="w-full text-lg font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 focus:border-gray-900 dark:focus:border-white outline-none"
                   placeholder={t('Item name')}
                 />
                 {showSuggestions && filteredSuggestions.length > 0 && (
@@ -239,12 +239,12 @@ const InvoiceItemBubble = ({
                 )}
               </div>
             ) : (
-              <h4 className={`text-lg font-medium truncate ${active ? 'text-gray-900' : 'text-gray-500'}`}>
+              <h4 className={`text-lg font-medium truncate ${active ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                 {t(title) || title}
               </h4>
             )}
             {!isExpanded && (
-              <p className={`text-xs ${active ? 'text-gray-600' : 'text-gray-400'}`}>
+              <p className={`text-xs ${active ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
                 {t('count')}: {pieces} {t(unit)}
               </p>
             )}
@@ -261,10 +261,10 @@ const InvoiceItemBubble = ({
               </button>
             ) : (
               <div className="text-right">
-                <p className={`text-[10px] ${active ? 'text-gray-600' : 'text-gray-400'}`}>
+                <p className={`text-[10px] ${active ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'}`}>
                   {t('VAT not included')}
                 </p>
-                <p className={`text-lg font-medium ${active ? 'text-gray-900' : 'text-gray-500'}`}>
+                <p className={`text-lg font-medium ${active ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                   {formatCurrency(price)}
                 </p>
               </div>
@@ -293,8 +293,8 @@ const InvoiceItemBubble = ({
                     e.stopPropagation();
                     handleActiveToggle();
                   }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm ${active
-                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm no-text-dark-override ${active
+                    ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
                 >
@@ -309,7 +309,7 @@ const InvoiceItemBubble = ({
                     }
                     setIsExpanded(true);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:!text-white no-text-dark-override hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-500"
                 >
                   <Pencil className="w-4 h-4" />
                   {t('Edit')}

@@ -305,7 +305,8 @@ export const translations = {
     "Invoice Statistics": "Invoice Statistics",
     "Manage Items": "Manage Items",
     "Hours": "Hours",
-    "Rate (€)": "Rate (€)"
+    "Rate (€)": "Rate (€)",
+    "set appearance of the app": "set appearance of the app"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -944,6 +945,7 @@ export const translations = {
     "Dark Mode": "Tmavý režim",
     "Language": "Jazyk",
     "set application appearance": "nastavte vzhľad aplikácie",
+    "set appearance of the app": "nastaviť vzhľad aplikácie",
     "Archiving period": "Doba archivovania",
     "archived projects, archiving period": "archivované projekty, doba archivovania",
     "archived projects, archive duration": "archivované projekty, doba archivácie",
@@ -1394,7 +1396,7 @@ export const translations = {
     "Paid": "Uhradené",
     "paid": "Uhradené",
     "afterMaturity": "Po splatnosti",
-    "Client and contractor": "Klient & Dodávateľ",
+    "Client and contractor": "Klient a Dodávateľ",
     "Project notes": "Poznámky k projektu",
 
     // Price List Sync

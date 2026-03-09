@@ -293,9 +293,9 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+            <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh]">
 
                 {/* Header */}
                 <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
@@ -308,7 +308,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                         </p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+                        <X className="w-6 h-6 text-gray-500" />
                     </button>
                 </div>
 
@@ -325,9 +325,9 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                                     <button
                                         key={owner.id}
                                         onClick={() => setSelectedOwnerId(owner.id)}
-                                        className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${selectedOwnerId === owner.id
-                                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-500'
-                                            : 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
+                                        className={`w-full flex items-center justify-between p-[14px] sm:p-4 rounded-[16px] sm:rounded-xl border transition-all ${selectedOwnerId === owner.id
+                                            ? 'border-gray-900 sm:border-purple-500 bg-gray-50 sm:bg-purple-50 dark:bg-gray-800 sm:dark:bg-purple-900/20 sm:ring-1 sm:ring-purple-500'
+                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 sm:hover:border-purple-300 dark:hover:border-purple-700'
                                             }`}
                                     >
                                         <div className="flex items-center gap-4">
@@ -344,7 +344,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                                             </div>
                                         </div>
                                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedOwnerId === owner.id
-                                            ? 'bg-purple-500 border-purple-500'
+                                            ? 'bg-gray-900 sm:bg-purple-500 border-gray-900 sm:border-purple-500'
                                             : 'border-gray-300 dark:border-gray-600'
                                             }`}>
                                             {selectedOwnerId === owner.id && <Check className="w-3 h-3 text-white" />}
@@ -379,11 +379,11 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                                             key={pid}
                                             onClick={() => toggleProject(pid)}
                                             disabled={hasInvoice}
-                                            className={`flex items-center justify-between p-4 rounded-xl border transition-all ${hasInvoice
+                                            className={`flex items-center justify-between p-[14px] sm:p-4 rounded-[16px] sm:rounded-xl border transition-all ${hasInvoice
                                                 ? 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 opacity-60 cursor-not-allowed'
                                                 : isSelected
-                                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                                                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                    ? 'border-gray-900 sm:border-purple-500 bg-gray-50 sm:bg-purple-50 dark:bg-gray-800 sm:dark:bg-purple-900/20'
+                                                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
                                                 }`}
                                         >
                                             <div className="flex flex-col items-start">
@@ -398,7 +398,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                                             <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${hasInvoice
                                                 ? 'border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700'
                                                 : isSelected
-                                                    ? 'bg-purple-500 border-purple-500'
+                                                    ? 'bg-gray-900 sm:bg-purple-500 border-gray-900 sm:border-purple-500'
                                                     : 'border-gray-300 dark:border-gray-600'
                                                 }`}>
                                                 {isSelected && !hasInvoice && <Check className="w-3 h-3 text-white" />}
@@ -478,7 +478,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                         {step > 1 && (
                             <button
                                 onClick={handleBack}
-                                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium transition-colors"
+                                className="px-4 py-[8px] sm:py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full sm:rounded-lg font-medium transition-colors"
                             >
                                 {t('Back')}
                             </button>
@@ -487,7 +487,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                             <button
                                 onClick={handleNext}
                                 disabled={(step === 1 && !selectedOwnerId) || (step === 2 && selectedProjectIds.length === 0)}
-                                className="flex items-center gap-2 px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-6 py-[8px] sm:py-2 bg-gray-900 sm:bg-black dark:bg-white text-white dark:text-black rounded-full sm:rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {t('Next')}
                                 <ChevronRight className="w-4 h-4" />
@@ -495,7 +495,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                         ) : (
                             <button
                                 onClick={handleGenerate}
-                                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
+                                className="flex items-center gap-2 px-6 py-[8px] sm:py-2 bg-gray-900 sm:bg-gradient-to-br sm:from-blue-500 sm:to-blue-600 text-white rounded-full sm:rounded-lg font-bold sm:hover:from-blue-600 sm:hover:to-blue-700 transition-all shadow-sm sm:hover:shadow-lg active:scale-[0.98]"
                             >
                                 <Check className="w-4 h-4" />
                                 {t('Proceed to Invoice')}

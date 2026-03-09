@@ -38,7 +38,7 @@ const formatDuration = (hours) => {
 };
 
 const Dennik = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const navigate = useNavigate();
     const { user } = useAuth();
     const {
@@ -52,6 +52,27 @@ const Dennik = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [totalDays, setTotalDays] = useState(INITIAL_DAYS);
+
+    // Pluralization helper for Slovak - explicitly handles forms for 1, 2-4, and 5+
+    const formatSlovakPlural = (count, type) => {
+        if (language !== 'sk') {
+            return `${count} ${t(type)}`;
+        }
+
+        if (type === 'members') {
+            if (count === 1) return `1 člen`;
+            if (count >= 2 && count <= 4) return `${count} členovia`;
+            return `${count} členov`;
+        }
+
+        if (type === 'projects') {
+            if (count === 1) return `1 projekt`;
+            if (count >= 2 && count <= 4) return `${count} projekty`;
+            return `${count} projektov`;
+        }
+
+        return `${count} ${t(type)}`;
+    };
 
     // Pending invitations state
     const [pendingInvitations, setPendingInvitations] = useState([]);
@@ -614,14 +635,14 @@ const Dennik = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleOpenZamestnanci}
-                        className="flex items-center justify-center w-9 h-9 bg-gradient-to-br from-green-400 to-green-600 text-white rounded-full hover:from-green-500 hover:to-green-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
+                        className="flex items-center justify-center w-9 h-9 btn-green-gradient rounded-full transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
                         title={t('Employees')}
                     >
                         <Users className="w-4 h-4" />
                     </button>
                     <button
                         onClick={handleOpenConsolidatedWizard}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-lg active:scale-[0.98]"
+                        className="btn-blue-gradient flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all active:scale-[0.98]"
                     >
                         <FileText className="w-4 h-4" />
                         {t('Invoice')}
@@ -728,7 +749,7 @@ const Dennik = () => {
                                             setShowFilterDropdown(false);
                                         }}
                                         className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${selectedMemberFilter === member.id
-                                            ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
+                                            ? 'btn-green-gradient'
                                             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                                             }`}
                                     >
@@ -839,14 +860,14 @@ const Dennik = () => {
 
             {/* Zamestnanci Modal */}
             {showZamestnanciModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowZamestnanciModal(false)}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setShowZamestnanciModal(false)}>
                     <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
                         {/* Header */}
                         <div className="flex items-center justify-between p-5 border-b dark:border-gray-800">
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Employees')}</h2>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                                    {zamestnanciMembers.length} {t('members')}
+                                    {formatSlovakPlural(zamestnanciMembers.length, 'members')}
                                 </p>
                             </div>
                             <button onClick={() => setShowZamestnanciModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
@@ -889,7 +910,7 @@ const Dennik = () => {
                                                     )}
                                                 </div>
                                                 <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex-shrink-0">
-                                                    {member.projectIds?.length || 0} {t('projects')}
+                                                    {formatSlovakPlural(member.projectIds?.length || 0, 'projects')}
                                                 </span>
                                                 <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedMemberId === member.id ? 'rotate-180' : ''}`} />
                                             </button>

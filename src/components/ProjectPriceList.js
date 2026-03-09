@@ -345,7 +345,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
 
   if (!projectPriceData) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 animate-slide-in">
           <div className="text-center">{t('Loading...')}</div>
         </div>
@@ -354,7 +354,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={handleClose}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={handleClose}>
       <div className="bg-white dark:bg-gray-900 rounded-2xl w-full sm:max-w-[95vw] h-[100dvh] sm:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-2xl">

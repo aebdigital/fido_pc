@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'SF Pro Display Heavy';
+  src: url('../public/sf-pro-display/fonnts.com-SF_Pro_Display_Heavy.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@layer utilities {
+  .font-sf-heavy {
+    font-family: 'SF Pro Display Heavy', sans-serif;
+    font-weight: 800;
+  }
+}
+
+/* Mobile-only SF Pro Heavy — resets to inherited font on lg+ */
+@media (min-width: 1024px) {
+  .lg\:font-sf-reset {
+    font-family: inherit;
+    font-weight: inherit;
+  }
+}
+
 @layer base {
 
   /* Handle iPad/tablet virtual keyboard - ensure modals stay visible */
@@ -20,7 +42,11 @@
     font-weight: 500;
   }
 
-  h1,
+  h1 {
+    font-family: 'SF Pro Display Heavy', sans-serif;
+    @apply font-extrabold tracking-tight;
+  }
+
   h2,
   h3,
   h4,
@@ -324,33 +350,29 @@
   background-color: #252525 !important;
 }
 
-/* Cards and containers in dark mode - gradient background with top light effect */
-.dark .rounded-xl:not(input):not(textarea):not(select):not(.no-gradient),
-.dark .rounded-2xl:not(input):not(textarea):not(select):not(.no-gradient),
-.dark .rounded-lg:not(input):not(textarea):not(select):not(.no-gradient) {
-  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.4),
-    0 4px 6px rgba(0, 0, 0, 0.3) !important;
+/* Cards and containers in dark mode - flat background matching project cards */
+.dark .rounded-xl:not(input):not(textarea):not(select):not(.no-gradient):not(.active-white-bg):not(.status-badge-dark):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.dennik-day-btn),
+.dark .rounded-2xl:not(input):not(textarea):not(select):not(.no-gradient):not(.active-white-bg):not(.status-badge-dark):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.dennik-day-btn),
+.dark .rounded-3xl:not(input):not(textarea):not(select):not(.no-gradient):not(.active-white-bg):not(.status-badge-dark):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.dennik-day-btn),
+.dark .rounded-lg:not(input):not(textarea):not(select):not(.no-gradient):not(.active-white-bg):not(.status-badge-dark):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.dennik-day-btn) {
+  background: #1a1a1a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
 }
 
 /* Allow borders to show on buttons in dark mode if explicitly defined */
-.dark button.border:not(.no-global-border):not(.strictly-black-border),
-.dark button[class*="border-"]:not(.no-global-border):not(.strictly-black-border),
-.dark button.border-2:not(.no-global-border):not(.strictly-black-border) {
+.dark button.border:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red),
+.dark button[class*="border-"]:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red),
+.dark button.border-2:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red) {
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Buttons in dark mode */
-.dark button:not([class*="bg-transparent"]):not(.rounded-xl):not(.rounded-2xl):not(.rounded-lg):not(.no-global-border):not(.strictly-black-border) {
-  background: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 100%) !important;
+/* Buttons in dark mode - flat background matching design system */
+.dark button:not([class*="bg-transparent"]):not(.no-global-border):not(.strictly-black-border):not(.no-gradient):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.dennik-day-btn):not(.dennik-timer-btn):not(.dennik-timer-plus-btn) {
+  background: #252525 !important;
+  background-color: #252525 !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-top-color: rgba(255, 255, 255, 0.15) !important;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: none !important;
 }
 
 /* Override specific dark bg colors used in components */
@@ -452,19 +474,18 @@ textarea.inline-note {
   color: #ffffff !important;
 }
 
-/* Button text in dark mode - ensure readable */
-.dark button:not(.text-blue-600):not(.text-red-600):not(.text-green-600),
-.dark button .text-gray-900,
-.dark button.text-gray-900,
-.dark button[class*="dark:text-gray-900"],
-.dark button .text-gray-800,
-.dark button.text-gray-800 {
+/* Save/action buttons text */
+.dark button[class*="bg-gray-900"]:not(.active-white-bg) span,
+.dark button[class*="bg-gray-900"]:not(.active-white-bg),
+.dark button.btn-blue-gradient,
+.dark button.btn-green-gradient,
+.dark button.btn-red {
   color: #ffffff !important;
 }
 
 /* Save/action buttons text */
-.dark button[class*="bg-gray-900"] span,
-.dark button[class*="bg-gray-900"] {
+.dark button[class*="bg-gray-900"]:not(.active-white-bg) span,
+.dark button[class*="bg-gray-900"]:not(.active-white-bg) {
   color: #ffffff !important;
 }
 
@@ -480,14 +501,14 @@ textarea.inline-note {
 }
 
 /* Specific fix for periods and selection buttons text */
-.dark .bg-white.text-gray-900,
-.dark [class*="dark:bg-white"][class*="dark:text-gray-900"] {
+.dark .bg-white.text-gray-900:not(.no-text-dark-override),
+.dark [class*="dark:bg-white"][class*="dark:text-gray-900"]:not(.no-text-dark-override) {
   color: #0d0d0d !important;
 }
 
 /* Price offer validity and similar active states */
-.dark .bg-gray-900.text-white,
-.dark [class*="bg-gray-900"][class*="text-white"] {
+.dark .bg-gray-900.text-white:not(.active-white-bg),
+.dark [class*="bg-gray-900"][class*="text-white"]:not(.active-white-bg) {
   color: #ffffff !important;
 }
 
@@ -498,10 +519,38 @@ textarea.inline-note {
   color: #e0e0e0 !important;
 }
 
+/* btn-red icons must always be white, even inside fixed modals */
+.dark .btn-red svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Override: preserve correct icons inside gradient/special buttons in modals */
+.dark .fixed .btn-blue-gradient svg,
+.dark .fixed .btn-green-gradient svg,
+.dark .fixed .btn-red svg,
+.dark .fixed .btn-green-tab.active-green-tab svg,
+.dark .fixed .dennik-timer-btn svg,
+.dark .fixed .dennik-timer-plus-btn svg {
+  color: inherit !important;
+}
+
+.dark .fixed .btn-blue-gradient svg,
+.dark .fixed .btn-green-gradient svg,
+.dark .fixed .btn-red svg,
+.dark .fixed .btn-green-tab.active-green-tab svg,
+.dark .fixed .dennik-timer-plus-btn svg {
+  color: #ffffff !important;
+}
+
+.dark .fixed .dennik-timer-btn svg {
+  color: #16A34A !important;
+}
+
 /* Archive button icon and similar header icons */
 .dark header svg,
 .dark [class*="flex"][class*="items-center"][class*="gap"]>svg,
-.dark button svg {
+.dark button:not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-red):not(.btn-green-tab):not(.dennik-timer-btn):not(.dennik-timer-plus-btn) svg {
   color: #e0e0e0 !important;
 }
 
@@ -600,10 +649,10 @@ textarea.inline-note {
 }
 
 /* Category text should be white in dark mode */
-.dark button[class*="rounded-2xl"] h3,
-.dark button[class*="rounded-3xl"] h3,
-.dark button[class*="rounded-2xl"] span,
-.dark button[class*="rounded-3xl"] span {
+.dark button[class*="rounded-2xl"]:not(.active-white-bg) h3,
+.dark button[class*="rounded-3xl"]:not(.active-white-bg) h3,
+.dark button[class*="rounded-2xl"]:not(.active-white-bg) span,
+.dark button[class*="rounded-3xl"]:not(.active-white-bg) span {
   color: #ffffff !important;
 }
 
@@ -672,23 +721,249 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Force white background and dark text for active buttons in dark mode */
-.dark .active-white-bg {
+.dark .active-white-bg,
+.dark button.active-white-bg,
+.dark div.active-white-bg,
+.dark button.active-white-bg.rounded-full,
+.dark button.active-white-bg.rounded-2xl,
+.dark button.active-white-bg.rounded-3xl,
+.dark button.active-white-bg.rounded-xl,
+.dark div.active-white-bg.rounded-xl,
+.dark button.active-white-bg[class*="border-"],
+.dark div.active-white-bg[class*="border-"] {
   background-color: #ffffff !important;
+  background: #ffffff !important;
+  background-image: none !important;
   color: #111827 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Red button class to stay red in dark mode */
+.btn-red,
+.dark .btn-red,
+.dark button.bg-red-500:not(.active-white-bg),
+.dark div.bg-red-500:not(.active-white-bg) {
+  background: #ef4444 !important;
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+}
+
+.btn-red svg,
+.dark .btn-red svg,
+.btn-red-svg,
+.dark .btn-red-svg,
+.dark button.btn-red svg,
+.dark button.bg-red-500:not(.active-white-bg) svg,
+.dark div.bg-red-500:not(.active-white-bg) svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+/* Ensure children inherit the dark text */
+.dark .active-white-bg *,
+.dark button.active-white-bg *,
+.dark div.active-white-bg *,
+.dark button.active-white-bg span,
+.dark div.active-white-bg span,
+.dark .active-white-bg svg,
+.dark div.active-white-bg svg {
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+.dark .active-white-bg input,
+.dark div.active-white-bg input {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Blue gradient button - iOS style (invoice/fakturácia buttons) */
+.btn-blue-gradient {
+  background: linear-gradient(to bottom right, #3B82F6, #2563EB) !important;
+  background-image: linear-gradient(to bottom right, #3B82F6, #2563EB) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.btn-blue-gradient:hover {
+  background: linear-gradient(to bottom right, #2563EB, #1D4ED8) !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45) !important;
+}
+
+.btn-blue-gradient span,
+.btn-blue-gradient svg {
+  color: #ffffff !important;
+}
+
+/* Green gradient button - iOS style (denník buttons) */
+.btn-green-gradient {
+  background: linear-gradient(to bottom right, #22C55E, #16A34A) !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.btn-green-gradient:hover {
+  background: linear-gradient(to bottom right, #16A34A, #15803D) !important;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.45) !important;
+}
+
+.btn-green-gradient span,
+.btn-green-gradient svg {
+  color: #ffffff !important;
+}
+
+/* Green tab buttons in denník modal */
+.dark .btn-green-tab {
+  border: none !important;
+}
+
+.btn-green-tab.active-green-tab {
+  background: linear-gradient(to bottom right, #22C55E, #16A34A) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35) !important;
+  border: none !important;
+}
+
+.btn-green-tab.active-green-tab svg,
+.btn-green-tab.active-green-tab span {
+  color: #ffffff !important;
+}
+
+/* Denník timer start button - white bg, green text in both modes */
+.dennik-timer-btn {
+  background: #ffffff !important;
+  color: #16A34A !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dennik-timer-btn:hover {
+  background: #f0fdf4 !important;
+}
+
+.dennik-timer-btn svg,
+.dennik-timer-btn span {
+  color: #16A34A !important;
+}
+
+/* Denník timer plus button - lighter white overlay */
+.dennik-timer-plus-btn {
+  background: rgba(255, 255, 255, 0.3) !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-/* Ensure children inherit the dark text */
-.dark .active-white-bg * {
+/* Project/Invoice status badges */
+.status-badge-dark .cutout-icon,
+.status-badge-dark .cutout-text {
+  color: var(--status-color);
+  stroke: var(--status-color);
+}
+
+/* Force dark text and icons for ALL status badges in dark mode */
+.dark .status-badge-dark,
+.dark .status-badge-dark .status-badge-dark-text {
+  color: #000000 !important;
+}
+
+/* Icons inside white circle should keep status color, not be forced to black */
+.dark .status-badge-dark .status-badge-icon svg,
+.dark .status-badge-dark .cutout-icon,
+.dark .status-badge-dark .cutout-text {
+  color: var(--status-color) !important;
+  stroke: var(--status-color) !important;
+}
+
+/* Only force dark text on status badges in dark mode — light mode keeps white text */
+.dark .status-badge-dark-text {
+  color: #000000 !important;
+}
+
+/* Ensure blue buttons stay blue in dark mode even if broad rules hit them */
+.dark button.bg-blue-600,
+.dark button.btn-blue-gradient,
+.dark .btn-blue-gradient {
+  background-color: #2563EB !important;
+  background: linear-gradient(to bottom right, #3B82F6, #2563EB) !important;
+  background-image: linear-gradient(to bottom right, #3B82F6, #2563EB) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45) !important;
+}
+
+.dennik-timer-plus-btn:hover {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+.dennik-timer-plus-btn svg {
+  color: #ffffff !important;
+}
+
+/* Denník calendar day buttons - remove all background/border overrides */
+.dark .dennik-day-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.dark .dennik-day-btn.dennik-day-today {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #22C55E !important;
+  border: 1px solid #16A34A !important;
+}
+
+.dark .dennik-day-btn.dennik-day-selected {
+  background: #16A34A !important;
+  color: #ffffff !important;
+}
+
+.dark .dennik-day-btn.dennik-day-sunday {
+  background: rgba(234, 179, 8, 0.08) !important;
+}
+
+/* Light mode calendar day cleanup */
+.dennik-day-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.dennik-day-btn.dennik-day-today {
+  background: rgba(34, 197, 94, 0.1) !important;
+  color: #16A34A !important;
+}
+
+.dennik-day-btn.dennik-day-selected {
+  background: #16A34A !important;
+  color: #ffffff !important;
+}
+
+.dennik-day-btn.dennik-day-sunday {
+  background: rgba(234, 179, 8, 0.05) !important;
+}
+
+/* Status badges in dark mode - black text and icons on colored backgrounds */
+.dark .status-badge-dark span,
+.dark .status-badge-dark {
+  color: #111827 !important;
+}
+
+.dark .status-badge-dark svg,
+.dark .status-badge-dark .status-badge-icon {
   color: #111827 !important;
 }
 
 /* Specific override for Invoice Modal Note */
 .dark #invoice-note {
   color: #ffffff !important;
-  background-color: #374151 !important;
-  /* gray-700 */
+  background-color: #252525 !important;
 }
 
 /* Mobile-specific date input styling */
@@ -756,10 +1031,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .dark button.invoice-btn-inactive,
 .dark div.invoice-btn-inactive,
 .dark .invoice-btn-inactive {
-  background: #4b5563 !important;
-  background-color: #4b5563 !important;
+  background: #2D3748 !important;
+  background-color: #2D3748 !important;
   background-image: none !important;
   color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-top: none !important;
 }
 

@@ -145,11 +145,10 @@ const Archive = ({ onBack }) => {
                     key={days}
                     onClick={() => handleArchiveRetentionChange(days)}
                     className={`py-1.5 lg:px-4 lg:py-2 rounded-xl font-semibold transition-all text-sm lg:text-base text-center flex items-center justify-center gap-2 shadow-sm ${archiveRetentionDays === days
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 transform scale-[1.02]'
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 transform scale-[1.02] active-white-bg'
                       : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                   >
-                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${archiveRetentionDays === days ? 'bg-blue-400' : 'bg-transparent'}`} />
                     {days === 99999 ? t('Forever') : `${days} ${t('days')}`}
                   </button>
                 ))}
@@ -234,15 +233,18 @@ const Archive = ({ onBack }) => {
                       )}
                     </button>
                     <button
-                      onClick={(e) => handleDeleteClick(project.id, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(project.id, e);
+                      }}
                       disabled={deletingProjectId === project.id || unarchivingProjectId === project.id}
-                      className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl p-2 transition-all duration-300"
+                      className="p-2 text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors btn-red disabled:opacity-50"
                       title={t('Delete Forever')}
                     >
                       {deletingProjectId === project.id ? (
-                        <div className="w-3 h-3 lg:w-4 lg:h-4 border-2 border-red-100 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <Trash2 className="w-3 h-3 lg:w-4 lg:h-4 text-red-100" />
+                        <Trash2 className="w-5 h-5" />
                       )}
                     </button>
                   </div>

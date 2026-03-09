@@ -226,7 +226,7 @@ const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
   if (!isOpen || !pdfUrl) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in" onClick={onClose}>
       {/* Modal - fullscreen on mobile, centered on desktop */}
       <div className={`bg-white dark:bg-gray-900 flex flex-col overflow-hidden ${isMobile
         ? 'w-full h-full rounded-none'
@@ -248,9 +248,9 @@ const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
             >
-              <X className="w-6 h-6" />
+              <X className="w-6 h-6 text-gray-500" />
             </button>
           </div>
         </div>
