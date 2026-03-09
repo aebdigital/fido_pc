@@ -1014,9 +1014,11 @@ const Projects = () => {
                                 )}
                                 {project.is_dennik_enabled && (
                                   <div className="flex items-center gap-2 shrink-0">
-                                    <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
-                                      {t('Denník')}
-                                    </span>
+                                    {!isAssignedProject && (
+                                      <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-800">
+                                        {t('Denník')}
+                                      </span>
+                                    )}
                                     {activeTimer && activeTimer.project_id === project.id ? (
                                       <LiveTimer
                                         size="small"

@@ -1245,6 +1245,54 @@ export const invoiceSettingsApi = {
 
 // ========== RECEIPTS ==========
 
+const normalizeReceiptNumber = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+
+  if (typeof value === 'string') {
+    const normalized = value
+      .replace(/\s/g, '')
+      .replace(',', '.')
+      .replace(/[^0-9.-]/g, '')
+    const parsed = parseFloat(normalized)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  return 0
+}
+
+const normalizeReceiptItem = (item) => {
+  const safeItem = item && typeof item === 'object' ? item : {}
+  const quantity = normalizeReceiptNumber(safeItem.quantity)
+
+  return {
+    name: typeof safeItem.name === 'string' ? safeItem.name : '',
+    quantity: quantity > 0 ? quantity : 1,
+    price: normalizeReceiptNumber(safeItem.price)
+  }
+}
+
+const normalizeReceiptItems = (items) => {
+  if (Array.isArray(items)) return items.map(normalizeReceiptItem)
+
+  if (typeof items === 'string') {
+    try {
+      const parsedItems = JSON.parse(items)
+      return Array.isArray(parsedItems) ? parsedItems.map(normalizeReceiptItem) : []
+    } catch {
+      return []
+    }
+  }
+
+  return []
+}
+
+const normalizeReceipt = (receipt) => ({
+  ...receipt,
+  id: receipt.c_id,
+  amount: receipt.amount === null || receipt.amount === undefined ? null : normalizeReceiptNumber(receipt.amount),
+  items: normalizeReceiptItems(receipt.items)
+})
+
 export const receiptsApi = {
   // Get all receipts for a project (excludes soft-deleted)
   getByProject: async (projectId) => {
@@ -1258,7 +1306,7 @@ export const receiptsApi = {
 
       if (error) throw error
       // Map c_id to id for app compatibility
-      return (data || []).map(item => ({ ...item, id: item.c_id }))
+      return (data || []).map(normalizeReceipt)
     } catch (error) {
       handleError('receiptsApi.getByProject', error)
     }
@@ -1278,7 +1326,7 @@ export const receiptsApi = {
 
       if (error) throw error
       // Map c_id to id for app compatibility
-      return data ? { ...data, id: data.c_id } : null
+      return data ? normalizeReceipt(data) : null
     } catch (error) {
       handleError('receiptsApi.create', error)
     }
@@ -1296,7 +1344,7 @@ export const receiptsApi = {
 
       if (error) throw error
       // Map c_id to id for app compatibility
-      return data ? { ...data, id: data.c_id } : null
+      return data ? normalizeReceipt(data) : null
     } catch (error) {
       handleError('receiptsApi.update', error)
     }
@@ -3052,4 +3100,3 @@ const api = {
 }
 
 export default api
-

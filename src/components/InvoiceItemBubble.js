@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 
 import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -38,6 +38,29 @@ const InvoiceItemBubble = ({
   const [taxObligationTransfer, setTaxObligationTransfer] = useState(item.taxObligationTransfer || false);
   const [unit, setUnit] = useState(item.unit || 'm2');
   const [vatInputString, setVatInputString] = useState(item.vat !== undefined ? String(item.vat) : '23');
+
+  const adjustTitleFieldHeight = useCallback(() => {
+    const element = titleInputRef.current;
+    if (!element) return;
+
+    const computedStyle = window.getComputedStyle(element);
+    const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+    const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+    const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+    const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+    const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0;
+
+    const verticalExtras = paddingTop + paddingBottom + borderTop + borderBottom;
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 640;
+    const maxRows = isMobileViewport ? 4 : 3;
+    const minHeight = Math.ceil(lineHeight + verticalExtras);
+    const maxHeight = Math.ceil((lineHeight * maxRows) + verticalExtras);
+
+    element.style.height = 'auto';
+    const nextHeight = Math.max(minHeight, Math.min(Math.ceil(element.scrollHeight), maxHeight));
+    element.style.height = `${nextHeight}px`;
+    element.style.overflowY = element.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, []);
 
   // Filter suggestions based on title input
   const filteredSuggestions = useMemo(() => {
@@ -83,9 +106,18 @@ const InvoiceItemBubble = ({
   // Auto-focus title input when a new item is added
   useEffect(() => {
     if (item.isNew && titleInputRef.current) {
-      setTimeout(() => titleInputRef.current?.focus(), 50);
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+        adjustTitleFieldHeight();
+      }, 50);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [adjustTitleFieldHeight]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (isExpanded) {
+      adjustTitleFieldHeight();
+    }
+  }, [title, isExpanded, adjustTitleFieldHeight]);
 
   // Sync with parent item changes
   useEffect(() => {
@@ -176,6 +208,7 @@ const InvoiceItemBubble = ({
     const newTitle = e.target.value;
     setTitle(newTitle);
     notifyUpdate({ title: newTitle });
+    requestAnimationFrame(adjustTitleFieldHeight);
   };
 
   // Calculate VAT amount and total
@@ -200,14 +233,23 @@ const InvoiceItemBubble = ({
     >
       {/* Header - Always visible */}
       <div className="p-3">
+        {isExpanded && (
+          <div className="sm:hidden flex justify-end mb-2">
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="px-3 py-1 bg-white text-gray-900 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+            >
+              {t('Done')}
+            </button>
+          </div>
+        )}
         <div className="flex items-start justify-between">
           {/* Title and count */}
           <div className="flex-1 min-w-0">
             {isExpanded ? (
               <div className="relative">
-                <input
+                <textarea
                   ref={titleInputRef}
-                  type="text"
                   value={title}
                   onChange={(e) => {
                     handleTitleChange(e);
@@ -215,7 +257,8 @@ const InvoiceItemBubble = ({
                   }}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  className="w-full text-lg font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 focus:border-gray-900 dark:focus:border-white outline-none"
+                  rows={1}
+                  className="w-full text-xl sm:text-lg font-medium leading-7 sm:leading-6 text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 sm:px-3 sm:py-2 min-h-[52px] sm:min-h-[44px] resize-none focus:border-gray-900 dark:focus:border-white outline-none"
                   placeholder={t('Item name')}
                 />
                 {showSuggestions && filteredSuggestions.length > 0 && (
@@ -251,7 +294,7 @@ const InvoiceItemBubble = ({
           </div>
 
           {/* Price or Done button */}
-          <div className="flex items-center gap-2 ml-3">
+          <div className={`items-center gap-2 ml-3 ${isExpanded ? 'hidden sm:flex' : 'flex'}`}>
             {isExpanded ? (
               <button
                 onClick={() => setIsExpanded(false)}

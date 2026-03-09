@@ -54,6 +54,46 @@ const LEGACY_PERMISSION_MAP = {
   'projectNote': 'project_note'
 };
 
+const getSafeReceiptNumber = (value) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+
+  if (typeof value === 'string') {
+    const normalized = value
+      .replace(/\s/g, '')
+      .replace(',', '.')
+      .replace(/[^0-9.-]/g, '');
+    const parsed = parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
+const getSafeReceiptItems = (items) => {
+  let parsedItems = [];
+
+  if (Array.isArray(items)) {
+    parsedItems = items;
+  } else if (typeof items === 'string') {
+    try {
+      const fromJson = JSON.parse(items);
+      parsedItems = Array.isArray(fromJson) ? fromJson : [];
+    } catch {
+      parsedItems = [];
+    }
+  }
+
+  return parsedItems.map((item) => {
+    const safeItem = item && typeof item === 'object' ? item : {};
+    const quantity = getSafeReceiptNumber(safeItem.quantity);
+    return {
+      name: typeof safeItem.name === 'string' ? safeItem.name : '',
+      quantity: quantity > 0 ? quantity : 1,
+      price: getSafeReceiptNumber(safeItem.price)
+    };
+  });
+};
+
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();
 
@@ -248,6 +288,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [showDeleteReceiptConfirm, setShowDeleteReceiptConfirm] = useState(false);
   const [receiptToDelete, setReceiptToDelete] = useState(null);
   const receiptInputRef = useRef(null);
+  const selectedReceiptItems = useMemo(() => getSafeReceiptItems(selectedReceipt?.items), [selectedReceipt?.items]);
+  const selectedReceiptAmount = useMemo(() => getSafeReceiptNumber(selectedReceipt?.amount), [selectedReceipt?.amount]);
 
   // Refs
   const photoInputRef = useRef(null);
@@ -2443,6 +2485,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       <img
                         src={selectedReceipt.image_url}
                         alt="Receipt"
+                        decoding="async"
                         className="w-full max-h-64 object-contain bg-white dark:bg-gray-900"
                       />
                     </div>
@@ -2464,19 +2507,19 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                           </p>
                         </div>
                       )}
-                      {selectedReceipt.amount && (
+                      {selectedReceipt.amount !== null && selectedReceipt.amount !== undefined && (
                         <div>
                           <span className="text-sm text-gray-500 dark:text-gray-400">{t('Amount')}</span>
                           <p className="font-semibold text-lg text-gray-900 dark:text-white">
-                            {formatPrice(selectedReceipt.amount)}
+                            {formatPrice(selectedReceiptAmount)}
                           </p>
                         </div>
                       )}
-                      {selectedReceipt.items && selectedReceipt.items.length > 0 && (
+                      {selectedReceiptItems.length > 0 && (
                         <div>
                           <span className="text-sm text-gray-500 dark:text-gray-400">{t('Items')}</span>
                           <div className="mt-2 space-y-1">
-                            {selectedReceipt.items.map((item, idx) => (
+                            {selectedReceiptItems.map((item, idx) => (
                               <div key={idx} className="flex justify-between text-sm">
                                 <span className="text-gray-700 dark:text-gray-300">
                                   {item.name} {item.quantity > 1 ? `(${item.quantity}x)` : ''}
@@ -2513,6 +2556,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                           <img
                             src={receipt.image_url}
                             alt="Receipt"
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -2526,7 +2571,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900 dark:text-white">
-                            {receipt.amount ? formatPrice(receipt.amount) : '-'}
+                            {receipt.amount !== null && receipt.amount !== undefined ? formatPrice(getSafeReceiptNumber(receipt.amount)) : '-'}
                           </p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
