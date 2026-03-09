@@ -118,10 +118,10 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
       {/* Client Type Selection */}
       <div className="lg:w-80 flex-shrink-0 mb-6 lg:mb-0">
         <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-4">{t('Type of client?')}</h3>
-        <div className="flex sm:flex-col gap-3 mb-6 lg:mb-8">
+        <div className="flex gap-3 mb-6 lg:mb-8 lg:flex-col">
           <button
-            className={`py-3 px-4 lg:px-6 rounded-full sm:rounded-2xl font-bold transition-all text-left flex-1 sm:flex-none flex items-center gap-3 border-2 ${clientType === 'personal'
-              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md transform sm:scale-[1.02] active-white-bg'
+            className={`py-3 px-4 lg:px-6 rounded-2xl font-semibold transition-all text-center justify-center flex-1 lg:flex-none flex items-center border-2 ${clientType === 'personal'
+              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md lg:scale-[1.02] active-white-bg'
               : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             onClick={() => setClientType('personal')}
@@ -129,8 +129,8 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
             {t('Private')}
           </button>
           <button
-            className={`py-3 px-4 lg:px-6 rounded-full sm:rounded-2xl font-bold transition-all text-left flex-1 sm:flex-none flex items-center gap-3 border-2 ${clientType === 'corporation'
-              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md transform sm:scale-[1.02] active-white-bg'
+            className={`py-3 px-4 lg:px-6 rounded-2xl font-semibold transition-all text-center justify-center flex-1 lg:flex-none flex items-center border-2 ${clientType === 'corporation'
+              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md lg:scale-[1.02] active-white-bg'
               : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             onClick={() => setClientType('corporation')}
@@ -140,10 +140,10 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
         </div>
 
         <div className="text-center">
-          <div className="w-[100px] h-[100px] sm:w-16 sm:h-16 lg:w-20 lg:h-20 sm:bg-gray-900 sm:dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-[100px] h-[100px] sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-gray-900 dark:text-white sm:text-white sm:dark:text-gray-900" />
+          <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gray-900 dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 lg:w-10 lg:h-10 text-white dark:text-gray-900" />
           </div>
-          <h2 className="text-[25px] font-semibold sm:text-xl lg:text-2xl sm:font-bold text-gray-900 dark:text-white">
+          <h2 className="text-xl lg:text-2xl font-semibold text-gray-900 dark:text-white">
             {clientType === 'personal' ? t('Private entity') : t('Business entity')}
           </h2>
         </div>
@@ -169,34 +169,34 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
               ) : (
                 <button
                   onClick={() => setShowRpoSearch(true)}
-                  className="flex items-center gap-2 px-[20px] py-[10px] sm:px-4 sm:py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 sm:bg-blue-100 sm:dark:bg-blue-900/30 sm:text-blue-700 sm:dark:text-blue-400 rounded-[17px] sm:rounded-xl hover:opacity-90 sm:hover:bg-blue-200 sm:dark:hover:bg-blue-900/50 transition-all text-[20px] font-semibold sm:text-sm sm:font-medium"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
                 >
-                  <Building2 className="w-6 h-6 sm:w-4 sm:h-4" />
+                  <Building2 className="w-4 h-4" />
                   {t('Fill by company ID')}
                 </button>
               )}
             </div>
           )}
 
-          <div className="space-y-1 gap-[20px] sm:gap-4 flex flex-col sm:block">
-            <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Name')}</label>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Name')}</label>
             <input
               type="text"
               value={clientForm.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder={clientType === 'personal' ? t('Name and surname') : t('Name of company')}
-              className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Email')}</label>
+            <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Email')}</label>
             <input
               type="email"
               value={clientForm.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder={t('Email address')}
-              className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
             />
           </div>
 
@@ -218,113 +218,113 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
           <div className={`${!showAllFields && isEditing ? 'hidden lg:contents' : 'contents'}`}>
 
             <div className="space-y-1">
-              <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Phone number')}</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Phone number')}</label>
               <input
                 type="tel"
                 value={clientForm.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 placeholder={t('Number')}
-                className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Street')}</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Street')}</label>
               <input
                 type="text"
                 value={clientForm.street}
                 onChange={(e) => handleInputChange('street', e.target.value)}
                 placeholder={t('Street')}
-                className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Additional info')}</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Additional info')}</label>
               <input
                 type="text"
                 value={clientForm.additionalInfo}
                 onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
                 placeholder={t('App #, Suite (optional)')}
-                className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('City')}</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('City')}</label>
               <input
                 type="text"
                 value={clientForm.city}
                 onChange={(e) => handleInputChange('city', e.target.value)}
                 placeholder={t('City')}
-                className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Postal code')}</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Postal code')}</label>
               <input
                 type="text"
                 value={clientForm.postalCode}
                 onChange={(e) => handleInputChange('postalCode', e.target.value)}
                 placeholder={t('ZIP Code')}
-                className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Country')}</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Country')}</label>
               <input
                 type="text"
                 value={clientForm.country}
                 onChange={(e) => handleInputChange('country', e.target.value)}
                 placeholder={t('Country')}
-                className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
             {clientType === 'corporation' && (
               <>
                 <div className="space-y-1">
-                  <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Business ID')}</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Business ID')}</label>
                   <input
                     type="text"
                     value={clientForm.businessId}
                     onChange={(e) => handleInputChange('businessId', e.target.value)}
                     placeholder={t('BID')}
-                    className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Tax ID')}</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Tax ID')}</label>
                   <input
                     type="text"
                     value={clientForm.taxId}
                     onChange={(e) => handleInputChange('taxId', e.target.value)}
                     placeholder={t('TID')}
-                    className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('VAT ID number')}</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('VAT ID number')}</label>
                   <input
                     type="text"
                     value={clientForm.vatId}
                     onChange={(e) => handleInputChange('vatId', e.target.value)}
-                    className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[14px] font-semibold sm:text-base sm:font-medium text-gray-900 dark:text-white">{t('Contact person')}</label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">{t('Contact person')}</label>
                   <input
                     type="text"
                     value={clientForm.contactPerson}
                     onChange={(e) => handleInputChange('contactPerson', e.target.value)}
                     placeholder={t('Name and surname')}
-                    className="w-full px-0 py-1 sm:px-4 sm:py-3 bg-transparent sm:bg-gray-50 dark:sm:bg-gray-800 text-gray-900 dark:text-white rounded-none sm:rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-[22px] font-semibold sm:text-lg sm:font-normal"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
                   />
                 </div>
               </>
@@ -334,13 +334,13 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
           <div className="mt-6 lg:mt-8 col-span-full flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white px-6 lg:px-8 py-[8px] sm:py-3 rounded-full sm:rounded-2xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm text-[24px] sm:text-lg"
+              className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white px-5 lg:px-8 py-3 rounded-xl sm:rounded-2xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm text-base sm:text-lg"
             >
               {t('Cancel')}
             </button>
             <button
               onClick={handleSubmit}
-              className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-[8px] sm:py-3 rounded-full sm:rounded-2xl font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-md hover:shadow-lg border-2 border-gray-900 dark:border-white active-white-bg text-[24px] sm:text-lg active:scale-[0.98]"
+              className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 lg:px-8 py-3 rounded-xl sm:rounded-2xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-md hover:shadow-lg border-2 border-gray-900 dark:border-white active-white-bg text-base sm:text-lg active:scale-[0.98]"
             >
               {isEditing ? t('Save') : t('Add client')}
             </button>

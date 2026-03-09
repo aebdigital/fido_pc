@@ -295,29 +295,29 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
     return (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-            <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh]">
+            <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] sm:rounded-[25px] shadow-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[85vh]">
 
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                <div className="px-5 pt-5 pb-[15px] flex justify-between items-start gap-3">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Issue Consolidated Invoice')}</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <h2 className="text-2xl font-bold text-[#111827] dark:text-white">{t('Issue Consolidated Invoice')}</h2>
+                        <p className="text-sm font-medium text-[#6B7280] dark:text-gray-400 mt-1">
                             {step === 1 && t('Select Project Owner')}
                             {step === 2 && t('Select Projects')}
                             {step === 3 && t('Invoice Details')}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                        <X className="w-6 h-6 text-gray-500" />
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F3F4F6] dark:bg-gray-800 no-gradient flex items-center justify-center transition-colors hover:bg-[#E5E7EB] dark:hover:bg-gray-700">
+                        <X className="w-4 h-4 text-[#6B7280] dark:text-gray-300" />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto px-5 pb-5">
                     {step === 1 && (
-                        <div className="space-y-3">
+                        <div className="space-y-[10px]">
                             {isLoadingOwners ? (
-                                <div className="flex justify-center py-8"><Loader2 className="animate-spin w-8 h-8 text-purple-500" /></div>
+                                <div className="flex justify-center py-8"><Loader2 className="animate-spin w-8 h-8 text-blue-500" /></div>
                             ) : owners.length === 0 ? (
                                 <div className="text-center py-8 text-gray-500">{t('No eligible project owners found.')}</div>
                             ) : (
@@ -325,29 +325,29 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                                     <button
                                         key={owner.id}
                                         onClick={() => setSelectedOwnerId(owner.id)}
-                                        className={`w-full flex items-center justify-between p-[14px] sm:p-4 rounded-[16px] sm:rounded-xl border transition-all ${selectedOwnerId === owner.id
-                                            ? 'border-gray-900 sm:border-purple-500 bg-gray-50 sm:bg-purple-50 dark:bg-gray-800 sm:dark:bg-purple-900/20 sm:ring-1 sm:ring-purple-500'
-                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-400 sm:hover:border-purple-300 dark:hover:border-purple-700'
+                                        className={`w-full flex items-center justify-between p-4 bg-white dark:bg-gray-900 no-gradient rounded-2xl border transition-all shadow-[0_2px_8px_rgba(0,0,0,0.05)] ${selectedOwnerId === owner.id
+                                            ? 'border-2 border-blue-500'
+                                            : 'border-black/15 dark:border-white/10 hover:border-black/25 dark:hover:border-white/20'
                                             }`}
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold">
+                                            <div className="w-11 h-11 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center text-[#111827] dark:text-white font-bold">
                                                 {owner.full_name?.charAt(0) || owner.email?.charAt(0)}
                                             </div>
                                             <div className="text-left">
-                                                <div className="font-semibold text-gray-900 dark:text-white">
+                                                <div className="text-[17px] font-semibold text-[#111827] dark:text-white leading-tight">
                                                     {owner.full_name || owner.email}
                                                 </div>
-                                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                <div className="text-[13px] text-[#6B7280] dark:text-gray-400">
                                                     {owner.projectCount} {t('projects')}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedOwnerId === owner.id
-                                            ? 'bg-gray-900 sm:bg-purple-500 border-gray-900 sm:border-purple-500'
-                                            : 'border-gray-300 dark:border-gray-600'
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedOwnerId === owner.id
+                                            ? 'border-blue-500'
+                                            : 'border-gray-300'
                                             }`}>
-                                            {selectedOwnerId === owner.id && <Check className="w-3 h-3 text-white" />}
+                                            {selectedOwnerId === owner.id && <div className="w-3.5 h-3.5 rounded-full bg-blue-500" />}
                                         </div>
                                     </button>
                                 ))
@@ -356,10 +356,10 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                     )}
 
                     {step === 2 && (
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                    {t('Projects owned by')} <span className="text-gray-900 dark:text-white font-bold">{owners.find(o => o.id === selectedOwnerId)?.full_name || 'Owner'}</span>
+                        <div className="space-y-[10px]">
+                            <div className="flex justify-between items-center pb-1">
+                                <span className="text-sm font-medium text-[#6B7280] dark:text-gray-400">
+                                    {t('Projects owned by')} <span className="text-[#111827] dark:text-white font-bold">{owners.find(o => o.id === selectedOwnerId)?.full_name || 'Owner'}</span>
                                 </span>
 
                             </div>
@@ -379,15 +379,15 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                                             key={pid}
                                             onClick={() => toggleProject(pid)}
                                             disabled={hasInvoice}
-                                            className={`flex items-center justify-between p-[14px] sm:p-4 rounded-[16px] sm:rounded-xl border transition-all ${hasInvoice
-                                                ? 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 opacity-60 cursor-not-allowed'
+                                            className={`flex items-center justify-between p-4 bg-white dark:bg-gray-900 no-gradient rounded-2xl border transition-all shadow-[0_2px_8px_rgba(0,0,0,0.05)] ${hasInvoice
+                                                ? 'border-black/10 dark:border-white/10 bg-gray-100 dark:bg-gray-800 opacity-60 cursor-not-allowed'
                                                 : isSelected
-                                                    ? 'border-gray-900 sm:border-purple-500 bg-gray-50 sm:bg-purple-50 dark:bg-gray-800 sm:dark:bg-purple-900/20'
-                                                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                                    ? 'border-2 border-blue-500'
+                                                    : 'border-black/15 dark:border-white/10 hover:border-black/25 dark:hover:border-white/20'
                                                 }`}
                                         >
                                             <div className="flex flex-col items-start">
-                                                <span className={`font-medium ${hasInvoice ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{project.name}</span>
+                                                <span className={`text-[17px] font-medium ${hasInvoice ? 'text-gray-400 dark:text-gray-500' : 'text-[#111827] dark:text-white'}`}>{project.name}</span>
                                                 {hasInvoice && (
                                                     <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1">
                                                         <FileText className="w-3 h-3" />
@@ -395,13 +395,13 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${hasInvoice
-                                                ? 'border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700'
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${hasInvoice
+                                                ? 'border-gray-300 bg-gray-200'
                                                 : isSelected
-                                                    ? 'bg-gray-900 sm:bg-purple-500 border-gray-900 sm:border-purple-500'
-                                                    : 'border-gray-300 dark:border-gray-600'
+                                                    ? 'border-blue-500'
+                                                    : 'border-gray-300'
                                                 }`}>
-                                                {isSelected && !hasInvoice && <Check className="w-3 h-3 text-white" />}
+                                                {isSelected && !hasInvoice && <div className="w-3.5 h-3.5 rounded-full bg-blue-500" />}
                                             </div>
                                         </button>
                                     );
@@ -411,49 +411,47 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                     )}
 
                     {step === 3 && (
-                        <div className="space-y-6">
-                            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl space-y-4 border border-gray-100 dark:border-gray-700">
-                                <div className="space-y-4">
+                        <div className="space-y-4 pt-1">
+                            <div className="space-y-4">
                                     {selectedProjectIds.map(pid => (
-                                        <div key={pid} className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                                            <div className="mb-2 font-medium text-gray-900 dark:text-white">
+                                        <div key={pid} className="p-4 bg-white dark:bg-gray-900 no-gradient rounded-[18px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                                            <div className="mb-3 text-[17px] font-semibold text-[#111827] dark:text-white">
                                                 {projectDetails[pid]?.name || t('Project')}
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Hours')}</label>
+                                                    <label className="block text-xs font-medium text-[#6B7280] dark:text-gray-400 mb-1">{t('Hours')}</label>
                                                     <input
                                                         type="number"
                                                         value={projectDetails[pid]?.hours || ''}
                                                         onChange={(e) => handleDetailChange(pid, 'hours', e.target.value)}
-                                                        className="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-1 focus:ring-purple-500"
+                                                        className="w-full px-[10px] py-[10px] bg-white dark:bg-gray-900 border-2 border-black dark:border-gray-500 rounded-xl text-[18px] font-semibold text-[#111827] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Rate (€)')}</label>
+                                                    <label className="block text-xs font-medium text-[#6B7280] dark:text-gray-400 mb-1">{t('Rate (€)')}</label>
                                                     <input
                                                         type="number"
                                                         value={projectDetails[pid]?.rate || ''}
                                                         onChange={(e) => handleDetailChange(pid, 'rate', e.target.value)}
-                                                        className="w-full px-2 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-1 focus:ring-purple-500"
+                                                        className="w-full px-[10px] py-[10px] bg-white dark:bg-gray-900 border-2 border-black dark:border-gray-500 rounded-xl text-[18px] font-semibold text-[#111827] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="mt-2 text-right text-sm font-bold text-gray-900 dark:text-white">
+                                            <div className="mt-3 text-right text-base font-bold text-[#111827] dark:text-white">
                                                 {((parseFloat(projectDetails[pid]?.hours || 0) * parseFloat(projectDetails[pid]?.rate || 0)) * 1.23).toFixed(2)} €
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-
-                                <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-                                    <span className="font-medium text-gray-900 dark:text-white">{t('Total Amount')}</span>
-                                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                        {(grandTotal * 1.23).toFixed(2)} €
-                                    </span>
-                                </div>
-                                <p className="text-xs text-right text-gray-400">{t('Includes VAT')}</p>
                             </div>
+
+                            <div className="flex justify-between items-center p-4 bg-white dark:bg-gray-900 no-gradient rounded-[18px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                                <span className="text-[18px] font-semibold text-[#111827] dark:text-white">{t('Total Amount')}</span>
+                                <span className="text-[22px] font-bold text-green-600">
+                                    {(grandTotal * 1.23).toFixed(2)} €
+                                </span>
+                            </div>
+                            <p className="text-xs text-right text-[#9CA3AF] dark:text-gray-500">{t('Includes VAT')}</p>
 
                             {!ownerContractors[selectedOwnerId] && (
                                 <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg flex gap-2 items-start text-yellow-800 dark:text-yellow-200 text-sm">
@@ -466,11 +464,11 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                 </div>
 
                 {/* Footer / Controls */}
-                <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50 rounded-b-2xl">
+                <div className="px-5 py-4 border-t border-black/10 dark:border-white/10 flex justify-between items-center bg-white dark:bg-gray-900 no-gradient">
                     <div className="flex gap-2">
                         {/* Pagination Circles */}
                         {[1, 2, 3].map(i => (
-                            <div key={i} className={`w-2.5 h-2.5 rounded-full transition-colors ${step >= i ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'}`} />
+                            <div key={i} className={`w-2 h-2 rounded-full transition-colors ${step >= i ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'}`} />
                         ))}
                     </div>
 
@@ -478,7 +476,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                         {step > 1 && (
                             <button
                                 onClick={handleBack}
-                                className="px-4 py-[8px] sm:py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full sm:rounded-lg font-medium transition-colors"
+                                className="px-5 py-3 text-[#111827] dark:text-white bg-transparent no-gradient no-global-border rounded-[14px] font-semibold transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
                             >
                                 {t('Back')}
                             </button>
@@ -487,7 +485,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                             <button
                                 onClick={handleNext}
                                 disabled={(step === 1 && !selectedOwnerId) || (step === 2 && selectedProjectIds.length === 0)}
-                                className="flex items-center gap-2 px-6 py-[8px] sm:py-2 bg-gray-900 sm:bg-black dark:bg-white text-white dark:text-black rounded-full sm:rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1 px-6 py-3 bg-black no-gradient no-global-border text-white rounded-[14px] font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {t('Next')}
                                 <ChevronRight className="w-4 h-4" />
@@ -495,7 +493,7 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                         ) : (
                             <button
                                 onClick={handleGenerate}
-                                className="flex items-center gap-2 px-6 py-[8px] sm:py-2 bg-gray-900 sm:bg-gradient-to-br sm:from-blue-500 sm:to-blue-600 text-white rounded-full sm:rounded-lg font-bold sm:hover:from-blue-600 sm:hover:to-blue-700 transition-all shadow-sm sm:hover:shadow-lg active:scale-[0.98]"
+                                className="flex items-center gap-1 px-6 py-3 bg-gradient-to-br from-blue-500 to-blue-700 no-global-border text-white rounded-[14px] font-bold hover:from-blue-600 hover:to-blue-800 transition-all active:scale-[0.98]"
                             >
                                 <Check className="w-4 h-4" />
                                 {t('Proceed to Invoice')}

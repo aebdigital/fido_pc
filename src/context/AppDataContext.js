@@ -471,9 +471,10 @@ export const AppDataProvider = ({ children }) => {
         let photos = [];
         if (project.photos) {
           try {
-            photos = typeof project.photos === 'string'
+            const parsedPhotos = typeof project.photos === 'string'
               ? JSON.parse(project.photos)
               : project.photos;
+            photos = Array.isArray(parsedPhotos) ? parsedPhotos : [];
           } catch (e) {
             console.warn('Failed to parse photos for project:', project.id);
           }
@@ -945,7 +946,14 @@ export const AppDataProvider = ({ children }) => {
                 clientName: rawProject.client_name || rawProject.clientName,
                 contractorId: rawProject.contractor_id || rawProject.contractorId,
                 isArchived: rawProject.is_archived,
-                photos: rawProject.photos ? (typeof rawProject.photos === 'string' ? JSON.parse(rawProject.photos) : rawProject.photos) : undefined,
+                photos: rawProject.photos ? (() => {
+                  try {
+                    const parsedPhotos = typeof rawProject.photos === 'string' ? JSON.parse(rawProject.photos) : rawProject.photos;
+                    return Array.isArray(parsedPhotos) ? parsedPhotos : undefined;
+                  } catch {
+                    return undefined;
+                  }
+                })() : undefined,
                 projectHistory: rawProject.project_history ? (typeof rawProject.project_history === 'string' ? JSON.parse(rawProject.project_history) : rawProject.project_history) : undefined,
               } : null;
 

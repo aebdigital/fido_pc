@@ -746,7 +746,7 @@ const Projects = () => {
                         alt={category.name}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute bottom-0 left-0 right-0 h-[90px]" style={{ background: 'linear-gradient(to top, #E9E9E9, rgba(233,233,233,0.7) 50%, rgba(233,233,233,0) 100%)' }}></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent dark:from-black/70 dark:via-black/30"></div>
 
                       {/* Active Timer Live Display Mobile */}
                       {activeTimer && category.projects?.some(p => p.id === activeTimer.project_id) ? (
@@ -763,9 +763,9 @@ const Projects = () => {
                         <div className="absolute top-4 right-4 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-lg animate-pulse z-20" />
                       )}
 
-                      <span className="absolute top-[15px] right-[20px] text-[16px] font-semibold text-gray-900 z-10">{category.count} {tPlural(category.count, 'project_singular', 'projects_few', 'projects')}</span>
+                      <span className="absolute top-[15px] right-[20px] text-[16px] font-semibold text-gray-900 dark:text-gray-900 z-10">{category.count} {tPlural(category.count, 'project_singular', 'projects_few', 'projects')}</span>
                       <div className="absolute bottom-0 left-0 p-5 pb-[15px]">
-                        <h3 className="text-[35px] font-semibold text-gray-900">{t(category.name)}</h3>
+                        <h3 className="text-[35px] font-semibold text-gray-900 dark:text-gray-900">{t(category.name)}</h3>
                       </div>
                     </button>
                   ))}

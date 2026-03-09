@@ -155,9 +155,9 @@ const WorkPropertyCard = ({
             </div>
 
             <div className="space-y-3 lg:space-y-1">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 sm:w-12 sm:flex-shrink-0">{t('Width')}</span>
-                <div className="flex items-center gap-2 justify-end w-full">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 flex-1 min-w-0">{t('Width')}</span>
+                <div className="flex items-center gap-2 justify-end w-[150px] flex-shrink-0">
                   <NumberInput
                     value={subItem.width || 0}
                     onChange={(value) => onUpdateDoorWindow(item.id, type, subItem.id, 'width', value)}
@@ -168,9 +168,9 @@ const WorkPropertyCard = ({
                   <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400">m</span>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 sm:w-12 sm:flex-shrink-0">{t('Height')}</span>
-                <div className="flex items-center gap-2 justify-end w-full">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-base lg:text-xs text-gray-600 dark:text-gray-400 flex-1 min-w-0">{t('Height')}</span>
+                <div className="flex items-center gap-2 justify-end w-[150px] flex-shrink-0">
                   <NumberInput
                     value={subItem.height || 0}
                     onChange={(value) => onUpdateDoorWindow(item.id, type, subItem.id, 'height', value)}
@@ -247,18 +247,18 @@ const WorkPropertyCard = ({
     }
 
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1 min-w-0 leading-tight">
           {t(field.name)}
           {field.subtitle && ` - ${t(field.subtitle)}`}
         </span>
-        <div className="flex items-center gap-1 w-full sm:w-auto">
+        <div className="flex items-center gap-1 w-[150px] justify-end flex-shrink-0">
           {isTextType ? (
             <input
               type="text"
               value={value || ''}
               onChange={(e) => onUpdateWorkItem(item.id, fieldKey, e.target.value, true)}
-              className="w-full sm:w-32 px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
+              className="w-full px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400"
               placeholder={t(field.name)}
               autoFocus={shouldAutoFocus}
             />
@@ -394,9 +394,9 @@ const WorkPropertyCard = ({
                 {item.rentalFields && (
                   <div className="space-y-3 lg:space-y-2">
                     {item.rentalFields.map(field => (
-                      <div key={field.name} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0">{t(field.name)}</span>
-                        <div className="flex items-center gap-2 justify-end w-full">
+                      <div key={field.name} className="flex items-center justify-between gap-2">
+                        <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1 min-w-0 leading-tight">{t(field.name)}</span>
+                        <div className="flex items-center gap-2 justify-end w-[150px] flex-shrink-0">
                           <NumberInput
                             value={item.fields[field.name] || 0}
                             onChange={(value) => onUpdateWorkItem(item.id, field.name, value)}
@@ -890,12 +890,12 @@ const WorkPropertyCard = ({
 
               {/* Count and Price fields */}
               <div className="space-y-3 lg:space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                  <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0 flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1 min-w-0 flex items-center gap-2">
                     {t(WORK_ITEM_NAMES.COUNT)}
                     <Hammer className="w-3 h-3" />
                   </span>
-                  <div className="flex items-center gap-2 justify-end w-full">
+                  <div className="flex items-center gap-2 justify-end w-[150px] flex-shrink-0">
                     <NumberInput
                       value={item.fields[WORK_ITEM_NAMES.COUNT] || 0}
                       onChange={(value) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.COUNT, value)}
@@ -905,12 +905,12 @@ const WorkPropertyCard = ({
                     <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{t('pc')}</span>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                  <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 sm:w-32 sm:flex-shrink-0 flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-base lg:text-sm text-gray-600 dark:text-gray-400 flex-1 min-w-0 flex items-center gap-2">
                     {t(WORK_ITEM_NAMES.PRICE)}
                     <Package className="w-3 h-3" />
                   </span>
-                  <div className="flex items-center gap-2 justify-end w-full">
+                  <div className="flex items-center gap-2 justify-end w-[150px] flex-shrink-0">
                     <NumberInput
                       value={item.fields[WORK_ITEM_NAMES.PRICE] || 0}
                       onChange={(value) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.PRICE, value)}

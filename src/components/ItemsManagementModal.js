@@ -63,80 +63,88 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
         }
     };
 
+    const getCategoryColorClass = (category) => {
+        if (category === 'work') return 'text-blue-600';
+        if (category === 'material') return 'text-green-600';
+        return 'text-gray-500';
+    };
+
     if (!isOpen) return null;
 
     return (
         <>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-6 animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose} />
 
-                <div className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
+                <div className="bg-white dark:bg-gray-900 no-gradient w-full sm:max-w-2xl rounded-t-[25px] sm:rounded-[25px] shadow-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
                     {/* Header */}
-                    <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <div className="px-5 pt-5 pb-[10px] flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                                <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/15 dark:bg-blue-500/25 no-gradient flex items-center justify-center">
+                                <Package className="w-[22px] h-[22px] text-blue-500" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('Items')}</h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('Manage saved autocomplete items')}</p>
+                                <h2 className="text-[20px] font-bold text-[#111827] dark:text-white">{t('Items')}</h2>
+                                <p className="text-[13px] text-[#6B7280] dark:text-gray-400">{t('Manage saved autocomplete items')}</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                            <X className="w-6 h-6 text-gray-500" />
+                        <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F3F4F6] dark:bg-gray-800 no-gradient flex items-center justify-center hover:bg-[#E5E7EB] dark:hover:bg-gray-700 transition-colors">
+                            <X className="w-4 h-4 text-[#6B7280] dark:text-gray-300" />
                         </button>
                     </div>
 
                     {/* Search */}
-                    <div className="p-4 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                    <div className="px-5 pb-[10px]">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <Search className="absolute left-[10px] top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                             <input
                                 type="text"
                                 placeholder={t('Search items...')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
+                                className="w-full pl-9 pr-3 py-[10px] bg-[#F3F4F6] dark:bg-gray-800 border border-transparent dark:border-gray-700 rounded-[10px] text-[#111827] dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
                             />
                         </div>
                     </div>
 
                     {/* List */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    <div className="flex-1 overflow-y-auto px-5 pb-5">
                         {filteredItems.length > 0 ? (
-                            filteredItems.map((item, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl hover:border-gray-200 dark:hover:border-gray-600 transition-all shadow-sm group"
-                                >
-                                    <div className="flex-1 min-w-0 pr-4">
-                                        <h3 className="font-semibold text-gray-900 dark:text-white truncate">{item.title}</h3>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-md uppercase">
-                                                {item.unit}
-                                            </span>
-                                            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                                                {item.price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={() => setItemToDelete(item.title)}
-                                        className="p-2.5 bg-red-500 text-white hover:bg-red-600 rounded-xl transition-all shadow-sm"
-                                        title={t('Delete')}
+                            <div className="space-y-2">
+                                {filteredItems.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center justify-between p-[14px] bg-white dark:bg-gray-900 no-gradient border border-black/15 dark:border-white/10 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                                     >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <h3 className="text-base font-semibold text-[#111827] dark:text-white truncate">{item.title}</h3>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-xs font-medium px-1.5 py-0.5 bg-[#F3F4F6] dark:bg-gray-800 text-[#6B7280] dark:text-gray-400 rounded-md uppercase">
+                                                    {item.unit}
+                                                </span>
+                                                <span className={`text-xs font-medium capitalize ${getCategoryColorClass(item.category)}`}>
+                                                    {item.category}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setItemToDelete(item.title)}
+                                            className="w-9 h-9 bg-red-500 text-white hover:bg-red-600 rounded-[10px] transition-colors flex items-center justify-center"
+                                            title={t('Delete')}
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
                             <div className="py-12 flex flex-col items-center justify-center text-center">
-                                <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center mb-4">
-                                    <Search className="w-8 h-8 text-gray-300 dark:text-gray-700" />
+                                <div className="w-16 h-16 rounded-full bg-[#F3F4F6] dark:bg-gray-800 no-gradient flex items-center justify-center mb-4">
+                                    <Search className="w-8 h-8 text-gray-300" />
                                 </div>
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t('No items found')}</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mt-1">
+                                <h3 className="text-lg font-medium text-[#111827] dark:text-white">{t('No items found')}</h3>
+                                <p className="text-sm text-[#6B7280] dark:text-gray-400 max-w-xs mt-1">
                                     {searchQuery ? t('Try a different search term') : t('Start by adding items to your invoices')}
                                 </p>
                             </div>

@@ -860,23 +860,25 @@ const Dennik = () => {
 
             {/* Zamestnanci Modal */}
             {showZamestnanciModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setShowZamestnanciModal(false)}>
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowZamestnanciModal(false)}>
+                    <div className="w-full sm:max-w-lg h-[100dvh] sm:h-auto sm:max-h-[85vh] bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] sm:rounded-[25px] overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="flex items-center justify-between p-5 border-b dark:border-gray-800">
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Employees')}</h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                                    {formatSlovakPlural(zamestnanciMembers.length, 'members')}
-                                </p>
+                        <div className="px-5 pt-5 pb-[15px]">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <h2 className="text-[28px] font-bold text-[#111827] dark:text-white leading-tight">{t('Employees')}</h2>
+                                    <p className="mt-0.5 text-[15px] font-medium text-[#6B7280] dark:text-gray-400">
+                                        {formatSlovakPlural(zamestnanciMembers.length, 'members')}
+                                    </p>
+                                </div>
+                                <button onClick={() => setShowZamestnanciModal(false)} className="w-8 h-8 rounded-full bg-[#F3F4F6] dark:bg-gray-800 no-gradient flex items-center justify-center transition-colors hover:bg-[#E5E7EB] dark:hover:bg-gray-700">
+                                    <X className="w-4 h-4 text-[#6B7280] dark:text-gray-300" />
+                                </button>
                             </div>
-                            <button onClick={() => setShowZamestnanciModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                                <X className="w-5 h-5 text-gray-500" />
-                            </button>
                         </div>
 
                         {/* Content */}
-                        <div className="overflow-y-auto max-h-[calc(80vh-80px)] p-4">
+                        <div className="flex-1 overflow-y-auto px-[15px] pb-10">
                             {zamestnanciLoading ? (
                                 <div className="flex justify-center py-12">
                                     <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -884,45 +886,46 @@ const Dennik = () => {
                             ) : zamestnanciMembers.length === 0 ? (
                                 <div className="text-center py-12">
                                     <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                                    <p className="text-gray-500 dark:text-gray-400 font-medium">{t('No employees')}</p>
-                                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">{t('Add members to projects via the Dennik modal')}</p>
+                                    <p className="text-[#6B7280] dark:text-gray-300 font-medium">{t('No employees')}</p>
+                                    <p className="text-[#9CA3AF] dark:text-gray-500 text-sm mt-1">{t('Add members to projects via the Dennik modal')}</p>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
                                     {zamestnanciMembers.map(member => (
-                                        <div key={member.id} className="border dark:border-gray-800 rounded-xl overflow-hidden">
+                                        <div key={member.id} className="bg-white dark:bg-gray-900 no-gradient rounded-[14px] overflow-hidden border border-black/[0.12] dark:border-white/10 shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
                                             {/* Member header */}
                                             <button
                                                 onClick={() => setExpandedMemberId(expandedMemberId === member.id ? null : member.id)}
-                                                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                                                className="w-full flex items-center gap-3 p-[14px] transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/70"
                                             >
-                                                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
-                                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-300">
+                                                <div className="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-[18px] font-bold text-[#111827] dark:text-white">
                                                         {(member.member_name || member.full_name || member.email || '?').charAt(0).toUpperCase()}
                                                     </span>
                                                 </div>
                                                 <div className="flex-1 text-left min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                                    <p className="text-base font-semibold text-[#111827] dark:text-white truncate">
                                                         {member.member_name || member.full_name || member.email || 'Unknown'}
                                                     </p>
                                                     {member.email && (
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{member.email}</p>
+                                                        <p className="text-[13px] text-[#6B7280] dark:text-gray-400 truncate">{member.email}</p>
                                                     )}
                                                 </div>
-                                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex-shrink-0">
+                                                <span className="text-[13px] font-bold text-blue-600 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex-shrink-0">
                                                     {formatSlovakPlural(member.projectIds?.length || 0, 'projects')}
                                                 </span>
-                                                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedMemberId === member.id ? 'rotate-180' : ''}`} />
+                                                <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${expandedMemberId === member.id ? 'rotate-180' : ''}`} />
                                             </button>
 
                                             {/* Expanded project list */}
                                             {expandedMemberId === member.id && member.projectIds && (
-                                                <div className="border-t dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                                                <div className="pb-2">
+                                                    <div className="mx-[14px] border-t border-black/10 dark:border-white/10" />
                                                     {member.projectIds.map(projectId => {
                                                         const project = dennikProjects.find(p => (p.id || p.c_id) === projectId);
                                                         return (
-                                                            <div key={projectId} className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0 dark:border-gray-800">
-                                                                <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">
+                                                            <div key={projectId} className="flex items-center gap-[10px] px-[14px] py-[10px] border-b last:border-b-0 border-black/10 dark:border-white/10">
+                                                                <span className="text-sm font-medium text-[#111827] dark:text-white flex-1 truncate">
                                                                     {project?.name || project?.project_name || 'Project'}
                                                                 </span>
                                                                 {memberToRemove?.projectId === projectId && memberToRemove?.userId === member.id ? (
@@ -935,7 +938,7 @@ const Dennik = () => {
                                                                         </button>
                                                                         <button
                                                                             onClick={() => setMemberToRemove(null)}
-                                                                            className="text-xs font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1"
+                                                                            className="text-xs font-medium text-[#6B7280] dark:text-gray-300 hover:text-[#374151] dark:hover:text-gray-100 px-2 py-1"
                                                                         >
                                                                             {t('Cancel')}
                                                                         </button>
@@ -943,9 +946,9 @@ const Dennik = () => {
                                                                 ) : (
                                                                     <button
                                                                         onClick={() => setMemberToRemove({ projectId, userId: member.id })}
-                                                                        className="p-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all"
+                                                                        className="w-7 h-7 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center"
                                                                     >
-                                                                        <Trash2 className="w-4 h-4" />
+                                                                        <Trash2 className="w-3.5 h-3.5" />
                                                                     </button>
                                                                 )}
                                                             </div>

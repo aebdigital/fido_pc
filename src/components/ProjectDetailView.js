@@ -94,6 +94,22 @@ const getSafeReceiptItems = (items) => {
   });
 };
 
+const getSafeProjectPhotos = (photos) => {
+  let parsedPhotos = photos;
+
+  if (typeof parsedPhotos === 'string') {
+    try {
+      parsedPhotos = JSON.parse(parsedPhotos);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsedPhotos)) return [];
+
+  return parsedPhotos.filter((photo) => photo && typeof photo === 'object' && photo.url);
+};
+
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();
 
@@ -384,8 +400,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       setSelectedClientForProject(null);
     }
 
-    setProjectDetailNotes(project.detailNotes || latestProject?.detailNotes || '');
-    setProjectPhotos(project.photos || latestProject?.photos || []);
+    setProjectDetailNotes(latestProject?.detailNotes || project.detailNotes || '');
+    setProjectPhotos(getSafeProjectPhotos(latestProject?.photos ?? project?.photos));
   }, [project, clients, effectiveClientId, latestProject]);
 
   // Memoized price list with safety parsing
@@ -753,7 +769,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       }
     }
 
-    const updatedPhotos = [...projectPhotos, ...newPhotos];
+    const basePhotos = getSafeProjectPhotos(latestProject?.photos ?? projectPhotos);
+    const updatedPhotos = [...basePhotos, ...newPhotos];
     setProjectPhotos(updatedPhotos);
     updateProject(project.category, projectId, { photos: updatedPhotos });
   };
@@ -798,7 +815,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       }
     }
 
-    const updatedPhotos = [...projectPhotos, ...newPhotos];
+    const basePhotos = getSafeProjectPhotos(latestProject?.photos ?? projectPhotos);
+    const updatedPhotos = [...basePhotos, ...newPhotos];
     setProjectPhotos(updatedPhotos);
     updateProject(project.category, projectId, { photos: updatedPhotos });
   };
@@ -821,7 +839,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const confirmDeletePhoto = () => {
     if (!photoToDelete) return;
-    const updatedPhotos = projectPhotos.filter(p => p.id !== photoToDelete);
+    const basePhotos = getSafeProjectPhotos(latestProject?.photos ?? projectPhotos);
+    const updatedPhotos = basePhotos.filter(p => p.id !== photoToDelete);
     setProjectPhotos(updatedPhotos);
     updateProject(project.category, projectId, { photos: updatedPhotos });
     setPhotoToDelete(null);

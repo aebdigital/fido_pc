@@ -848,7 +848,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
             {/* Scrollable Content */}
             <div
               ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 space-y-6 lg:space-y-8 overscroll-y-contain"
+              className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-5 space-y-4 lg:space-y-5 overscroll-y-contain"
             >
               {/* Work Section */}
               <div className="pb-20 sm:pb-6">
@@ -937,10 +937,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
 
                 {/* Price Summary - Mobile inline version */}
                 {hasFinanceAccess && (
-                  <div className="lg:hidden mt-6">
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-4">
-                      <RoomPriceSummary room={room} workData={workData} priceList={priceList} />
-                    </div>
+                  <div className="lg:hidden mt-5">
+                    <RoomPriceSummary room={room} workData={workData} priceList={priceList} />
                   </div>
                 )}
               </div>
@@ -948,7 +946,7 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
 
             {/* Price Summary Sidebar - Desktop only */}
             {hasFinanceAccess && (
-              <div className="hidden lg:flex lg:w-64 xl:w-72 2xl:w-80 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-col h-full">
+              <div className="hidden lg:flex lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-col h-full">
                 <RoomPriceSummary room={room} workData={workData} priceList={priceList} />
               </div>
             )}

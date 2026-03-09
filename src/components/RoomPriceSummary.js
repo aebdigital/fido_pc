@@ -33,21 +33,29 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
   const vatRate = activePriceList?.others?.find(item => item.name === 'VAT')?.price / 100 || 0.23;
   const vatAmount = calculation.total * vatRate;
   const totalWithVat = calculation.total + vatAmount;
+  const hasWorkSection = calculation.workTotal > 0;
+  const hasMaterialSection = calculation.materialTotal > 0;
+  const hasOthersSection = (calculation.othersTotal || 0) > 0;
+  const hasAnySection = hasWorkSection || hasMaterialSection || hasOthersSection;
+
+  if (!hasAnySection) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="p-4 lg:p-5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('Total price offer')}</h3>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 custom-scrollbar">
-        {workData.length > 0 ? (
-          <>
-            {/* Work Section */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-5 custom-scrollbar">
+        <div className="bg-gray-100 dark:bg-gray-800/90 rounded-2xl p-4 lg:p-5 space-y-3">
+          {/* Work Section */}
+          {hasWorkSection && (
+            <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-900 dark:text-white">{t('Work')}</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.workTotal)}</span>
+                <span className="text-[22px] font-semibold text-gray-900 dark:text-white">{t('Work')}</span>
+                <span className="text-[22px] font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.workTotal)}</span>
               </div>
               {calculation.items.length > 0 ? (
                 (() => {
@@ -189,8 +197,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                       {sortedWorkItems.map((item, index) => {
                         if (item.isGroup) {
                           return (
-                            <div key={`work-group-${index}`} className="flex justify-between items-center text-sm">
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                            <div key={`work-group-${index}`} className="flex justify-between items-center text-sm gap-3">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300 leading-tight">
                                 {item.displayName} - {formatSmartDecimal(item.totalQuantity, 2)}{t(item.unit)}
                               </span>
                               <span className="font-medium text-gray-700 dark:text-gray-300">{formatPrice(item.totalCost)}</span>
@@ -198,8 +206,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           );
                         } else {
                           return (
-                            <div key={`work-item-${index}`} className="flex justify-between items-center text-sm">
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">{item.description}</span>
+                            <div key={`work-item-${index}`} className="flex justify-between items-center text-sm gap-3">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300 leading-tight">{item.description}</span>
                               <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(item.cost)}</span>
                             </div>
                           );
@@ -208,11 +216,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     </>
                   );
                 })()
-              ) : (
-                <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                  {t('No work items added')}
-                </div>
-              )}
+              ) : null}
               {/* Add auxiliary work cost at bottom of work section */}
               {calculation.auxiliaryWorkCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
@@ -221,12 +225,16 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                 </div>
               )}
             </div>
+          )}
 
-            {/* Material Section */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+          {/* Material Section */}
+          {hasMaterialSection && (
+            <div className="space-y-1.5">
+              <div className="h-px bg-gray-300 dark:bg-gray-600 my-1" />
+
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-900 dark:text-white">{t('Material')}</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.materialTotal)}</span>
+                <span className="text-[22px] font-semibold text-gray-900 dark:text-white">{t('Material')}</span>
+                <span className="text-[22px] font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.materialTotal)}</span>
               </div>
               {calculation.materialItems && calculation.materialItems.length > 0 ? (
                 (() => {
@@ -277,7 +285,7 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                   );
 
                   // Render grouped materials
-                  return sortedMaterialGroups.map((group, index) => {
+                    return sortedMaterialGroups.map((group, index) => {
                     // Handle ceramic subtitle translation with correct gender based on propertyId
                     let translatedSubtitle = '';
                     if (group.subtitle) {
@@ -309,18 +317,14 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     const unit = group.unit && group.unit.includes(UNIT_TYPES.PIECE) ? UNIT_TYPES.PIECE : (group.unit ? group.unit.replace('€/', '') : UNIT_TYPES.METER_SQUARE);
 
                     return (
-                      <div key={`material-group-${index}`} className="flex justify-between items-center text-sm">
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">{materialDescription} - {formatSmartDecimal(group.totalQuantity, 2)}{t(unit)}</span>
+                      <div key={`material-group-${index}`} className="flex justify-between items-center text-sm gap-3">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300 leading-tight">{materialDescription} - {formatSmartDecimal(group.totalQuantity, 2)}{t(unit)}</span>
                         <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(group.totalCost)}</span>
                       </div>
                     );
                   });
                 })()
-              ) : (
-                <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                  {t('No materials identified')}
-                </div>
-              )}
+              ) : null}
               {/* Add auxiliary material cost at bottom of material section */}
               {calculation.auxiliaryMaterialCost > 0 && (
                 <div className="flex justify-between items-center text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
@@ -329,12 +333,15 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                 </div>
               )}
             </div>
+          )}
 
-            {/* Others Section */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3">
+          {/* Others Section */}
+          {hasOthersSection && (
+            <div className="space-y-1.5">
+              <div className="h-px bg-gray-300 dark:bg-gray-600 my-1" />
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-900 dark:text-white">{t('Others')}</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.othersTotal || 0)}</span>
+                <span className="text-[22px] font-semibold text-gray-900 dark:text-white">{t('Others')}</span>
+                <span className="text-[22px] font-semibold text-gray-900 dark:text-white">{formatPrice(calculation.othersTotal || 0)}</span>
               </div>
               {calculation.othersItems && calculation.othersItems.length > 0 ? (
                 (() => {
@@ -432,8 +439,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           const workDescription = `${workName} - ${formattedQuantity}`;
 
                           return (
-                            <div key={`others-group-${index}`} className="flex justify-between items-center text-sm">
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
+                            <div key={`others-group-${index}`} className="flex justify-between items-center text-sm gap-3">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300 leading-tight">{workDescription}</span>
                               <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(item.totalCost)}</span>
                             </div>
                           );
@@ -464,8 +471,8 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                           const workDescription = `${workName} - ${formattedQuantity}`;
 
                           return (
-                            <div key={`${item.id}-others`} className="flex justify-between items-center text-sm">
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">{workDescription}</span>
+                            <div key={`${item.id}-others`} className="flex justify-between items-center text-sm gap-3">
+                              <span className="font-semibold text-gray-700 dark:text-gray-300 leading-tight">{workDescription}</span>
                               <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice((item.calculation.workCost || 0) + (item.calculation.materialCost || 0))}</span>
                             </div>
                           );
@@ -474,26 +481,14 @@ const RoomPriceSummary = ({ room, workData, priceList }) => {
                     </>
                   );
                 })()
-              ) : (
-                <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                  {t('No other items added')}
-                </div>
-              )}
+              ) : null}
             </div>
-
-          </>
-        ) : (
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 text-center">
-            <div className="text-gray-500 dark:text-gray-400">
-              <p className="text-base font-medium">{t('No work items')}</p>
-              <p className="text-sm mt-1">{t('Add work items to see price summary')}</p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Totals - Fixed at bottom */}
-      <div className="p-4 lg:p-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 space-y-2 flex-shrink-0">
+      {/* Totals */}
+      <div className="p-4 lg:p-5 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 space-y-1.5 flex-shrink-0">
         <div className="flex justify-between items-center">
           <span className="font-semibold text-gray-700 dark:text-gray-300">{t('without VAT')}</span>
           <span className="font-semibold text-gray-700 dark:text-gray-300">{formatPrice(calculation.total)}</span>

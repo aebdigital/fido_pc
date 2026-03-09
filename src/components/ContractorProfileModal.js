@@ -248,7 +248,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   ) : (
                     <button
                       onClick={() => setShowIcoSearch(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
                     >
                       <Building2 className="w-4 h-4" />
                       {t('Fill by company ID')}
@@ -259,7 +259,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
 
               {/* Name */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Name')}
                 </label>
                 <input
@@ -267,13 +267,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder={t('Name of company')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* Contact Person */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Contact person')}
                 </label>
                 <input
@@ -281,13 +281,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.contactPerson}
                   onChange={(e) => handleInputChange('contactPerson', e.target.value)}
                   placeholder={t('Name and surname')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* Email */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Email')}
                 </label>
                 <input
@@ -295,13 +295,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder={t('Email address')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* Phone */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Phone number')}
                 </label>
                 <input
@@ -309,13 +309,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   placeholder={t('Number')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* Website */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Web page')}
                 </label>
                 <input
@@ -323,7 +323,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.website}
                   onChange={(e) => handleInputChange('website', e.target.value)}
                   placeholder={t('Link')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
@@ -337,21 +337,21 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
 
               {/* Street */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
-                  {t('Street')}
-                </label>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    {t('Street')}
+                  </label>
                 <input
                   type="text"
                   value={formData.street}
                   onChange={(e) => handleInputChange('street', e.target.value)}
                   placeholder={t('Street')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* Additional Info */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Additional info')}
                 </label>
                 <input
@@ -359,14 +359,14 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.additionalInfo}
                   onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
                   placeholder={t('App #, Suite (optional)')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* City and Postal Code */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {t('City')}
                   </label>
                   <input
@@ -374,11 +374,11 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                     value={formData.city}
                     onChange={(e) => handleInputChange('city', e.target.value)}
                     placeholder={t('City')}
-                    className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {t('Postal code')}
                   </label>
                   <input
@@ -386,14 +386,14 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                     value={formData.postalCode}
                     onChange={(e) => handleInputChange('postalCode', e.target.value)}
                     placeholder={t('ZIP Code')}
-                    className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                   />
                 </div>
               </div>
 
               {/* Country */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Country')}
                 </label>
                 <input
@@ -401,7 +401,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.country}
                   onChange={(e) => handleInputChange('country', e.target.value)}
                   placeholder={t('Country')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
@@ -415,7 +415,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
 
               {/* Business ID */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('BID')}
                 </label>
                 <input
@@ -423,13 +423,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.businessId}
                   onChange={(e) => handleInputChange('businessId', e.target.value)}
                   placeholder={t('BID')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* Tax ID */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('TID')}
                 </label>
                 <input
@@ -437,13 +437,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.taxId}
                   onChange={(e) => handleInputChange('taxId', e.target.value)}
                   placeholder={t('TID')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* VAT Registration Number */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('VAT ID')}
                 </label>
                 <input
@@ -451,7 +451,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.vatNumber}
                   onChange={(e) => handleInputChange('vatNumber', e.target.value)}
                   placeholder={t('VAT ID')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
@@ -465,7 +465,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
 
               {/* Bank Account Number */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Bank account number')}
                 </label>
                 <input
@@ -473,13 +473,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.bankAccount}
                   onChange={(e) => handleInputChange('bankAccount', e.target.value)}
                   placeholder={t('Number')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* Bank Code */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Bank Code')}
                 </label>
                 <input
@@ -487,13 +487,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   value={formData.bankCode}
                   onChange={(e) => handleInputChange('bankCode', e.target.value)}
                   placeholder={t('Code')}
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg"
                 />
               </div>
 
               {/* Legal Appendix */}
               <div>
-                <label className="block text-[14px] font-semibold sm:text-sm sm:font-medium text-gray-900 dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {t('Legal appendix')}
                 </label>
                 <textarea
@@ -501,7 +501,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
                   onChange={(e) => handleInputChange('legalAppendix', e.target.value)}
                   placeholder={t('Note')}
                   rows="3"
-                  className="w-full p-0 sm:p-3 bg-transparent sm:bg-gray-100 dark:sm:bg-gray-800 rounded-none sm:rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-[22px] font-semibold sm:text-lg sm:font-normal resize-none"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white border-0 focus:ring-2 focus:ring-blue-500 transition-colors text-base sm:text-lg resize-none"
                 />
               </div>
 
@@ -539,7 +539,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
             <div className="flex gap-2">
               <button
                 onClick={() => signatureInputRef.current?.click()}
-                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-[8px] sm:py-3 rounded-full sm:rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all text-[18px] font-medium sm:text-lg shadow-sm border border-gray-200/50 dark:border-gray-700/50"
+                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all text-base sm:text-lg font-medium shadow-sm border border-gray-200/50 dark:border-gray-700/50"
               >
                 {formData.signature ? t('Change signature') : t('Add signature')}
               </button>
@@ -558,13 +558,13 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
           <div className="flex gap-3 mt-6 lg:mt-8">
             <button
               onClick={handleClose}
-              className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white px-6 lg:px-8 py-[8px] sm:py-3 rounded-full sm:rounded-2xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm text-[24px] sm:text-lg"
+              className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white px-5 lg:px-8 py-3 rounded-xl sm:rounded-2xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm text-base sm:text-lg"
             >
               {t('Cancel')}
             </button>
             <button
               onClick={handleSave}
-              className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 lg:px-8 py-[8px] sm:py-3 rounded-full sm:rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-[24px] sm:text-lg"
+              className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 lg:px-8 py-3 rounded-xl sm:rounded-2xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md text-base sm:text-lg"
             >
               {editingContractor ? t('Save') : t('Add contractor')}
             </button>
@@ -574,7 +574,7 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
           {editingContractor && onDelete && (
             <button
               onClick={() => onDelete(editingContractor)}
-              className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl transition-colors text-lg font-medium btn-red"
+              className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl transition-colors text-base sm:text-lg font-medium btn-red"
             >
               <Trash2 className="w-5 h-5 text-white" />
               {t('Delete contractor')}

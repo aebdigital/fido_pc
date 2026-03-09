@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Plus, Hash, X, Package, MoreVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Hash, Package, MoreVertical } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { INVOICE_STATUS } from '../utils/dataTransformers';
@@ -626,134 +626,100 @@ const Invoices = () => {
       {/* Statistics Modal */}
       {showStatsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 animate-fade-in" onClick={() => setShowStatsModal(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-t-3xl lg:rounded-2xl w-full lg:max-w-md max-h-[85vh] overflow-y-auto animate-slide-in-bottom lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
+          <div className="relative bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] lg:rounded-[25px] w-full lg:max-w-md h-[85dvh] overflow-hidden shadow-2xl animate-slide-in-bottom lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="w-8"></div>
-              <h2 className="text-[20px] font-medium sm:text-xl lg:text-2xl sm:font-bold text-gray-900 dark:text-white">{t('Statistics')}</h2>
+            <div className="absolute top-0 left-0 right-0 z-10 h-[60px] px-[15px] flex items-start justify-between bg-white/80 dark:bg-gray-900/85 backdrop-blur-md border-b border-black/10 dark:border-white/10">
+              <div className="w-10" />
+              <h2 className="pt-[7px] text-[20px] font-medium text-[#111827] dark:text-white">{t('Statistics')}</h2>
               <button
                 onClick={() => setShowStatsModal(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                className="w-10 h-full flex items-center justify-center text-[#111827] dark:text-white hover:text-[#374151] dark:hover:text-gray-300 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <ChevronDown className="w-5 h-5" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-4 lg:p-6 space-y-8">
+            <div className="h-full overflow-y-auto px-[15px] pt-20 pb-6 space-y-[15px]">
               {stats.map(yearStats => (
-                <div key={yearStats.year} className="bg-white dark:bg-gray-900 sm:bg-transparent rounded-[20px] sm:rounded-none p-[15px] sm:p-0 shadow-[0_0_10px_rgba(0,0,0,0.1)] sm:shadow-none mb-8 last:mb-0">
+                <div key={yearStats.year} className="space-y-[5px]">
                   {/* Year Label */}
-                  <div className="text-[16px] font-semibold sm:text-2xl sm:font-black text-gray-900 dark:text-white flex items-baseline gap-1 mb-2 sm:mb-0">
+                  <div className="text-[16px] font-semibold text-[#111827] dark:text-white">
                     {yearStats.year}
                   </div>
 
                   {/* Total Card */}
-                  <div className="bg-gray-100 dark:bg-gray-800 sm:bg-gray-100 sm:dark:bg-gray-800 rounded-2xl p-4 lg:p-6 sm:shadow-sm">
+                  <div className="bg-[#F3F4F6] dark:bg-gray-800 no-gradient rounded-[20px] p-[15px] shadow-[0_6px_18px_rgba(0,0,0,0.10)]">
                     <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+                      <span className="text-[30px] font-bold text-[#111827] dark:text-white leading-none">
                         {formatPrice(yearStats.total.amount)}
                       </span>
-                      <span className="text-[14px] font-medium sm:text-sm lg:text-base text-gray-600 dark:text-gray-400">
+                      <span className="text-base font-medium text-[#111827] dark:text-gray-200">
                         {t('total, including VAT')}
                       </span>
                     </div>
-                    <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-lg lg:text-xl font-bold text-gray-600 dark:text-gray-400">
-                        {formatPrice(yearStats.total.amountWithoutVAT)}
-                      </span>
-                      <span className="text-[14px] font-medium sm:text-sm text-gray-500 dark:text-gray-500">
-                        {t('total, without VAT')}
-                      </span>
+                    <div className="flex items-baseline gap-[3px]">
+                      <span className="text-[20px] font-semibold text-[#111827] dark:text-white leading-none">{yearStats.total.count}</span>
+                      <span className="text-sm font-medium text-[#111827] dark:text-gray-200">{t('invoices')}</span>
                     </div>
-                    <div className="hidden sm:block h-px bg-gray-900/30 dark:bg-white/30 my-[5px]"></div>
-                    <div className="text-[20px] font-semibold sm:text-sm text-gray-600 dark:text-gray-400 border-b sm:border-b-0 border-gray-300 dark:border-gray-600 pb-3 sm:pb-0">
-                      {yearStats.total.count} <span className="text-[14px] font-medium sm:text-sm">{t('invoices')}</span>
-                    </div>
+                    <div className="h-px bg-black/30 dark:bg-white/25 my-[5px]" />
 
                     {/* Paid Section */}
-                    {yearStats.paid.count > 0 && (
-                      <div className="mt-4">
-                        <div className="text-[15px] font-medium sm:text-sm text-gray-700 dark:text-gray-300 mb-2">{t('Paid')}</div>
-                        <div className="bg-white sm:bg-gray-200 dark:bg-gray-800 sm:dark:bg-gray-700 rounded-[15px] sm:rounded-xl p-[10px] sm:p-3 border border-gray-200/50 sm:border-0 shadow-[0_2px_8px_rgba(0,0,0,0.05)] sm:shadow-none">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-[24px] font-bold sm:text-xl lg:text-2xl text-gray-900 dark:text-white">
-                              {formatPrice(yearStats.paid.amount)}
-                            </span>
-                            <span className="text-[11px] font-medium sm:text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-                              {t('total, including VAT')}
-                            </span>
-                          </div>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                              {formatPrice(yearStats.paid.amountWithoutVAT)}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-500">
-                              {t('total, without VAT')}
-                            </span>
-                          </div>
-                          <div className="text-[16px] font-semibold sm:text-xs text-gray-500 dark:text-gray-400">
-                            {yearStats.paid.count} <span className="text-[11px] font-medium sm:text-xs">{t('invoices total')}</span>
-                          </div>
+                    <div className="mt-[10px]">
+                      <div className="text-[15px] font-medium text-[#111827] dark:text-white mb-1">{t('Paid')}</div>
+                      <div className="bg-white dark:bg-gray-900 no-gradient rounded-[15px] p-[10px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-baseline gap-[3px]">
+                          <span className="text-[24px] font-bold text-[#111827] dark:text-white leading-none">
+                            {formatPrice(yearStats.paid.amount)}
+                          </span>
+                          <span className="text-[13px] font-medium text-[#111827] dark:text-gray-200">
+                            {t('total, including VAT')}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-[3px]">
+                          <span className="text-base font-semibold text-[#111827] dark:text-white leading-none">{yearStats.paid.count}</span>
+                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{t('invoices in total')}</span>
                         </div>
                       </div>
-                    )}
+                    </div>
 
                     {/* Unpaid Section */}
-                    {yearStats.unpaid.count > 0 && (
-                      <div className="mt-4">
-                        <div className="text-[15px] font-medium sm:text-sm text-gray-700 dark:text-gray-300 mb-2">{t('Unpaid')}</div>
-                        <div className="bg-white sm:bg-gray-200 dark:bg-gray-800 sm:dark:bg-gray-700 rounded-[15px] sm:rounded-xl p-[10px] sm:p-3 border border-gray-200/50 sm:border-0 shadow-[0_2px_8px_rgba(0,0,0,0.05)] sm:shadow-none">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-[24px] font-bold sm:text-xl lg:text-2xl text-gray-900 dark:text-white">
-                              {formatPrice(yearStats.unpaid.amount)}
-                            </span>
-                            <span className="text-[11px] font-medium sm:text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-                              {t('total, including VAT')}
-                            </span>
-                          </div>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                              {formatPrice(yearStats.unpaid.amountWithoutVAT)}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-500">
-                              {t('total, without VAT')}
-                            </span>
-                          </div>
-                          <div className="text-[16px] font-semibold sm:text-xs text-gray-500 dark:text-gray-400">
-                            {yearStats.unpaid.count} <span className="text-[11px] font-medium sm:text-xs">{t('invoices total')}</span>
-                          </div>
+                    <div className="mt-[10px]">
+                      <div className="text-[15px] font-medium text-[#111827] dark:text-white mb-1">{t('Unpaid')}</div>
+                      <div className="bg-white dark:bg-gray-900 no-gradient rounded-[15px] p-[10px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-baseline gap-[3px]">
+                          <span className="text-[24px] font-bold text-[#111827] dark:text-white leading-none">
+                            {formatPrice(yearStats.unpaid.amount)}
+                          </span>
+                          <span className="text-[13px] font-medium text-[#111827] dark:text-gray-200">
+                            {t('total, including VAT')}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-[3px]">
+                          <span className="text-base font-semibold text-[#111827] dark:text-white leading-none">{yearStats.unpaid.count}</span>
+                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{t('invoices in total')}</span>
                         </div>
                       </div>
-                    )}
+                    </div>
 
                     {/* Overdue Section */}
-                    {yearStats.overdue.count > 0 && (
-                      <div className="mt-4">
-                        <div className="text-[15px] font-medium sm:text-sm text-gray-700 dark:text-gray-300 mb-2">{t('Overdue')}</div>
-                        <div className="bg-white sm:bg-gray-200 dark:bg-gray-800 sm:dark:bg-gray-700 rounded-[15px] sm:rounded-xl p-[10px] sm:p-3 border border-gray-200/50 sm:border-0 shadow-[0_2px_8px_rgba(0,0,0,0.05)] sm:shadow-none">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-[24px] font-bold sm:text-xl lg:text-2xl text-gray-900 dark:text-white">
-                              {formatPrice(yearStats.overdue.amount)}
-                            </span>
-                            <span className="text-[11px] font-medium sm:text-xs lg:text-sm text-gray-600 dark:text-gray-400">
-                              {t('total, including VAT')}
-                            </span>
-                          </div>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                              {formatPrice(yearStats.overdue.amountWithoutVAT)}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-500">
-                              {t('total, without VAT')}
-                            </span>
-                          </div>
-                          <div className="text-[16px] font-semibold sm:text-xs text-gray-500 dark:text-gray-400">
-                            {yearStats.overdue.count} <span className="text-[11px] font-medium sm:text-xs">{t('invoices total')}</span>
-                          </div>
+                    <div className="mt-[10px]">
+                      <div className="text-[15px] font-medium text-[#111827] dark:text-white mb-1">{t('Overdue')}</div>
+                      <div className="bg-white dark:bg-gray-900 no-gradient rounded-[15px] p-[10px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-baseline gap-[3px]">
+                          <span className="text-[24px] font-bold text-[#111827] dark:text-white leading-none">
+                            {formatPrice(yearStats.overdue.amount)}
+                          </span>
+                          <span className="text-[13px] font-medium text-[#111827] dark:text-gray-200">
+                            {t('total, including VAT')}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-[3px]">
+                          <span className="text-base font-semibold text-[#111827] dark:text-white leading-none">{yearStats.overdue.count}</span>
+                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{t('invoices in total')}</span>
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}
