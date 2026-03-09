@@ -529,7 +529,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     } else {
       setInvoiceItems([]);
     }
-  }, [isOpen, project, projectBreakdown, editMode, existingInvoice, t, dennikData, isCreditNoteCreation]);
+  }, [isOpen, project, projectBreakdown, editMode, existingInvoice, t, dennikData, isCreditNoteCreation, generalPriceList]);
 
   // Initialize invoice number based on type and existing invoices
   const generateInvoiceNumber = useCallback((type) => {

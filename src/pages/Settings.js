@@ -5,9 +5,6 @@ import {
   Settings as SettingsIcon,
   Send,
   ChevronRight,
-  Moon,
-  Sun,
-  Globe,
   LogOut
 } from 'lucide-react';
 import PriceList from './PriceList';

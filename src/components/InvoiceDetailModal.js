@@ -15,7 +15,6 @@ import ConfirmationModal from './ConfirmationModal';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/supabaseApi';
-import Linkify from '../utils/linkify';
 
 
 /**
