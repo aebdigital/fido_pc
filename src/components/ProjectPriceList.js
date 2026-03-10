@@ -409,10 +409,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         </div>
 
         {/* Content */}
-        <div
-          className="flex-1 p-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-6 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-900"
-          style={{ WebkitOverflowScrolling: 'touch' }}
-        >
+        <div className="flex-1 overflow-y-auto p-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-6 bg-gray-50 dark:bg-gray-900">
           {/* Work Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
