@@ -11,46 +11,21 @@ import { getMaterialKey, findMaterialByKey, getAdhesiveKey, findAdhesiveByKey } 
 const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const { generalPriceList, projectRoomsData } = useAppData();
   const { t } = useLanguage();
-  useScrollLock(true, { iosTouchMoveLock: false });
+  useScrollLock(true);
 
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const lastSavedData = useRef(null);
   const onSaveRef = useRef(onSave);
   const isUnmounting = useRef(false);
   const saveTimerRef = useRef(null);
   const initializedProjectRef = useRef(null);
-  const isIOS = useMemo(() => {
-    if (typeof navigator === 'undefined') return false;
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  }, []);
 
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
-
-  useEffect(() => {
-    if (!isIOS || !window.visualViewport) return;
-
-    const updateKeyboardInset = () => {
-      const vv = window.visualViewport;
-      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-      setKeyboardInset(inset);
-    };
-
-    updateKeyboardInset();
-    window.visualViewport.addEventListener('resize', updateKeyboardInset);
-    window.visualViewport.addEventListener('scroll', updateKeyboardInset);
-
-    return () => {
-      window.visualViewport.removeEventListener('resize', updateKeyboardInset);
-      window.visualViewport.removeEventListener('scroll', updateKeyboardInset);
-    };
-  }, [isIOS]);
 
   const usedItemsIndices = useMemo(() => {
     if (!projectPriceData) return null;
@@ -379,9 +354,9 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 overflow-hidden animate-fade-in">
       <div
-        className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto"
+        className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-[95vw] h-[100dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[100dvh] sm:max-h-[calc(100dvh-6rem)] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -434,13 +409,9 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         </div>
 
         {/* Content */}
-        <div
-          className="flex-1 overflow-y-auto p-6 pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-6 bg-gray-50 dark:bg-gray-900"
-          style={keyboardInset > 0 ? {
-            paddingBottom: `calc(10rem + env(safe-area-inset-bottom) + ${keyboardInset}px)`,
-            transition: 'padding-bottom 180ms ease-out'
-          } : undefined}
-        >
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-5 space-y-4 lg:space-y-5 overscroll-y-contain bg-gray-50 dark:bg-gray-900">
+            <div className="pb-24 sm:pb-6">
           {/* Work Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -509,6 +480,8 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
                 if (usedItemsIndices && !usedItemsIndices.others.has(index)) return null;
                 return <PriceCard key={index} item={item} category="others" itemIndex={index} />;
               })}
+            </div>
+          </div>
             </div>
           </div>
         </div>
