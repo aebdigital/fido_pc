@@ -301,6 +301,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
               }
               min={0}
               forceDecimal={2}
+              useValueAsPlaceholder
             />
           </div>
           <div className="text-sm lg:text-base text-black dark:text-white flex-shrink-0">{t(item.unit)}</div>
@@ -333,6 +334,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
                   className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
                   min={0}
                   step={0.1}
+                  useValueAsPlaceholder
                 />
               </div>
               <span className="text-sm lg:text-base text-black dark:text-white">{item.capacity.unit}</span>

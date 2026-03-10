@@ -34,6 +34,7 @@ const NumberInput = ({
   size = "normal", // "small" or "normal"
   placeholder = "0",
   forceDecimal = null, // New prop: number of decimal places to enforce (e.g., 2)
+  useValueAsPlaceholder = false, // Show current value as placeholder and keep input empty until user types
   ...props
 }) => {
   // Helper to format value according to props
@@ -45,8 +46,30 @@ const NumberInput = ({
     return val.toString().replace('.', ',');
   }, [forceDecimal]);
 
+  const parseNumberLike = useCallback((val) => {
+    if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+    if (typeof val === 'string') {
+      const parsed = parseFloat(val.replace(',', '.'));
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  }, []);
+
+  const getValueFromProp = useCallback(() => {
+    return Math.max(min, Math.round(parseNumberLike(value) * 100) / 100);
+  }, [value, min, parseNumberLike]);
+
+  const effectivePlaceholder = useMemo(() => {
+    if (useValueAsPlaceholder && value !== undefined && value !== null && value !== '') {
+      return formatValue(value);
+    }
+    return placeholder;
+  }, [useValueAsPlaceholder, value, formatValue, placeholder]);
+
   const [internalValue, setInternalValue] = useState(
-    value !== undefined && value !== null && value !== '' ? formatValue(value) : ''
+    useValueAsPlaceholder
+      ? ''
+      : (value !== undefined && value !== null && value !== '' ? formatValue(value) : '')
   );
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef(null);
@@ -88,11 +111,15 @@ const NumberInput = ({
   useEffect(() => {
     // Only update if not currently focused to avoid jumping while typing
     if (!isFocused) {
-      setInternalValue(
-        value !== undefined && value !== null && value !== '' ? formatValue(value) : ''
-      );
+      if (useValueAsPlaceholder) {
+        setInternalValue('');
+      } else {
+        setInternalValue(
+          value !== undefined && value !== null && value !== '' ? formatValue(value) : ''
+        );
+      }
     }
-  }, [value, isFocused, forceDecimal, formatValue]);
+  }, [value, isFocused, forceDecimal, formatValue, useValueAsPlaceholder]);
 
   // Cleanup debounce timeout on unmount
   useEffect(() => {
@@ -113,9 +140,15 @@ const NumberInput = ({
 
   const processAndSubmit = () => {
     if (internalValue === '' || internalValue === null || internalValue === undefined) {
-      const zeroVal = 0;
-      onChange(zeroVal);
-      setInternalValue(formatValue(zeroVal));
+      if (useValueAsPlaceholder) {
+        // Empty means "keep current value" in placeholder mode.
+        setInternalValue('');
+        onChange(getValueFromProp());
+      } else {
+        const zeroVal = 0;
+        onChange(zeroVal);
+        setInternalValue(formatValue(zeroVal));
+      }
       return;
     }
 
@@ -135,8 +168,13 @@ const NumberInput = ({
         setInternalValue(formatValue(finalValue));
         onChange(finalValue);
       } else {
-        setInternalValue(value !== undefined && value !== null ? formatValue(value) : '');
-        onChange(value || 0);
+        if (useValueAsPlaceholder) {
+          setInternalValue('');
+          onChange(getValueFromProp());
+        } else {
+          setInternalValue(value !== undefined && value !== null ? formatValue(value) : '');
+          onChange(value || 0);
+        }
       }
     }
   };
@@ -216,7 +254,9 @@ const NumberInput = ({
   };
 
   const incrementValue = (step) => {
-    const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
+    const currentValue = internalValue !== ''
+      ? (parseFloat(internalValue.replace(',', '.')) || 0)
+      : getValueFromProp();
     const newValue = Math.max(min, currentValue + step);
     const roundedValue = Math.round(newValue * 100) / 100;
     setInternalValue(formatValue(roundedValue));
@@ -224,7 +264,9 @@ const NumberInput = ({
   };
 
   const decrementValue = (step) => {
-    const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
+    const currentValue = internalValue !== ''
+      ? (parseFloat(internalValue.replace(',', '.')) || 0)
+      : getValueFromProp();
     const newValue = Math.max(min, currentValue - step);
     const roundedValue = Math.round(newValue * 100) / 100;
     setInternalValue(formatValue(roundedValue));
@@ -260,7 +302,7 @@ const NumberInput = ({
             }
           }}
           disabled={disabled}
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           className={`hide-number-arrows ${inputWidth} pl-2 py-2 ${paddingRight} ${borderRadius} text-right font-semibold border-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fontSize}`}
           {...props}
         />
