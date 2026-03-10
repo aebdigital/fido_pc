@@ -216,7 +216,7 @@ const NumberInput = ({
 
   const handleTouchEnd = (e) => {
     if (!isIOS || touchMovedRef.current) return;
-    if (!inputRef.current || document.activeElement === inputRef.current) return;
+    if (!inputRef.current) return;
 
     const inFixedModal = !!inputRef.current.closest('.fixed.inset-0');
     if (!inFixedModal) return;
@@ -226,7 +226,15 @@ const NumberInput = ({
     inputRef.current.focus({ preventScroll: true });
 
     // After keyboard animation starts, smoothly move the field into visible area.
+    let shouldPreventDefault = false;
     if (scrollContainer) {
+      const initialRect = inputRef.current.getBoundingClientRect();
+      const initialContainerRect = scrollContainer.getBoundingClientRect();
+      const initialKeyboardTop = window.visualViewport?.height || window.innerHeight;
+      const initialVisibleTop = initialContainerRect.top + 16;
+      const initialVisibleBottom = Math.min(initialContainerRect.bottom - 20, initialKeyboardTop - 20);
+      shouldPreventDefault = initialRect.bottom > initialVisibleBottom || initialRect.top < initialVisibleTop;
+
       setTimeout(() => {
         const inputRect = inputRef.current?.getBoundingClientRect();
         const containerRect = scrollContainer.getBoundingClientRect();
@@ -250,7 +258,10 @@ const NumberInput = ({
       }, 220);
     }
 
-    e.preventDefault();
+    // Prevent default only when we manually scrolled to avoid iOS ghost-tap behavior.
+    if (shouldPreventDefault) {
+      e.preventDefault();
+    }
   };
 
   const incrementValue = (step) => {

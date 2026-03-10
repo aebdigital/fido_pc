@@ -22,6 +22,12 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const isUnmounting = useRef(false);
   const saveTimerRef = useRef(null);
   const initializedProjectRef = useRef(null);
+  const isStandalonePWA = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const mediaStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    const iosStandalone = window.navigator.standalone === true;
+    return mediaStandalone || iosStandalone;
+  }, []);
 
   useEffect(() => {
     onSaveRef.current = onSave;
@@ -413,7 +419,10 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         {/* Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-5 space-y-4 lg:space-y-5 overscroll-y-contain bg-gray-50 dark:bg-gray-900">
-            <div className="pb-[calc(14rem+env(safe-area-inset-bottom))] sm:pb-6">
+            <div
+              className="pb-[calc(14rem+env(safe-area-inset-bottom))] sm:pb-6"
+              style={isStandalonePWA ? { paddingBottom: 'calc(18rem + env(safe-area-inset-bottom))' } : undefined}
+            >
           {/* Work Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
