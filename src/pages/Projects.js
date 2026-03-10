@@ -966,6 +966,11 @@ const Projects = () => {
                     });
 
                     const sortedProjects = [...mergedProjects].sort((a, b) => {
+                      // Priority 0: Assigned (member) projects always on top
+                      const aIsAssigned = (a.userRole || 'owner') !== 'owner';
+                      const bIsAssigned = (b.userRole || 'owner') !== 'owner';
+                      if (aIsAssigned !== bIsAssigned) return aIsAssigned ? -1 : 1;
+
                       const numA = formatProjectNumber(a);
                       const numB = formatProjectNumber(b);
 

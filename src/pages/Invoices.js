@@ -449,7 +449,7 @@ const Invoices = () => {
             <button
               key={type.id}
               onClick={() => setSelectedType(type.id)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all border-2 ${selectedType === type.id
+              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm lg:text-base font-bold transition-all border-2 ${selectedType === type.id
                 ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md active-white-bg'
                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}

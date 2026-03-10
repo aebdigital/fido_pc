@@ -406,7 +406,7 @@ export const translations = {
     // ========== NAVIGATION & MAIN SECTIONS ==========
     "Projects": "Projekty",
     "Diary": "Denník",
-    "Assigned projects": "Pridelené projekty",
+    "Assigned projects": "Pridelený projekt",
     "Odpracované hodiny": "Odpracované hodiny",
     "Invoice": "Faktúra",
     "Invoices": "Faktúry",

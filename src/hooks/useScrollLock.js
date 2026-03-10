@@ -3,17 +3,20 @@ import { useRef, useLayoutEffect } from 'react';
 /**
  * useScrollLock hook
  * Locks the body scroll while preserving layout stability.
- * 
+ *
  * Features:
  * - Prevents layout shift by compensating for scrollbar width on desktop.
  * - Detects iOS/iPadOS and devices with 0-width scrollbars (like Mac with overlay scrollbars)
  *   to avoid adding unnecessary padding (addressing the "blank right side" issue).
- * 
+ * - On iOS, uses touchmove prevention to stop background scroll without position:fixed
+ *   (which breaks input focus and keyboard scroll).
+ *
  * @param {boolean} isLocked - Whether scroll should be locked
  */
 export const useScrollLock = (isLocked) => {
     const scrollOffset = useRef(0);
     const originalStyle = useRef(null);
+    const touchHandlerRef = useRef(null);
 
     useLayoutEffect(() => {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -42,10 +45,27 @@ export const useScrollLock = (isLocked) => {
 
             // 4. Apply locking styles
             if (isIOS) {
-                // iOS: use overflow hidden on both html and body.
+                // iOS: overflow hidden + touchmove prevention on body.
                 // Avoids position:fixed which breaks input focus and keyboard scroll.
                 document.documentElement.style.overflow = 'hidden';
                 document.body.style.overflow = 'hidden';
+
+                // Prevent touchmove on body to stop iOS rubber-band scrolling.
+                // Allow scrolling inside modal scroll containers (overflow-y-auto).
+                const preventTouchMove = (e) => {
+                    let target = e.target;
+                    while (target && target !== document.body) {
+                        const style = window.getComputedStyle(target);
+                        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                            // Allow scroll inside scrollable containers
+                            return;
+                        }
+                        target = target.parentElement;
+                    }
+                    e.preventDefault();
+                };
+                touchHandlerRef.current = preventTouchMove;
+                document.body.addEventListener('touchmove', preventTouchMove, { passive: false });
             } else {
                 // Desktop/Android: Standard overflow hidden
                 document.body.style.overflow = 'hidden';
@@ -67,6 +87,11 @@ export const useScrollLock = (isLocked) => {
 
                 originalStyle.current = null;
             }
+            // Remove iOS touch handler
+            if (touchHandlerRef.current) {
+                document.body.removeEventListener('touchmove', touchHandlerRef.current);
+                touchHandlerRef.current = null;
+            }
         }
 
         return () => {
@@ -81,6 +106,10 @@ export const useScrollLock = (isLocked) => {
                 document.body.style.width = width;
 
                 originalStyle.current = null;
+            }
+            if (touchHandlerRef.current) {
+                document.body.removeEventListener('touchmove', touchHandlerRef.current);
+                touchHandlerRef.current = null;
             }
         };
     }, [isLocked]);

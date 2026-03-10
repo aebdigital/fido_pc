@@ -36,8 +36,9 @@
     font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh;
+    min-height: 100dvh;
     min-height: -webkit-fill-available;
+    overscroll-behavior: none;
     font-size: 15px;
     font-weight: 500;
   }
