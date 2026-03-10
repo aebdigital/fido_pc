@@ -13,8 +13,11 @@ import { useRef, useLayoutEffect } from 'react';
  * - Resets window scroll to 0 on unlock to prevent "stuck offset" after modal close.
  *
  * @param {boolean} isLocked - Whether scroll should be locked
+ * @param {Object} options - Optional behavior flags
+ * @param {boolean} options.iosTouchMoveLock - Whether to block touchmove on iOS body
  */
-export const useScrollLock = (isLocked) => {
+export const useScrollLock = (isLocked, options = {}) => {
+    const { iosTouchMoveLock = true } = options;
     const originalStyle = useRef(null);
     const touchHandlerRef = useRef(null);
 
@@ -44,22 +47,24 @@ export const useScrollLock = (isLocked) => {
                 document.documentElement.style.overflow = 'hidden';
                 document.body.style.overflow = 'hidden';
 
-                // Prevent touchmove on body to stop iOS rubber-band scrolling.
-                // Allow scrolling inside modal scroll containers (overflow-y-auto).
-                const preventTouchMove = (e) => {
-                    let target = e.target;
-                    while (target && target !== document.body) {
-                        const style = window.getComputedStyle(target);
-                        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                            // Allow scroll inside scrollable containers
-                            return;
+                if (iosTouchMoveLock) {
+                    // Prevent touchmove on body to stop iOS rubber-band scrolling.
+                    // Allow scrolling inside modal scroll containers (overflow-y-auto).
+                    const preventTouchMove = (e) => {
+                        let target = e.target;
+                        while (target && target !== document.body) {
+                            const style = window.getComputedStyle(target);
+                            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                                // Allow scroll inside scrollable containers
+                                return;
+                            }
+                            target = target.parentElement;
                         }
-                        target = target.parentElement;
-                    }
-                    e.preventDefault();
-                };
-                touchHandlerRef.current = preventTouchMove;
-                document.body.addEventListener('touchmove', preventTouchMove, { passive: false });
+                        e.preventDefault();
+                    };
+                    touchHandlerRef.current = preventTouchMove;
+                    document.body.addEventListener('touchmove', preventTouchMove, { passive: false });
+                }
             } else {
                 // Desktop/Android: Standard overflow hidden
                 document.body.style.overflow = 'hidden';
@@ -107,5 +112,5 @@ export const useScrollLock = (isLocked) => {
                 touchHandlerRef.current = null;
             }
         };
-    }, [isLocked]);
+    }, [isLocked, iosTouchMoveLock]);
 };
