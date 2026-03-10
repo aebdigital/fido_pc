@@ -26,25 +26,24 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const initializedProjectRef = useRef(null);
 
   // iOS PWA keyboard fix: use visualViewport to adjust modal height
-  // and scroll focused input into view when keyboard opens
+  // Only update height, do NOT call scrollIntoView here — it causes jumping
+  // as the resize fires repeatedly while the keyboard animates open/closed
   useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (!isIOS || !window.visualViewport) return;
+    if (!window.visualViewport) return;
 
+    let rafId = null;
     const handleResize = () => {
-      setViewportHeight(window.visualViewport.height);
-      // Scroll focused input into view within the modal scroll container
-      const activeEl = document.activeElement;
-      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-        setTimeout(() => {
-          activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
-      }
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        setViewportHeight(window.visualViewport.height);
+      });
     };
 
     window.visualViewport.addEventListener('resize', handleResize);
-    return () => window.visualViewport.removeEventListener('resize', handleResize);
+    return () => {
+      window.visualViewport.removeEventListener('resize', handleResize);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   useEffect(() => {
@@ -380,8 +379,8 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={handleClose}>
       <div
-        className="bg-white dark:bg-gray-900 rounded-2xl w-full sm:max-w-[95vw] sm:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in"
-        style={viewportHeight ? { height: `${viewportHeight}px` } : { height: '100dvh' }}
+        className="bg-white dark:bg-gray-900 sm:rounded-2xl w-full sm:max-w-[95vw] sm:max-h-[85vh] flex flex-col animate-slide-in"
+        style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -434,7 +433,19 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         </div>
 
         {/* Content */}
-        <div ref={scrollContainerRef} className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900"
+          onFocus={(e) => {
+            // When an input inside the scroll container receives focus,
+            // scroll it into view within this container after keyboard opens
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+              setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }, 350); // Wait for keyboard to finish opening
+            }
+          }}
+        >
           {/* Work Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">

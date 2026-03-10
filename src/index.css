@@ -41,6 +41,7 @@
     overscroll-behavior: none;
     font-size: 15px;
     font-weight: 500;
+    background-color: #ffffff;
   }
 
   h1 {
@@ -67,6 +68,7 @@
 
 .dark body {
   color: #ffffff;
+  background-color: #0d0d0d;
 }
 
 .modal-close-btn {
@@ -1091,9 +1093,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* iPad/Tablet virtual keyboard handling - ensure modals don't get hidden */
+/* Note: ProjectPriceList sets its own height via visualViewport API */
 @supports (height: 100dvh) {
   .fixed.inset-0 {
-    height: 100dvh;
     max-height: 100dvh;
   }
 }
