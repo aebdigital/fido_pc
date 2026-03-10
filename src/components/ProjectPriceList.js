@@ -16,52 +16,12 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(null);
-  const scrollContainerRef = useRef(null);
 
   const lastSavedData = useRef(null);
   const onSaveRef = useRef(onSave);
   const isUnmounting = useRef(false);
   const saveTimerRef = useRef(null);
   const initializedProjectRef = useRef(null);
-
-  // iOS keyboard fix: resize modal to visual viewport and prevent background scroll.
-  // On iOS, tapping an input inside a fixed modal causes Safari to scroll the PAGE
-  // behind the modal. We counter this by:
-  // 1. Resizing the modal to visualViewport.height
-  // 2. Pinning window.scrollY to 0 on every scroll event while modal is open
-  // 3. Manually scrolling only the modal's scroll container to show focused input
-  useEffect(() => {
-    // Pin window scroll to 0 — prevents iOS from scrolling the background page
-    const pinScroll = () => {
-      if (window.scrollY !== 0) {
-        window.scrollTo(0, 0);
-      }
-    };
-    window.addEventListener('scroll', pinScroll, { passive: false });
-
-    // Resize modal when virtual keyboard opens/closes
-    if (window.visualViewport) {
-      let rafId = null;
-      const handleResize = () => {
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(() => {
-          setViewportHeight(window.visualViewport.height);
-          pinScroll(); // Also pin on resize
-        });
-      };
-      window.visualViewport.addEventListener('resize', handleResize);
-      return () => {
-        window.removeEventListener('scroll', pinScroll);
-        window.visualViewport.removeEventListener('resize', handleResize);
-        if (rafId) cancelAnimationFrame(rafId);
-      };
-    }
-
-    return () => {
-      window.removeEventListener('scroll', pinScroll);
-    };
-  }, []);
 
   useEffect(() => {
     onSaveRef.current = onSave;
@@ -394,10 +354,9 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={handleClose}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={handleClose}>
       <div
-        className="bg-white dark:bg-gray-900 sm:rounded-2xl w-full sm:max-w-[95vw] sm:max-h-[85vh] flex flex-col animate-slide-in"
-        style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
+        className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -450,31 +409,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         </div>
 
         {/* Content */}
-        <div
-          ref={scrollContainerRef}
-          className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900"
-          onFocus={(e) => {
-            // When an input receives focus, scroll it into view within THIS container only.
-            // Do NOT use scrollIntoView — it scrolls ALL ancestors including window, causing
-            // the background page to jump on iOS.
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-              const container = scrollContainerRef.current;
-              if (!container) return;
-              setTimeout(() => {
-                const inputRect = e.target.getBoundingClientRect();
-                const containerRect = container.getBoundingClientRect();
-                // Check if the input is below the visible area of the scroll container
-                const inputBottom = inputRect.bottom;
-                const containerBottom = containerRect.bottom;
-                if (inputBottom > containerBottom - 20) {
-                  // Scroll the container so the input is visible with some padding
-                  const scrollNeeded = inputBottom - containerBottom + 80;
-                  container.scrollBy({ top: scrollNeeded, behavior: 'smooth' });
-                }
-              }, 400); // Wait for keyboard to finish opening
-            }
-          }}
-        >
+        <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           {/* Work Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
