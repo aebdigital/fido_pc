@@ -16,12 +16,36 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(null);
+  const scrollContainerRef = useRef(null);
 
   const lastSavedData = useRef(null);
   const onSaveRef = useRef(onSave);
   const isUnmounting = useRef(false);
   const saveTimerRef = useRef(null);
   const initializedProjectRef = useRef(null);
+
+  // iOS PWA keyboard fix: use visualViewport to adjust modal height
+  // and scroll focused input into view when keyboard opens
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (!isIOS || !window.visualViewport) return;
+
+    const handleResize = () => {
+      setViewportHeight(window.visualViewport.height);
+      // Scroll focused input into view within the modal scroll container
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+        setTimeout(() => {
+          activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+    return () => window.visualViewport.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     onSaveRef.current = onSave;
@@ -354,8 +378,12 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={handleClose}>
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full sm:max-w-[95vw] h-[100dvh] sm:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 animate-fade-in" onClick={handleClose}>
+      <div
+        className="bg-white dark:bg-gray-900 rounded-2xl w-full sm:max-w-[95vw] sm:h-[85vh] max-h-[calc(100vh-6rem)] flex flex-col animate-slide-in"
+        style={viewportHeight ? { height: `${viewportHeight}px` } : { height: '100dvh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-2xl">
           <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Project Price List')}</h2>
@@ -406,7 +434,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div ref={scrollContainerRef} className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           {/* Work Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">

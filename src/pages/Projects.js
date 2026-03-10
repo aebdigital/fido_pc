@@ -582,7 +582,7 @@ const Projects = () => {
 
         {/* Contractor Profile Dropdown */}
         {(currentView === 'categories' || currentView === 'projects') && (
-          <div className={`mb-4 lg:mb-6 relative ${currentView === 'projects' ? 'hidden lg:block' : ''}`} ref={dropdownRef}>
+          <div className={`mb-4 lg:mb-6 relative z-20 ${currentView === 'projects' ? 'hidden lg:block' : ''}`} ref={dropdownRef}>
             <div className="flex items-center justify-between">
               <button
                 className="flex items-center gap-2 bg-transparent"
