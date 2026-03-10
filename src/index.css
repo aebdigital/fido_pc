@@ -28,7 +28,7 @@
 
   /* Handle iPad/tablet virtual keyboard - ensure modals stay visible */
   html {
-    height: 100%;
+    height: 100dvh;
     height: -webkit-fill-available;
   }
 

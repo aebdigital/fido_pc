@@ -10,11 +10,11 @@ import { useRef, useLayoutEffect } from 'react';
  *   to avoid adding unnecessary padding (addressing the "blank right side" issue).
  * - On iOS, uses touchmove prevention to stop background scroll without position:fixed
  *   (which breaks input focus and keyboard scroll).
+ * - Resets window scroll to 0 on unlock to prevent "stuck offset" after modal close.
  *
  * @param {boolean} isLocked - Whether scroll should be locked
  */
 export const useScrollLock = (isLocked) => {
-    const scrollOffset = useRef(0);
     const originalStyle = useRef(null);
     const touchHandlerRef = useRef(null);
 
@@ -30,22 +30,16 @@ export const useScrollLock = (isLocked) => {
             const scrollbarWidth = scrollDiv.offsetWidth - scrollDiv.clientWidth;
             document.body.removeChild(scrollDiv);
 
-            // 2. Store current scroll position
-            scrollOffset.current = window.scrollY;
-
-            // 3. Store original styles
+            // 2. Store original styles
             originalStyle.current = {
                 htmlOverflow: document.documentElement.style.overflow,
                 overflow: document.body.style.overflow,
                 paddingRight: document.body.style.paddingRight,
-                position: document.body.style.position,
-                top: document.body.style.top,
-                width: document.body.style.width
             };
 
-            // 4. Apply locking styles
+            // 3. Apply locking styles
             if (isIOS) {
-                // iOS: overflow hidden + touchmove prevention on body.
+                // iOS: overflow hidden on html+body + touchmove prevention.
                 // Avoids position:fixed which breaks input focus and keyboard scroll.
                 document.documentElement.style.overflow = 'hidden';
                 document.body.style.overflow = 'hidden';
@@ -76,14 +70,11 @@ export const useScrollLock = (isLocked) => {
         } else {
             // Restore original styles
             if (originalStyle.current) {
-                const { htmlOverflow, overflow, paddingRight, position, top, width } = originalStyle.current;
+                const { htmlOverflow, overflow, paddingRight } = originalStyle.current;
 
                 document.documentElement.style.overflow = htmlOverflow;
                 document.body.style.overflow = overflow;
                 document.body.style.paddingRight = paddingRight;
-                document.body.style.position = position;
-                document.body.style.top = top;
-                document.body.style.width = width;
 
                 originalStyle.current = null;
             }
@@ -92,18 +83,22 @@ export const useScrollLock = (isLocked) => {
                 document.body.removeEventListener('touchmove', touchHandlerRef.current);
                 touchHandlerRef.current = null;
             }
+
+            // Reset any accidental body-level scroll offset on iOS.
+            // The actual content scrolls inside Layout's overflow-y-auto div,
+            // so window.scrollY should always be 0.
+            if (window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+            }
         }
 
         return () => {
             // Cleanup: ensure we restore if component unmounts
             if (originalStyle.current) {
-                const { htmlOverflow, overflow, paddingRight, position, top, width } = originalStyle.current;
+                const { htmlOverflow, overflow, paddingRight } = originalStyle.current;
                 document.documentElement.style.overflow = htmlOverflow;
                 document.body.style.overflow = overflow;
                 document.body.style.paddingRight = paddingRight;
-                document.body.style.position = position;
-                document.body.style.top = top;
-                document.body.style.width = width;
 
                 originalStyle.current = null;
             }
