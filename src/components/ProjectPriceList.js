@@ -25,24 +25,41 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const saveTimerRef = useRef(null);
   const initializedProjectRef = useRef(null);
 
-  // iOS PWA keyboard fix: use visualViewport to adjust modal height
-  // Only update height, do NOT call scrollIntoView here — it causes jumping
-  // as the resize fires repeatedly while the keyboard animates open/closed
+  // iOS keyboard fix: resize modal to visual viewport and prevent background scroll.
+  // On iOS, tapping an input inside a fixed modal causes Safari to scroll the PAGE
+  // behind the modal. We counter this by:
+  // 1. Resizing the modal to visualViewport.height
+  // 2. Pinning window.scrollY to 0 on every scroll event while modal is open
+  // 3. Manually scrolling only the modal's scroll container to show focused input
   useEffect(() => {
-    if (!window.visualViewport) return;
-
-    let rafId = null;
-    const handleResize = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        setViewportHeight(window.visualViewport.height);
-      });
+    // Pin window scroll to 0 — prevents iOS from scrolling the background page
+    const pinScroll = () => {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
     };
+    window.addEventListener('scroll', pinScroll, { passive: false });
 
-    window.visualViewport.addEventListener('resize', handleResize);
+    // Resize modal when virtual keyboard opens/closes
+    if (window.visualViewport) {
+      let rafId = null;
+      const handleResize = () => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          setViewportHeight(window.visualViewport.height);
+          pinScroll(); // Also pin on resize
+        });
+      };
+      window.visualViewport.addEventListener('resize', handleResize);
+      return () => {
+        window.removeEventListener('scroll', pinScroll);
+        window.visualViewport.removeEventListener('resize', handleResize);
+        if (rafId) cancelAnimationFrame(rafId);
+      };
+    }
+
     return () => {
-      window.visualViewport.removeEventListener('resize', handleResize);
-      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', pinScroll);
     };
   }, []);
 
@@ -437,12 +454,24 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
           ref={scrollContainerRef}
           className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900"
           onFocus={(e) => {
-            // When an input inside the scroll container receives focus,
-            // scroll it into view within this container after keyboard opens
+            // When an input receives focus, scroll it into view within THIS container only.
+            // Do NOT use scrollIntoView — it scrolls ALL ancestors including window, causing
+            // the background page to jump on iOS.
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+              const container = scrollContainerRef.current;
+              if (!container) return;
               setTimeout(() => {
-                e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }, 350); // Wait for keyboard to finish opening
+                const inputRect = e.target.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                // Check if the input is below the visible area of the scroll container
+                const inputBottom = inputRect.bottom;
+                const containerBottom = containerRect.bottom;
+                if (inputBottom > containerBottom - 20) {
+                  // Scroll the container so the input is visible with some padding
+                  const scrollNeeded = inputBottom - containerBottom + 80;
+                  container.scrollBy({ top: scrollNeeded, behavior: 'smooth' });
+                }
+              }, 400); // Wait for keyboard to finish opening
             }
           }}
         >
