@@ -16,6 +16,9 @@ export const useScrollLock = (isLocked) => {
     const originalStyle = useRef(null);
 
     useLayoutEffect(() => {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
         if (isLocked) {
             // 1. Calculate scrollbar width (Desktop only)
             const scrollDiv = document.createElement('div');
@@ -24,15 +27,12 @@ export const useScrollLock = (isLocked) => {
             const scrollbarWidth = scrollDiv.offsetWidth - scrollDiv.clientWidth;
             document.body.removeChild(scrollDiv);
 
-            // 2. Detect iOS/Mobile
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-            // 3. Store current scroll position
+            // 2. Store current scroll position
             scrollOffset.current = window.scrollY;
 
-            // 4. Store original styles
+            // 3. Store original styles
             originalStyle.current = {
+                htmlOverflow: document.documentElement.style.overflow,
                 overflow: document.body.style.overflow,
                 paddingRight: document.body.style.paddingRight,
                 position: document.body.style.position,
@@ -40,13 +40,12 @@ export const useScrollLock = (isLocked) => {
                 width: document.body.style.width
             };
 
-            // 5. Apply locking styles
+            // 4. Apply locking styles
             if (isIOS) {
-                // Robust iOS lock: Fix body position and offset top by scroll amount
-                document.body.style.position = 'fixed';
-                document.body.style.top = `-${scrollOffset.current}px`;
-                document.body.style.width = '100%';
-                document.body.style.overflow = 'hidden'; // Also hide overflow
+                // iOS: use overflow hidden on both html and body.
+                // Avoids position:fixed which breaks input focus and keyboard scroll.
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
             } else {
                 // Desktop/Android: Standard overflow hidden
                 document.body.style.overflow = 'hidden';
@@ -57,21 +56,14 @@ export const useScrollLock = (isLocked) => {
         } else {
             // Restore original styles
             if (originalStyle.current) {
-                const { overflow, paddingRight, position, top, width } = originalStyle.current;
+                const { htmlOverflow, overflow, paddingRight, position, top, width } = originalStyle.current;
 
+                document.documentElement.style.overflow = htmlOverflow;
                 document.body.style.overflow = overflow;
                 document.body.style.paddingRight = paddingRight;
                 document.body.style.position = position;
                 document.body.style.top = top;
                 document.body.style.width = width;
-
-                // Restore scroll position for iOS
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-                if (isIOS) {
-                    window.scrollTo(0, scrollOffset.current);
-                }
 
                 originalStyle.current = null;
             }
@@ -80,19 +72,14 @@ export const useScrollLock = (isLocked) => {
         return () => {
             // Cleanup: ensure we restore if component unmounts
             if (originalStyle.current) {
-                const { overflow, paddingRight, position, top, width } = originalStyle.current;
+                const { htmlOverflow, overflow, paddingRight, position, top, width } = originalStyle.current;
+                document.documentElement.style.overflow = htmlOverflow;
                 document.body.style.overflow = overflow;
                 document.body.style.paddingRight = paddingRight;
                 document.body.style.position = position;
                 document.body.style.top = top;
                 document.body.style.width = width;
 
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-                if (isIOS) {
-                    window.scrollTo(0, scrollOffset.current);
-                }
                 originalStyle.current = null;
             }
         };
