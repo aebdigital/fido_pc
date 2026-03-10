@@ -51,10 +51,28 @@ const NumberInput = ({
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
+  const touchStartYRef = useRef(0);
+  const touchMovedRef = useRef(false);
   const isTouchDevice = useMemo(() => {
     if (typeof window === 'undefined') return false;
     return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   }, []);
+  const isIOS = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }, []);
+
+  const findScrollableAncestor = (element) => {
+    let current = element?.parentElement;
+    while (current && current !== document.body) {
+      const style = window.getComputedStyle(current);
+      const canScrollY = (style.overflowY === 'auto' || style.overflowY === 'scroll') && current.scrollHeight > current.clientHeight;
+      if (canScrollY) return current;
+      current = current.parentElement;
+    }
+    return null;
+  };
 
   // Debounced onChange for arrow button clicks to prevent scroll jumping
   const debouncedOnChange = useCallback((val) => {
@@ -144,6 +162,44 @@ const NumberInput = ({
     }
   };
 
+  const handleTouchStart = (e) => {
+    if (!isIOS) return;
+    touchMovedRef.current = false;
+    touchStartYRef.current = e.changedTouches?.[0]?.clientY || 0;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isIOS) return;
+    const currentY = e.changedTouches?.[0]?.clientY || 0;
+    if (Math.abs(currentY - touchStartYRef.current) > 8) {
+      touchMovedRef.current = true;
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isIOS || touchMovedRef.current) return;
+    if (!inputRef.current || document.activeElement === inputRef.current) return;
+
+    const inFixedModal = !!inputRef.current.closest('.fixed.inset-0');
+    if (!inFixedModal) return;
+
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const rect = inputRef.current.getBoundingClientRect();
+    const scrollContainer = findScrollableAncestor(inputRef.current);
+
+    // If field is low in viewport, lift container first, then focus.
+    if (scrollContainer && rect.top > viewportHeight * 0.42) {
+      const targetTop = viewportHeight * 0.28;
+      const delta = rect.top - targetTop;
+      if (Math.abs(delta) > 2) {
+        scrollContainer.scrollBy({ top: delta, behavior: 'auto' });
+      }
+    }
+
+    inputRef.current.focus({ preventScroll: true });
+    e.preventDefault();
+  };
+
   const incrementValue = (step) => {
     const currentValue = parseFloat(internalValue.replace(',', '.')) || 0;
     const newValue = Math.max(min, currentValue + step);
@@ -179,6 +235,9 @@ const NumberInput = ({
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               processAndSubmit();
