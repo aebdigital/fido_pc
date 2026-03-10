@@ -1469,7 +1469,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                             onChange={handleCustomMaturityChange}
                             onFocus={handleCustomMaturityFocus}
                             onBlur={handleCustomMaturityBlur}
-                            placeholder={t('Custom')}
+                            placeholder="XY"
                             className="w-full text-center text-lg font-semibold focus:outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500"
                           />
                           <span className={`text-[10px] font-medium leading-none ${!maturityOptions.includes(Number(paymentDays)) || customInputValue !== '' ? 'opacity-80' : 'opacity-60'

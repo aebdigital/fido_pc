@@ -356,7 +356,7 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={handleClose}>
       <div
-        className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in"
+        className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-[95vw] h-[100dvh] sm:h-auto sm:max-h-[90dvh] flex flex-col animate-slide-in-bottom sm:animate-slide-in my-0 sm:my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -409,7 +409,10 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div
+          className="flex-1 p-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-6 overflow-y-auto overscroll-contain bg-gray-50 dark:bg-gray-900"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {/* Work Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
