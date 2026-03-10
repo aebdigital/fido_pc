@@ -162,7 +162,7 @@ const NumberInput = ({
 
   const isSmall = size === "small";
   const inputWidth = isSmall ? "w-full sm:w-24" : "w-full sm:w-32";
-  const paddingRight = isTouchDevice ? "pr-2" : (isSmall ? "pr-9" : "pr-12");
+  const paddingRight = isSmall ? "pr-9" : "pr-12";
   const fontSize = "text-base"; // Use text-base (16px) to prevent iOS auto-zoom
   const borderRadius = isSmall ? "rounded" : "rounded-xl";
 
@@ -191,58 +191,56 @@ const NumberInput = ({
           {...props}
         />
 
-        {/* Arrow controls are desktop-only; on touch devices use plain input behavior for stable focus. */}
-        {!isTouchDevice && (
-          <div className={`absolute ${isSmall ? 'right-0.5' : 'right-1'} top-0 bottom-0 flex`}>
-            {/* Big increment arrows (±1) */}
-            <div className="flex flex-col h-full">
-              <button
-                type="button"
-                onClick={() => incrementValue(1)}
-                onMouseDown={(e) => e.preventDefault()}
-                disabled={disabled}
-                className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                title="+1"
-              >
-                <ChevronUp className={`${isSmall ? 'w-2 h-2' : 'w-3 h-3'} text-gray-600 dark:text-gray-400`} />
-              </button>
-              <button
-                type="button"
-                onClick={() => decrementValue(1)}
-                onMouseDown={(e) => e.preventDefault()}
-                disabled={disabled}
-                className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                title="-1"
-              >
-                <ChevronDown className={`${isSmall ? 'w-2 h-2' : 'w-3 h-3'} text-gray-600 dark:text-gray-400`} />
-              </button>
-            </div>
-
-            {/* Small increment arrows (±0.1) */}
-            <div className="flex flex-col h-full">
-              <button
-                type="button"
-                onClick={() => incrementValue(0.1)}
-                onMouseDown={(e) => e.preventDefault()}
-                disabled={disabled}
-                className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 ${isSmall ? 'rounded-tr rounded-br' : 'rounded-tr-xl rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                title="+0.1"
-              >
-                <ChevronUp className={`${isSmall ? 'w-1.5 h-1.5' : 'w-2 h-2'} text-gray-500 dark:text-gray-500`} />
-              </button>
-              <button
-                type="button"
-                onClick={() => decrementValue(0.1)}
-                onMouseDown={(e) => e.preventDefault()}
-                disabled={disabled}
-                className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 ${isSmall ? 'rounded-br' : 'rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                title="-0.1"
-              >
-                <ChevronDown className={`${isSmall ? 'w-1.5 h-1.5' : 'w-2 h-2'} text-gray-500 dark:text-gray-500`} />
-              </button>
-            </div>
+        {/* Arrow controls */}
+        <div className={`absolute ${isSmall ? 'right-0.5' : 'right-1'} top-0 bottom-0 flex`}>
+          {/* Big increment arrows (±1) */}
+          <div className="flex flex-col h-full">
+            <button
+              type="button"
+              onClick={() => incrementValue(1)}
+              onMouseDown={(e) => e.preventDefault()}
+              disabled={disabled}
+              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              title="+1"
+            >
+              <ChevronUp className={`${isSmall ? 'w-2 h-2' : 'w-3 h-3'} text-gray-600 dark:text-gray-400`} />
+            </button>
+            <button
+              type="button"
+              onClick={() => decrementValue(1)}
+              onMouseDown={(e) => e.preventDefault()}
+              disabled={disabled}
+              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              title="-1"
+            >
+              <ChevronDown className={`${isSmall ? 'w-2 h-2' : 'w-3 h-3'} text-gray-600 dark:text-gray-400`} />
+            </button>
           </div>
-        )}
+
+          {/* Small increment arrows (±0.1) */}
+          <div className="flex flex-col h-full">
+            <button
+              type="button"
+              onClick={() => incrementValue(0.1)}
+              onMouseDown={(e) => e.preventDefault()}
+              disabled={disabled}
+              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 ${isSmall ? 'rounded-tr rounded-br' : 'rounded-tr-xl rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              title="+0.1"
+            >
+              <ChevronUp className={`${isSmall ? 'w-1.5 h-1.5' : 'w-2 h-2'} text-gray-500 dark:text-gray-500`} />
+            </button>
+            <button
+              type="button"
+              onClick={() => decrementValue(0.1)}
+              onMouseDown={(e) => e.preventDefault()}
+              disabled={disabled}
+              className={`flex-1 ${isSmall ? 'px-0.5' : 'px-1'} hover:bg-gray-200 dark:hover:bg-gray-700 ${isSmall ? 'rounded-br' : 'rounded-br-xl'} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              title="-0.1"
+            >
+              <ChevronDown className={`${isSmall ? 'w-1.5 h-1.5' : 'w-2 h-2'} text-gray-500 dark:text-gray-500`} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
