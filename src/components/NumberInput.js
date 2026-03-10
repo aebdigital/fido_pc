@@ -183,20 +183,35 @@ const NumberInput = ({
     const inFixedModal = !!inputRef.current.closest('.fixed.inset-0');
     if (!inFixedModal) return;
 
-    const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    const rect = inputRef.current.getBoundingClientRect();
     const scrollContainer = findScrollableAncestor(inputRef.current);
 
-    // If field is low in viewport, lift container first, then focus.
-    if (scrollContainer && rect.top > viewportHeight * 0.42) {
-      const targetTop = viewportHeight * 0.28;
-      const delta = rect.top - targetTop;
-      if (Math.abs(delta) > 2) {
-        scrollContainer.scrollBy({ top: delta, behavior: 'auto' });
-      }
+    inputRef.current.focus({ preventScroll: true });
+
+    // After keyboard animation starts, smoothly move the field into visible area.
+    if (scrollContainer) {
+      setTimeout(() => {
+        const inputRect = inputRef.current?.getBoundingClientRect();
+        const containerRect = scrollContainer.getBoundingClientRect();
+        if (!inputRect) return;
+
+        const keyboardTop = window.visualViewport?.height || window.innerHeight;
+        const visibleTop = containerRect.top + 16;
+        const visibleBottom = Math.min(containerRect.bottom - 20, keyboardTop - 20);
+
+        if (inputRect.bottom > visibleBottom) {
+          scrollContainer.scrollBy({
+            top: inputRect.bottom - visibleBottom + 10,
+            behavior: 'smooth'
+          });
+        } else if (inputRect.top < visibleTop) {
+          scrollContainer.scrollBy({
+            top: inputRect.top - visibleTop - 10,
+            behavior: 'smooth'
+          });
+        }
+      }, 220);
     }
 
-    inputRef.current.focus({ preventScroll: true });
     e.preventDefault();
   };
 

@@ -16,16 +16,41 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
   const [projectPriceData, setProjectPriceData] = useState(null);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'modified'
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const lastSavedData = useRef(null);
   const onSaveRef = useRef(onSave);
   const isUnmounting = useRef(false);
   const saveTimerRef = useRef(null);
   const initializedProjectRef = useRef(null);
+  const isIOS = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }, []);
 
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
+
+  useEffect(() => {
+    if (!isIOS || !window.visualViewport) return;
+
+    const updateKeyboardInset = () => {
+      const vv = window.visualViewport;
+      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      setKeyboardInset(inset);
+    };
+
+    updateKeyboardInset();
+    window.visualViewport.addEventListener('resize', updateKeyboardInset);
+    window.visualViewport.addEventListener('scroll', updateKeyboardInset);
+
+    return () => {
+      window.visualViewport.removeEventListener('resize', updateKeyboardInset);
+      window.visualViewport.removeEventListener('scroll', updateKeyboardInset);
+    };
+  }, [isIOS]);
 
   const usedItemsIndices = useMemo(() => {
     if (!projectPriceData) return null;
@@ -409,7 +434,13 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:pb-6 bg-gray-50 dark:bg-gray-900">
+        <div
+          className="flex-1 overflow-y-auto p-6 pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-6 bg-gray-50 dark:bg-gray-900"
+          style={keyboardInset > 0 ? {
+            paddingBottom: `calc(10rem + env(safe-area-inset-bottom) + ${keyboardInset}px)`,
+            transition: 'padding-bottom 180ms ease-out'
+          } : undefined}
+        >
           {/* Work Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
