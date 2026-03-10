@@ -248,9 +248,10 @@ const PDFPreviewModal = ({ isOpen, onClose, pdfUrl, onSend, title }) => {
             </button>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              className="modal-close-btn"
+              aria-label="Close"
             >
-              <X className="w-6 h-6 text-gray-500" />
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>

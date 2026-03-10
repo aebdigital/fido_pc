@@ -810,8 +810,8 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="flex items-center justify-between p-4 lg:p-6 border-b-0 lg:border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-3xl lg:text-3xl font-sf-heavy text-gray-900 dark:text-white">
               {isServicesProject ? t('Položky projektu') : (t(room.name) !== room.name ? t(room.name) : room.name)}
             </h2>
             <div className="flex items-center gap-2 sm:gap-3">
@@ -836,9 +836,10 @@ const RoomDetailsModal = ({ room, workProperties, onSave, onClose, priceList, pr
               </div>
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                className="modal-close-btn"
+                aria-label="Close"
               >
-                <X className="w-6 h-6 text-gray-500" />
+                <X className="w-6 h-6" />
               </button>
             </div>
           </div>

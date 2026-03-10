@@ -118,8 +118,8 @@ const AssignJobModal = ({ isOpen, onClose, projectId, roomId, jobId, jobName, wo
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Assign User')}</h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('Assigning to')}: <span className="font-semibold">{jobName}</span></p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                        <X className="w-6 h-6 text-gray-500" />
+                    <button onClick={onClose} className="modal-close-btn" aria-label="Close">
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 

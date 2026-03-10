@@ -136,6 +136,7 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         invoice_items_data: iosItems ? JSON.stringify(iosItems) : null,
         // Price data
         price_without_vat: invoiceData.priceWithoutVat || 0,
+        vat_amount: invoiceData.vatAmount ?? invoiceData.cumulativeVat ?? 0,
         cumulative_vat: invoiceData.cumulativeVat || 0,
         // Invoice Type & Deposit Settings
         invoice_type: invoiceData.invoiceType || 'regular',
@@ -218,7 +219,15 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
       }
 
       if (updates.priceWithoutVat !== undefined) dbUpdates.price_without_vat = updates.priceWithoutVat;
+      if (updates.vatAmount !== undefined) dbUpdates.vat_amount = updates.vatAmount;
       if (updates.cumulativeVat !== undefined) dbUpdates.cumulative_vat = updates.cumulativeVat;
+
+      // Keep both VAT columns in sync when only one is provided from web.
+      if (updates.cumulativeVat !== undefined && updates.vatAmount === undefined) {
+        dbUpdates.vat_amount = updates.cumulativeVat;
+      } else if (updates.vatAmount !== undefined && updates.cumulativeVat === undefined) {
+        dbUpdates.cumulative_vat = updates.vatAmount;
+      }
 
       if (updates.invoiceType !== undefined) dbUpdates.invoice_type = updates.invoiceType;
       if (updates.depositSettings !== undefined) dbUpdates.deposit_settings = updates.depositSettings;
@@ -231,10 +240,17 @@ export const useInvoiceManager = (appData, setAppData, addProjectHistoryEntry, u
         await api.invoices.update(invoiceId, dbUpdates);
       }
 
+      const localInvoiceUpdates = { ...updates };
+      if (updates.cumulativeVat !== undefined && updates.vatAmount === undefined) {
+        localInvoiceUpdates.vatAmount = updates.cumulativeVat;
+      } else if (updates.vatAmount !== undefined && updates.cumulativeVat === undefined) {
+        localInvoiceUpdates.cumulativeVat = updates.vatAmount;
+      }
+
       setAppData(prev => ({
         ...prev,
         invoices: prev.invoices.map(inv =>
-          inv.id === invoiceId ? { ...inv, ...updates } : inv
+          inv.id === invoiceId ? { ...inv, ...localInvoiceUpdates } : inv
         )
       }));
 

@@ -73,8 +73,8 @@ const PaywallModal = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex justify-between items-center px-6 pt-6 pb-2 shrink-0">
           <h2 className="text-[33px] font-semibold text-gray-900 dark:text-white leading-tight">{t('Become Pro!')}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-            <X className="w-6 h-6 text-gray-500" />
+          <button onClick={onClose} className="modal-close-btn" aria-label="Close">
+            <X className="w-6 h-6" />
           </button>
         </div>
 

@@ -198,8 +198,9 @@ export const transformInvoiceFromDB = (dbInvoice) => {
     createdDate: dbInvoice.created_at,
     // Invoice items data (matching iOS invoiceItemsData)
     invoiceItems: invoiceItems,
-    priceWithoutVat: dbInvoice.price_without_vat || 0,
-    cumulativeVat: dbInvoice.cumulative_vat || 0,
+    priceWithoutVat: dbInvoice.price_without_vat ?? 0,
+    vatAmount: dbInvoice.vat_amount ?? dbInvoice.cumulative_vat ?? 0,
+    cumulativeVat: dbInvoice.cumulative_vat ?? dbInvoice.vat_amount ?? 0,
     contractors: dbInvoice.contractors, // Pass through contractors object for display logic
     invoiceType: dbInvoice.invoice_type || 'regular',
     depositSettings: dbInvoice.deposit_settings || null,
@@ -359,4 +360,3 @@ export const generateNextInvoiceNumber = (invoices, contractorId, type, project)
   // For a new month, start with 001
   return `${yearMonthPrefix}001`;
 };
-

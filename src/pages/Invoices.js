@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Plus, Hash, Package, MoreVertical } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Hash, Package, MoreVertical, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppData } from '../context/AppDataContext';
 import { INVOICE_STATUS } from '../utils/dataTransformers';
@@ -7,6 +7,44 @@ import InvoiceDetailModal from '../components/InvoiceDetailModal';
 import InvoiceCreationModal from '../components/InvoiceCreationModal';
 import ItemsManagementModal from '../components/ItemsManagementModal';
 import ContractorProfileModal from '../components/ContractorProfileModal';
+
+const normalizeInvoiceStatus = (status) => {
+  if (status === 'unsent') return INVOICE_STATUS.UNPAID;
+  if (status === 'overdue') return INVOICE_STATUS.AFTER_MATURITY;
+
+  if (
+    status === INVOICE_STATUS.PAID ||
+    status === INVOICE_STATUS.UNPAID ||
+    status === INVOICE_STATUS.AFTER_MATURITY
+  ) {
+    return status;
+  }
+
+  // Match iOS fallback (unknown status -> unpaid)
+  return INVOICE_STATUS.UNPAID;
+};
+
+const resolveInvoiceStatsStatus = (invoice, referenceDate) => {
+  const normalizedStatus = normalizeInvoiceStatus(invoice.status);
+
+  if (normalizedStatus === INVOICE_STATUS.PAID || normalizedStatus === INVOICE_STATUS.AFTER_MATURITY) {
+    return normalizedStatus;
+  }
+
+  // iOS statusCase marks unpaid invoices as afterMaturity once maturity date passes.
+  const dueDate = new Date(invoice.dueDate);
+  if (Number.isNaN(dueDate.getTime())) {
+    return normalizedStatus;
+  }
+
+  const maturityCutOffDate = new Date(dueDate);
+  maturityCutOffDate.setHours(0, 0, 0, 0);
+
+  const today = new Date(referenceDate);
+  today.setHours(0, 0, 0, 0);
+
+  return today > maturityCutOffDate ? INVOICE_STATUS.AFTER_MATURITY : INVOICE_STATUS.UNPAID;
+};
 
 const Invoices = () => {
   const { t } = useLanguage();
@@ -46,6 +84,19 @@ const Invoices = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!showStatsModal) return undefined;
+
+    const handleEscClose = (event) => {
+      if (event.key === 'Escape') {
+        setShowStatsModal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscClose);
+    return () => document.removeEventListener('keydown', handleEscClose);
+  }, [showStatsModal]);
 
   const getCurrentContractor = () => {
     return contractors.find(c => c.id === activeContractorId);
@@ -172,18 +223,18 @@ const Invoices = () => {
 
       if (invoice.priceWithoutVat !== undefined && invoice.priceWithoutVat !== null) {
         const priceWithoutVat = parseFloat(invoice.priceWithoutVat);
-        const cumulativeVat = parseFloat(invoice.cumulativeVat || 0);
-        if (cumulativeVat > 0) {
-          // New format: both values are stored
-          totalWithVAT = priceWithoutVat + cumulativeVat;
-          totalWithoutVAT = priceWithoutVat;
+        totalWithoutVAT = Number.isNaN(priceWithoutVat) ? 0 : priceWithoutVat;
+
+        // Match iOS formula: sum stored VAT amount per invoice.
+        const rawVatValue = invoice.vatAmount ?? invoice.cumulativeVat;
+        if (rawVatValue !== undefined && rawVatValue !== null) {
+          const vatAmount = parseFloat(rawVatValue);
+          totalWithVAT = totalWithoutVAT + (Number.isNaN(vatAmount) ? 0 : vatAmount);
         } else {
-          // Old format: cumulativeVat not tracked, priceWithoutVat is actually the base price
-          // Calculate VAT from rate
+          // Legacy fallback when VAT wasn't stored at all.
           const vatItem = generalPriceList?.others?.find(item => item.name === 'VAT');
           const vatRate = vatItem ? vatItem.price / 100 : 0.20;
-          totalWithoutVAT = priceWithoutVat;
-          totalWithVAT = priceWithoutVat * (1 + vatRate);
+          totalWithVAT = totalWithoutVAT * (1 + vatRate);
         }
       } else {
         // Fallback for very old legacy data if priceWithoutVat is missing
@@ -220,22 +271,20 @@ const Invoices = () => {
       yearStats.total.amountWithoutVAT += totalWithoutVAT;
       yearStats.total.count++;
 
-      if (invoice.status === INVOICE_STATUS.PAID) {
+      const invoiceStatus = resolveInvoiceStatsStatus(invoice, today);
+
+      if (invoiceStatus === INVOICE_STATUS.PAID) {
         yearStats.paid.amount += totalWithVAT;
         yearStats.paid.amountWithoutVAT += totalWithoutVAT;
         yearStats.paid.count++;
+      } else if (invoiceStatus === INVOICE_STATUS.AFTER_MATURITY) {
+        yearStats.overdue.amount += totalWithVAT;
+        yearStats.overdue.amountWithoutVAT += totalWithoutVAT;
+        yearStats.overdue.count++;
       } else {
         yearStats.unpaid.amount += totalWithVAT;
         yearStats.unpaid.amountWithoutVAT += totalWithoutVAT;
         yearStats.unpaid.count++;
-
-        // Check if overdue
-        const dueDate = new Date(invoice.dueDate);
-        if (dueDate < today) {
-          yearStats.overdue.amount += totalWithVAT;
-          yearStats.overdue.amountWithoutVAT += totalWithoutVAT;
-          yearStats.overdue.count++;
-        }
       }
     });
 
@@ -625,7 +674,7 @@ const Invoices = () => {
 
       {/* Statistics Modal */}
       {showStatsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 animate-fade-in" onClick={() => setShowStatsModal(false)}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 overflow-hidden animate-fade-in" onClick={() => setShowStatsModal(false)}>
           <div className="relative bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] lg:rounded-[25px] w-full lg:max-w-md h-[85dvh] overflow-hidden shadow-2xl animate-slide-in-bottom lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 z-10 h-[60px] px-[15px] flex items-start justify-between bg-white/80 dark:bg-gray-900/85 backdrop-blur-md border-b border-black/10 dark:border-white/10">
@@ -633,9 +682,10 @@ const Invoices = () => {
               <h2 className="pt-[7px] text-[20px] font-medium text-[#111827] dark:text-white">{t('Statistics')}</h2>
               <button
                 onClick={() => setShowStatsModal(false)}
-                className="w-10 h-full flex items-center justify-center text-[#111827] dark:text-white hover:text-[#374151] dark:hover:text-gray-300 transition-colors"
+                className="modal-close-btn"
+                aria-label="Close"
               >
-                <ChevronDown className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 

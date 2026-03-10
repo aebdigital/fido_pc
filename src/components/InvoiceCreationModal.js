@@ -163,6 +163,19 @@ const getMaterialItemDisplayName = (item, t) => {
 // Maturity quick-select options (matching iOS MaturityDuration)
 const maturityOptions = [7, 15, 30, 60, 90];
 
+const insertItemAtTopOfCategory = (items, newItem) => {
+  const firstCategoryIndex = items.findIndex(item => item.category === newItem.category);
+  if (firstCategoryIndex === -1) {
+    return [...items, newItem];
+  }
+
+  return [
+    ...items.slice(0, firstCategoryIndex),
+    newItem,
+    ...items.slice(firstCategoryIndex)
+  ];
+};
+
 const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode = false, existingInvoice = null, dennikData = null, initialClientContractor = null, isStandalone: propIsStandalone = false, isCreditNoteCreation = false }) => {
   useScrollLock(true);
   const { t } = useLanguage();
@@ -733,7 +746,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       taxObligationTransfer: false,
       isNew: true
     };
-    setInvoiceItems(prev => [newItem, ...prev]);
+    setInvoiceItems(prev => insertItemAtTopOfCategory(prev, newItem));
   };
 
   // Remove an item
@@ -1089,9 +1102,10 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
               </div>
               <button
                 onClick={() => onClose()}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                className="modal-close-btn"
+                aria-label={t('Close')}
               >
-                <X className="w-6 h-6 text-gray-500" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
@@ -1125,21 +1139,44 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Summary Section-At top like iOS */}
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Summary')}</h3>
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-base font-semibold text-gray-900 dark:text-white">{t('without VAT')}</span>
-                  <span className="text-base font-semibold text-gray-900 dark:text-white">
-                    {calculateTotals.priceWithoutVat.toFixed(2)} €
+              <h3 className="text-[24px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Súhrn')}</h3>
+
+              {invoiceType === 'proforma' ? (
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">{t('Total Price')}</span>
+                  <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">
+                    {(() => {
+                      const total = calculateTotals.totalPrice;
+                      const val = depositValue === '' ? 0 : depositValue;
+                      if (depositType === 'percentage') {
+                        return (total * (val / 100)).toFixed(2);
+                      }
+                      return (val * 1.23).toFixed(2);
+                    })()} €
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-base font-semibold text-gray-900 dark:text-white">{t('VAT')}</span>
-                  <span className="text-base font-semibold text-gray-900 dark:text-white">
-                    {calculateTotals.cumulativeVat.toFixed(2)} €
-                  </span>
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">{t('Price without VAT')}</span>
+                    <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">
+                      {calculateTotals.priceWithoutVat.toFixed(2)} €
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">{t('VAT')}</span>
+                    <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">
+                      {calculateTotals.cumulativeVat.toFixed(2)} €
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">{t('Total Price')}</span>
+                    <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">
+                      {calculateTotals.totalPrice.toFixed(2)} €
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Proforma Settings - Moved above Total Price */}
               {invoiceType === 'proforma' && (
@@ -1240,62 +1277,46 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 </div>
               )}
 
-              <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-                <span className="text-lg font-bold text-gray-900 dark:text-white">{t('Total Price')}</span>
-                <span className="text-lg font-bold text-gray-900 dark:text-white">
-                  {(() => {
-                    const total = calculateTotals.totalPrice;
-                    if (invoiceType === 'proforma') {
-                      const val = depositValue === '' ? 0 : depositValue;
-                      if (depositType === 'percentage') {
-                        return (total * (val / 100)).toFixed(2);
-                      } else {
-                        // Fixed amount is Base, so add roughly 23% VAT for display estimation
-                        // Or does user expect "Fixed Amount" to be the Total? 
-                        // PDF generator treats Fixed as Base. So Display should be Fixed + VAT.
-                        return (val * 1.23).toFixed(2);
-                      }
-                    }
-                    return total.toFixed(2);
-                  })()} €
-                </span>
-              </div>
-
             </div>
 
             <div className="space-y-2">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Settings')}</h3>
               <div className="space-y-3">
-                {/* Project Name + Introductory Note - side by side on desktop */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {/* Project Display Name */}
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
-                    <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Project name')}</span>
+                {/* Document Number */}
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
+                  <span className="text-base font-medium text-gray-900 dark:text-white">
+                    {invoiceType === 'proforma' ? t('Proforma Invoice Number') : invoiceType === 'delivery' ? t('Delivery Note Number') : invoiceType === 'credit_note' ? t('Credit Note Number') : t('Invoice Number')}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {invoiceNumber !== originalInvoiceNumber && (
+                      <button
+                        onClick={handleResetNumber}
+                        className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                        title={t('Reset to original')}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    )}
                     <input
                       type="text"
-                      value={projectDisplayName}
-                      onChange={(e) => setProjectDisplayName(e.target.value)}
-                      placeholder={project?.name || t('Project name')}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none invoice-input-dark"
+                      value={invoiceNumber}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      className={`w-32 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-right text-base font-medium focus:outline-none invoice-input-dark`}
+                      placeholder="2025001"
                     />
                   </div>
+                </div>
 
-                  {/* Introductory Note - subheading below document title in PDF */}
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
-                    <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Poznámka úvodná')}</span>
-                    <input
-                      type="text"
-                      value={introductoryNote}
-                      onChange={(e) => setIntroductoryNote(e.target.value)}
-                      placeholder={(() => {
-                        if (invoiceType === 'credit_note') return `${t('To invoice')} ...`;
-                        if (project?.projectNumber) return `${t('Price offer')} ${project.projectNumber}`;
-                        return t('Introductory note placeholder');
-                      })()}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none invoice-input-dark"
-                    />
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">{t('Shown as subheading in PDF')}</span>
-                  </div>
+                {/* Project Display Name */}
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
+                  <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Project name')}</span>
+                  <input
+                    type="text"
+                    value={projectDisplayName}
+                    onChange={(e) => setProjectDisplayName(e.target.value)}
+                    placeholder={project?.name || t('Project name')}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none invoice-input-dark"
+                  />
                 </div>
 
                 {/* Client / Recipient selection */}
@@ -1342,85 +1363,75 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {/* Document Number */}
+                {/* Introductory Note - subheading below document title in PDF */}
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-4">
+                  <span className="text-base font-medium text-gray-900 dark:text-white block mb-2">{t('Introductory note')}</span>
+                  <input
+                    type="text"
+                    value={introductoryNote}
+                    onChange={(e) => setIntroductoryNote(e.target.value)}
+                    placeholder={(() => {
+                      if (invoiceType === 'credit_note') return `${t('To invoice')} ...`;
+                      if (project?.projectNumber) return `${t('Price offer')} ${project.projectNumber}`;
+                      return t('Introductory note placeholder');
+                    })()}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-gray-900 dark:text-white focus:outline-none invoice-input-dark"
+                  />
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">{t('Shown as subheading in PDF')}</span>
+                </div>
+
+                {/* Issue Date - hidden for delivery notes */}
+                {invoiceType !== 'delivery' && (
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of issue')}</span>
+                    <input
+                      type="date"
+                      value={issueDate}
+                      onChange={(e) => setIssueDate(e.target.value)}
+                      className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
+                    />
+                  </div>
+                )}
+
+                {/* Dispatch Date - hidden for delivery notes */}
+                {invoiceType !== 'delivery' && (
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of dispatch')}</span>
+                    <input
+                      type="date"
+                      value={dispatchDate}
+                      onChange={(e) => setDispatchDate(e.target.value)}
+                      className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
+                    />
+                  </div>
+                )}
+
+                {/* Payment Type - hidden for delivery notes */}
+                {invoiceType !== 'delivery' && (
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
-                    <span className="text-base font-medium text-gray-900 dark:text-white">
-                      {invoiceType === 'proforma' ? t('Proforma Invoice Number') : invoiceType === 'delivery' ? t('Delivery Note Number') : invoiceType === 'credit_note' ? t('Credit Note Number') : t('Invoice Number')}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {invoiceNumber !== originalInvoiceNumber && (
-                        <button
-                          onClick={handleResetNumber}
-                          className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                          title={t('Reset to original')}
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </button>
-                      )}
-                      <input
-                        type="text"
-                        value={invoiceNumber}
-                        onChange={(e) => setInvoiceNumber(e.target.value)}
-                        className={`w-32 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-gray-900 dark:border-gray-500 rounded-xl text-right text-base font-medium focus:outline-none invoice-input-dark`}
-                        placeholder="2025001"
-                      />
+                    <span className="text-base font-medium text-gray-900 dark:text-white">{t('Payment type')}</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPaymentMethod('cash')}
+                        className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center justify-center ${paymentMethod === 'cash'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02] active-white-bg'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 no-text-dark-override'
+                          } `}
+                      >
+                        {t('Cash')}
+                      </button>
+                      <button
+                        onClick={() => setPaymentMethod('transfer')}
+                        className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center justify-center ${paymentMethod === 'transfer'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02] active-white-bg'
+                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 no-text-dark-override'
+                          } `}
+                      >
+                        {t('Bank transfer')}
+                      </button>
                     </div>
                   </div>
-
-                  {/* Issue Date - hidden for delivery notes */}
-                  {invoiceType !== 'delivery' && (
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of issue')}</span>
-                      <input
-                        type="date"
-                        value={issueDate}
-                        onChange={(e) => setIssueDate(e.target.value)}
-                        className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
-                      />
-                    </div>
-                  )}
-
-                  {/* Dispatch Date - hidden for delivery notes */}
-                  {invoiceType !== 'delivery' && (
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
-                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Date of dispatch')}</span>
-                      <input
-                        type="date"
-                        value={dispatchDate}
-                        onChange={(e) => setDispatchDate(e.target.value)}
-                        className="w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-base focus:outline-none invoice-input-dark"
-                      />
-                    </div>
-                  )}
-
-                  {/* Payment Type - hidden for delivery notes */}
-                  {invoiceType !== 'delivery' && (
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center justify-between">
-                      <span className="text-base font-medium text-gray-900 dark:text-white">{t('Payment type')}</span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setPaymentMethod('cash')}
-                          className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center justify-center ${paymentMethod === 'cash'
-                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02] active-white-bg'
-                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 no-text-dark-override'
-                            } `}
-                        >
-                          {t('Cash')}
-                        </button>
-                        <button
-                          onClick={() => setPaymentMethod('transfer')}
-                          className={`px-4 py-2 text-sm font-medium transition-all rounded-xl flex items-center justify-center ${paymentMethod === 'transfer'
-                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md transform scale-[1.02] active-white-bg'
-                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 no-text-dark-override'
-                            } `}
-                        >
-                          {t('Bank transfer')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {/* Invoice Maturity - hidden for delivery notes */}
                 {invoiceType !== 'delivery' && (
@@ -1544,7 +1555,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                             key={idx}
                             onClick={() => {
                               const newItem = {
-                                id: Math.random().toString(36).substr(2, 9),
+                                id: crypto.randomUUID(),
                                 title: s.title,
                                 category: s.category || 'work',
                                 pieces: 1,
@@ -1554,7 +1565,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                                 active: true,
                                 isNew: true
                               };
-                              setInvoiceItems([...invoiceItems, newItem]);
+                              setInvoiceItems(prev => insertItemAtTopOfCategory(prev, newItem));
                               setItemSearchQuery('');
                               setShowItemSuggestions(false);
                             }}
@@ -1563,7 +1574,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                             <div className="min-w-0 flex-1">
                               <div className="font-semibold text-gray-900 dark:text-white truncate">{s.title}</div>
                               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                {s.price} € / {t(s.unit)} • {t(s.category)}
+                                {s.price} € / {t(s.unit)}
                               </div>
                             </div>
                             <Plus className="w-4 h-4 text-gray-400" />
@@ -1785,7 +1796,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                   if (showCreateClientInModal) setShowCreateClientInModal(false);
                   else setShowClientSelector(false);
                 }}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="modal-close-btn"
+                aria-label={t('Close')}
               >
                 <X className="w-6 h-6" />
               </button>

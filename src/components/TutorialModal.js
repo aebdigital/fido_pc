@@ -91,7 +91,8 @@ const TutorialModal = ({ isOpen, onClose }) => {
                 <div className="p-4 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        className="modal-close-btn"
+                        aria-label="Close"
                     >
                         <X className="w-6 h-6" />
                     </button>

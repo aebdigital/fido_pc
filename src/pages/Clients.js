@@ -202,7 +202,8 @@ const Clients = () => {
               </h2>
               <button
                 onClick={handleCloseModal}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="modal-close-btn"
+                aria-label="Close"
               >
                 <X className="w-6 h-6" />
               </button>

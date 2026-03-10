@@ -392,9 +392,10 @@ const ProjectPriceList = ({ projectId, initialData, onClose, onSave }) => {
             </div>
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="modal-close-btn"
+              aria-label="Close"
             >
-              <X className="w-5 h-5 lg:w-6 lg:h-6" />
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>

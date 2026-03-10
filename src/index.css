@@ -68,6 +68,44 @@
   color: #ffffff;
 }
 
+.modal-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  color: #374151;
+  background: transparent !important;
+}
+
+button.modal-close-btn:hover {
+  transform: none !important;
+}
+
+.dark .modal-close-btn {
+  color: #9ca3af;
+}
+
+.dark .modal-close-btn:hover {
+  color: #e5e7eb;
+  background: transparent !important;
+}
+
+.modal-close-btn svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
 /* Modal Animations */
 @keyframes fadeIn {
   from {

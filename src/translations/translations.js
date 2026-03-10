@@ -427,7 +427,8 @@ export const translations = {
     "zlava po fakturacii": "zľava po fakturácii",
     "Credit Note for invoice": "Dobropis k faktúre",
     "Issue Credit Note": "Vystaviť dobropis",
-    "Poznámka úvodná": "Poznámka úvodná",
+    "Poznámka úvodná": "Introductory note",
+    "Súhrn": "Summary",
     "Poznámka na záver": "Poznámka na záver",
     "Credit note already issued": "Dobropis už bol vystavený",
     "Hide item": "Skryť položku",
@@ -904,6 +905,7 @@ export const translations = {
 
     "Total Price": "Celková cena",
     "without VAT": "bez DPH",
+    "Price without VAT": "Cena bez DPH",
     "with VAT": "s DPH",
 
     "VAT (23%)": "DPH (23%)",
@@ -1160,7 +1162,7 @@ export const translations = {
 
     // ========== INVOICE BUILDER (iOS-aligned) ==========
     "Invoice Builder": "Vystavenie dokladu",
-    "Summary": "Zhrnutie",
+    "Summary": "Súhrn",
     "Invoice maturity": "Splatnosť faktúry",
     "Price per piece": "Cena za kus",
     "count": "počet",
@@ -1323,10 +1325,10 @@ export const translations = {
     "Bank Code": "Kód banky",
     "Legal appendix": "Spisová vložka",
     "Note": "Poznámka", // Placeholder for legal appendix
-    "Introductory note": "Poznámka úvodná",
+    "Introductory note": "Úvodná poznámka",
     "Introductory note placeholder": "Úvodná poznámka k faktúre...",
     "Shown as subheading in PDF": "Zobrazí sa ako podnadpis v PDF",
-    "Project name": "Meno projektu",
+    "Project name": "Názov projektu",
     "Signature": "Podpis",
     "Upload signature image": "Nahrať obrázok podpisu",
     "Add signature": "Pridať podpis",

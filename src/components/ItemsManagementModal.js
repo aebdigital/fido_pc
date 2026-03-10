@@ -88,8 +88,8 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
                                 <p className="text-[13px] text-[#6B7280] dark:text-gray-400">{t('Manage saved autocomplete items')}</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F3F4F6] dark:bg-gray-800 no-gradient flex items-center justify-center hover:bg-[#E5E7EB] dark:hover:bg-gray-700 transition-colors">
-                            <X className="w-4 h-4 text-[#6B7280] dark:text-gray-300" />
+                        <button onClick={onClose} className="modal-close-btn" aria-label="Close">
+                            <X className="w-6 h-6" />
                         </button>
                     </div>
 

@@ -176,9 +176,10 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
           </h2>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            className="modal-close-btn"
+            aria-label="Close"
           >
-            <X className="w-6 h-6 text-gray-500" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
@@ -229,7 +230,6 @@ const ContractorProfileModal = ({ onClose, onSave, onDelete, editingContractor =
 
           {/* Contractor Details */}
           <div className="mb-8">
-            <h3 className="text-[25px] font-semibold sm:text-xl sm:font-bold text-gray-900 dark:text-white mb-6">{t('Contractor details')}</h3>
             <div className="space-y-4">
 
               {/* IČO Search Button / Component - Only for Slovak language */}

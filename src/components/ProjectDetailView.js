@@ -1357,7 +1357,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               {viewSource === 'team_modal' && (
                 <button
                   onClick={onBack}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                  className="modal-close-btn"
+                  aria-label="Close"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -1509,9 +1510,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             {viewSource === 'team_modal' && (
               <button
                 onClick={onBack}
-                className="p-1 px-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors ml-2"
+                className="modal-close-btn ml-2"
+                aria-label="Close"
               >
-                <X className="w-7 h-7" />
+                <X className="w-6 h-6" />
               </button>
             )}
           </div>
@@ -2194,7 +2196,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('New room')}</h3>
                 <button
                   onClick={() => setShowNewRoomModal(false)}
-                  className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
+                  className="modal-close-btn"
+                  aria-label="Close"
                   title={t('Cancel')}
                 >
                   <X className="w-6 h-6" />
@@ -2220,7 +2223,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Custom Room Name')}</h3>
                 <button
                   onClick={() => setShowCustomRoomModal(false)}
-                  className="p-1 text-gray-900 dark:text-white hover:opacity-70 transition-all"
+                  className="modal-close-btn"
+                  aria-label="Close"
                   title={t('Cancel')}
                 >
                   <X className="w-6 h-6" />
@@ -2251,7 +2255,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
                 <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>
-                <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button onClick={() => clientFormRef.current?.submit()} className="modal-close-btn" aria-label="Close">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -2282,8 +2286,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold">{showCreateClientInModal ? t('New client') : t('Select Client')}</h3>
                 {showCreateClientInModal && (
-                  <button onClick={() => setShowCreateClientInModal(false)} className="text-gray-500 hover:text-gray-700">
-                    <X className="w-5 h-5" />
+                  <button onClick={() => setShowCreateClientInModal(false)} className="modal-close-btn" aria-label="Close">
+                    <X className="w-6 h-6" />
                   </button>
                 )}
               </div>
@@ -2378,8 +2382,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 lg:p-6 w-full max-w-md lg:h-auto max-h-[85vh] lg:max-h-[90vh] overflow-y-auto transition-all my-auto md:my-0" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('Select contractor')}</h3>
-                <button onClick={() => setShowContractorSelector(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                  <X className="w-5 h-5" />
+                <button onClick={() => setShowContractorSelector(false)} className="modal-close-btn" aria-label="Close">
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
@@ -2471,9 +2475,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                     setShowReceiptsModal(false);
                     setSelectedReceipt(null);
                   }}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="modal-close-btn"
+                  aria-label="Close"
                 >
-                  <X className="w-5 h-5 lg:w-6 lg:h-6" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
@@ -2665,7 +2670,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 setLightboxOpen(false);
                 setTimeout(() => setSelectedPhotoIndex(null), 300);
               }}
-              className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-10"
+              className="absolute top-4 right-4 z-10 modal-close-btn text-white hover:text-white/80"
+              aria-label="Close"
             >
               <X className="w-6 h-6" />
             </button>

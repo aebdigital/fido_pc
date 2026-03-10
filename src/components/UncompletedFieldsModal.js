@@ -14,9 +14,10 @@ const UncompletedFieldsModal = ({ isOpen, onClose, onContinue, missingFields }) 
       <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6 relative animate-slide-in" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+          className="absolute top-4 right-4 modal-close-btn"
+          aria-label="Close"
         >
-          <X className="w-6 h-6 text-gray-500" />
+          <X className="w-6 h-6" />
         </button>
 
         <div className="flex flex-col items-center text-center mb-6">

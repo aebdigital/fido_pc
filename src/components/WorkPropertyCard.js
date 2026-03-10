@@ -976,7 +976,7 @@ const WorkPropertyCard = ({
                   }}
                   onFocus={() => setActiveSuggestionId(item.id)}
                   onBlur={() => setTimeout(() => setActiveSuggestionId(null), 200)}
-                  className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 font-semibold"
+                  className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-transparent focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 font-semibold"
                   placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
                 />
 
@@ -1165,7 +1165,7 @@ const WorkPropertyCard = ({
                     type="text"
                     defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
                     onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
-                    className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border-none focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
+                    className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-transparent focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
                     placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
                   />
                 </div>

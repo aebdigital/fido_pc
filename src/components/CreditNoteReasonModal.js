@@ -40,8 +40,8 @@ const CreditNoteReasonModal = ({ isOpen, onClose, onConfirm, invoiceItems = [] }
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                         {step === 1 ? t('Issue Credit Note') : t('Reason for return')}
                     </h3>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                        <X className="w-6 h-6 text-gray-500" />
+                    <button onClick={onClose} className="modal-close-btn" aria-label="Close">
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 

@@ -769,9 +769,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
 
               <button
                 onClick={() => onClose()}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors ml-2"
+                className="modal-close-btn ml-2"
+                aria-label="Close"
               >
-                <X className="w-6 h-6 text-gray-500" />
+                <X className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -1072,7 +1073,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
                 <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>
-                <button onClick={() => clientFormRef.current?.submit()} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button onClick={() => clientFormRef.current?.submit()} className="modal-close-btn" aria-label="Close">
                   <X className="w-6 h-6" />
                 </button>
               </div>

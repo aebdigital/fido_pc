@@ -117,7 +117,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
       {/* Client Type Selection */}
       <div className="lg:w-80 flex-shrink-0 mb-6 lg:mb-0">
-        <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-4">{t('Type of client?')}</h3>
+        <h3 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-4">{t('Type of client?').replace(/\?$/, '')}</h3>
         <div className="flex gap-3 mb-6 lg:mb-8 lg:flex-col">
           <button
             className={`py-3 px-4 lg:px-6 rounded-2xl font-semibold transition-all text-center justify-center flex-1 lg:flex-none flex items-center border-2 ${clientType === 'personal'
@@ -185,7 +185,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
               value={clientForm.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder={clientType === 'personal' ? t('Name and surname') : t('Name of company')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
             />
           </div>
 
@@ -196,7 +196,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
               value={clientForm.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder={t('Email address')}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
             />
           </div>
 
@@ -224,7 +224,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                 value={clientForm.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 placeholder={t('Number')}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
@@ -235,7 +235,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                 value={clientForm.street}
                 onChange={(e) => handleInputChange('street', e.target.value)}
                 placeholder={t('Street')}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
@@ -246,7 +246,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                 value={clientForm.additionalInfo}
                 onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
                 placeholder={t('App #, Suite (optional)')}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
@@ -257,7 +257,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                 value={clientForm.city}
                 onChange={(e) => handleInputChange('city', e.target.value)}
                 placeholder={t('City')}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
@@ -268,7 +268,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                 value={clientForm.postalCode}
                 onChange={(e) => handleInputChange('postalCode', e.target.value)}
                 placeholder={t('ZIP Code')}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
@@ -279,7 +279,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                 value={clientForm.country}
                 onChange={(e) => handleInputChange('country', e.target.value)}
                 placeholder={t('Country')}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
               />
             </div>
 
@@ -292,7 +292,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                     value={clientForm.businessId}
                     onChange={(e) => handleInputChange('businessId', e.target.value)}
                     placeholder={t('BID')}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
                   />
                 </div>
 
@@ -303,7 +303,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                     value={clientForm.taxId}
                     onChange={(e) => handleInputChange('taxId', e.target.value)}
                     placeholder={t('TID')}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
                   />
                 </div>
 
@@ -313,7 +313,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                     type="text"
                     value={clientForm.vatId}
                     onChange={(e) => handleInputChange('vatId', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
                   />
                 </div>
 
@@ -324,7 +324,7 @@ const ClientForm = React.forwardRef(({ onSave, onCancel, initialData = null }, r
                     value={clientForm.contactPerson}
                     onChange={(e) => handleInputChange('contactPerson', e.target.value)}
                     placeholder={t('Name and surname')}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-lg"
                   />
                 </div>
               </>

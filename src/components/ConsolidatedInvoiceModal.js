@@ -307,8 +307,8 @@ const ConsolidatedInvoiceModal = ({ isOpen, onClose, projects, currentUser, onGe
                             {step === 3 && t('Invoice Details')}
                         </p>
                     </div>
-                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-[#F3F4F6] dark:bg-gray-800 no-gradient flex items-center justify-center transition-colors hover:bg-[#E5E7EB] dark:hover:bg-gray-700">
-                        <X className="w-4 h-4 text-[#6B7280] dark:text-gray-300" />
+                    <button onClick={onClose} className="modal-close-btn" aria-label="Close">
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 
