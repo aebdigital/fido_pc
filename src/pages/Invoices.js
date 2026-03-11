@@ -72,6 +72,7 @@ const Invoices = () => {
   const [showContractorModal, setShowContractorModal] = useState(false);
   const [showContractorSelector, setShowContractorSelector] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [isClosingStats, setIsClosingStats] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [showStandaloneInvoice, setShowStandaloneInvoice] = useState(false);
   const [showItemsModal, setShowItemsModal] = useState(false);
@@ -105,13 +106,25 @@ const Invoices = () => {
 
     const handleEscClose = (event) => {
       if (event.key === 'Escape') {
-        setShowStatsModal(false);
+        setIsClosingStats(true);
+        setTimeout(() => {
+          setShowStatsModal(false);
+          setIsClosingStats(false);
+        }, 300);
       }
     };
 
     document.addEventListener('keydown', handleEscClose);
     return () => document.removeEventListener('keydown', handleEscClose);
   }, [showStatsModal]);
+
+  const handleCloseStatsModal = () => {
+    setIsClosingStats(true);
+    setTimeout(() => {
+      setShowStatsModal(false);
+      setIsClosingStats(false);
+    }, 300);
+  };
 
   const getCurrentContractor = () => {
     return contractors.find(c => c.id === activeContractorId);
@@ -688,14 +701,14 @@ const Invoices = () => {
 
       {/* Statistics Modal */}
       {showStatsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 overflow-hidden animate-fade-in" onClick={() => setShowStatsModal(false)}>
-          <div className="relative bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] lg:rounded-[25px] w-full lg:max-w-md h-[85dvh] overflow-hidden shadow-2xl animate-slide-up-modal lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 overflow-hidden ${isClosingStats ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={handleCloseStatsModal}>
+          <div className={`relative bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] lg:rounded-[25px] w-full lg:max-w-md h-[85dvh] overflow-hidden shadow-2xl ${isClosingStats ? 'animate-slide-down-modal lg:animate-slide-out' : 'animate-slide-up-modal lg:animate-slide-in'}`} onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 z-10 h-[60px] px-[15px] flex items-center justify-between bg-white/80 dark:bg-gray-900/85 backdrop-blur-md border-b border-black/10 dark:border-white/10">
               <div className="w-10" />
               <h2 className="absolute left-1/2 -translate-x-1/2 font-bold text-[22px] lg:text-[24px] text-[#111827] dark:text-white">{t('Statistics')}</h2>
               <button
-                onClick={() => setShowStatsModal(false)}
+                onClick={handleCloseStatsModal}
                 className="modal-close-btn mb-1.5"
                 aria-label="Close"
               >
