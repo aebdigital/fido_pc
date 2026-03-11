@@ -696,7 +696,7 @@ const Invoices = () => {
               <h2 className="absolute left-1/2 -translate-x-1/2 font-bold text-[22px] lg:text-[24px] text-[#111827] dark:text-white">{t('Statistics')}</h2>
               <button
                 onClick={() => setShowStatsModal(false)}
-                className="modal-close-btn mt-1.5"
+                className="modal-close-btn mb-1.5"
                 aria-label="Close"
               >
                 <X className="w-6 h-6" />
