@@ -1355,7 +1355,7 @@ export const translations = {
     "total, without VAT": "bez DPH",
     "invoices total": "faktúry",
     "invoices": "faktúry",
-    "invoices in total": "faktúr celkom",
+    "invoices in total": "faktúry",
 
     // ========== PROJECT STATUS (iOS COMPATIBLE) ==========
     // iOS uses integer status 0-3: notSent, sent, approved, finished (neuter form)
