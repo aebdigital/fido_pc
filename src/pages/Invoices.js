@@ -716,10 +716,10 @@ const Invoices = () => {
                   <div className="bg-[#F3F4F6] dark:bg-gray-800 no-gradient rounded-[20px] p-[15px] shadow-[0_6px_18px_rgba(0,0,0,0.10)]">
                     <div className="flex items-baseline gap-2 mb-1">
                       <span className="text-[30px] font-bold text-[#111827] dark:text-white leading-none">
-                        {formatPrice(yearStats.total.amount)}
+                        {formatPrice(yearStats.total.amountWithoutVAT)}
                       </span>
                       <span className="text-base font-medium text-[#111827] dark:text-gray-200">
-                        {t('total, including VAT')}
+                        {t('total, without VAT')}
                       </span>
                     </div>
                     <div className="flex items-baseline gap-[3px]">
@@ -734,10 +734,10 @@ const Invoices = () => {
                       <div className="bg-white dark:bg-gray-900 no-gradient rounded-[15px] p-[10px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
                         <div className="flex items-baseline gap-[3px]">
                           <span className="text-[24px] font-bold text-[#111827] dark:text-white leading-none">
-                            {formatPrice(yearStats.paid.amount)}
+                            {formatPrice(yearStats.paid.amountWithoutVAT)}
                           </span>
                           <span className="text-[13px] font-medium text-[#111827] dark:text-gray-200">
-                            {t('total, including VAT')}
+                            {t('total, without VAT')}
                           </span>
                         </div>
                         <div className="flex items-baseline gap-[3px]">
@@ -753,10 +753,10 @@ const Invoices = () => {
                       <div className="bg-white dark:bg-gray-900 no-gradient rounded-[15px] p-[10px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
                         <div className="flex items-baseline gap-[3px]">
                           <span className="text-[24px] font-bold text-[#111827] dark:text-white leading-none">
-                            {formatPrice(yearStats.unpaid.amount)}
+                            {formatPrice(yearStats.unpaid.amountWithoutVAT)}
                           </span>
                           <span className="text-[13px] font-medium text-[#111827] dark:text-gray-200">
-                            {t('total, including VAT')}
+                            {t('total, without VAT')}
                           </span>
                         </div>
                         <div className="flex items-baseline gap-[3px]">
@@ -772,10 +772,10 @@ const Invoices = () => {
                       <div className="bg-white dark:bg-gray-900 no-gradient rounded-[15px] p-[10px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
                         <div className="flex items-baseline gap-[3px]">
                           <span className="text-[24px] font-bold text-[#111827] dark:text-white leading-none">
-                            {formatPrice(yearStats.overdue.amount)}
+                            {formatPrice(yearStats.overdue.amountWithoutVAT)}
                           </span>
                           <span className="text-[13px] font-medium text-[#111827] dark:text-gray-200">
-                            {t('total, including VAT')}
+                            {t('total, without VAT')}
                           </span>
                         </div>
                         <div className="flex items-baseline gap-[3px]">

@@ -777,7 +777,10 @@ const Projects = () => {
                     <h2 className="text-[20px] font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                       <FileText className="w-5 h-5" />
                       <span>{t('Unpaid invoices')}</span>
-                      <span className="ml-auto">{formatPrice(unpaidTotal).replace('€', '')} €</span>
+                      <div className="ml-auto text-right flex flex-col items-end justify-center">
+                        <span className="leading-none">{formatPrice(unpaidTotal).replace('€', '')} €</span>
+                        <span className="text-[10px] text-gray-500 font-normal leading-none mt-1 uppercase tracking-wide">{t('total, without VAT')}</span>
+                      </div>
                     </h2>
                     <div className="space-y-2">
                       {unpaidInvoices.map(invoice => {
