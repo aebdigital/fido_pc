@@ -689,7 +689,7 @@ const Invoices = () => {
       {/* Statistics Modal */}
       {showStatsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 overflow-hidden animate-fade-in" onClick={() => setShowStatsModal(false)}>
-          <div className="relative bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] lg:rounded-[25px] w-full lg:max-w-md h-[85dvh] overflow-hidden shadow-2xl animate-slide-in-bottom lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
+          <div className="relative bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] lg:rounded-[25px] w-full lg:max-w-md h-[85dvh] overflow-hidden shadow-2xl animate-slide-up-modal lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 z-10 h-[60px] px-[15px] flex items-center justify-between bg-white/80 dark:bg-gray-900/85 backdrop-blur-md border-b border-black/10 dark:border-white/10">
               <div className="w-10" />
