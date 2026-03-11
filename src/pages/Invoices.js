@@ -691,12 +691,12 @@ const Invoices = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 overflow-hidden animate-fade-in" onClick={() => setShowStatsModal(false)}>
           <div className="relative bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] lg:rounded-[25px] w-full lg:max-w-md h-[85dvh] overflow-hidden shadow-2xl animate-slide-in-bottom lg:animate-slide-in" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 z-10 h-[60px] px-[15px] flex items-start justify-between bg-white/80 dark:bg-gray-900/85 backdrop-blur-md border-b border-black/10 dark:border-white/10">
+            <div className="absolute top-0 left-0 right-0 z-10 h-[60px] px-[15px] flex items-center justify-between bg-white/80 dark:bg-gray-900/85 backdrop-blur-md border-b border-black/10 dark:border-white/10">
               <div className="w-10" />
-              <h2 className="pt-[7px] text-[20px] font-medium text-[#111827] dark:text-white">{t('Statistics')}</h2>
+              <h2 className="absolute left-1/2 -translate-x-1/2 font-bold text-[22px] lg:text-[24px] text-[#111827] dark:text-white">{t('Statistics')}</h2>
               <button
                 onClick={() => setShowStatsModal(false)}
-                className="modal-close-btn"
+                className="modal-close-btn mt-1.5"
                 aria-label="Close"
               >
                 <X className="w-6 h-6" />
@@ -726,7 +726,7 @@ const Invoices = () => {
                       <span className="text-[20px] font-semibold text-[#111827] dark:text-white leading-none">{yearStats.total.count}</span>
                       <span className="text-sm font-medium text-[#111827] dark:text-gray-200">{tPlural(yearStats.total.count, 'invoice_singular', 'invoices_few', 'invoices_many')}</span>
                     </div>
-                    <div className="h-px bg-black/30 dark:bg-white/25 my-[5px]" />
+                    <div className="h-[0.5px] bg-black/15 dark:bg-white/15 my-[8px]" />
 
                     {/* Paid Section */}
                     <div className="mt-[10px]">
