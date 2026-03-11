@@ -214,7 +214,7 @@ button.modal-close-btn:hover {
 }
 
 .animate-fade-out {
-  animation: fadeOut 200ms ease-out;
+  animation: fadeOut 300ms ease-out forwards;
 }
 
 .animate-slide-in {
