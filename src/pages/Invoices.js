@@ -62,7 +62,7 @@ const resolveInvoiceYear = (invoice) => {
 };
 
 const Invoices = () => {
-  const { t } = useLanguage();
+  const { t, tPlural } = useLanguage();
   const { contractors, activeContractorId, setActiveContractor, addContractor, updateContractor, getInvoicesForContractor, formatPrice, findProjectById, calculateProjectTotalPriceWithBreakdown, generalPriceList, clients } = useAppData();
   const [selectedStatus, setSelectedStatus] = useState(t('All'));
   const [selectedType, setSelectedType] = useState('regular'); // Default to 'regular' (Faktúry)
@@ -724,7 +724,7 @@ const Invoices = () => {
                     </div>
                     <div className="flex items-baseline gap-[3px]">
                       <span className="text-[20px] font-semibold text-[#111827] dark:text-white leading-none">{yearStats.total.count}</span>
-                      <span className="text-sm font-medium text-[#111827] dark:text-gray-200">{t('invoices')}</span>
+                      <span className="text-sm font-medium text-[#111827] dark:text-gray-200">{tPlural(yearStats.total.count, 'invoice_singular', 'invoices_few', 'invoices_many')}</span>
                     </div>
                     <div className="h-px bg-black/30 dark:bg-white/25 my-[5px]" />
 
@@ -742,7 +742,7 @@ const Invoices = () => {
                         </div>
                         <div className="flex items-baseline gap-[3px]">
                           <span className="text-base font-semibold text-[#111827] dark:text-white leading-none">{yearStats.paid.count}</span>
-                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{t('invoices in total')}</span>
+                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{tPlural(yearStats.paid.count, 'invoice_singular', 'invoices_few', 'invoices_many')}</span>
                         </div>
                       </div>
                     </div>
@@ -761,7 +761,7 @@ const Invoices = () => {
                         </div>
                         <div className="flex items-baseline gap-[3px]">
                           <span className="text-base font-semibold text-[#111827] dark:text-white leading-none">{yearStats.unpaid.count}</span>
-                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{t('invoices in total')}</span>
+                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{tPlural(yearStats.unpaid.count, 'invoice_singular', 'invoices_few', 'invoices_many')}</span>
                         </div>
                       </div>
                     </div>
@@ -780,7 +780,7 @@ const Invoices = () => {
                         </div>
                         <div className="flex items-baseline gap-[3px]">
                           <span className="text-base font-semibold text-[#111827] dark:text-white leading-none">{yearStats.overdue.count}</span>
-                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{t('invoices in total')}</span>
+                          <span className="text-[11px] font-medium text-[#111827] dark:text-gray-300">{tPlural(yearStats.overdue.count, 'invoice_singular', 'invoices_few', 'invoices_many')}</span>
                         </div>
                       </div>
                     </div>
