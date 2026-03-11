@@ -303,6 +303,12 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [analyzingProgress, setAnalyzingProgress] = useState({ current: 0, total: 0 });
   const [showDeleteReceiptConfirm, setShowDeleteReceiptConfirm] = useState(false);
   const [receiptToDelete, setReceiptToDelete] = useState(null);
+  const [duplicateResultModal, setDuplicateResultModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    isError: false
+  });
   const receiptInputRef = useRef(null);
   const selectedReceiptItems = useMemo(() => getSafeReceiptItems(selectedReceipt?.items), [selectedReceipt?.items]);
   const selectedReceiptAmount = useMemo(() => getSafeReceiptNumber(selectedReceipt?.amount), [selectedReceipt?.amount]);
@@ -678,16 +684,31 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         description: `${t('Duplicated from')} ${project.name}`
       });
 
-      alert(t('Project duplicated successfully.'));
-
-      // Optional: Navigate to the new project? 
-      // For now, stay here as per previous logic, or maybe refresh?
+      setDuplicateResultModal({
+        isOpen: true,
+        title: 'Duplicated',
+        message: 'Project duplicated successfully.',
+        isError: false
+      });
 
     } catch (error) {
       console.error('Error duplicating project:', error);
-      alert(t('Failed to duplicate project.'));
+      setDuplicateResultModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Failed to duplicate project.',
+        isError: true
+      });
     } finally {
       setIsDuplicating(false);
+    }
+  };
+
+  const handleCloseDuplicateResultModal = () => {
+    const shouldRedirectToProjectList = !duplicateResultModal.isError;
+    setDuplicateResultModal({ isOpen: false, title: '', message: '', isError: false });
+    if (shouldRedirectToProjectList) {
+      onBack?.();
     }
   };
 
@@ -2839,6 +2860,19 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
         confirmLabel="Delete"
         cancelLabel="Cancel"
         isDestructive={true}
+      />
+
+      {/* Duplicate Result Modal */}
+      <ConfirmationModal
+        isOpen={duplicateResultModal.isOpen}
+        onClose={handleCloseDuplicateResultModal}
+        onConfirm={() => { }}
+        title={duplicateResultModal.title}
+        message={duplicateResultModal.message}
+        confirmLabel="OK"
+        icon="info"
+        isDestructive={false}
+        showCancel={false}
       />
     </div >
   );

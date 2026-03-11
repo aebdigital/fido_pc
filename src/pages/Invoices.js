@@ -46,6 +46,21 @@ const resolveInvoiceStatsStatus = (invoice, referenceDate) => {
   return today > maturityCutOffDate ? INVOICE_STATUS.AFTER_MATURITY : INVOICE_STATUS.UNPAID;
 };
 
+const resolveInvoiceYear = (invoice) => {
+  const rawNumber = invoice?.invoiceNumber ?? invoice?.number ?? '';
+  const match = String(rawNumber).match(/^(\d{4})/);
+
+  if (match) {
+    const yearFromPrefix = Number.parseInt(match[1], 10);
+    if (Number.isInteger(yearFromPrefix) && yearFromPrefix >= 1900 && yearFromPrefix <= 2999) {
+      return yearFromPrefix;
+    }
+  }
+
+  const fallbackDate = new Date(invoice?.issueDate || invoice?.dateCreated || Date.now());
+  return Number.isNaN(fallbackDate.getTime()) ? new Date().getFullYear() : fallbackDate.getFullYear();
+};
+
 const Invoices = () => {
   const { t } = useLanguage();
   const { contractors, activeContractorId, setActiveContractor, addContractor, updateContractor, getInvoicesForContractor, formatPrice, findProjectById, calculateProjectTotalPriceWithBreakdown, generalPriceList, clients } = useAppData();
@@ -111,7 +126,7 @@ const Invoices = () => {
     if (selectedYear !== t('Any Time')) {
       const year = parseInt(selectedYear);
       filtered = filtered.filter(inv => {
-        const invoiceYear = new Date(inv.issueDate).getFullYear();
+        const invoiceYear = resolveInvoiceYear(inv);
         return invoiceYear === year;
       });
     }
@@ -252,8 +267,7 @@ const Invoices = () => {
         }
       }
 
-      const invoiceDate = new Date(invoice.issueDate || invoice.dateCreated || new Date());
-      const year = invoiceDate.getFullYear();
+      const year = resolveInvoiceYear(invoice);
 
       if (!statsByYear[year]) {
         statsByYear[year] = {

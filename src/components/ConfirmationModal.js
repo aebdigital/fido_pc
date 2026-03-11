@@ -11,7 +11,8 @@ const ConfirmationModal = ({
     confirmLabel,
     cancelLabel,
     isDestructive = false,
-    icon = 'warning' // 'warning' or 'info'
+    icon = 'warning', // 'warning' or 'info'
+    showCancel = true
 }) => {
     const { t } = useLanguage();
 
@@ -45,13 +46,15 @@ const ConfirmationModal = ({
                     </p>
 
                     {/* Actions */}
-                    <div className="grid grid-cols-2 gap-3 w-full mt-6">
-                        <button
-                            onClick={onClose}
-                            className="py-3 px-4 rounded-xl font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        >
-                            {t(cancelLabel || 'Cancel')}
-                        </button>
+                    <div className={`grid ${showCancel ? 'grid-cols-2' : 'grid-cols-1'} gap-3 w-full mt-6`}>
+                        {showCancel && (
+                            <button
+                                onClick={onClose}
+                                className="py-3 px-4 rounded-xl font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                            >
+                                {t(cancelLabel || 'Cancel')}
+                            </button>
+                        )}
                         <button
                             onClick={() => {
                                 onConfirm();

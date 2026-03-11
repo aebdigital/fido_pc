@@ -100,20 +100,20 @@ const Projects = () => {
 
   // Unpaid invoices - latest first
   const unpaidInvoices = useMemo(() => {
-    if (!invoices || invoices.length === 0) return [];
+    if (!invoices || invoices.length === 0 || !activeContractorId) return [];
     return invoices
-      .filter(inv => inv.status !== 'paid' && !inv.is_deleted)
+      .filter(inv => inv.status !== 'paid' && !inv.is_deleted && inv.contractorId === activeContractorId)
       .sort((a, b) => {
         // Sort by invoice number descending (newest first) - matching Invoices page
         return parseInt(b.invoiceNumber || 0) - parseInt(a.invoiceNumber || 0);
       });
-  }, [invoices]);
+  }, [invoices, activeContractorId]);
 
   // Total unpaid amount
   const unpaidTotal = useMemo(() => {
-    if (!invoices || invoices.length === 0) return 0;
+    if (!invoices || invoices.length === 0 || !activeContractorId) return 0;
     return invoices
-      .filter(inv => inv.status !== 'paid' && !inv.is_deleted)
+      .filter(inv => inv.status !== 'paid' && !inv.is_deleted && inv.contractorId === activeContractorId)
       .reduce((sum, inv) => {
         const price = parseFloat(inv.priceWithoutVat || 0);
         if (!isNaN(price)) return sum + price;
@@ -122,7 +122,7 @@ const Projects = () => {
         const breakdown = calculateProjectTotalPriceWithBreakdown(inv.projectId);
         return sum + (breakdown?.total || 0);
       }, 0);
-  }, [invoices, findProjectById, calculateProjectTotalPriceWithBreakdown]);
+  }, [invoices, activeContractorId, findProjectById, calculateProjectTotalPriceWithBreakdown]);
 
   // Special state for viewing orphan projects (projects without contractor)
   const [viewingOrphanProjects, setViewingOrphanProjects] = useState(false);

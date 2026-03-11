@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Plus,
   Trash2,
@@ -49,6 +49,29 @@ const WorkPropertyCard = ({
   const [activeSuggestionId, setActiveSuggestionId] = React.useState(null);
   const [unitDropdownItemId, setUnitDropdownItemId] = React.useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
+
+  const autoResizeNameField = useCallback((element) => {
+    if (!element) return;
+
+    const computedStyle = window.getComputedStyle(element);
+    const lineHeight = parseFloat(computedStyle.lineHeight) || 20;
+    const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+    const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+    const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+    const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0;
+
+    const verticalExtras = paddingTop + paddingBottom + borderTop + borderBottom;
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 640;
+    const maxRows = isMobileViewport ? 4 : 3;
+    const minRows = 1;
+    const minHeight = Math.ceil((lineHeight * minRows) + verticalExtras);
+    const maxHeight = Math.ceil((lineHeight * maxRows) + verticalExtras);
+
+    element.style.height = 'auto';
+    const nextHeight = Math.max(minHeight, Math.min(Math.ceil(element.scrollHeight), maxHeight));
+    element.style.height = `${nextHeight}px`;
+    element.style.overflowY = element.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, []);
 
   const handleDeleteClick = (itemId, type = null, subItemId = null, e = null) => {
     if (e) e.stopPropagation();
@@ -966,17 +989,24 @@ const WorkPropertyCard = ({
           {!isConfiguring && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 flex-1 min-w-0 relative">
-                <input
+                <textarea
                   id={`custom-work-name-${item.id}`}
-                  type="text"
                   value={item.fields[WORK_ITEM_NAMES.NAME] || ''}
                   onChange={(e) => {
                     onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true);
                     if (activeSuggestionId !== item.id) setActiveSuggestionId(item.id);
+                    requestAnimationFrame(() => autoResizeNameField(e.target));
                   }}
+                  onInput={(e) => autoResizeNameField(e.target)}
                   onFocus={() => setActiveSuggestionId(item.id)}
                   onBlur={() => setTimeout(() => setActiveSuggestionId(null), 200)}
-                  className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-transparent focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 font-semibold"
+                  ref={(el) => {
+                    if (el) {
+                      requestAnimationFrame(() => autoResizeNameField(el));
+                    }
+                  }}
+                  rows={1}
+                  className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-transparent focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 font-semibold resize-none leading-5"
                   placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
                 />
 
@@ -1160,12 +1190,18 @@ const WorkPropertyCard = ({
             <div className="flex items-center justify-between">
               {property.id === WORK_ITEM_PROPERTY_IDS.CUSTOM_WORK && item.selectedUnit ? (
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <input
+                  <textarea
                     id={`custom-work-name-${item.id}`}
-                    type="text"
                     defaultValue={item.fields[WORK_ITEM_NAMES.NAME] || ''}
                     onBlur={(e) => onUpdateWorkItem(item.id, WORK_ITEM_NAMES.NAME, e.target.value, true)}
-                    className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-transparent focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0"
+                    onInput={(e) => autoResizeNameField(e.target)}
+                    ref={(el) => {
+                      if (el) {
+                        requestAnimationFrame(() => autoResizeNameField(el));
+                      }
+                    }}
+                    rows={1}
+                    className="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-transparent focus:outline-none focus:ring-1 focus:ring-gray-400 text-sm min-w-0 resize-none leading-5"
                     placeholder={item.selectedType === 'Work' ? t('Work name') : t('Material name')}
                   />
                 </div>

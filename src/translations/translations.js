@@ -100,6 +100,11 @@ export const translations = {
     "Are you sure you want to delete this work item?": "Are you sure you want to delete this work item?",
     "Are you sure you want to delete this material item?": "Are you sure you want to delete this material item?",
     "Are you sure you want to delete this invoice item?": "Are you sure you want to delete this invoice item?",
+    "Contractor Required": "Contractor Required",
+    "A contractor must be assigned to duplicate a project.": "A contractor must be assigned to duplicate a project.",
+    "Project duplicated successfully.": "Project duplicated successfully.",
+    "Failed to duplicate project.": "Failed to duplicate project.",
+    "OK": "OK",
 
     // ========== PROJECT CATEGORIES (Reciprocal) ==========
     "Flats": "Flats",
@@ -1066,7 +1071,9 @@ export const translations = {
     "No other items added": "Žiadne ostatné položky neboli pridané",
     "Contractor Required": "Potrebný dodávateľ",
     "A contractor must be assigned to duplicate a project.": "Pre duplikovanie projektu musí byť priradený dodávateľ.",
+    "Project duplicated successfully.": "Projekt bol úspešne duplikovaný.",
     "Failed to duplicate project.": "Nepodarilo sa duplikovať projekt.",
+    "OK": "OK",
     "Failed to reassign project": "Nepodarilo sa priradiť projekt",
     "Loading project details...": "Načítavam detaily projektu...",
 
