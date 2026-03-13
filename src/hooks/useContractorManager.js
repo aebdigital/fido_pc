@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import api from '../services/supabaseApi';
-import { transformContractorToDB, transformContractorFromDB } from '../utils/dataTransformers';
+import { transformContractorToDB, transformContractorFromDB, transformInvoiceFromDB } from '../utils/dataTransformers';
 import constructionImage from '../images/construction.jpg';
 import servicesImage from '../images/services.jpg';
 
@@ -147,11 +147,10 @@ export const useContractorManager = (appData, setAppData) => {
         }
       }
 
-      // Transform invoices
-      const transformedInvoices = (invoices || []).map(inv => ({
-        ...inv,
-        id: inv.c_id || inv.id
-      }));
+      // Match initial-load shape so invoice filters keep working after contractor switch.
+      const transformedInvoices = (invoices || [])
+        .map(transformInvoiceFromDB)
+        .filter(Boolean);
 
       setAppData(prev => ({
         ...prev,
