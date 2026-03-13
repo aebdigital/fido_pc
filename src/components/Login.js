@@ -29,8 +29,11 @@ const Login = () => {
       if (recoveryMode) {
         const { error } = await supabase.auth.updateUser({ password })
         if (error) throw error
+        await supabase.auth.signOut()
         setMessage(t('Password updated successfully. You can now sign in.'))
         setRecoveryMode(false)
+        setIsForgotPassword(false)
+        setIsSignUp(false)
         setPassword('')
       } else if (isForgotPassword) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -38,6 +41,8 @@ const Login = () => {
         })
         if (error) throw error
         setMessage(t('Check your email for the password reset link'))
+        setIsForgotPassword(false)
+        setIsSignUp(false)
       } else if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
           email,
