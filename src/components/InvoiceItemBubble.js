@@ -324,7 +324,7 @@ const InvoiceItemBubble = ({
                   e.stopPropagation();
                   onRemove && onRemove();
                 }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-600 rounded-xl text-sm font-bold text-white transition-colors shadow-sm"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-600 rounded-xl text-sm font-bold text-white transition-colors shadow-sm btn-red no-gradient"
               >
                 <Trash2 className="w-4 h-4" />
                 {t('Delete')}

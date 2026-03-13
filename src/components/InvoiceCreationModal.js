@@ -634,7 +634,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         } else {
           setIntroductoryNote('');
         }
-        setProjectDisplayName(project?.name || '');
+        setProjectDisplayName(dennikData?.projectDisplayName || project?.name || '');
 
         // Load default maturity from settings if available
         if (persistentSettings?.maturity_days) {
@@ -1594,7 +1594,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
-                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white`}
+                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white btn-red no-gradient`}
                         title={t('Delete actions')}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1633,7 +1633,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
-                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white`}
+                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white btn-red no-gradient`}
                         title={t('Delete actions')}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1672,7 +1672,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setDeleteMode(!deleteMode)}
-                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white`}
+                        className={`p-1.5 rounded-lg transition-colors bg-red-600 text-white btn-red no-gradient`}
                         title={t('Delete actions')}
                       >
                         <Trash2 className="w-4 h-4" />

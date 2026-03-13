@@ -410,16 +410,16 @@ const Invoices = () => {
                       <div
                         key={contractor.id}
                         className={`p-3 rounded-xl cursor-pointer transition-all border-2 ${activeContractorId === contractor.id
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md active-white-bg'
                           : 'bg-gray-50 dark:bg-gray-700 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                           }`}
                         onClick={() => handleContractorSelect(contractor)}
                       >
-                        <div className="font-medium text-gray-900 dark:text-white">
+                        <div className={`font-medium ${activeContractorId === contractor.id ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
                           {contractor.name}
                         </div>
                         {contractor.email && (
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <div className={`text-sm ${activeContractorId === contractor.id ? 'text-gray-200 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400'}`}>
                             {contractor.email}
                           </div>
                         )}

@@ -9,7 +9,8 @@ import {
   transformClientFromDB,
   transformContractorFromDB,
   transformInvoiceFromDB,
-  formatProjectNumber
+  formatProjectNumber,
+  dedupeProjectHistory
 } from '../utils/dataTransformers';
 import {
   calculateRoomPrice,
@@ -17,6 +18,7 @@ import {
   calculateWorkItemWithMaterials,
   formatPrice
 } from '../utils/priceCalculations';
+import { normalizeProjectPhotos } from '../utils/projectPhotos';
 import { useClientManager } from '../hooks/useClientManager';
 import { useProjectManager } from '../hooks/useProjectManager';
 import { useInvoiceManager } from '../hooks/useInvoiceManager';
@@ -468,17 +470,7 @@ export const AppDataProvider = ({ children }) => {
             }
           }
         }
-        let photos = [];
-        if (project.photos) {
-          try {
-            const parsedPhotos = typeof project.photos === 'string'
-              ? JSON.parse(project.photos)
-              : project.photos;
-            photos = Array.isArray(parsedPhotos) ? parsedPhotos : [];
-          } catch (e) {
-            console.warn('Failed to parse photos for project:', project.id);
-          }
-        }
+        const photos = normalizeProjectPhotos(project.photos);
 
         let projectHistory = [];
         if (project.project_history) {
@@ -486,6 +478,7 @@ export const AppDataProvider = ({ children }) => {
             projectHistory = typeof project.project_history === 'string'
               ? JSON.parse(project.project_history)
               : project.project_history;
+            projectHistory = dedupeProjectHistory(projectHistory);
           } catch (e) {
             console.warn('Failed to parse project history for project:', project.id);
           }
@@ -529,6 +522,11 @@ export const AppDataProvider = ({ children }) => {
         } else if (numB) {
           return 1; // b has number, a doesn't -> b comes first
         }
+
+        // If numbers are equal or both missing, put assigned projects after owned projects
+        const aIsAssigned = (a.userRole || 'owner') !== 'owner';
+        const bIsAssigned = (b.userRole || 'owner') !== 'owner';
+        if (aIsAssigned !== bIsAssigned) return aIsAssigned ? 1 : -1;
 
         // Fallback to date
         const dateA = new Date(a.created_at || a.createdAt || 0);
@@ -946,15 +944,14 @@ export const AppDataProvider = ({ children }) => {
                 clientName: rawProject.client_name || rawProject.clientName,
                 contractorId: rawProject.contractor_id || rawProject.contractorId,
                 isArchived: rawProject.is_archived,
-                photos: rawProject.photos ? (() => {
-                  try {
-                    const parsedPhotos = typeof rawProject.photos === 'string' ? JSON.parse(rawProject.photos) : rawProject.photos;
-                    return Array.isArray(parsedPhotos) ? parsedPhotos : undefined;
-                  } catch {
-                    return undefined;
-                  }
-                })() : undefined,
-                projectHistory: rawProject.project_history ? (typeof rawProject.project_history === 'string' ? JSON.parse(rawProject.project_history) : rawProject.project_history) : undefined,
+                photos: rawProject.photos ? normalizeProjectPhotos(rawProject.photos) : undefined,
+                projectHistory: rawProject.project_history
+                  ? dedupeProjectHistory(
+                      typeof rawProject.project_history === 'string'
+                        ? JSON.parse(rawProject.project_history)
+                        : rawProject.project_history
+                    )
+                  : undefined,
               } : null;
 
               // Only proceed if we have valid project data

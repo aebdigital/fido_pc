@@ -638,17 +638,17 @@ const Projects = () => {
                       {contractors.filter(c => !c._isForeign).map(contractor => (
                         <div
                           key={contractor.id}
-                          className={`p-3 rounded-xl cursor-pointer transition-colors ${activeContractorId === contractor.id && !viewingOrphanProjects
-                            ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
-                            : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                          className={`p-3 rounded-xl cursor-pointer transition-all border-2 ${activeContractorId === contractor.id && !viewingOrphanProjects
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md active-white-bg'
+                            : 'bg-gray-50 dark:bg-gray-700 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
                             }`}
                           onClick={() => handleContractorSelect(contractor.id)}
                         >
-                          <div className="font-medium text-gray-900 dark:text-white">
+                          <div className={`font-medium ${activeContractorId === contractor.id && !viewingOrphanProjects ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
                             {contractor.name}
                           </div>
                           {contractor.email && (
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                            <div className={`text-sm ${activeContractorId === contractor.id && !viewingOrphanProjects ? 'text-gray-200 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400'}`}>
                               {contractor.email}
                             </div>
                           )}
@@ -969,16 +969,10 @@ const Projects = () => {
                     });
 
                     const sortedProjects = [...mergedProjects].sort((a, b) => {
-                      // Priority 0: Assigned (member) projects always on top
-                      const aIsAssigned = (a.userRole || 'owner') !== 'owner';
-                      const bIsAssigned = (b.userRole || 'owner') !== 'owner';
-                      if (aIsAssigned !== bIsAssigned) return aIsAssigned ? -1 : 1;
-
                       const numA = formatProjectNumber(a);
                       const numB = formatProjectNumber(b);
 
                       if (numA && numB) {
-                        // Priority 1: Project Number sequence
                         const numCompare = numB.localeCompare(numA);
                         if (numCompare !== 0) return numCompare;
                       } else if (numA) {
@@ -986,6 +980,12 @@ const Projects = () => {
                       } else if (numB) {
                         return 1;
                       }
+
+                      // If numbers are equal or both missing, check userRole
+                      // Owner projects come before assigned projects
+                      const aIsAssigned = (a.userRole || 'owner') !== 'owner';
+                      const bIsAssigned = (b.userRole || 'owner') !== 'owner';
+                      if (aIsAssigned !== bIsAssigned) return aIsAssigned ? 1 : -1;
 
                       // Priority 2: Creation Date
                       const dateA = new Date(a.created_at || a.createdAt || 0);
@@ -1206,12 +1206,12 @@ const Projects = () => {
           isOpen={!!projectToArchive}
           onClose={() => setProjectToArchive(null)}
           onConfirm={confirmArchiveProject}
-          title={t('Archive project {name}?').replace('{name}', projectToArchive?.name || '')}
-          message={t('Archiving this project will not result in data loss. You can find this project in the \'Archive\' tab in the app settings.')}
-          confirmLabel="ArchiveProjectAction"
-          cancelLabel="Cancel"
+          title="Archivovať projekt"
+          message="Archivácia projektu nespôsobí stratu údajov. Projekt nájdete v sekcii Archív v nastaveniach."
+          confirmLabel="Archivovať"
+          cancelLabel="Zrušiť"
           confirmButtonClass="bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 text-white"
-          icon={<Archive className="w-6 h-6 text-amber-500" />}
+          icon={<Archive className="w-8 h-8 text-blue-500 fill-blue-500" strokeWidth={2} />}
         />
 
         {/* Invoice Detail Modal */}

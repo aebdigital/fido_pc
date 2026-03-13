@@ -314,7 +314,10 @@ export const translations = {
     "Hours": "Hours",
     "Rate (€)": "Rate (€)",
     "set appearance of the app": "set appearance of the app",
-    "invoices in total": "invoices in total"
+    "invoices in total": "invoices in total",
+    "invoice_singular": "invoice",
+    "invoices_few": "invoices",
+    "invoices_many": "invoices"
   },
   sk: {
     // ========== PDF / QR CODE & LABELS ==========
@@ -1356,6 +1359,9 @@ export const translations = {
     "invoices total": "faktúry",
     "invoices": "faktúry",
     "invoices in total": "faktúry",
+    "invoice_singular": "faktúra",
+    "invoices_few": "faktúry",
+    "invoices_many": "faktúr",
 
     // ========== PROJECT STATUS (iOS COMPATIBLE) ==========
     // iOS uses integer status 0-3: notSent, sent, approved, finished (neuter form)

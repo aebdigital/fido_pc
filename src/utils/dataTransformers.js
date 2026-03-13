@@ -38,6 +38,51 @@ export const PROJECT_EVENTS = {
   CREDIT_NOTE_SENT: 'creditNoteSent'
 };
 
+const PROJECT_HISTORY_DUPLICATE_WINDOW_MS = 2000;
+
+const toProjectHistoryTimestamp = (value) => {
+  if (!value) return null;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+export const dedupeProjectHistory = (historyEntries) => {
+  if (!Array.isArray(historyEntries)) return [];
+
+  const dedupedEntries = [];
+
+  for (const entry of historyEntries) {
+    if (!entry || typeof entry !== 'object' || !entry.type) continue;
+
+    const entryTimestamp = toProjectHistoryTimestamp(entry.date);
+    const duplicateIndex = dedupedEntries.findIndex((existingEntry) => {
+      if (existingEntry.type !== entry.type) return false;
+
+      const existingTimestamp = toProjectHistoryTimestamp(existingEntry.date);
+      if (entryTimestamp !== null && existingTimestamp !== null) {
+        return Math.abs(existingTimestamp - entryTimestamp) < PROJECT_HISTORY_DUPLICATE_WINDOW_MS;
+      }
+
+      return existingEntry.date === entry.date;
+    });
+
+    if (duplicateIndex === -1) {
+      dedupedEntries.push(entry);
+      continue;
+    }
+
+    const existingEntry = dedupedEntries[duplicateIndex];
+    dedupedEntries[duplicateIndex] = {
+      ...existingEntry,
+      ...entry,
+      id: existingEntry.id || entry.id,
+      date: entry.date || existingEntry.date
+    };
+  }
+
+  return dedupedEntries;
+};
+
 // Invoice Status - matches iOS InvoiceStatus enum
 // iOS uses: paid, unpaid, afterMaturity
 // Database uses: paid, unsent, overdue (mapped via statusToDatabase/statusFromDatabase in iOS)

@@ -3,7 +3,7 @@ import api from '../services/supabaseApi';
 import { databaseToWorkItem, getTableName, workItemToDatabase, tableCanHaveDoors, tableCanHaveWindows, doorToDatabase, windowToDatabase, doorFromDatabase, windowFromDatabase, TABLES_WITH_DOORS_WINDOWS, createCommuteWorkItemFromRoom, extractCommuteFromWorkItems, isCommuteWorkItem } from '../services/workItemsMapping';
 import { analyzeReceipt } from '../services/openaiReceiptService';
 import { priceListToDbColumns } from '../services/priceListMapping';
-import { PROJECT_EVENTS } from '../utils/dataTransformers';
+import { PROJECT_EVENTS, dedupeProjectHistory } from '../utils/dataTransformers';
 import { computeWorkItemsDelta, computeDoorWindowDelta } from '../utils/workItemsDelta';
 import constructionImage from '../images/construction.jpg';
 import servicesImage from '../images/services.jpg';
@@ -66,14 +66,26 @@ export const useProjectManager = (appData, setAppData) => {
         throw error;
       }
 
-      // Create a deep copy of the current general price list for this project
-      const priceListSnapshot = JSON.parse(JSON.stringify(generalPriceList));
+      // Create a deep copy of the selected price list snapshot for this project.
+      // If a project-specific snapshot is provided (e.g. duplication), prefer it.
+      const snapshotSourceRaw = projectData?.priceListSnapshot || generalPriceList || {};
+      let snapshotSource = snapshotSourceRaw;
+      if (typeof snapshotSourceRaw === 'string') {
+        try {
+          snapshotSource = JSON.parse(snapshotSourceRaw);
+        } catch {
+          snapshotSource = generalPriceList || {};
+        }
+      }
+      const priceListSnapshot = JSON.parse(JSON.stringify(snapshotSource));
 
       // Determine next sequential number (set to 0 to trigger database auto-assignment)
       const nextNumber = 0;
 
       // Initial history entry - iOS compatible
+      const initialHistoryEntryId = crypto.randomUUID();
       const initialHistory = [{
+        id: initialHistoryEntryId,
         type: PROJECT_EVENTS.CREATED, // iOS compatible: 'created'
         date: new Date().toISOString()
       }];
@@ -91,7 +103,9 @@ export const useProjectManager = (appData, setAppData) => {
         status: 0, // iOS compatible: 0=notSent, 1=sent, 2=approved, 3=finished
         is_archived: false,
         number: nextNumber,
-        notes: null,
+        notes: projectData.notes ?? null,
+        detailNotes: projectData.detailNotes ?? null,
+        photos: projectData.photos ?? [],
         price_list_id: null,
         // Keep price_list_snapshot for backwards compatibility with old projects
         // but also create a proper price_lists row for iOS
@@ -113,6 +127,7 @@ export const useProjectManager = (appData, setAppData) => {
           }),
         // Create history event (iOS sync)
         api.historyEvents.create({
+          c_id: initialHistoryEntryId,
           type: PROJECT_EVENTS.CREATED,
           project_id: projectCId,
           created_at: initialHistory[0].date
@@ -560,13 +575,16 @@ export const useProjectManager = (appData, setAppData) => {
 
   // Project history tracking
   const addProjectHistoryEntry = useCallback(async (projectId, historyEntry) => {
+    const entryId = historyEntry.id || crypto.randomUUID();
+    const entryDate = historyEntry.date || new Date().toISOString();
     const newEntry = {
       ...historyEntry,
-      date: new Date().toISOString()
+      id: entryId,
+      date: entryDate
     };
 
     const currentHistory = appData.projectHistory?.[projectId] || [];
-    const updatedHistory = [...currentHistory, newEntry];
+    const updatedHistory = dedupeProjectHistory([...currentHistory, newEntry]);
 
     // Update local state
     setAppData(prev => ({
@@ -586,9 +604,10 @@ export const useProjectManager = (appData, setAppData) => {
 
       // Also write to history_events table (for iOS sync)
       await api.historyEvents.create({
+        c_id: entryId,
         type: historyEntry.type,
         project_id: projectId,
-        created_at: newEntry.date
+        created_at: entryDate
       });
     } catch (error) {
       console.error('[SUPABASE] Error saving project history:', error);

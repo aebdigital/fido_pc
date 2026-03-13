@@ -32,6 +32,7 @@ import { generatePriceOfferPDF } from '../utils/pdfGenerator';
 import { compressImage } from '../utils/imageCompression';
 import { calculateWorksCount } from '../utils/priceCalculations';
 import { formatProjectNumber, PROJECT_EVENTS, INVOICE_STATUS, PROJECT_STATUS } from '../utils/dataTransformers';
+import { normalizeProjectPhotos } from '../utils/projectPhotos';
 import api from '../services/supabaseApi';
 import { workProperties } from '../config/workProperties';
 import RoomDetailsModal from './RoomDetailsModal';
@@ -94,21 +95,7 @@ const getSafeReceiptItems = (items) => {
   });
 };
 
-const getSafeProjectPhotos = (photos) => {
-  let parsedPhotos = photos;
-
-  if (typeof parsedPhotos === 'string') {
-    try {
-      parsedPhotos = JSON.parse(parsedPhotos);
-    } catch {
-      return [];
-    }
-  }
-
-  if (!Array.isArray(parsedPhotos)) return [];
-
-  return parsedPhotos.filter((photo) => photo && typeof photo === 'object' && photo.url);
-};
+const getSafeProjectPhotos = (photos) => normalizeProjectPhotos(photos);
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();
@@ -546,6 +533,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     try {
       await updateClient(clientData.id, clientData);
       setSelectedClientForProject({ ...selectedClientForProject, ...clientData });
+      setShowEditClientModal(false);
     } catch (error) {
       console.error('[SUPABASE] Error updating client:', error);
     }
@@ -562,6 +550,20 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     setIsDuplicating(true);
 
     try {
+      const copiedPhotos = getSafeProjectPhotos(project.photos).map(p => ({ ...p, id: crypto.randomUUID() }));
+      const copiedPriceListSnapshot = (() => {
+        if (!project.priceListSnapshot) return null;
+        try {
+          const source = typeof project.priceListSnapshot === 'string'
+            ? JSON.parse(project.priceListSnapshot)
+            : project.priceListSnapshot;
+          return JSON.parse(JSON.stringify(source));
+        } catch (error) {
+          console.warn('[duplicate] Failed to clone project price list snapshot, falling back to default:', error);
+          return null;
+        }
+      })();
+
       // 1. Create the new project structure (Basic info)
       // Name it "Copy of [Name]"
       const newProjectData = {
@@ -577,7 +579,9 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         detailNotes: project.detailNotes,
         // Copy photos (will need to be treated as new entries ideally, but sharing URL is fine for now)
         // If we want true deep copy of photos, we'd re-upload, but usually same URL is fine for Supabase storage if file isn't deleted individually
-        photos: project.photos ? JSON.parse(JSON.stringify(project.photos)).map(p => ({ ...p, id: crypto.randomUUID() })) : []
+        photos: copiedPhotos,
+        // Preserve project-specific price list snapshot from the source project
+        priceListSnapshot: copiedPriceListSnapshot
       };
 
       // Create project
@@ -585,34 +589,18 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
       if (!newProject) throw new Error("Failed to create new project");
 
-      // CRITICAL: Explicitly update the new project with the rich data (notes, photos, detailNotes) 
-      // because addProject only sets basic fields initially.
-      // Also re-assert clientId to be safe.
-      await updateProject(project.category, newProject.id, {
-        notes: project.notes,
-        detailNotes: project.detailNotes,
-        clientId: project.clientId, // Ensure client is linked
-        photos: project.photos ? JSON.parse(JSON.stringify(project.photos)).map(p => ({ ...p, id: crypto.randomUUID() })) : [],
-        // Copy project-specific price list if it exists
-        priceListSnapshot: project.priceListSnapshot ? JSON.parse(JSON.stringify(project.priceListSnapshot)) : null,
-        // Explicitly set invoice related fields to null/false
-        hasInvoice: false,
-        invoiceId: null,
-        invoiceStatus: null
-      });
-
       // 2. Fetch all rooms and work items from the ORIGINAL project
       // We need to ensure we have the full details loaded
       let sourceRooms = projectRoomsData[projectId];
       if (!sourceRooms) {
         // Force load if not available
         await loadProjectDetails(projectId);
-        sourceRooms = projectRoomsData[projectId] || [];
+        sourceRooms = getProjectRooms(projectId);
       }
+      sourceRooms = sourceRooms || [];
 
       // 3. Duplicate Rooms and Work Items
-      for (const room of sourceRooms) {
-        // Create new room
+      const duplicateSingleRoom = async (room) => {
         const newRoomData = {
           name: room.name,
           roomType: room.room_type,
@@ -625,7 +613,6 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
         };
         const createdRoom = await addRoomToProject(newProject.id, newRoomData);
 
-        // Process work items for this room
         if (room.workItems && room.workItems.length > 0) {
           // Prepare items for the new room - STRIP IDs to ensure creation and prevent stealing of items
           const itemsToDuplicate = room.workItems.map(item => {
@@ -645,16 +632,22 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
             return newItem;
           });
 
-          // Save items to the new room
-          await updateProjectRoom(newProject.id, createdRoom.id, { workItems: itemsToDuplicate });
+          // Pass empty original list to force fast delta-insert path (skip legacy clear-all save).
+          await updateProjectRoom(newProject.id, createdRoom.id, { workItems: itemsToDuplicate }, []);
         }
+      };
+
+      const ROOM_DUPLICATION_BATCH_SIZE = 3;
+      for (let i = 0; i < sourceRooms.length; i += ROOM_DUPLICATION_BATCH_SIZE) {
+        const roomBatch = sourceRooms.slice(i, i + ROOM_DUPLICATION_BATCH_SIZE);
+        await Promise.all(roomBatch.map(duplicateSingleRoom));
       }
 
       // 4. Duplicate Receipts
       try {
         const sourceReceipts = await getProjectReceipts(projectId);
         if (sourceReceipts && sourceReceipts.length > 0) {
-          for (const receipt of sourceReceipts) {
+          const receiptDuplicationResults = await Promise.allSettled(sourceReceipts.map(async (receipt) => {
             // Prepare duplicate receipt data
             const receiptData = {
               totalAmount: receipt.amount,
@@ -666,6 +659,10 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
             };
 
             await addReceipt(newProject.id, receiptData);
+          }));
+          const failedReceipts = receiptDuplicationResults.filter(result => result.status === 'rejected').length;
+          if (failedReceipts > 0) {
+            console.warn(`[duplicate] ${failedReceipts} receipt(s) failed to duplicate`);
           }
         }
       } catch (receiptError) {
@@ -674,15 +671,16 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       }
 
       // 5. Add 'Duplicated' history event to both projects
-      await addProjectHistoryEntry(projectId, {
-        type: PROJECT_EVENTS.DUPLICATED,
-        description: `${t('Duplicated to')} ${newProject.name}`
-      });
-
-      await addProjectHistoryEntry(newProject.id, {
-        type: PROJECT_EVENTS.CREATED,
-        description: `${t('Duplicated from')} ${project.name}`
-      });
+      await Promise.all([
+        addProjectHistoryEntry(projectId, {
+          type: PROJECT_EVENTS.DUPLICATED,
+          description: `${t('Duplicated to')} ${newProject.name}`
+        }),
+        addProjectHistoryEntry(newProject.id, {
+          type: PROJECT_EVENTS.CREATED,
+          description: `${t('Duplicated from')} ${project.name}`
+        })
+      ]);
 
       setDuplicateResultModal({
         isOpen: true,
@@ -1303,7 +1301,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 const StatusIcon = config.icon;
                 return (
                   <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full shadow-sm status-badge-dark"
-                    style={{ backgroundColor: config.color }}>
+                    style={{
+                      backgroundColor: config.color,
+                      '--status-color': config.color
+                    }}>
                     <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 bg-white status-badge-icon">
                       {project.status === PROJECT_STATUS.SENT ? (
                         <span className="text-[9px] font-medium" style={{ color: config.color }}>?</span>
@@ -1341,15 +1342,6 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       </button>
                       {showMoreMenu && (
                         <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                          {canView('project_pricelist') && (
-                            <button
-                              onClick={() => { setShowProjectPriceList(true); setShowMoreMenu(false); }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
-                            >
-                              <Euro className="w-4 h-4 text-purple-500" />
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Project price list')}</span>
-                            </button>
-                          )}
                           {canView('duplicate') && (
                             <button
                               onClick={() => { handleDuplicateProject(); setShowMoreMenu(false); }}
@@ -1357,7 +1349,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                               className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left disabled:opacity-50"
                             >
                               {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 text-blue-500" />}
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Duplicate')}</span>
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Duplikovať</span>
+                            </button>
+                          )}
+                          {canView('project_pricelist') && (
+                            <button
+                              onClick={() => { setShowProjectPriceList(true); setShowMoreMenu(false); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                            >
+                              <Euro className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cenník</span>
                             </button>
                           )}
                           {canView('archive') && (
@@ -1366,7 +1367,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                               className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
                             >
                               <Archive className="w-4 h-4 text-yellow-500" />
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('ArchiveProjectAction')}</span>
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Archivovať</span>
                             </button>
                           )}
                         </div>
@@ -1492,15 +1493,6 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                       </button>
                       {showMoreMenu && (
                         <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                          {canView('project_pricelist') && (
-                            <button
-                              onClick={() => { setShowProjectPriceList(true); setShowMoreMenu(false); }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
-                            >
-                              <Euro className="w-4 h-4 text-purple-500" />
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Project price list')}</span>
-                            </button>
-                          )}
                           {canView('duplicate') && (
                             <button
                               onClick={() => { handleDuplicateProject(); setShowMoreMenu(false); }}
@@ -1508,7 +1500,16 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                               className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left disabled:opacity-50"
                             >
                               {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4 text-blue-500" />}
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Duplicate')}</span>
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Duplikovať</span>
+                            </button>
+                          )}
+                          {canView('project_pricelist') && (
+                            <button
+                              onClick={() => { setShowProjectPriceList(true); setShowMoreMenu(false); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                            >
+                              <Euro className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cenník</span>
                             </button>
                           )}
                           {canView('archive') && (
@@ -1517,7 +1518,7 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                               className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
                             >
                               <Archive className="w-4 h-4 text-yellow-500" />
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('ArchiveProjectAction')}</span>
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Archivovať</span>
                             </button>
                           )}
                         </div>
@@ -1558,7 +1559,10 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               const StatusIcon = config.icon;
               return (
                 <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full shadow-sm status-badge-dark"
-                  style={{ backgroundColor: config.color }}>
+                  style={{
+                    backgroundColor: config.color,
+                    '--status-color': config.color
+                  }}>
                   <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 bg-white status-badge-icon">
                     {project.status === PROJECT_STATUS.SENT ? (
                       <span className="text-[9px] font-medium" style={{ color: config.color }}>?</span>
@@ -2803,11 +2807,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                 archiveProject(project.category, projectId);
                 onBack();
               }}
-              title={t('Archive project {name}?').replace('{name}', project.name)}
-              message="Archiving this project will not result in data loss. You can find this project in the 'Archive' tab in the app settings."
-              confirmLabel="ArchiveProjectAction"
-              cancelLabel="Cancel"
-              icon="info"
+              title="Archivovať projekt"
+              message="Archivácia projektu nespôsobí stratu údajov. Projekt nájdete v sekcii Archív v nastaveniach."
+              confirmLabel="Archivovať"
+              cancelLabel="Zrušiť"
+              icon={<Archive className="w-8 h-8 text-blue-500 fill-blue-500" strokeWidth={2} />}
             />
           )
         )

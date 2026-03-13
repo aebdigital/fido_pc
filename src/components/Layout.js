@@ -7,8 +7,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useDarkMode } from '../context/DarkModeContext';
 import UnsavedChangesModal from './UnsavedChangesModal';
 import { useNavigate } from 'react-router-dom';
-import logo from '../logo.png';
 // Dark logo is in public folder, reference directly
+import logo from '../logo.png';
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -134,8 +134,8 @@ const Layout = ({ children }) => {
             className="w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl group no-scale"
           >
             <div className="flex items-center min-w-0 flex-1">
-              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                <span className="text-lg font-semibold text-gray-600 dark:text-gray-300">
+              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-white flex items-center justify-center flex-shrink-0">
+                <span className="text-lg font-semibold text-gray-600 dark:text-black">
                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </span>
               </div>

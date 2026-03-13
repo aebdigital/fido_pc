@@ -76,7 +76,7 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
             <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose} />
 
-                <div className="bg-white dark:bg-gray-900 no-gradient w-full sm:max-w-2xl rounded-t-[25px] sm:rounded-[25px] shadow-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
+                <div className="bg-white dark:bg-gray-900 no-gradient w-full sm:max-w-2xl rounded-t-[25px] sm:rounded-[25px] shadow-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden relative animate-slide-in-bottom sm:animate-slide-in">
                     {/* Header */}
                     <div className="px-5 pt-5 pb-[10px] flex items-center justify-between">
                         <div className="flex items-center gap-3">

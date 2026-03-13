@@ -10,6 +10,76 @@ import ConfirmationModal from './ConfirmationModal';
 import Linkify from '../utils/linkify';
 import MemberPermissionsModal from './MemberPermissionsModal';
 
+const getPeriodBounds = (date, view) => {
+    const targetDate = new Date(date);
+    const start = new Date(targetDate);
+    const end = new Date(targetDate);
+
+    if (view === 'day') {
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+    }
+
+    if (view === 'week') {
+        const weekday = targetDate.getDay();
+        const diffToMonday = weekday === 0 ? -6 : 1 - weekday;
+        start.setDate(targetDate.getDate() + diffToMonday);
+        start.setHours(0, 0, 0, 0);
+
+        end.setTime(start.getTime());
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+    }
+
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    end.setMonth(targetDate.getMonth() + 1, 0);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+};
+
+const getIsoWeekNumber = (date) => {
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+    target.setDate(target.getDate() + 3 - ((target.getDay() + 6) % 7));
+    const firstThursday = new Date(target.getFullYear(), 0, 4);
+    firstThursday.setDate(firstThursday.getDate() + 3 - ((firstThursday.getDay() + 6) % 7));
+    return 1 + Math.round((target - firstThursday) / 604800000);
+};
+
+const getPeriodIndicator = (date, view) => {
+    const targetDate = new Date(date);
+
+    if (view === 'day') {
+        return `${targetDate.getDate()}.${targetDate.getMonth() + 1}.${targetDate.getFullYear()}`;
+    }
+
+    if (view === 'week') {
+        const { start, end } = getPeriodBounds(targetDate, 'week');
+        return `T${getIsoWeekNumber(start)}/${start.getDate()}-${end.getDate()}.${end.getMonth() + 1}.${end.getFullYear()}`;
+    }
+
+    return `M${targetDate.getMonth() + 1}/${targetDate.getFullYear()}`;
+};
+
+const extractInvoiceItemTitles = (invoice) => {
+    const rawItems = invoice?.invoice_items_data;
+    if (!rawItems) return [];
+
+    try {
+        const items = typeof rawItems === 'string' ? JSON.parse(rawItems) : rawItems;
+        if (!Array.isArray(items)) return [];
+        return items
+            .map((item) => item?.titleKey || item?.title || '')
+            .filter(Boolean);
+    } catch (error) {
+        console.warn('Failed to parse invoice item titles for period detection', error);
+        return typeof rawItems === 'string' ? [rawItems] : [];
+    }
+};
+
 const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatDuration, t, handleRemoveMember, handleResetName, onEditPermissions }) => {
     const [isEditingName, setIsEditingName] = useState(false);
     const [newName, setNewName] = useState(member.member_name || member.profiles?.full_name || member.profiles?.email || '');
@@ -222,15 +292,26 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const hourlyRateTimerRef = useRef(null);
     const entryNoteTimerRef = useRef(null);
 
-    // Check if invoice exists for current period (Month)
+    // Check if invoice exists for the selected day/week/month period
     const hasInvoiceForPeriod = useMemo(() => {
+        const indicator = getPeriodIndicator(analyticsDate, analyticsView);
+        const { start, end } = getPeriodBounds(analyticsDate, analyticsView);
+
         return generatedInvoices.some(inv => {
             if (inv.invoiceType && inv.invoiceType !== 'regular') return false;
-            const d = new Date(inv.issueDate);
-            return d.getMonth() === analyticsDate.getMonth() &&
-                d.getFullYear() === analyticsDate.getFullYear();
+
+            const itemTitles = extractInvoiceItemTitles(inv);
+            if (itemTitles.some((title) => title.includes(indicator))) {
+                return true;
+            }
+
+            const issueDate = inv.issueDate || inv.dateCreated;
+            if (!issueDate) return false;
+
+            const parsedIssueDate = new Date(issueDate);
+            return parsedIssueDate >= start && parsedIssueDate <= end;
         });
-    }, [generatedInvoices, analyticsDate]);
+    }, [generatedInvoices, analyticsDate, analyticsView]);
 
     // Memoized functions (useCallback)
     const loadMembers = useCallback(async () => {
@@ -564,9 +645,10 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         const calculatedTotalHours = analyticsEntries.reduce((sum, e) => sum + Number(e.hours_worked || 0), 0);
         const totalHours = customHours !== null ? parseFloat(customHours) : calculatedTotalHours;
         const amount = totalHours * parseFloat(hourlyRate || 0);
+        const periodIndicator = getPeriodIndicator(analyticsDate, analyticsView);
         const workItem = {
             id: crypto.randomUUID(),
-            title: `${t('Work Hours')}${project?.name ? ` - ${project.name}` : ''}`,
+            title: `${t('Work Hours')}${project?.name ? ` - ${project.name}` : ''} - ${periodIndicator}`,
             pieces: totalHours,
             pricePerPiece: parseFloat(hourlyRate || 0),
             price: amount,
@@ -580,7 +662,8 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
         // 4. Open the InvoiceCreationModal with pre-filled data
         setDennikInvoiceData({
             items: [workItem],
-            ownerContractorId: customer?.c_id || customer?.id || null
+            ownerContractorId: customer?.c_id || customer?.id || null,
+            projectDisplayName: project?.name ? `${project.name} - ${periodIndicator}` : periodIndicator
         });
         setShowInvoiceCreation(true);
     };
@@ -1009,7 +1092,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-2 lg:p-4 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-            <div className="bg-white dark:bg-gray-900 w-full max-w-6xl h-[100dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[100dvh] sm:max-h-[calc(100dvh-6rem)] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white dark:bg-gray-900 w-full max-w-6xl h-[100dvh] sm:h-[75dvh] lg:h-[85dvh] max-h-[100dvh] sm:max-h-[calc(100dvh-6rem)] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-in-bottom sm:animate-slide-in" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="px-[20px] pt-[20px] pb-[15px] sm:p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2 sm:mb-4">

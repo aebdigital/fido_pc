@@ -740,7 +740,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                   </button>
                 ) : (
                   <div onClick={handleMarkAsPaid} className="cursor-pointer">
-                    <span className="px-2.5 py-1 text-[11px] font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-[10px] uppercase">
+                    <span className="px-2.5 py-1 text-[11px] font-bold bg-green-100 dark:bg-green-900/50 text-white dark:text-gray-900 rounded-[10px] uppercase" style={{ backgroundColor: '#73D38A' }}>
                       {t('Paid')}
                     </span>
                   </div>
@@ -760,7 +760,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                   </button>
                 ) : (
                   <div onClick={handleMarkAsPaid} className="cursor-pointer">
-                    <span className="px-4 py-2 text-sm font-bold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">
+                    <span className="px-4 py-2 text-sm font-bold bg-green-100 dark:bg-green-900/50 text-white dark:text-gray-900 rounded-full" style={{ backgroundColor: '#73D38A' }}>
                       {t('Paid')}
                     </span>
                   </div>
@@ -787,9 +787,11 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 <User className="w-6 h-6 text-gray-900 dark:text-white" />
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Client')}</h2>
               </div>
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={handleViewClient}
-                className="w-full bg-gray-100 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left cursor-pointer"
               >
                 <div className="min-w-0">
                   <p className="text-[20px] lg:text-xl font-semibold lg:font-[900] text-gray-900 dark:text-white leading-tight truncate">{client.name}</p>
@@ -799,8 +801,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                     </p>
                   )}
                 </div>
-                <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white flex-shrink-0" />
-              </button>
+                <ChevronRight className="w-6 h-6 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+              </div>
             </div>
           )}
 
@@ -811,13 +813,20 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 <PencilRuler className="w-6 h-6 text-gray-900 dark:text-white" />
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Project')}</h2>
               </div>
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={handleViewProject}
-                className="w-full bg-gray-100 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center transition-colors duration-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 cursor-pointer text-left"
+                className={`w-full ${(project.userRole || 'owner') !== 'owner' ? 'bg-green-50/80 dark:bg-green-900/20 border-2 border-green-500 dark:border-green-400' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'} rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center transition-colors duration-200 ${(project.userRole || 'owner') !== 'owner' ? 'hover:bg-green-100/80 dark:hover:bg-green-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700'} cursor-pointer text-left`}
               >
                 <div className="flex-1 transition-all duration-300 min-w-0">
-                  <div className="flex items-center gap-1 mb-1 flex-wrap">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="text-xs text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
+                    {(project.userRole || 'owner') !== 'owner' && (
+                      <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg border-2 border-green-500 dark:border-green-400">
+                        {t('Assigned projects')}
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-xl font-[900] text-gray-900 dark:text-white truncate">
                     <span>{project.name}</span>
@@ -832,7 +841,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                   <div className="text-right">
                     {/* Status Badge */}
                     <span
-                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 shrink-0 status-badge-dark`}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] lg:text-xs font-medium rounded-full mb-1 text-white dark:text-gray-900 shrink-0 status-badge-dark"
                       style={{
                         backgroundColor:
                           project.status === PROJECT_STATUS.FINISHED ? '#C4C4C4' :
@@ -882,7 +891,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                 </div>
-              </button>
+              </div>
             </div>
           )}
 
@@ -893,9 +902,11 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                 <Building2 className="w-6 h-6 text-gray-900 dark:text-white" />
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Contractor')}</h2>
               </div>
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={handleViewContractor}
-                className="w-full bg-gray-100 dark:bg-gray-800 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center justify-between hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-[20px] lg:rounded-2xl p-[15px] lg:p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left cursor-pointer"
               >
                 <div className="min-w-0">
                   <p className="text-[20px] lg:text-xl font-semibold lg:font-[900] text-gray-900 dark:text-white leading-tight truncate">{contractor.name}</p>
@@ -905,8 +916,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                     </p>
                   )}
                 </div>
-                <ChevronRight className="w-6 h-6 text-gray-900 dark:text-white flex-shrink-0" />
-              </button>
+                <ChevronRight className="w-6 h-6 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+              </div>
             </div>
           )}
 
@@ -994,7 +1005,8 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="flex justify-center pb-12 px-4 !mt-[20px] lg:!mt-[30px]">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full max-w-sm py-2.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 btn-red active:scale-95"
+                className="w-full max-w-sm py-2.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 btn-red destructive-btn invoice-delete-btn active:scale-95 text-white"
+                style={{ backgroundColor: '#ef4444' }}
               >
                 <Trash2 className="w-5 h-5" />
                 <span className="text-xl">{t('Delete')}</span>
@@ -1101,7 +1113,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         )
       }
 
-    </div >
+      </div>
   );
 };
 

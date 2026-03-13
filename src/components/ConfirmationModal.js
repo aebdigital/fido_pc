@@ -30,7 +30,9 @@ const ConfirmationModal = ({
                         ? 'bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400'
                         : 'bg-blue-100 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}>
-                        {icon === 'warning' || isDestructive ? (
+                        {React.isValidElement(icon) ? (
+                            icon
+                        ) : icon === 'warning' || isDestructive ? (
                             <AlertTriangle className="w-8 h-8" strokeWidth={2.5} />
                         ) : (
                             <AlertCircle className="w-8 h-8" strokeWidth={2.5} />
@@ -61,9 +63,10 @@ const ConfirmationModal = ({
                                 onClose();
                             }}
                             className={`py-3 px-4 rounded-xl font-semibold text-white transition-colors ${isDestructive
-                                ? 'btn-red hover:bg-red-600'
+                                ? 'btn-red destructive-btn hover:bg-red-600'
                                 : 'bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
                                 }`}
+                            style={{ backgroundColor: isDestructive ? '#ef4444' : undefined }}
                         >
                             {t(confirmLabel || 'Confirm')}
                         </button>

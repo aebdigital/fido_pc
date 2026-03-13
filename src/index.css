@@ -96,11 +96,11 @@ button.modal-close-btn:hover {
 }
 
 .dark .modal-close-btn {
-  color: #9ca3af;
+  color: #ffffff;
 }
 
 .dark .modal-close-btn:hover {
-  color: #e5e7eb;
+  color: #ffffff;
   background: transparent !important;
 }
 
@@ -221,6 +221,10 @@ button.modal-close-btn:hover {
   animation: slideInFromBottom 300ms ease-out;
 }
 
+.animate-slide-in-bottom {
+  animation: slideUpFromBottomModal 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .animate-slide-up-modal {
   animation: slideUpFromBottomModal 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -245,6 +249,27 @@ button.modal-close-btn:hover {
   animation: slideInFromBottomStagger 300ms ease-out;
 }
 
+/* Support responsive animation classes used in JSX (Tailwind-style prefixes) */
+@media (min-width: 640px) {
+  .sm\:animate-slide-in {
+    animation: slideInFromBottom 300ms ease-out;
+  }
+
+  .sm\:animate-slide-out {
+    animation: slideOutToBottom 300ms ease-out;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:animate-slide-in {
+    animation: slideInFromBottom 300ms ease-out;
+  }
+
+  .lg\:animate-slide-out {
+    animation: slideOutToBottom 300ms ease-out;
+  }
+}
+
 /* Zoom in animation for lightbox */
 @keyframes zoomIn {
   from {
@@ -260,6 +285,59 @@ button.modal-close-btn:hover {
 
 .animate-zoom-in {
   animation: zoomIn 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Shared popup "rise in" animation used across modal variants */
+@keyframes scaleInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Fallback utilities for modal classes used across the app */
+.animate-scale-in {
+  animation: scaleInUp 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.animate-in.fade-in {
+  animation: fadeIn 200ms ease-out both;
+}
+
+.animate-in.zoom-in,
+.animate-in.zoom-in-95,
+.animate-in.fade-in.zoom-in,
+.animate-in.fade-in.zoom-in-95 {
+  animation: scaleInUp 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-in.slide-in-from-bottom-10,
+.animate-in.fade-in.slide-in-from-bottom-10,
+.animate-in.zoom-in.slide-in-from-bottom-10,
+.animate-in.zoom-in-95.slide-in-from-bottom-10 {
+  animation: slideInFromBottom 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-in.slide-in-from-top-2,
+.animate-in.fade-in.slide-in-from-top-2 {
+  animation: slideInFromTop 200ms ease-out both;
+}
+
+.animate-in.slide-in-from-right-5 {
+  animation: slideFromRight 300ms ease-out both;
+}
+
+.animate-in.slide-in-from-left-5 {
+  animation: slideFromLeft 300ms ease-out both;
 }
 
 /* Lightbox photo slide animations */
@@ -428,14 +506,14 @@ button.modal-close-btn:hover {
 }
 
 /* Allow borders to show on buttons in dark mode if explicitly defined */
-.dark button.border:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red),
-.dark button[class*="border-"]:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red),
-.dark button.border-2:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red) {
+.dark button.border:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.modal-close-btn),
+.dark button[class*="border-"]:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.modal-close-btn),
+.dark button.border-2:not(.no-global-border):not(.strictly-black-border):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.modal-close-btn) {
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Buttons in dark mode - flat background matching design system */
-.dark button:not([class*="bg-transparent"]):not(.no-global-border):not(.strictly-black-border):not(.no-gradient):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.dennik-day-btn):not(.dennik-timer-btn):not(.dennik-timer-plus-btn) {
+.dark button:not([class*="bg-transparent"]):not(.no-global-border):not(.strictly-black-border):not(.no-gradient):not(.active-white-bg):not(.btn-blue-gradient):not(.btn-green-gradient):not(.btn-green-tab):not(.btn-red):not(.dennik-day-btn):not(.dennik-timer-btn):not(.dennik-timer-plus-btn):not(.modal-close-btn) {
   background: #252525 !important;
   background-color: #252525 !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -686,7 +764,7 @@ textarea.inline-note {
 }
 
 /* Contractor dropdown button - no border */
-.dark button[class*="flex"][class*="items-center"][class*="gap-2"]:not([class*="bg-"]):not([class*="rounded-2xl"]):not([class*="px-"]) {
+.dark button[class*="flex"][class*="items-center"][class*="gap-2"]:not([class*="bg-"]):not([class*="rounded-2xl"]):not([class*="px-"]):not(.btn-red):not(.destructive-btn):not(.invoice-delete-btn) {
   background: transparent !important;
   border: none !important;
   border-top: none !important;
@@ -929,29 +1007,30 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Project/Invoice status badges */
+.status-badge-dark,
+.status-badge-dark .status-badge-dark-text {
+  color: #ffffff;
+}
+
 .status-badge-dark .cutout-icon,
-.status-badge-dark .cutout-text {
-  color: var(--status-color);
-  stroke: var(--status-color);
+.status-badge-dark .cutout-text,
+.status-badge-dark .status-badge-icon svg {
+  color: var(--status-color, #111827);
+  stroke: var(--status-color, #111827);
 }
 
-/* Force dark text and icons for ALL status badges in dark mode */
+/* Force dark text for badges in dark mode while keeping cutout icons tinted */
 .dark .status-badge-dark,
-.dark .status-badge-dark .status-badge-dark-text {
-  color: #000000 !important;
+.dark .status-badge-dark .status-badge-dark-text,
+.dark .status-badge-dark span.whitespace-nowrap {
+  color: #111827 !important;
 }
 
-/* Icons inside white circle should keep status color, not be forced to black */
 .dark .status-badge-dark .status-badge-icon svg,
 .dark .status-badge-dark .cutout-icon,
 .dark .status-badge-dark .cutout-text {
-  color: var(--status-color) !important;
-  stroke: var(--status-color) !important;
-}
-
-/* Only force dark text on status badges in dark mode — light mode keeps white text */
-.dark .status-badge-dark-text {
-  color: #000000 !important;
+  color: var(--status-color, #111827) !important;
+  stroke: var(--status-color, #111827) !important;
 }
 
 /* Ensure blue buttons stay blue in dark mode even if broad rules hit them */
@@ -963,6 +1042,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-image: linear-gradient(to bottom right, #3B82F6, #2563EB) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45) !important;
+}
+
+/* Ensure red buttons stay red in dark mode */
+.dark button.btn-red,
+.dark .btn-red {
+  background-color: #ef4444 !important;
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
 }
 
 .dennik-timer-plus-btn:hover {
@@ -1014,17 +1102,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .dennik-day-btn.dennik-day-sunday {
   background: rgba(234, 179, 8, 0.05) !important;
-}
-
-/* Status badges in dark mode - black text and icons on colored backgrounds */
-.dark .status-badge-dark span,
-.dark .status-badge-dark {
-  color: #111827 !important;
-}
-
-.dark .status-badge-dark svg,
-.dark .status-badge-dark .status-badge-icon {
-  color: #111827 !important;
 }
 
 /* Specific override for Invoice Modal Note */
@@ -1143,4 +1220,109 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .dark .bg-gray-100-important {
   background-color: #1a1a1a !important;
+}
+
+/* FINAL OVERRIDES - Ensure red buttons stay red no matter what */
+.dark .btn-red,
+.dark button.btn-red,
+.dark button.bg-red-600,
+.dark button.bg-red-500,
+.dark .bg-red-600,
+.dark .bg-red-500 {
+  background: #ef4444 !important;
+  background-color: #ef4444 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+}
+
+.dark .btn-red:hover,
+.dark button.btn-red:hover,
+.dark button.bg-red-600:hover,
+.dark button.bg-red-500:hover {
+  background: #dc2626 !important;
+  background-color: #dc2626 !important;
+}
+
+/* Stronger destructive button lock for modal actions in dark mode */
+.dark .destructive-btn,
+.dark button.destructive-btn,
+.dark .fixed .destructive-btn,
+.dark [role="dialog"] .destructive-btn {
+  background: #ef4444 !important;
+  background-color: #ef4444 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.dark .destructive-btn:hover,
+.dark button.destructive-btn:hover,
+.dark .fixed .destructive-btn:hover,
+.dark [role="dialog"] .destructive-btn:hover {
+  background: #dc2626 !important;
+  background-color: #dc2626 !important;
+}
+
+/* Invoice detail modal: keep bottom delete button bright red + glow in dark mode */
+.invoice-delete-btn,
+.dark .invoice-delete-btn,
+.dark button.invoice-delete-btn,
+.dark .fixed button.invoice-delete-btn,
+.dark [role="dialog"] button.invoice-delete-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.48) !important;
+}
+
+.invoice-delete-btn:hover,
+.dark .invoice-delete-btn:hover,
+.dark button.invoice-delete-btn:hover,
+.dark .fixed button.invoice-delete-btn:hover,
+.dark [role="dialog"] button.invoice-delete-btn:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  background-color: #dc2626 !important;
+  box-shadow: 0 10px 24px rgba(239, 68, 68, 0.56) !important;
+}
+
+.invoice-delete-btn svg,
+.dark .invoice-delete-btn svg,
+.dark button.invoice-delete-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Final modal close button lock: dark mode must be icon-only (no bg/border box) */
+.dark .modal-close-btn,
+.dark button.modal-close-btn,
+.dark [aria-label="Close"].modal-close-btn {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+.dark .modal-close-btn:hover,
+.dark button.modal-close-btn:hover,
+.dark [aria-label="Close"].modal-close-btn:hover,
+.dark .modal-close-btn:focus,
+.dark button.modal-close-btn:focus,
+.dark [aria-label="Close"].modal-close-btn:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+.dark .modal-close-btn svg,
+.dark button.modal-close-btn svg,
+.dark [aria-label="Close"].modal-close-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }

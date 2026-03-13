@@ -104,11 +104,11 @@ const Login = () => {
   return (
     <div className={`min-h-screen flex items-center justify-center px-5 py-10 ${isDarkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'}`}>
       <div className="w-full max-w-[420px]">
-        <div className="flex justify-center mb-7">
+        <div className="flex justify-center mb-6">
           <img
             src={isDarkMode ? '/dark-logo.jpg' : logo}
             alt="Fido"
-            className="h-20 w-auto max-w-[220px] object-contain shadow-[0_10px_26px_rgba(0,0,0,0.14)]"
+            className="h-20 w-auto"
           />
         </div>
 
@@ -189,7 +189,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full rounded-xl py-3.5 text-base font-semibold text-white transition-colors ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#51A2F7] hover:bg-[#3C95F5]'}`}
+            className={`w-full rounded-xl py-3.5 text-base font-semibold text-white transition-colors no-gradient ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#51A2F7] hover:bg-[#3C95F5]'}`}
           >
             {submitLabel}
           </button>
