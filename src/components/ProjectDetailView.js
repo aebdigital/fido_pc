@@ -4,7 +4,6 @@ import {
   ClipboardList,
   Trash2,
   Plus,
-  ChevronDown,
   ChevronRight,
   ChevronLeft,
   Copy,
@@ -97,46 +96,6 @@ const getSafeReceiptItems = (items) => {
 };
 
 const getSafeProjectPhotos = (photos) => normalizeProjectPhotos(photos);
-
-const normalizeHistoryEventType = (type) => String(type || '').replace(/\s+/g, '').toLowerCase();
-
-const getHistoryEventVisual = (type) => {
-  const normalizedType = normalizeHistoryEventType(type);
-
-  if (['sent', 'invoicesent'].includes(normalizedType)) {
-    return { Icon: Send, iconClass: 'text-blue-500', dotClass: 'bg-[#111827] dark:bg-white' };
-  }
-
-  if (['invoicegenerated', 'proformainvoicegenerated', 'deliverynotegenerated', 'creditnotegenerated', 'draft'].includes(normalizedType)) {
-    return { Icon: FileText, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
-  }
-
-  if (['proformainvoicesent', 'deliverynotesent', 'creditnotesent'].includes(normalizedType)) {
-    return { Icon: FileText, iconClass: 'text-blue-500', dotClass: 'bg-[#111827] dark:bg-white' };
-  }
-
-  if (['archived', 'unarchived'].includes(normalizedType)) {
-    return { Icon: Archive, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
-  }
-
-  if (['duplicated'].includes(normalizedType)) {
-    return { Icon: Copy, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
-  }
-
-  if (['approved'].includes(normalizedType)) {
-    return { Icon: CheckCircle, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
-  }
-
-  if (['finished', 'created'].includes(normalizedType)) {
-    return { Icon: Flag, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
-  }
-
-  if (['invoicedeleted', 'proformainvoicedeleted', 'deliverynotedeleted', 'creditnotedeleted', 'notsent'].includes(normalizedType)) {
-    return { Icon: Trash2, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
-  }
-
-  return { Icon: FileText, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
-};
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();

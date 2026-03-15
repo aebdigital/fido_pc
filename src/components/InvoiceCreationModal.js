@@ -753,8 +753,6 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const effectiveTotals = useMemo(() => {
     const baseWithoutVat = Number(calculateTotals.priceWithoutVat || 0);
     const baseVat = Number(calculateTotals.cumulativeVat || 0);
-    const vatRatio = baseWithoutVat > 0 ? (baseVat / baseWithoutVat) : 0;
-
     if (invoiceType === 'proforma') {
       const rawValue = Number(depositValue || 0);
       const partialWithoutVat = depositType === 'percentage'
