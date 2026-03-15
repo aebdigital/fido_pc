@@ -362,14 +362,14 @@ const Invoices = () => {
       </div>
 
       {/* Contractor and Stats Header */}
-      <div className="flex items-center justify-between mb-4 lg:mb-6">
-        <div className="relative" ref={dropdownRef}>
+      <div className="flex items-center justify-between gap-2 mb-4 lg:mb-6 min-w-0">
+        <div className="relative min-w-0 flex-1" ref={dropdownRef}>
           <button
-            className="flex items-center gap-2 bg-transparent"
+            className="flex items-center gap-2 bg-transparent min-w-0 max-w-full"
             onClick={() => setShowContractorSelector(!showContractorSelector)}
           >
             {/* Mobile: truncated name */}
-            <span className="text-4xl font-sf-heavy text-gray-900 dark:text-white lg:hidden">
+            <span className="block min-w-0 max-w-[calc(100vw-112px)] truncate whitespace-nowrap text-4xl font-sf-heavy text-gray-900 dark:text-white lg:hidden">
               {(() => {
                 const name = getCurrentContractor()?.name || t('Select contractor');
                 return name.length > 12 ? name.substring(0, 12) + '...' : name;

@@ -287,6 +287,21 @@ export const generateInvoicePDF = async ({
   let finalTotalWithoutVAT = totalWithoutVAT;
   let finalVat = vat;
   let finalTotalWithVAT = totalWithVAT;
+  const paidAdvanceTotal = Number(invoice.paidAdvanceTotal || 0);
+  const amountDueTotal = invoice.amountDue !== undefined
+    ? Number(invoice.amountDue || 0)
+    : Math.max(0, finalTotalWithVAT - paidAdvanceTotal);
+  const invoiceItemsBaseTotal = Array.isArray(invoice.invoiceItems)
+    ? invoice.invoiceItems
+      .filter(item => item?.active !== false)
+      .reduce((sum, item) => sum + Number(item?.price || 0), 0)
+    : 0;
+  const projectBaseTotal = Number(projectBreakdown?.total || 0);
+  const referenceBaseWithoutVAT = invoiceItemsBaseTotal > 0 ? invoiceItemsBaseTotal : projectBaseTotal;
+  const shouldApplyDepositFromReferenceTotal = invoice.invoiceType === 'proforma'
+    && invoice.depositSettings
+    && referenceBaseWithoutVAT > 0
+    && Math.abs(referenceBaseWithoutVAT - Number(totalWithoutVAT || 0)) < 0.01;
 
   // Handle Credit Note (Negative values)
   if (invoice.invoiceType === 'credit_note') {
@@ -296,23 +311,31 @@ export const generateInvoicePDF = async ({
   }
 
   // Handle Proforma (Deposit Calculation)
-  // Only apply if deposit settings exist AND we are NOT printing the full amount
-  if (invoice.invoiceType === 'proforma' && invoice.depositSettings) {
+  // Older records can still carry the full project total, while newer web-created
+  // proformas already store the reduced deposit amount. Only re-derive the deposit
+  // when the incoming total still matches the full reference total.
+  // Deposit factor for proforma item price scaling (1.0 = no change)
+  let proformaDepositFactor = 1.0;
+
+  if (shouldApplyDepositFromReferenceTotal) {
     const { type, value } = invoice.depositSettings;
     if (type === 'percentage') {
-      // Calculate percentage of the base amount
-      finalTotalWithoutVAT = totalWithoutVAT * (value / 100);
-      const currentVatRate = (vatRate !== undefined && vatRate !== null) ? vatRate : 0.23;
-      finalVat = finalTotalWithoutVAT * currentVatRate;
-      finalTotalWithVAT = finalTotalWithoutVAT + finalVat;
+      proformaDepositFactor = value / 100;
+      finalTotalWithoutVAT = referenceBaseWithoutVAT * proformaDepositFactor;
+      finalVat = 0;
+      finalTotalWithVAT = finalTotalWithoutVAT;
     } else if (type === 'fixed') {
-      // Use fixed value directly (assuming it's base amount)
+      proformaDepositFactor = referenceBaseWithoutVAT > 0 ? value / referenceBaseWithoutVAT : 1.0;
       finalTotalWithoutVAT = value;
-      const currentVatRate = (vatRate !== undefined && vatRate !== null) ? vatRate : 0.23;
-      finalVat = finalTotalWithoutVAT * currentVatRate;
-      finalTotalWithVAT = finalTotalWithoutVAT + finalVat;
+      finalVat = 0;
+      finalTotalWithVAT = finalTotalWithoutVAT;
     }
   }
+
+  const paymentAmountTotal = invoice.invoiceType === 'regular' && paidAdvanceTotal > 0
+    ? amountDueTotal
+    : finalTotalWithVAT;
+  const shouldHighlightPaymentAmount = false;
 
   // Pre-load footer icons
   const userIconData = await loadImageToBase64('/user_18164876.png');
@@ -381,8 +404,7 @@ export const generateInvoicePDF = async ({
     } else if (invoice.invoiceType === 'proforma') {
       doc.setTextColor(0, 0, 0);
       doc.text(sanitizeText(`${t('Proforma Invoice')} ${invoice.invoiceNumber}`), 12.35, 20);
-      // Subtitle: introductory note or default "Cenová ponuka {number}"
-      const proformaSubtitle = invoice.introductoryNote || (!isDennik && projectNumber ? `${t('Price offer')} ${projectNumber}` : '');
+      const proformaSubtitle = invoice.introductoryNote || '';
       if (proformaSubtitle) {
         doc.setFontSize(13.1);
         doc.setFont('SF-Pro', 'medium');
@@ -595,15 +617,23 @@ export const generateInvoicePDF = async ({
 
       // Box 4: Suma na uhradu
       const box4X = box3X + boxWidth + gap;
-      doc.roundedRect(box4X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+      if (shouldHighlightPaymentAmount) {
+        doc.setDrawColor(96, 165, 250);
+        doc.setFillColor(239, 246, 255);
+        doc.roundedRect(box4X, boxY, boxWidth, boxHeight, borderRadius, borderRadius, 'FD');
+      } else {
+        doc.roundedRect(box4X, boxY, boxWidth, boxHeight, borderRadius, borderRadius);
+      }
       doc.setFontSize(5.6);
       doc.setFont('SF-Pro', 'normal');
-      doc.setTextColor(51, 51, 51);
+      doc.setTextColor(shouldHighlightPaymentAmount ? 30 : 51, shouldHighlightPaymentAmount ? 64 : 51, shouldHighlightPaymentAmount ? 175 : 51);
       doc.text(sanitizeText(t('Amount Due')), box4X + 2.8, boxY + 4.2);
       doc.setFontSize(8.4);
       doc.setFont('SF-Pro', 'semibold');
+      doc.setTextColor(shouldHighlightPaymentAmount ? 30 : 0, shouldHighlightPaymentAmount ? 64 : 0, shouldHighlightPaymentAmount ? 175 : 0);
+      doc.text(sanitizeText(formatCurrency(paymentAmountTotal)), box4X + 2.8, boxY + 8.2);
+      doc.setDrawColor(160, 160, 160);
       doc.setTextColor(0, 0, 0);
-      doc.text(sanitizeText(formatCurrency(finalTotalWithVAT)), box4X + 2.8, boxY + 8.2);
 
       tableStartY = boxY + boxHeight + 4;
     } else {
@@ -1115,8 +1145,16 @@ export const generateInvoicePDF = async ({
         return [{ ...row[0], colSpan: 4 }];
       }
       // Keep columns 0,1,2,5 (Description, Quantity, Price per Unit, Price) — skip VAT%, VAT
+      // Scale prices by deposit factor
       if (row.length >= 6) {
-        return [row[0], row[1], row[2], row[5]];
+        const unitPriceVal = parseFloat(String(row[2].content).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+        const totalPriceVal = parseFloat(String(row[5].content).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+        return [
+          row[0],
+          row[1],
+          { ...row[2], content: sanitizeText(formatCurrency(unitPriceVal * proformaDepositFactor)) },
+          { ...row[5], content: sanitizeText(formatCurrency(totalPriceVal * proformaDepositFactor)) }
+        ];
       }
       return row;
     }) : tableData;
@@ -1282,6 +1320,20 @@ export const generateInvoicePDF = async ({
         doc.setFont('SF-Pro', 'semibold');
         doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
         doc.text(sanitizeText(formatCurrency(finalTotalWithVAT)), rightX, totalY, { align: 'right' });
+
+        if (paidAdvanceTotal > 0 && invoice.invoiceType === 'regular') {
+          totalY += rowSpacing;
+          doc.setFontSize(14);
+          doc.setFont('SF-Pro', 'normal');
+          doc.text(sanitizeText(t('Paid advance')), totalsLabelX, totalY);
+          doc.text(sanitizeText(`- ${formatCurrency(paidAdvanceTotal)}`), rightX, totalY, { align: 'right' });
+
+          totalY += rowSpacing;
+          doc.setFontSize(15.9);
+          doc.setFont('SF-Pro', 'semibold');
+          doc.text(sanitizeText(t('Amount due')), totalsLabelX, totalY);
+          doc.text(sanitizeText(formatCurrency(amountDueTotal)), rightX, totalY, { align: 'right' });
+        }
       }
     }
 
@@ -1295,7 +1347,7 @@ export const generateInvoicePDF = async ({
           const qrCodeDataUrl = await generatePaymentQRCode(
             bankAccount,
             swiftCode,
-            finalTotalWithVAT,
+            paymentAmountTotal,
             invoice.invoiceNumber,
             contractor?.name
           );

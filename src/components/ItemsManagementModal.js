@@ -130,10 +130,10 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
 
                                         <button
                                             onClick={() => setItemToDelete(item.title)}
-                                            className="w-9 h-9 bg-red-500 text-white hover:bg-red-600 rounded-[10px] transition-colors flex items-center justify-center"
+                                            className="w-9 h-9 rounded-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center justify-center"
                                             title={t('Delete')}
                                         >
-                                            <Trash2 className="w-3.5 h-3.5" />
+                                            <Trash2 className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
                                         </button>
                                     </div>
                                 ))}
@@ -161,7 +161,7 @@ const ItemsManagementModal = ({ isOpen, onClose }) => {
                     >
                         <div className="p-6 flex flex-col items-center text-center">
                             <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400">
-                                <Trash2 className="w-8 h-8" strokeWidth={2.5} />
+                                <Trash2 className="w-8 h-8 text-red-500 dark:text-red-400" strokeWidth={2.5} />
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 leading-tight">
                                 {t('Delete')}

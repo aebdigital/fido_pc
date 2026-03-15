@@ -289,6 +289,7 @@ export const useProjectManager = (appData, setAppData) => {
         }
       }
       if (projectData.detailNotes !== undefined) mappedData.detailNotes = projectData.detailNotes;
+      if (projectData.isDennikEnabled !== undefined) mappedData.is_dennik_enabled = projectData.isDennikEnabled;
       if (projectData.photos !== undefined) {
         // Pass photos array directly to Supabase JSONB - don't stringify!
         mappedData.photos = projectData.photos;

@@ -61,7 +61,12 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   // Use live invoice data from global state
   const invoice = invoices?.find(inv => inv.id === invoiceProp?.id) || invoiceProp;
   const invoiceNumber = invoice?.invoiceNumber || invoice?.number || '';
-  const invoiceForPdf = { ...invoice, invoiceNumber };
+  const getDocumentLabel = (type = invoice?.invoiceType) => {
+    if (type === 'proforma') return t('Proforma Invoice');
+    if (type === 'delivery') return t('Delivery Note');
+    if (type === 'credit_note') return t('Credit Note');
+    return t('Invoice');
+  };
 
   // Detect Denník invoice: all items are hour-based work entries
   const isDennikInvoice = invoice?.invoiceItems?.length > 0
@@ -222,6 +227,17 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   const totalWithoutVAT = invoice.priceWithoutVat || projectBreakdown?.total || 0;
   const vat = invoice.cumulativeVat !== undefined ? invoice.cumulativeVat : (totalWithoutVAT * vatRate);
   const totalWithVAT = totalWithoutVAT + vat;
+  const paidAdvanceTotal = invoice.invoiceType === 'regular' && invoice.projectId
+    ? (invoices || []).reduce((sum, inv) => {
+      if (inv.id === invoice.id) return sum;
+      if (inv.projectId !== invoice.projectId) return sum;
+      if ((inv.invoiceType || 'regular') !== 'proforma') return sum;
+      if (inv.is_deleted) return sum;
+      return sum + Number(inv.priceWithoutVat || 0);
+    }, 0)
+    : 0;
+  const amountDue = Math.max(0, totalWithVAT - paidAdvanceTotal);
+  const invoiceForPdf = { ...invoice, invoiceNumber, paidAdvanceTotal, amountDue };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -242,15 +258,12 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      await deleteInvoice(invoice.id);
-      setShowDeleteConfirm(false);
-      onClose(true);
-    } catch (error) {
+  const handleDelete = () => {
+    setShowDeleteConfirm(false);
+    onClose(true);
+    deleteInvoice(invoice.id).catch(error => {
       console.error('Error deleting invoice:', error);
-      alert(t('Failed to delete invoice'));
-    }
+    });
   };
 
   const handleMarkAsPaid = () => {
@@ -343,7 +356,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
       setPdfBlob(result.pdfBlob);
 
       if (shouldUseNativePdfViewer) {
-        const filename = `${t('Invoice')} ${invoiceNumber}.pdf`;
+        const filename = `${getDocumentLabel()} ${invoiceNumber}.pdf`;
         openPdfInNewTab(result.blobUrl, filename);
       } else {
         setShowPDFPreview(true);
@@ -563,7 +576,7 @@ ${t('Total price')}: ${formatPrice(totalWithVAT)}
 
     // Generate invoice data to share
     const invoiceText = `
-${t('Invoice')} ${invoiceNumber}
+${getDocumentLabel()} ${invoiceNumber}
 ${invoice.projectName}
 
 ${t('Contractor')}: ${contractor?.name || '-'}
@@ -576,6 +589,8 @@ ${t('Payment Method')}: ${t(invoice.paymentMethod === 'cash' ? 'Cash' : 'Transfe
 ${t('without VAT')}: ${formatPrice(totalWithoutVAT)}
 ${t('VAT')} (${Math.round(vatRate * 100)}%): ${formatPrice(vat)}
 ${t('Total price')}: ${formatPrice(totalWithVAT)}
+${paidAdvanceTotal > 0 ? `\n${t('Paid advance')}: -${formatPrice(paidAdvanceTotal)}` : ''}
+${paidAdvanceTotal > 0 ? `\n${t('Amount due')}: ${formatPrice(amountDue)}` : ''}
 ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
     `.trim();
 
@@ -608,10 +623,10 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
         }
 
         const shareData = {
-          title: `${t('Invoice')} ${invoiceNumber}`,
+          title: `${getDocumentLabel()} ${invoiceNumber}`,
         };
 
-        const invoiceFile = new File([currentBlob], `${t('Invoice')} ${invoiceNumber}.pdf`, { type: 'application/pdf' });
+        const invoiceFile = new File([currentBlob], `${getDocumentLabel()} ${invoiceNumber}.pdf`, { type: 'application/pdf' });
         const allFiles = [invoiceFile, ...additionalFiles];
 
         if (navigator.canShare && navigator.canShare({ files: allFiles })) {
@@ -721,7 +736,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
             <div className="flex-1 min-w-0">
               {/* Large Invoice Number - iOS style (40pt equivalent) */}
               <h1 className="text-[40px] lg:text-5xl font-[900] text-gray-900 dark:text-white mb-1 truncate leading-[1.1]">
-                {invoice.invoiceType === 'proforma' ? 'Cenová ponuka' :
+                {invoice.invoiceType === 'proforma' ? t('Proforma Invoice') :
                   invoice.invoiceType === 'delivery' ? t('Delivery Note') :
                     invoice.invoiceType === 'credit_note' ? t('Credit Note') :
                       t('Invoice')} {invoiceNumber}
@@ -823,7 +838,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="text-xs text-gray-500 dark:text-gray-400">{formatProjectNumber(project) || project.id}</span>
                     {(project.userRole || 'owner') !== 'owner' && (
-                      <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg border-2 border-green-500 dark:border-green-400">
+                      <span className="px-2 py-0.5 text-[10px] lg:text-xs font-bold bg-green-100 dark:bg-green-900/40 text-white dark:text-white rounded-lg border-2 border-green-500 dark:border-green-400">
                         {t('Assigned projects')}
                       </span>
                     )}
@@ -1054,7 +1069,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
           handleClosePDFPreview();
           handleSend();
         }}
-        title={`${t('Invoice')} ${invoiceNumber}`}
+        title={`${getDocumentLabel()} ${invoiceNumber}`}
       />
 
       <PDFPreviewModal

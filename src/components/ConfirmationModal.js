@@ -33,9 +33,12 @@ const ConfirmationModal = ({
                         {React.isValidElement(icon) ? (
                             icon
                         ) : icon === 'warning' || isDestructive ? (
-                            <AlertTriangle className="w-8 h-8" strokeWidth={2.5} />
+                            <AlertTriangle
+                                className={`w-8 h-8 ${isDestructive ? 'text-red-500 dark:text-red-400' : 'text-amber-500 dark:text-amber-400'}`}
+                                strokeWidth={2.5}
+                            />
                         ) : (
-                            <AlertCircle className="w-8 h-8" strokeWidth={2.5} />
+                            <AlertCircle className="w-8 h-8 text-blue-500 dark:text-blue-400" strokeWidth={2.5} />
                         )}
                     </div>
 

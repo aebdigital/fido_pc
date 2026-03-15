@@ -244,6 +244,8 @@ export const translations = {
     "Invoice Only": "Invoice Only",
     "Send Files": "Send Files",
     "Proforma Invoice": "Proforma Invoice",
+    "Paid advance": "Paid advance",
+    "Amount due": "Amount due",
     "Delivery Note": "Delivery Note",
     "Credit Note": "Credit Note",
     "Deposit": "Deposit",
@@ -257,6 +259,7 @@ export const translations = {
     "Credit Notes": "Credit Notes",
     "Issue Document": "Issue Document",
     "To invoice": "To invoice",
+    "No history yet": "No history yet",
     "Reason for return": "Reason for return",
     "zrusenie zakazky": "cancellation of order",
     "reklamacia": "complaint",
@@ -416,7 +419,7 @@ export const translations = {
     // ========== NAVIGATION & MAIN SECTIONS ==========
     "Projects": "Projekty",
     "Diary": "Denník",
-    "Assigned projects": "Pridelený projekt",
+    "Assigned projects": "Pridelené projekty",
     "Odpracované hodiny": "Odpracované hodiny",
     "Invoice": "Faktúra",
     "Invoices": "Faktúry",
@@ -1085,8 +1088,11 @@ export const translations = {
 
     // ========== INVOICES ==========
     "Proforma Invoice": "Zálohová faktúra",
+    "Paid advance": "Uhradená záloha",
+    "Amount due": "Na úhradu",
     "Delivery Note": "Dodací list",
     "Credit Note": "Dobropis",
+    "No history yet": "História zatiaľ neobsahuje žiadne udalosti",
     "Deposit": "Záloha",
     "Deposit Settings": "Nastavenia zálohy",
     "Deposit Type": "Typ zálohy",

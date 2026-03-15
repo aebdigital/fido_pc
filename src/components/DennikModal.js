@@ -211,10 +211,10 @@ const MemberRow = ({ member, timeEntries, project, isOwner, loadMembers, formatD
                     </button>
                     <button
                         onClick={() => handleRemoveMember(member.user_id, member.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        className="p-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
                         title={t('Remove Member')}
                     >
-                        <UserMinus className="w-5 h-5" />
+                        <UserMinus className="w-5 h-5 text-red-500 dark:text-red-400" />
                     </button>
                 </div>
             )}
@@ -291,6 +291,19 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const [editingMemberPermissions, setEditingMemberPermissions] = useState(null);
     const hourlyRateTimerRef = useRef(null);
     const entryNoteTimerRef = useRef(null);
+
+    const ensureDennikEnabled = useCallback(async () => {
+        if (project?.is_dennik_enabled || project?.isDennikEnabled) return;
+
+        const categoryId = typeof project?.category === 'object' ? project.category?.id : project?.category;
+
+        if (updateProject && categoryId) {
+            await updateProject(categoryId, project.c_id || project.id, { isDennikEnabled: true });
+            return;
+        }
+
+        await api.dennik.enableDennik(project.c_id || project.id);
+    }, [project, updateProject]);
 
     // Check if invoice exists for the selected day/week/month period
     const hasInvoiceForPeriod = useMemo(() => {
@@ -709,6 +722,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
 
         try {
             setIsLoading(true);
+            await ensureDennikEnabled();
             const entry = await api.dennik.startTimer(
                 project.c_id || project.id,
                 selectedDate.toISOString().split('T')[0]
@@ -744,6 +758,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const handleAddManualEntry = async () => {
         try {
             setIsLoading(true);
+            await ensureDennikEnabled();
             // Use local date string instead of ISO to avoid one-day offset
             const dateStr = selectedDate.toLocaleDateString('en-CA');
             const startDateTime = new Date(`${dateStr}T${manualStartTime}:00`);
@@ -862,6 +877,7 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
     const handleAddManualEntryForMember = async () => {
         try {
             setIsLoading(true);
+            await ensureDennikEnabled();
             // Use local date string instead of ISO to avoid one-day offset
             const dateStr = selectedDate.toLocaleDateString('en-CA');
             const startDateTime = new Date(`${dateStr}T${manualStartTime}:00`);
@@ -921,17 +937,13 @@ const DennikModal = ({ isOpen, onClose, project, isOwner, currentUser, initialDa
 
     const handleAddMember = async (userId, permissions = null) => {
         try {
+            await ensureDennikEnabled();
             await api.dennik.addProjectMember(project.c_id || project.id, userId, 'member', permissions);
             await loadMembers();
             setSearchQuery('');
             setSearchResults([]);
             setShowPermissionsModal(false);
             setPendingMemberToAssign(null);
-
-            // Enable dennik if not already enabled
-            if (!project.is_dennik_enabled && !project.isDennikEnabled) {
-                await api.dennik.enableDennik(project.c_id || project.id);
-            }
         } catch (error) {
             console.error('Error adding member:', error);
             alert(t('Failed to add member'));

@@ -256,6 +256,12 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
   const [notes, setNotes] = useState('');
   const [introductoryNote, setIntroductoryNote] = useState('');
   const [projectDisplayName, setProjectDisplayName] = useState('');
+  const getDocumentLabel = useCallback((type) => {
+    if (type === 'proforma') return t('Proforma Invoice');
+    if (type === 'delivery') return t('Delivery Note');
+    if (type === 'credit_note') return t('Credit Note');
+    return t('Invoice');
+  }, [t]);
   const [persistentSettings, setPersistentSettings] = useState(null);
   const [showUncompletedModal, setShowUncompletedModal] = useState(false);
   const [missingFields, setMissingFields] = useState([]);
@@ -600,6 +606,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           const projNum = formatProjectNumber(project);
           if (existingInvoice.invoiceType === 'credit_note' && existingInvoice.originalInvoiceNumber) {
             setIntroductoryNote(`${t('To invoice')} ${existingInvoice.originalInvoiceNumber}`);
+          } else if (existingInvoice.invoiceType === 'proforma') {
+            setIntroductoryNote('');
           } else if (projNum) {
             setIntroductoryNote(`${t('Price offer')} ${projNum}`);
           } else {
@@ -627,6 +635,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         if (invoiceType === 'credit_note' || isCreditNoteCreation) {
           const sourceNum = existingInvoice?.invoiceNumber;
           setIntroductoryNote(sourceNum ? `${t('To invoice')} ${sourceNum}` : '');
+        } else if (invoiceType === 'proforma') {
+          setIntroductoryNote('');
         } else if (invoiceType === 'delivery') {
           setIntroductoryNote('');
         } else if (projNum) {
@@ -688,6 +698,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       if (invoiceType === 'credit_note' || isCreditNoteCreation) {
         const sourceNum = existingInvoice?.invoiceNumber;
         setIntroductoryNote(sourceNum ? `${t('To invoice')} ${sourceNum}` : '');
+      } else if (invoiceType === 'proforma') {
+        setIntroductoryNote('');
       } else if (invoiceType === 'delivery') {
         setIntroductoryNote('');
       } else if (projNum) {
@@ -723,6 +735,52 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
       totalPrice: priceWithoutVat + cumulativeVat
     };
   }, [invoiceItems, invoiceType, returnPercentage]);
+
+  const paidProformaTotal = useMemo(() => {
+    if (invoiceType !== 'regular' || !project?.id || !Array.isArray(invoices)) return 0;
+
+    return invoices.reduce((sum, inv) => {
+      if (inv.id === existingInvoice?.id) return sum;
+      if (inv.projectId !== project.id) return sum;
+      if ((inv.invoiceType || 'regular') !== 'proforma') return sum;
+      if (inv.is_deleted) return sum;
+
+      const base = Number(inv.priceWithoutVat || 0);
+      return sum + base;
+    }, 0);
+  }, [existingInvoice?.id, invoiceType, invoices, project?.id]);
+
+  const effectiveTotals = useMemo(() => {
+    const baseWithoutVat = Number(calculateTotals.priceWithoutVat || 0);
+    const baseVat = Number(calculateTotals.cumulativeVat || 0);
+    const vatRatio = baseWithoutVat > 0 ? (baseVat / baseWithoutVat) : 0;
+
+    if (invoiceType === 'proforma') {
+      const rawValue = Number(depositValue || 0);
+      const partialWithoutVat = depositType === 'percentage'
+        ? baseWithoutVat * (rawValue / 100)
+        : rawValue;
+
+      return {
+        priceWithoutVat: partialWithoutVat,
+        cumulativeVat: 0,
+        totalPrice: partialWithoutVat,
+        paidAdvance: 0,
+        amountDue: partialWithoutVat
+      };
+    }
+
+    const totalPrice = baseWithoutVat + baseVat;
+    const paidAdvance = Math.min(paidProformaTotal, totalPrice);
+
+    return {
+      priceWithoutVat: baseWithoutVat,
+      cumulativeVat: baseVat,
+      totalPrice,
+      paidAdvance,
+      amountDue: Math.max(0, totalPrice - paidAdvance)
+    };
+  }, [calculateTotals, depositType, depositValue, invoiceType, paidProformaTotal]);
 
   // Handle item update
   const handleItemUpdate = (itemId, updatedItem) => {
@@ -863,7 +921,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
     if (activeItems.length === 0) {
       missing.push(t('No invoice items'));
     }
-    if (invoiceType !== 'credit_note' && calculateTotals.priceWithoutVat <= 0) {
+    if (invoiceType !== 'credit_note' && effectiveTotals.priceWithoutVat <= 0) {
       missing.push(t('Total price must be greater than 0'));
     }
 
@@ -895,8 +953,8 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         // iOS keeps excluded items in the invoice, just marks them as inactive
         // Explicitly map items to ensure properties like projectId are preserved if hidden
         invoiceItems: invoiceItems.map(i => ({ ...i })),
-        priceWithoutVat: calculateTotals.priceWithoutVat,
-        cumulativeVat: calculateTotals.cumulativeVat,
+        priceWithoutVat: effectiveTotals.priceWithoutVat,
+        cumulativeVat: effectiveTotals.cumulativeVat,
         clientId: selectedClientId, // Use selected client
         invoiceType,
         depositSettings: invoiceType === 'proforma' ? { type: depositType, value: depositValue === '' ? 0 : depositValue } : null,
@@ -1139,42 +1197,63 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Summary Section-At top like iOS */}
             <div className="space-y-2">
-              <h3 className="text-[24px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Súhrn')}</h3>
+              <h3 className="text-[24px] lg:text-xl font-semibold lg:font-bold text-gray-900 dark:text-white">{t('Summary')}</h3>
 
               {invoiceType === 'proforma' ? (
-                <div className="flex justify-between items-baseline">
-                  <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">{t('Total Price')}</span>
-                  <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">
-                    {(() => {
-                      const total = calculateTotals.totalPrice;
-                      const val = depositValue === '' ? 0 : depositValue;
-                      if (depositType === 'percentage') {
-                        return (total * (val / 100)).toFixed(2);
-                      }
-                      return (val * 1.23).toFixed(2);
-                    })()} €
-                  </span>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">{t('Total Price')}</span>
+                    <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">
+                      {calculateTotals.priceWithoutVat.toFixed(2)} €
+                    </span>
+                  </div>
+                  <div className="mt-2 rounded-[18px] border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
+                    <div className="flex justify-between items-baseline gap-3">
+                      <span className="text-[18px] lg:text-lg font-semibold text-blue-900 dark:text-blue-100">{t('Amount due')}</span>
+                      <span className="text-[20px] lg:text-[22px] font-bold text-blue-900 dark:text-blue-100">
+                        {effectiveTotals.amountDue.toFixed(2)} €
+                      </span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-1">
                   <div className="flex justify-between items-baseline">
                     <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">{t('Price without VAT')}</span>
                     <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">
-                      {calculateTotals.priceWithoutVat.toFixed(2)} €
+                      {effectiveTotals.priceWithoutVat.toFixed(2)} €
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">{t('VAT')}</span>
                     <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">
-                      {calculateTotals.cumulativeVat.toFixed(2)} €
+                      {effectiveTotals.cumulativeVat.toFixed(2)} €
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">{t('Total Price')}</span>
                     <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">
-                      {calculateTotals.totalPrice.toFixed(2)} €
+                      {effectiveTotals.totalPrice.toFixed(2)} €
                     </span>
                   </div>
+                  {effectiveTotals.paidAdvance > 0 && (
+                    <>
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">{t('Paid advance')}</span>
+                        <span className="text-[15px] lg:text-base font-semibold text-red-600 dark:text-red-400">
+                          -{effectiveTotals.paidAdvance.toFixed(2)} €
+                        </span>
+                      </div>
+                      <div className="mt-2 rounded-[18px] border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
+                        <div className="flex justify-between items-baseline gap-3">
+                          <span className="text-[18px] lg:text-lg font-semibold text-blue-900 dark:text-blue-100">{t('Amount due')}</span>
+                          <span className="text-[20px] lg:text-[22px] font-bold text-blue-900 dark:text-blue-100">
+                            {effectiveTotals.amountDue.toFixed(2)} €
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -1372,6 +1451,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     onChange={(e) => setIntroductoryNote(e.target.value)}
                     placeholder={(() => {
                       if (invoiceType === 'credit_note') return `${t('To invoice')} ...`;
+                      if (invoiceType === 'proforma') return '';
                       if (project?.projectNumber) return `${t('Price offer')} ${project.projectNumber}`;
                       return t('Introductory note placeholder');
                     })()}
@@ -1723,7 +1803,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                 <>
                   {editMode ? <Save className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
                   {editMode ? t('Save Changes') : (() => {
-                    if (invoiceType === 'proforma') return t('Issue Proforma Invoice');
+                    if (invoiceType === 'proforma') return getDocumentLabel('proforma');
                     if (invoiceType === 'delivery') return t('Issue Delivery Note');
                     if (invoiceType === 'credit_note') return t('Issue Credit Note');
                     return t('Generate Invoice');

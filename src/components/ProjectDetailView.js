@@ -4,6 +4,7 @@ import {
   ClipboardList,
   Trash2,
   Plus,
+  ChevronDown,
   ChevronRight,
   ChevronLeft,
   Copy,
@@ -96,6 +97,46 @@ const getSafeReceiptItems = (items) => {
 };
 
 const getSafeProjectPhotos = (photos) => normalizeProjectPhotos(photos);
+
+const normalizeHistoryEventType = (type) => String(type || '').replace(/\s+/g, '').toLowerCase();
+
+const getHistoryEventVisual = (type) => {
+  const normalizedType = normalizeHistoryEventType(type);
+
+  if (['sent', 'invoicesent'].includes(normalizedType)) {
+    return { Icon: Send, iconClass: 'text-blue-500', dotClass: 'bg-[#111827] dark:bg-white' };
+  }
+
+  if (['invoicegenerated', 'proformainvoicegenerated', 'deliverynotegenerated', 'creditnotegenerated', 'draft'].includes(normalizedType)) {
+    return { Icon: FileText, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
+  }
+
+  if (['proformainvoicesent', 'deliverynotesent', 'creditnotesent'].includes(normalizedType)) {
+    return { Icon: FileText, iconClass: 'text-blue-500', dotClass: 'bg-[#111827] dark:bg-white' };
+  }
+
+  if (['archived', 'unarchived'].includes(normalizedType)) {
+    return { Icon: Archive, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
+  }
+
+  if (['duplicated'].includes(normalizedType)) {
+    return { Icon: Copy, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
+  }
+
+  if (['approved'].includes(normalizedType)) {
+    return { Icon: CheckCircle, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
+  }
+
+  if (['finished', 'created'].includes(normalizedType)) {
+    return { Icon: Flag, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
+  }
+
+  if (['invoicedeleted', 'proformainvoicedeleted', 'deliverynotedeleted', 'creditnotedeleted', 'notsent'].includes(normalizedType)) {
+    return { Icon: Trash2, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
+  }
+
+  return { Icon: FileText, iconClass: 'text-[#111827] dark:text-white', dotClass: 'bg-[#111827] dark:bg-white' };
+};
 
 const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const { t, tPlural } = useLanguage();
@@ -249,6 +290,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const [dennikInitialDate, setDennikInitialDate] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [isClosingHistory, setIsClosingHistory] = useState(false);
   const moreMenuRef = useRef(null);
   const moreMenuRefMobile = useRef(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -335,6 +378,23 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showMoreMenu]);
 
+  useEffect(() => {
+    if (!showHistoryModal) return undefined;
+
+    const handleEscClose = (event) => {
+      if (event.key === 'Escape') {
+        setIsClosingHistory(true);
+        setTimeout(() => {
+          setShowHistoryModal(false);
+          setIsClosingHistory(false);
+        }, 300);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscClose);
+    return () => document.removeEventListener('keydown', handleEscClose);
+  }, [showHistoryModal]);
+
   // Handle event to open Dennik modal remotely (e.g. from quick travel)
   useEffect(() => {
     const handleOpenDennik = (e) => {
@@ -354,6 +414,21 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   const latestProjectResult = findProjectById(projectId);
   const latestProject = latestProjectResult?.project || project;
   const effectiveClientId = latestProject?.clientId || latestProject?.client_id || project?.clientId || project?.client_id;
+  const projectHistoryEntries = useMemo(() => {
+    const history = getProjectHistory(projectId) || [];
+    const hasCreatedEvent = history.some(entry =>
+      entry.type && entry.type.toLowerCase() === 'created'
+    );
+
+    const allEvents = [...history];
+    const createdAt = latestProject?.created_at || project?.created_at;
+
+    if (!hasCreatedEvent && createdAt) {
+      allEvents.push({ type: 'Created', date: createdAt });
+    }
+
+    return allEvents.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  }, [getProjectHistory, latestProject?.created_at, project?.created_at, projectId]);
 
   useEffect(() => {
     if (!project) return;
@@ -531,13 +606,54 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const handleUpdateClient = useCallback(async (clientData) => {
     try {
-      await updateClient(clientData.id, clientData);
-      setSelectedClientForProject({ ...selectedClientForProject, ...clientData });
+      const clientId = selectedClientForProject?.id;
+      if (!clientId) return;
+
+      await updateClient(clientId, clientData);
+      setSelectedClientForProject(prev => prev ? { ...prev, ...clientData, id: clientId } : prev);
       setShowEditClientModal(false);
     } catch (error) {
       console.error('[SUPABASE] Error updating client:', error);
     }
   }, [updateClient, selectedClientForProject]);
+
+  const persistProjectPhotos = useCallback(async (nextPhotos) => {
+    setProjectPhotos(nextPhotos);
+
+    try {
+      await updateProject(project.category, projectId, { photos: nextPhotos });
+    } catch (error) {
+      console.error('Error saving project files:', error);
+      alert(t('Error uploading files. Please try again.'));
+      setProjectPhotos(getSafeProjectPhotos(latestProject?.photos ?? project?.photos));
+    }
+  }, [latestProject?.photos, project?.photos, project.category, projectId, t, updateProject]);
+
+  const ensureDennikEnabled = useCallback(async () => {
+    if (project?.is_dennik_enabled || project?.isDennikEnabled || latestProject?.is_dennik_enabled || latestProject?.isDennikEnabled) {
+      return;
+    }
+
+    try {
+      await updateProject(project.category, projectId, { isDennikEnabled: true });
+    } catch (error) {
+      console.error('Error enabling dennik locally:', error);
+      await api.dennik.enableDennik(project.c_id || projectId);
+    }
+  }, [latestProject?.isDennikEnabled, latestProject?.is_dennik_enabled, project, projectId, updateProject]);
+
+  const handleOpenHistoryModal = useCallback(() => {
+    setShowHistoryModal(true);
+    setShowMoreMenu(false);
+  }, []);
+
+  const handleCloseHistoryModal = useCallback(() => {
+    setIsClosingHistory(true);
+    setTimeout(() => {
+      setShowHistoryModal(false);
+      setIsClosingHistory(false);
+    }, 300);
+  }, []);
 
 
   const handleDuplicateProject = async () => {
@@ -788,10 +904,10 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       }
     }
 
-    const basePhotos = getSafeProjectPhotos(latestProject?.photos ?? projectPhotos);
+    const basePhotos = getSafeProjectPhotos(projectPhotos);
     const updatedPhotos = [...basePhotos, ...newPhotos];
-    setProjectPhotos(updatedPhotos);
-    updateProject(project.category, projectId, { photos: updatedPhotos });
+    await persistProjectPhotos(updatedPhotos);
+    event.target.value = '';
   };
 
   const handlePhotoDrop = async (event) => {
@@ -834,10 +950,9 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       }
     }
 
-    const basePhotos = getSafeProjectPhotos(latestProject?.photos ?? projectPhotos);
+    const basePhotos = getSafeProjectPhotos(projectPhotos);
     const updatedPhotos = [...basePhotos, ...newPhotos];
-    setProjectPhotos(updatedPhotos);
-    updateProject(project.category, projectId, { photos: updatedPhotos });
+    await persistProjectPhotos(updatedPhotos);
   };
 
   const handlePhotoDragOver = (event) => {
@@ -858,10 +973,9 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
 
   const confirmDeletePhoto = () => {
     if (!photoToDelete) return;
-    const basePhotos = getSafeProjectPhotos(latestProject?.photos ?? projectPhotos);
+    const basePhotos = getSafeProjectPhotos(projectPhotos);
     const updatedPhotos = basePhotos.filter(p => p.id !== photoToDelete);
-    setProjectPhotos(updatedPhotos);
-    updateProject(project.category, projectId, { photos: updatedPhotos });
+    persistProjectPhotos(updatedPhotos);
     setPhotoToDelete(null);
   };
 
@@ -1321,10 +1435,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               {!project.is_archived && viewSource !== 'team_modal' && (
                 <>
                   <button
-                    onClick={() => {
-                      if (!project.is_dennik_enabled && !project.isDennikEnabled) {
-                        api.dennik.enableDennik(project.c_id || projectId).catch(err => console.error('Error enabling dennik:', err));
-                      }
+                    onClick={async () => {
+                      await ensureDennikEnabled();
                       setShowDennikModal(true);
                     }}
                     className="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-full font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-sm hover:shadow-md flex items-center justify-center mr-1"
@@ -1359,6 +1471,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                             >
                               <Euro className="w-4 h-4 text-purple-500" />
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cenník</span>
+                            </button>
+                          )}
+                          {canView('history') && (
+                            <button
+                              onClick={handleOpenHistoryModal}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                            >
+                              <ClipboardList className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('History')}</span>
                             </button>
                           )}
                           {canView('archive') && (
@@ -1471,10 +1592,8 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               {!project.is_archived && viewSource !== 'team_modal' && (
                 <>
                   <button
-                    onClick={() => {
-                      if (!project.is_dennik_enabled && !project.isDennikEnabled) {
-                        api.dennik.enableDennik(project.c_id || projectId).catch(err => console.error('Error enabling dennik:', err));
-                      }
+                    onClick={async () => {
+                      await ensureDennikEnabled();
                       setShowDennikModal(true);
                     }}
                     className="btn-green-gradient px-4 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2"
@@ -1510,6 +1629,15 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
                             >
                               <Euro className="w-4 h-4 text-purple-500" />
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cenník</span>
+                            </button>
+                          )}
+                          {canView('history') && (
+                            <button
+                              onClick={handleOpenHistoryModal}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+                            >
+                              <ClipboardList className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('History')}</span>
                             </button>
                           )}
                           {canView('archive') && (
@@ -1940,49 +2068,6 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               </div>
             </div>
           )}
-
-          {/* History - Hidden on mobile, shown on desktop */}
-          {canView('history') && (
-            <div className="space-y-1 lg:space-y-2.5 hidden lg:block">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-[22px] lg:text-2xl font-black text-gray-900 dark:text-white">{t('History')}</h2>
-              </div>
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
-                {(() => {
-                  const history = getProjectHistory(projectId) || [];
-
-                  // Check if history already has a "created" event (case-insensitive)
-                  const hasCreatedEvent = history.some(e =>
-                    e.type && e.type.toLowerCase() === 'created'
-                  );
-
-                  // Only add synthetic "Created" if not already in history (for backwards compatibility)
-                  let allEvents = [...history];
-                  if (!hasCreatedEvent && project.created_at) {
-                    allEvents.push({ type: 'Created', date: project.created_at });
-                  }
-
-                  // Sort newest first
-                  allEvents = allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                  return allEvents.map((event, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {t(event.type)}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {event.date ? new Date(event.date).toLocaleString('sk-SK', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
-                        </span>
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Right column - Notes and Photos */}
@@ -2166,53 +2251,69 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
               )}
             </div>
           )}
-
-          {/* History - Mobile only, shown after Photos */}
-          {canView('history') && (
-            <div className="space-y-1 lg:space-y-2.5 lg:hidden">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white">{t('History')}</h2>
-              </div>
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 shadow-sm space-y-3">
-                {(() => {
-                  const history = getProjectHistory(projectId) || [];
-
-                  // Check if history already has a "created" event (case-insensitive)
-                  const hasCreatedEvent = history.some(e =>
-                    e.type && e.type.toLowerCase() === 'created'
-                  );
-
-                  // Only add synthetic "Created" if not already in history (for backwards compatibility)
-                  let allEvents = [...history];
-                  if (!hasCreatedEvent && project.created_at) {
-                    allEvents.push({ type: 'Created', date: project.created_at });
-                  }
-
-                  // Sort newest first
-                  allEvents = allEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-                  return allEvents.map((event, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.type === 'Created' || event.type === 'created' ? 'bg-gray-900 dark:bg-white' : 'bg-gray-500'}`}></div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {t(event.type)}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {event.date ? new Date(event.date).toLocaleString('sk-SK', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
-                        </span>
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Modals */}
+      {showHistoryModal && canView('history') && (
+        <div
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 sm:p-2 lg:p-4 overflow-hidden ${isClosingHistory ? 'animate-fade-out' : 'animate-fade-in'}`}
+          onClick={handleCloseHistoryModal}
+        >
+          <div
+            className={`relative bg-white dark:bg-gray-900 no-gradient rounded-t-[25px] lg:rounded-[25px] w-full lg:max-w-md h-[85dvh] overflow-hidden shadow-2xl ${isClosingHistory ? 'animate-slide-down-modal lg:animate-slide-out' : 'animate-slide-up-modal lg:animate-slide-in'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute top-0 left-0 right-0 z-10 h-[60px] px-[15px] flex items-center justify-between bg-white/80 dark:bg-gray-900/85 backdrop-blur-md border-b border-black/10 dark:border-white/10">
+              <div className="w-10" />
+              <h2 className="absolute left-1/2 -translate-x-1/2 font-bold text-[22px] lg:text-[24px] text-[#111827] dark:text-white">{t('History')}</h2>
+              <button
+                onClick={handleCloseHistoryModal}
+                className="modal-close-btn mb-1.5"
+                aria-label="Close"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="h-full overflow-y-auto px-[15px] pt-20 pb-6">
+              {projectHistoryEntries.length > 0 ? (
+                <div className="bg-[#F3F4F6] dark:bg-gray-800 no-gradient rounded-[20px] p-[15px] shadow-[0_6px_18px_rgba(0,0,0,0.10)] space-y-[10px]">
+                  {projectHistoryEntries.map((event, index) => (
+                    <div
+                      key={`${event.type || 'event'}-${event.date || index}-${index}`}
+                      className="bg-white dark:bg-gray-900 no-gradient rounded-[15px] p-[12px] border border-black/15 dark:border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-1 w-2.5 h-2.5 rounded-full flex-shrink-0 ${(event.type === 'Created' || event.type === 'created') ? 'bg-[#111827] dark:bg-white' : 'bg-gray-400 dark:bg-gray-500'}`}></div>
+                        <div className="min-w-0 space-y-1">
+                          <div className="text-[16px] font-semibold text-[#111827] dark:text-white leading-tight">
+                            {t(event.type)}
+                          </div>
+                          <div className="text-[13px] font-medium text-gray-500 dark:text-gray-400">
+                            {event.date ? new Date(event.date).toLocaleString('sk-SK', {
+                              year: 'numeric',
+                              month: 'numeric',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : '-'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-[#F3F4F6] dark:bg-gray-800 no-gradient rounded-[20px] p-[20px] shadow-[0_6px_18px_rgba(0,0,0,0.10)] text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {t('No history yet')}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {
         showNewRoomModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setShowNewRoomModal(false)}>
@@ -2276,11 +2377,11 @@ ${t('Notes_CP')}: ${project.notes}` : ''}
 
       {
         showEditClientModal && selectedClientForProject && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => clientFormRef.current?.submit()}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => setShowEditClientModal(false)}>
             <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl w-full max-w-6xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-slide-in flex flex-col" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
                 <h3 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">{t('Edit client')}</h3>
-                <button onClick={() => clientFormRef.current?.submit()} className="modal-close-btn" aria-label="Close">
+                <button onClick={() => setShowEditClientModal(false)} className="modal-close-btn" aria-label="Close">
                   <X className="w-6 h-6" />
                 </button>
               </div>
