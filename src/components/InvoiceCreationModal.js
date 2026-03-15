@@ -607,7 +607,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           if (existingInvoice.invoiceType === 'credit_note' && existingInvoice.originalInvoiceNumber) {
             setIntroductoryNote(`${t('To invoice')} ${existingInvoice.originalInvoiceNumber}`);
           } else if (existingInvoice.invoiceType === 'proforma') {
-            setIntroductoryNote('');
+            setIntroductoryNote(projNum ? `${t('Price offer')} ${projNum}` : '');
           } else if (projNum) {
             setIntroductoryNote(`${t('Price offer')} ${projNum}`);
           } else {
@@ -636,7 +636,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
           const sourceNum = existingInvoice?.invoiceNumber;
           setIntroductoryNote(sourceNum ? `${t('To invoice')} ${sourceNum}` : '');
         } else if (invoiceType === 'proforma') {
-          setIntroductoryNote('');
+          setIntroductoryNote(projNum ? `${t('Price offer')} ${projNum}` : '');
         } else if (invoiceType === 'delivery') {
           setIntroductoryNote('');
         } else if (projNum) {
@@ -699,7 +699,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
         const sourceNum = existingInvoice?.invoiceNumber;
         setIntroductoryNote(sourceNum ? `${t('To invoice')} ${sourceNum}` : '');
       } else if (invoiceType === 'proforma') {
-        setIntroductoryNote('');
+        setIntroductoryNote(projNum ? `${t('Price offer')} ${projNum}` : '');
       } else if (invoiceType === 'delivery') {
         setIntroductoryNote('');
       } else if (projNum) {
@@ -1461,7 +1461,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
                     onChange={(e) => setIntroductoryNote(e.target.value)}
                     placeholder={(() => {
                       if (invoiceType === 'credit_note') return `${t('To invoice')} ...`;
-                      if (invoiceType === 'proforma') return '';
+                      if (invoiceType === 'proforma') return project?.projectNumber ? `${t('Price offer')} ${project.projectNumber}` : t('Introductory note placeholder');
                       if (project?.projectNumber) return `${t('Price offer')} ${project.projectNumber}`;
                       return t('Introductory note placeholder');
                     })()}
