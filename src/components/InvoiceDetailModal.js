@@ -901,7 +901,7 @@ ${invoice.notes ? `\n${t('Notes')}: ${invoice.notes}` : ''}
                       )}
                     </span>
                     {/* Price */}
-                    <div className="font-bold text-gray-900 dark:text-white text-base">{formatPrice(calculateProjectTotalPrice(project.id))}</div>
+                    <div className="font-bold text-gray-900 dark:text-white text-base">{formatPrice(totalWithoutVAT)}</div>
                     <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-none">{t('VAT not included')}</div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
