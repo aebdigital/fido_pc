@@ -1200,14 +1200,26 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
               {invoiceType === 'proforma' ? (
                 <div className="space-y-1">
                   <div className="flex justify-between items-baseline">
+                    <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">{t('Price without VAT')}</span>
+                    <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">
+                      {calculateTotals.priceWithoutVat.toFixed(2)} €
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">{t('VAT')}</span>
+                    <span className="text-[15px] lg:text-base font-semibold text-gray-900 dark:text-white">
+                      {calculateTotals.cumulativeVat.toFixed(2)} €
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
                     <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">{t('Total Price')}</span>
                     <span className="text-[18px] lg:text-lg font-semibold text-gray-900 dark:text-white">
-                      {calculateTotals.priceWithoutVat.toFixed(2)} €
+                      {(calculateTotals.priceWithoutVat + calculateTotals.cumulativeVat).toFixed(2)} €
                     </span>
                   </div>
                   <div className="mt-2 rounded-[18px] border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
                     <div className="flex justify-between items-baseline gap-3">
-                      <span className="text-[18px] lg:text-lg font-semibold text-blue-900 dark:text-blue-100">{t('Amount due')}</span>
+                      <span className="text-[18px] lg:text-lg font-semibold text-blue-900 dark:text-blue-100">{t('Deposit')}</span>
                       <span className="text-[20px] lg:text-[22px] font-bold text-blue-900 dark:text-blue-100">
                         {effectiveTotals.amountDue.toFixed(2)} €
                       </span>

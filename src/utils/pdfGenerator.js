@@ -1298,10 +1298,36 @@ export const generateInvoicePDF = async ({
     // Only show totals for non-delivery notes
     if (invoice.invoiceType !== 'delivery') {
       if (isProforma) {
-        // Proforma: only one total price, no VAT breakdown
+        const rowSpacing = 6.5;
+
+        // Use full project totals for the breakdown (before deposit reduction)
+        const fullWithoutVAT = referenceBaseWithoutVAT > 0 ? referenceBaseWithoutVAT : totalWithoutVAT;
+        const fullVAT = fullWithoutVAT * vatRate;
+        const fullTotal = fullWithoutVAT + fullVAT;
+
+        // Cena bez DPH
+        doc.setFontSize(14);
+        doc.setFont('SF-Pro', 'normal');
+        doc.text(sanitizeText(t('Without VAT:')), totalsLabelX, totalY);
+        doc.text(sanitizeText(formatCurrency(fullWithoutVAT)), rightX, totalY, { align: 'right' });
+
+        // DPH
+        totalY += rowSpacing;
+        doc.text(sanitizeText(t('VAT:')), totalsLabelX, totalY);
+        doc.text(sanitizeText(formatCurrency(fullVAT)), rightX, totalY, { align: 'right' });
+
+        // Celková cena
+        totalY += rowSpacing;
         doc.setFontSize(15.9);
         doc.setFont('SF-Pro', 'semibold');
         doc.text(sanitizeText(t('Total price:')), totalsLabelX, totalY);
+        doc.text(sanitizeText(formatCurrency(fullTotal)), rightX, totalY, { align: 'right' });
+
+        // Záloha (the deposit amount without VAT)
+        totalY += rowSpacing;
+        doc.setFontSize(15.9);
+        doc.setFont('SF-Pro', 'semibold');
+        doc.text(sanitizeText(t('Deposit')), totalsLabelX, totalY);
         doc.text(sanitizeText(formatCurrency(finalTotalWithVAT)), rightX, totalY, { align: 'right' });
       } else {
         const rowSpacing = 6.5;
