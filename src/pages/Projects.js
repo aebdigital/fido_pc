@@ -109,14 +109,27 @@ const Projects = () => {
       });
   }, [invoices, activeContractorId]);
 
-  // Total unpaid amount
+  // Total unpaid amount (with proforma advance deductions, without VAT)
   const unpaidTotal = useMemo(() => {
     if (!invoices || invoices.length === 0 || !activeContractorId) return 0;
     return invoices
       .filter(inv => inv.status !== 'paid' && !inv.is_deleted && inv.contractorId === activeContractorId)
       .reduce((sum, inv) => {
         const price = parseFloat(inv.priceWithoutVat || 0);
-        if (!isNaN(price)) return sum + price;
+        if (!isNaN(price) && price > 0) {
+          const type = inv.invoiceType || 'regular';
+          if (type === 'regular' && inv.projectId) {
+            const advance = invoices.reduce((aSum, other) => {
+              if (other.id === inv.id) return aSum;
+              if (other.projectId !== inv.projectId) return aSum;
+              if ((other.invoiceType || 'regular') !== 'proforma') return aSum;
+              if (other.is_deleted) return aSum;
+              return aSum + Number(other.priceWithoutVat || 0);
+            }, 0);
+            if (advance > 0) return sum + Math.max(0, price - advance);
+          }
+          return sum + price;
+        }
         const projectResult = findProjectById(inv.projectId);
         if (!projectResult?.project) return sum;
         const breakdown = calculateProjectTotalPriceWithBreakdown(inv.projectId);
@@ -132,10 +145,22 @@ const Projects = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
 
-  // Helper to get invoice total price (matched to Invoices.js)
+  // Helper to get invoice total price, subtracting proforma advances for regular invoices
   const getInvoiceTotal = (invoice) => {
     if (invoice.priceWithoutVat !== undefined && invoice.priceWithoutVat !== null) {
-      return formatPrice(parseFloat(invoice.priceWithoutVat));
+      const base = parseFloat(invoice.priceWithoutVat);
+      const type = invoice.invoiceType || 'regular';
+      if (type === 'regular' && invoice.projectId) {
+        const advance = (invoices || []).reduce((sum, inv) => {
+          if (inv.id === invoice.id) return sum;
+          if (inv.projectId !== invoice.projectId) return sum;
+          if ((inv.invoiceType || 'regular') !== 'proforma') return sum;
+          if (inv.is_deleted) return sum;
+          return sum + Number(inv.priceWithoutVat || 0);
+        }, 0);
+        if (advance > 0) return formatPrice(Math.max(0, base - advance));
+      }
+      return formatPrice(base);
     }
 
     const projectResult = findProjectById(invoice.projectId);

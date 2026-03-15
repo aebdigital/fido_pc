@@ -311,7 +311,11 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
     const initializeData = async () => {
       if (!projectId) return;
 
-      setIsLoadingDetails(true);
+      // Only show loading spinner if we have no cached rooms for this project
+      const hasCachedRooms = projectRoomsData[projectId] && projectRoomsData[projectId].length > 0;
+      if (!hasCachedRooms) {
+        setIsLoadingDetails(true);
+      }
       await loadProjectDetails(projectId);
       // Load receipts for total display in header
       const projectReceipts = await getProjectReceipts(projectId);

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import api from '../services/supabaseApi';
 import { databaseToWorkItem, getTableName, workItemToDatabase, tableCanHaveDoors, tableCanHaveWindows, doorToDatabase, windowToDatabase, doorFromDatabase, windowFromDatabase, TABLES_WITH_DOORS_WINDOWS, createCommuteWorkItemFromRoom, extractCommuteFromWorkItems, isCommuteWorkItem } from '../services/workItemsMapping';
 import { analyzeReceipt } from '../services/openaiReceiptService';
@@ -15,6 +15,10 @@ const getDefaultCategories = () => [
 ];
 
 export const useProjectManager = (appData, setAppData) => {
+  // Ref to access latest appData without adding it as a dependency to useCallback
+  const appDataRef = useRef(appData);
+  appDataRef.current = appData;
+
   const {
     activeContractorId,
     contractorProjects,
@@ -661,72 +665,59 @@ export const useProjectManager = (appData, setAppData) => {
           byTable[item.tableName].push(item);
         });
 
-        // Load doors and windows for each table type
+        // Load doors and windows for each table type (doors + windows fetched in parallel)
         await Promise.all(Object.entries(byTable).map(async ([tableName, items]) => {
           const cIds = items.map(item => item.cId);
 
-          // Load doors if table supports them
-          if (tableCanHaveDoors(tableName)) {
-            try {
-              const doors = await api.doors.getByParents(tableName, cIds);
-              if (doors && doors.length > 0) {
-                // Group doors by parent c_id
-                const doorsByParent = {};
-                doors.forEach(door => {
-                  // Find which parent this door belongs to based on foreign key
-                  const parentKey = Object.keys(door).find(key =>
-                    key.endsWith('_id') && door[key] && cIds.includes(door[key])
-                  );
-                  const parentCId = parentKey ? door[parentKey] : null;
-                  if (parentCId) {
-                    if (!doorsByParent[parentCId]) doorsByParent[parentCId] = [];
-                    doorsByParent[parentCId].push(doorFromDatabase(door));
-                  }
-                });
+          const [doors, windows] = await Promise.all([
+            tableCanHaveDoors(tableName)
+              ? api.doors.getByParents(tableName, cIds).catch(err => { console.error(`Error loading doors for ${tableName}:`, err); return []; })
+              : [],
+            tableCanHaveWindows(tableName)
+              ? api.windows.getByParents(tableName, cIds).catch(err => { console.error(`Error loading windows for ${tableName}:`, err); return []; })
+              : []
+          ]);
 
-                // Attach doors to work items
-                items.forEach(item => {
-                  if (doorsByParent[item.cId]) {
-                    item.workItem.doorWindowItems = item.workItem.doorWindowItems || { doors: [], windows: [] };
-                    item.workItem.doorWindowItems.doors = doorsByParent[item.cId];
-                  }
-                });
+          // Attach doors to work items
+          if (doors && doors.length > 0) {
+            const doorsByParent = {};
+            doors.forEach(door => {
+              const parentKey = Object.keys(door).find(key =>
+                key.endsWith('_id') && door[key] && cIds.includes(door[key])
+              );
+              const parentCId = parentKey ? door[parentKey] : null;
+              if (parentCId) {
+                if (!doorsByParent[parentCId]) doorsByParent[parentCId] = [];
+                doorsByParent[parentCId].push(doorFromDatabase(door));
               }
-            } catch (error) {
-              console.error(`Error loading doors for ${tableName}:`, error);
-            }
+            });
+            items.forEach(item => {
+              if (doorsByParent[item.cId]) {
+                item.workItem.doorWindowItems = item.workItem.doorWindowItems || { doors: [], windows: [] };
+                item.workItem.doorWindowItems.doors = doorsByParent[item.cId];
+              }
+            });
           }
 
-          // Load windows if table supports them
-          if (tableCanHaveWindows(tableName)) {
-            try {
-              const windows = await api.windows.getByParents(tableName, cIds);
-              if (windows && windows.length > 0) {
-                // Group windows by parent c_id
-                const windowsByParent = {};
-                windows.forEach(window => {
-                  // Find which parent this window belongs to based on foreign key
-                  const parentKey = Object.keys(window).find(key =>
-                    key.endsWith('_id') && window[key] && cIds.includes(window[key])
-                  );
-                  const parentCId = parentKey ? window[parentKey] : null;
-                  if (parentCId) {
-                    if (!windowsByParent[parentCId]) windowsByParent[parentCId] = [];
-                    windowsByParent[parentCId].push(windowFromDatabase(window));
-                  }
-                });
-
-                // Attach windows to work items
-                items.forEach(item => {
-                  if (windowsByParent[item.cId]) {
-                    item.workItem.doorWindowItems = item.workItem.doorWindowItems || { doors: [], windows: [] };
-                    item.workItem.doorWindowItems.windows = windowsByParent[item.cId];
-                  }
-                });
+          // Attach windows to work items
+          if (windows && windows.length > 0) {
+            const windowsByParent = {};
+            windows.forEach(window => {
+              const parentKey = Object.keys(window).find(key =>
+                key.endsWith('_id') && window[key] && cIds.includes(window[key])
+              );
+              const parentCId = parentKey ? window[parentKey] : null;
+              if (parentCId) {
+                if (!windowsByParent[parentCId]) windowsByParent[parentCId] = [];
+                windowsByParent[parentCId].push(windowFromDatabase(window));
               }
-            } catch (error) {
-              console.error(`Error loading windows for ${tableName}:`, error);
-            }
+            });
+            items.forEach(item => {
+              if (windowsByParent[item.cId]) {
+                item.workItem.doorWindowItems = item.workItem.doorWindowItems || { doors: [], windows: [] };
+                item.workItem.doorWindowItems.windows = windowsByParent[item.cId];
+              }
+            });
           }
         }));
       }
@@ -738,9 +729,20 @@ export const useProjectManager = (appData, setAppData) => {
     }
   };
 
-  const loadProjectDetails = useCallback(async (projectId) => {
+  const loadProjectDetails = useCallback(async (projectId, { backgroundRefresh = false } = {}) => {
     try {
-      console.log(`[SUPABASE] Loading details for project ${projectId}...`);
+      // If we already have cached data and this isn't explicitly a foreground load,
+      // return immediately and refresh in background
+      if (!backgroundRefresh) {
+        const cached = appDataRef.current.projectRoomsData[projectId];
+        if (cached && cached.length > 0) {
+          // Refresh in background without blocking
+          loadProjectDetails(projectId, { backgroundRefresh: true });
+          return;
+        }
+      }
+
+      console.log(`[SUPABASE] ${backgroundRefresh ? 'Background refreshing' : 'Loading'} details for project ${projectId}...`);
       const rooms = await api.rooms.getByProject(projectId);
 
       if (!rooms || rooms.length === 0) {
@@ -755,12 +757,8 @@ export const useProjectManager = (appData, setAppData) => {
       }
 
       const roomsWithWorkItems = await Promise.all(rooms.map(async (room) => {
-        // Don't pass contractor ID - work items are scoped by room, not contractor
-        // (c_id is now a unique UUID per work item, not contractor ID)
         const workItems = await loadWorkItemsForRoom(room.id, null);
 
-        // Create commute work item from Room fields (iOS compatibility)
-        // Commute is stored in Room.commute_length and Room.days_in_work, not in custom_works
         const commuteWorkItem = createCommuteWorkItemFromRoom(room);
         const allWorkItems = commuteWorkItem
           ? [...(workItems || []), commuteWorkItem]

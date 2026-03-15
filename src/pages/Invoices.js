@@ -194,9 +194,22 @@ const Invoices = () => {
 
   const getInvoiceTotal = (invoice) => {
     // PREFERRED: Use stored values from the invoice record if available
-    // We display price WITHOUT VAT as per the label "VAT not included"
+    // Subtract proforma advances for regular invoices (without VAT)
     if (invoice.priceWithoutVat !== undefined && invoice.priceWithoutVat !== null) {
-      return formatPrice(parseFloat(invoice.priceWithoutVat));
+      const base = parseFloat(invoice.priceWithoutVat);
+      const type = invoice.invoiceType || 'regular';
+      if (type === 'regular' && invoice.projectId) {
+        const allInvoices = activeContractorId ? getInvoicesForContractor(activeContractorId) : [];
+        const advance = allInvoices.reduce((sum, inv) => {
+          if (inv.id === invoice.id) return sum;
+          if (inv.projectId !== invoice.projectId) return sum;
+          if ((inv.invoiceType || 'regular') !== 'proforma') return sum;
+          if (inv.is_deleted) return sum;
+          return sum + Number(inv.priceWithoutVat || 0);
+        }, 0);
+        if (advance > 0) return formatPrice(Math.max(0, base - advance));
+      }
+      return formatPrice(base);
     }
 
     // FALLBACK: Calculate from project data (legacy behavior / fallback)

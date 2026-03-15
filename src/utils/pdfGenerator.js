@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import QRCode from 'qrcode';
 import { SFProRegular } from './fonts/SFProRegular';
 import { SFProBold } from './fonts/SFProBold';
 import { SFProSemibold } from './fonts/SFProSemibold';
@@ -100,7 +99,10 @@ const normalizeForQR = (text) => {
     .replace(/[\u201C\u201D]/g, '"'); // smart double quotes
 };
 
-// Generate EPC QR code for SEPA payment (Slovak "Pay by Square" compatible)
+// In-memory cache for Pay by Square QR codes (keyed by params, survives across previews)
+const qrCodeCache = new Map();
+
+// Generate Pay by Square QR code via Supabase Edge Function proxy
 const generatePaymentQRCode = async (iban, bic, amount, invoiceNumber, recipientName) => {
   try {
     // Validate IBAN
@@ -115,38 +117,51 @@ const generatePaymentQRCode = async (iban, bic, amount, invoiceNumber, recipient
       return null;
     }
 
-    // Clean and normalize inputs
     const cleanIBAN = iban.replace(/\s/g, '').toUpperCase();
-    const cleanBIC = normalizeForQR(bic || '');
     const cleanName = normalizeForQR(recipientName?.substring(0, 70) || '');
-    const cleanInvoiceNumber = normalizeForQR(invoiceNumber || '');
+    const cleanVS = normalizeForQR(invoiceNumber || '');
+    const amountStr = amount?.toFixed(2) || '0.00';
 
-    // EPC QR code format (European Payments Council)
-    // This is the standard format used in Slovakia for payment QR codes
-    const epcData = [
-      'BCD',                           // Service Tag
-      '002',                           // Version
-      '1',                             // Character set (1 = UTF-8)
-      'SCT',                           // Identification (SEPA Credit Transfer)
-      cleanBIC,                        // BIC/SWIFT of beneficiary bank
-      cleanName,                       // Name of beneficiary (max 70 chars)
-      cleanIBAN,                       // IBAN of beneficiary
-      `EUR${amount?.toFixed(2) || '0.00'}`, // Amount in EUR
-      '',                              // Purpose (optional)
-      cleanInvoiceNumber,              // Remittance reference (variable symbol)
-      '',                              // Remittance text (optional)
-      ''                               // Beneficiary to originator info (optional)
-    ].join('\n');
+    // Check cache first
+    const cacheKey = `${cleanIBAN}|${cleanName}|${amountStr}|${cleanVS}`;
+    if (qrCodeCache.has(cacheKey)) {
+      return qrCodeCache.get(cacheKey);
+    }
 
-    const qrDataUrl = await QRCode.toDataURL(epcData, {
-      width: 150,
-      margin: 1,
-      errorCorrectionLevel: 'M'
+    const params = new URLSearchParams({
+      iban: cleanIBAN,
+      beneficiary: cleanName,
+      amount: amountStr,
+      currency: 'EUR',
+      vs: cleanVS
     });
 
-    return qrDataUrl;
+    const response = await fetch(
+      `https://ueyfuqvwamfgxuwfwuxx.supabase.co/functions/v1/pay-by-square?${params.toString()}`
+    );
+
+    if (!response.ok) {
+      console.warn('Pay by Square API error:', response.status);
+      return null;
+    }
+
+    // Response is a PNG image — convert to data URL
+    const blob = await response.blob();
+    const dataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+
+    // Cache the result
+    if (dataUrl) {
+      qrCodeCache.set(cacheKey, dataUrl);
+    }
+
+    return dataUrl;
   } catch (error) {
-    console.warn('Failed to generate payment QR code:', error);
+    console.warn('Failed to generate Pay by Square QR code:', error);
     return null;
   }
 };
