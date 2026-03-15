@@ -31,7 +31,7 @@ const InvoiceDetailModal = ({ isOpen, onClose, invoice: invoiceProp, hideViewPro
   useScrollLock(isOpen);
   const { user } = useAuth();
   const { t, language } = useLanguage();
-  const { updateInvoice, deleteInvoice, updateClient, updateContractor, contractors, findProjectById, calculateProjectTotalPrice, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
+  const { updateInvoice, deleteInvoice, updateClient, updateContractor, contractors, findProjectById, calculateProjectTotalPriceWithBreakdown, formatPrice, clients, generalPriceList, addProjectHistoryEntry, invoices, updateProject } = useAppData();
   const navigate = useNavigate();
 
   // Modal states
