@@ -237,7 +237,7 @@ const InvoiceCreationModal = ({ isOpen, onClose, project, categoryId, editMode =
 
   // Invoice Type state
   const [invoiceType, setInvoiceType] = useState('regular'); // regular, proforma, delivery, credit_note
-  const [depositValue, setDepositValue] = useState(0);
+  const [depositValue, setDepositValue] = useState('');
   const [depositType, setDepositType] = useState('percentage'); // percentage, fixed
   const [returnPercentage, setReturnPercentage] = useState(100);
   const [returnReason, setReturnReason] = useState('zrusenie zakazky');
