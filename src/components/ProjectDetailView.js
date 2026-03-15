@@ -305,6 +305,8 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
   // Refs
   const photoInputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const projectRoomsDataRef = useRef(projectRoomsData);
+  projectRoomsDataRef.current = projectRoomsData;
 
   // Initialize data on mount or project change
   useEffect(() => {
@@ -312,7 +314,7 @@ const ProjectDetailView = ({ project, onBack, viewSource = 'projects' }) => {
       if (!projectId) return;
 
       // Only show loading spinner if we have no cached rooms for this project
-      const hasCachedRooms = projectRoomsData[projectId] && projectRoomsData[projectId].length > 0;
+      const hasCachedRooms = projectRoomsDataRef.current[projectId] && projectRoomsDataRef.current[projectId].length > 0;
       if (!hasCachedRooms) {
         setIsLoadingDetails(true);
       }
